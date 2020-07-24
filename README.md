@@ -10,6 +10,8 @@ Sistema desenvolvido para Divisão de Assistência Judiciária da Faculdade de D
 # Alteração do BD
 String de conexão: mysql+pysql://username:password@host:port/database
 
+```
 flask db init
 flask db migrate
 flask db upgrade
+```
