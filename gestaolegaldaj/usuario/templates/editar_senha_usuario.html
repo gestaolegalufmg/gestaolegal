@@ -1,0 +1,25 @@
+{% extends "base_dashboard.html" %}
+{% block titulo %}Editar senha{% endblock titulo %}
+{% block conteudo %}
+<form action="" method="POST" id="form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+        <span>Nova senha:</span>
+        <input type="password" id="senha" name="senha" required style="margin: 5px;" maxlength="60" placeholder="Escolha uma senha segura">
+    </div>
+    <div>
+        <span>Confirme sua senha:</span>
+        <input type="password" id="confirmacao" name="confirmacao" required style="margin: 5px;" maxlength="60" placeholder="Confirme sua senha">
+    </div>
+    <button type="submit" id="button">Confirmar</button>
+    <button type="button"><a href="{{url_for('principal.index')}}" style="color: inherit; text-decoration: none;">Cancelar</a></button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    //Trato o botão do form
+    document.getElementById('form').onsubmit= function() {document.getElementById('button').disabled = true};
+</script>
+{% endblock %}

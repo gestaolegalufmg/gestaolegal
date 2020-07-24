@@ -1,0 +1,70 @@
+{% extends "base_dashboard.html" %}
+
+{% block titulo %}
+    Home
+{% endblock %}
+
+{% block css %}
+<style>
+
+    .dynamic-text{
+        font-size: 2em;
+    }
+
+    .cfa-4x{
+        font-size: 2em;
+    }
+
+    @media (min-width: 576px) {
+        .dynamic-text{
+            font-size: 3.2vw;
+        }
+
+        .cfa-4x{
+            font-size: 3.2vw;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .dynamic-text{
+            font-size: 2.4vw;
+        }
+        .cfa-4x{
+            font-size: 2.4vw;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .dynamic-text{
+            font-size: 2.5vw;
+        }
+        .cfa-4x{
+            font-size: 2.5vw;
+        }
+    }
+
+</style>
+{% endblock %}
+
+{% block conteudo %}
+    <div class="row align-items-center justify-content-center">
+        <div class="my-3 col-12 col-md-6 col-lg-4 ">
+            <a href="{{url_for('principal.index')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-1"><i class="fas my-1 fa-briefcase cfa-4x mr-3"></i><span class="dynamic-text">Casos</span></a>
+        </div>
+        <div class="my-3 col-12 col-md-6 col-lg-4 ">
+            <a href="{{url_for('principal.index')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-2"><i class="fas my-1 fa-user cfa-4x mr-3"></i><span class="dynamic-text">Meus casos</span></a>
+        </div>
+        <div class="my-3 col-12 col-md-6 col-lg-4 ">
+            <a href="{{url_for('plantao.listar_atendidos')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-3"><i class="fas my-1 fa-globe cfa-4x mr-3"></i><span class="dynamic-text">Plantão</span></a>
+        </div>
+        <div class="my-3 col-12 col-md-6 col-lg-4 ">
+            <a href="{{url_for('principal.index')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-4"><i class="fas my-1 fa-bell cfa-4x mr-3"></i><span class="dynamic-text">Notificações</span></a>
+        </div>
+        <div class="my-3 col-12 col-md-6 col-lg-4 ">
+            <a href="{{url_for('principal.index')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-5"><i class="fas my-1 fa-chart-bar cfa-4x mr-3"></i><span class="dynamic-text">Relatórios</span></a>
+        </div>
+        <div class="my-3 col-12 col-md-6 col-lg-4 ">
+            <a href="{{url_for('principal.index')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-6"><i class="fas my-1 fa-file-alt cfa-4x mr-3"></i><span class="dynamic-text">Arquivos</span></a>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% if atendidos %}
+
+<div class="table-responsive">
+    <table class="table table-striped">
+    
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>CPF</th>
+            <th>CNPJ</th>
+            <th>Telefone</th>
+            <th>E-mail</th>
+            <th>&nbsp;&nbsp;Visualizar</th>
+            {% if current_user.urole == "admin" or current_user.urole == "colab_proj" or current_user.urole == "estag_direito" %}
+            <th>&nbsp;&nbsp;Editar</th>
+            {% endif %}
+            {% if current_user.urole == "admin" or current_user.urole == "estag_direito" %}
+            <th style="padding-left: 1.2em;">&nbsp;&nbsp;Tornar Assistido</th>
+            {% endif %}
+            {% if current_user.urole == "admin" %}
+            <th style="padding-left: 1.2em;">&nbsp;&nbsp;Excluir</th>
+            {% endif %}
+        </tr> 
+    </thead>
+    <tbody>
+        {% for atendido in atendidos.items %}
+        <tr>
+            <td>{{atendido.nome}}</td>
+            <td>{{atendido.cpf or '--'}}</td>
+            <td>{{atendido.cnpj or '--'}}</td>
+            <td>{{atendido.telefone}}</td>
+            <td>{{atendido.email}}</td>
+            <td><a href="{{url_for('plantao.perfil_assistido', _id=atendido.id)}}" class="btn mr-2 btn-flat btn-primary btn-sm">Visualizar</a></td>
+
+           
+            {% if current_user.urole == "admin" or current_user.urole == "colab_proj" or current_user.urole == "estag_direito" %}
+            {% if atendido.id in lista_assistidos %}
+            <td><button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
+                  href="{{url_for('plantao.editar_assistido', id_atendido = atendido.id)}}"
+                  style="text-decoration: none;color: white; text-align: center;">Editar</a></button></td>
+            {% endif %}
+            {% if atendido.id not in lista_assistidos %}
+            <td><button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
+                  href="{{url_for('plantao.editar_atendido', id_atendido = atendido.id)}}"
+                  style="text-decoration: none;color: white; text-align: center;">Editar</a></button></td>     
+            {% endif %}
+            {% endif %}
+            {% if atendido.id not in lista_assistidos %}
+
+            {% if current_user.urole == "admin" or current_user.urole == "estag_direito" %}
+            <td><button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
+              href="{{url_for('plantao.tornar_assistido', id_atendido = atendido.id)}}"
+              style="text-decoration: none;color: white; text-align: center;">Tornar Assistido</a></button>
+            </td>
+            {% endif %}
+            {% else %}
+            <td></td>
+            {% endif %}
+            {% if current_user.urole == "admin" %}
+            <td>
+                <form action="{{url_for('plantao.excluir_atendido')}}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div>
+                      <input type="hidden" id="excl_{{atendido.id}}" name="id" value="{{atendido.id}}">
+                    </div>
+                    <button type="submit" class="btn mb-1 ml-1 btn-flat btn-danger btn-sm"
+                      onclick="return confirm('Você deseja excluir este atendido?');">Excluir</button>
+                  </form>
+            </td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div style="margin: 15px;">
+    <h3>Nenhum atendido no momento, deseja cadastrar um novo atendimento?</h3>
+    <a href="{{url_for('plantao.cadastro_na')}}" class="btn btn-primary ml-auto p-2">Cadastrar novo atendido</a>
+</div>
+{% endif %}
