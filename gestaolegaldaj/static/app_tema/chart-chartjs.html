@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
+  <title>Grexa - Admin Dashboard Template</title>
+  <!-- General CSS Files -->
+  <link rel="stylesheet" href="assets/css/app.min.css">
+  <!-- Template CSS -->
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <!-- Custom style CSS -->
+  
+  <link rel='shortcut icon' type='image/x-icon' href='assets/img/favicon.ico' />
+</head>
+
+<body>
+  <div class="loader"></div>
+  <div id="app">
+    <div class="main-wrapper main-wrapper-1">
+      <div class="navbar-bg"></div>
+      <nav class="navbar navbar-expand-lg main-navbar">
+        <div class="form-inline mr-auto">
+          <ul class="navbar-nav mr-3">
+            <li><a href="#" data-toggle="sidebar" class="nav-link nav-link-lg collapse-btn"><i
+                  class="fas fa-bars"></i></a></li>
+            <li>
+            <div class="search-group">
+              <span class="nav-link nav-link-lg" id="search">
+                  <i class="fa fa-search" aria-hidden="true"></i>
+              </span>
+              <input type="text" class="search-control" placeholder="search" aria-label="search" aria-describedby="search">
+            </div>
+            </li>
+          </ul>
+        </div>
+        <ul class="navbar-nav navbar-right">
+        <li><a href="#" class="nav-link nav-link-lg fullscreen-btn">
+                <i class="fas fa-expand"></i>
+              </a>
+            </li>
+            
+          <li class="dropdown dropdown-list-toggle"><a href="#" data-toggle="dropdown"
+              class="nav-link notification-toggle nav-link-lg beep"><i class="far fa-bell"></i></a>
+            <div class="dropdown-menu dropdown-list dropdown-menu-right">
+              <div class="dropdown-header">Notifications
+                <div class="float-right">
+                  <a href="#">Mark All As Read</a>
+                </div>
+              </div>
+              <div class="dropdown-list-content dropdown-list-icons">
+                <a href="#" class="dropdown-item dropdown-item-unread">
+                  <span class="dropdown-item-icon bg-primary text-white">
+                    <i class="fas fa-shopping-cart"></i>
+                  </span>
+                  <span class="dropdown-item-desc">
+                    New Order
+                    <span class="time">3 Hours Ago</span>
+                  </span>
+                </a>
+                <a href="#" class="dropdown-item dropdown-item-unread">
+                  <span class="dropdown-item-icon bg-info text-white">
+                    <i class="fa fa-info-circle" aria-hidden="true"></i>
+                  </span>
+                  <span class="dropdown-item-desc">
+                    Application Error
+                    <span class="time">7 Hours Ago</span>
+                  </span>
+                </a>
+                <a href="#" class="dropdown-item">
+                  <span class="dropdown-item-icon bg-success text-white">
+                    <i class="fa fa-power-off" aria-hidden="true"></i>
+                  </span>
+                  <span class="dropdown-item-desc">
+                    Server restarted
+                    <span class="time">9 Hours Ago</span>
+                  </span>
+                </a>
+                <a href="#" class="dropdown-item">
+                  <span class="dropdown-item-icon bg-danger text-white">
+                    <i class="fa fa-server" aria-hidden="true"></i>
+                  </span>
+                  <span class="dropdown-item-desc">
+                    Your Subscription Expired
+                    <span class="time">10 Hours Ago</span>
+                  </span>
+                </a>
+                <a href="#" class="dropdown-item">
+                  <span class="dropdown-item-icon bg-purple text-white">
+                    <i class="fa fa-user-plus" aria-hidden="true"></i>
+                  </span>
+                  <span class="dropdown-item-desc">
+                    You have <b>4</b> new followers
+                    <span class="time">Yesterday</span>
+                  </span>
+                </a>
+              </div>
+              <div class="dropdown-footer text-center">
+                <a href="#">View All <i class="fas fa-chevron-right"></i></a>
+              </div>
+            </div>
+          </li>
+          <li class="dropdown dropdown-list-toggle"><a href="#" data-toggle="dropdown"
+              class="nav-link nav-link-lg"><i class="far fa-envelope"></i></a>
+            <div class="dropdown-menu dropdown-list dropdown-menu-right">
+              <div class="dropdown-header">Messages
+                <div class="float-right">
+                  <a href="#">Mark All As Read</a>
+                </div>
+              </div>
+              <div class="dropdown-list-content dropdown-list-message">
+                <a href="#" class="dropdown-item">
+                  <span class="dropdown-item-avatar text-white">
+                    <img alt="image" src="assets/img/users/user-1.png" class="image-square">
+                  </span>
+                  <span class="dropdown-item-desc">
+                    <span class="message-user">Michael Gardner</span>
+                    <span class="time messege-text">Analysis Project and Design Flowchart</span>
+                    <span class="time">2 Min Ago</span>
+                  </span>
+                </a>
+                <a href="#" class="dropdown-item">
+                  <span class="dropdown-item-avatar text-white">
+                    <img alt="image" src="assets/img/users/user-2.png" class="image-square">
+                  </span>
+                  <span class="dropdown-item-desc">
+                    <span class="message-user">Nancy Burton</span>
+                    <span class="time messege-text">Client meeting is cancelled</span>
+                    <span class="time">5 Hour Ago</span>
+                  </span>
+                </a>
+                <a href="#" class="dropdown-item">
+                  <span class="dropdown-item-avatar text-white">
+                    <img alt="image" src="assets/img/users/user-5.png" class="image-square">
+                  </span>
+                  <span class="dropdown-item-desc">
+                    <span class="message-user">Amiah Smith</span>
+                    <span class="time messege-text">Project Planning</span>
+                    <span class="time">12 Hour Ago</span>
+                  </span>
+                </a>
+                <a href="#" class="dropdown-item">
+                  <span class="dropdown-item-avatar text-white">
+                    <img alt="image" src="assets/img/users/user-4.png" class="image-square">
+                  </span>
+                  <span class="dropdown-item-desc">
+                    <span class="message-user">John Doe</span>
+                    <span class="time messege-text">Leave application !!</span>
+                    <span class="time">1 Days Ago</span>
+                  </span>
+                </a>
+                <a href="#" class="dropdown-item">
+                  <span class="dropdown-item-avatar text-white">
+                    <img alt="image" src="assets/img/users/user-3.png" class="image-square">
+                  </span>
+                  <span class="dropdown-item-desc">
+                    <span class="message-user">Wiltor Stone</span>
+                    <span class="time messege-text">Discussion about increment!</span>
+                    <span class="time">2 Days Ago</span>
+                  </span>
+                </a>
+                <a href="#" class="dropdown-item">
+                  <span class="dropdown-item-avatar text-white">
+                    <img alt="image" src="assets/img/users/user-2.png" class="image-square">
+                  </span>
+                  <span class="dropdown-item-desc">
+                    <span class="message-user">Nancy Burton</span>
+                    <span class="time messege-text">Upcoming project meeting</span>
+                    <span class="time text-primary">3 Days Ago</span>
+                  </span>
+                </a>
+              </div>
+              <div class="dropdown-footer text-center">
+                <a href="#">View All <i class="fas fa-chevron-right"></i></a>
+              </div>
+            </div>
+          </li>
+          
+          <li class="dropdown"><a href="#" data-toggle="dropdown"
+              class="nav-link dropdown-toggle nav-link-lg nav-link-user">
+              <img alt="image" src="assets/img/user.png" class="user-img-radious-style">
+              <span class="d-sm-none d-lg-inline-block"></span></a>
+            <div class="dropdown-menu dropdown-menu-right">
+              <div class="dropdown-title">Hello Jessica Hill</div>
+              <a href="profile.html" class="dropdown-item has-icon">
+                <i class="far fa-user"></i> Profile
+              </a>
+              <a href="timeline.html" class="dropdown-item has-icon">
+                <i class="fas fa-bolt"></i> Activities
+              </a>
+              <a href="" class="dropdown-item has-icon">
+                <i class="fas fa-cog"></i> Settings
+              </a>
+              <div class="dropdown-divider"></div>
+              <a href="auth-login.html" class="dropdown-item has-icon text-danger">
+                <i class="fas fa-sign-out-alt"></i> Logout
+              </a>
+            </div>
+          </li>
+        </ul>
+      </nav>
+      <div class="main-sidebar sidebar-style-2">
+        <aside id="sidebar-wrapper">
+          <div class="sidebar-brand">
+            <a href="index.html">
+              <img alt="image" src="assets/img/logo.png" class="header-logo" />
+              <span class="logo-name">Grexa</span>
+            </a>
+          </div>
+          <ul class="sidebar-menu">
+            <li class="menu-header">Main</li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="fas fa-home"></i><span>Dashboard</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="nav-link" href="index.html">Dashboard V1</a></li>
+                <li><a class="nav-link" href="index2.html">Dashboard V2</a></li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="fab fa-gg"></i><span>Apps</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="nav-link" href="chat.html">Chat</a></li>
+                <li><a class="nav-link" href="portfolio.html">Portfolio</a></li>
+                <li><a class="nav-link" href="blog.html">Blog</a></li>
+                <li><a class="nav-link" href="calendar.html">Calendar</a></li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="far fa-envelope"></i><span>Email</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="nav-link" href="email-inbox.html">Inbox</a></li>
+                <li><a class="nav-link" href="email-compose.html">Compose</a></li>
+                <li><a class="nav-link" href="email-read.html">read</a></li>
+              </ul>
+            </li>
+            <li><a class="nav-link" href="widget.html"><i class="fas fa-layer-group"></i><span>Widgets</span><b class="badge badge-danger">New</b></a></li>
+            <li class="menu-header">Components</li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="fas fa-leaf"></i><span>Basic
+                  UI</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="nav-link" href="alert.html">Alert</a></li>
+                <li><a class="nav-link" href="badge.html">Badge</a></li>
+                <li><a class="nav-link" href="breadcrumb.html">Breadcrumb</a></li>
+                <li><a class="nav-link" href="buttons.html">Buttons</a></li>
+                <li><a class="nav-link" href="collapse.html">Collapse</a></li>
+                <li><a class="nav-link" href="dropdown.html">Dropdown</a></li>
+                <li><a class="nav-link" href="checkbox-and-radio.html">Checkbox &amp; Radios</a></li>
+                <li><a class="nav-link" href="list-group.html">List Group</a></li>
+                <li><a class="nav-link" href="media-object.html">Media Object</a></li>
+                <li><a class="nav-link" href="navbar.html">Navbar</a></li>
+                <li><a class="nav-link" href="pagination.html">Pagination</a></li>
+                <li><a class="nav-link" href="popover.html">Popover</a></li>
+                <li><a class="nav-link" href="progress.html">Progress</a></li>
+                <li><a class="nav-link" href="tooltip.html">Tooltip</a></li>
+                <li><a class="nav-link" href="flags.html">Flag</a></li>
+                <li><a class="nav-link" href="typography.html">Typography</a></li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="fas fa-anchor"></i><span>Advanced UI</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="nav-link" href="avatar.html">Avatar</a></li>
+                <li><a class="nav-link" href="card.html">Card</a></li>
+                <li><a class="nav-link" href="modal.html">Modal</a></li>
+                <li><a class="nav-link" href="sweet-alert.html">Sweet Alert</a></li>
+                <li><a class="nav-link" href="toastr.html">Toastr</a></li>
+                <li><a class="nav-link" href="empty-state.html">Empty State</a></li>
+                <li><a class="nav-link" href="multiple-upload.html">Multiple Upload</a></li>
+                <li><a class="nav-link" href="tabs.html">Tab</a></li>
+              </ul>
+            </li>
+            
+            
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="fab fa-wpforms"></i><span>Forms</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="nav-link" href="basic-form.html">Basic Form</a></li>
+                <li><a class="nav-link" href="forms-advanced-form.html">Advanced Form</a></li>
+                <li><a class="nav-link" href="forms-editor.html">Editor</a></li>
+                <li><a class="nav-link" href="forms-validation.html">Validation</a></li>
+                <li><a class="nav-link" href="form-wizard.html">Form Wizard</a></li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="fab fa-buromobelexperte"></i><span>Tables</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="nav-link" href="basic-table.html">Basic Tables</a></li>
+                <li><a class="nav-link" href="datatables.html">Data Tables</a></li>
+                <li><a class="nav-link" href="export-table.html">Export Table</a></li>
+                <li><a class="nav-link" href="editable-table.html">Editable Table</a></li>
+              </ul>
+            </li>
+            <li class="dropdown active">
+              <a href="#" class="nav-link has-dropdown"><i class="far fa-chart-bar"></i><span>Charts</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="nav-link" href="chart-amchart.html">amChart</a></li>
+                <li><a class="nav-link" href="chart-apexchart.html">apexchart</a></li>
+                <li><a class="nav-link" href="chart-echart.html">eChart</a></li>
+                <li class="active"><a class="nav-link" href="chart-chartjs.html">Chartjs</a></li>
+                <li><a class="nav-link" href="chart-sparkline.html">Sparkline</a></li>
+                <li><a class="nav-link" href="chart-morris.html">Morris</a></li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="fab fa-airbnb"></i><span>Icons</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="nav-link" href="icon-font-awesome.html">Font Awesome</a></li>
+                <li><a class="nav-link" href="icon-material.html">Material Design</a></li>
+                <li><a class="nav-link" href="icon-ionicons.html">Ion Icons</a></li>
+                
+              </ul>
+            </li>
+            <li class="menu-header">Maps</li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="fab fa-google"></i> <span>Google
+                  Maps</span></a>
+              <ul class="dropdown-menu">
+                <li><a href="gmaps-advanced-route.html">Advanced Route</a></li>
+                <li><a href="gmaps-draggable-marker.html">Draggable Marker</a></li>
+                <li><a href="gmaps-geocoding.html">Geocoding</a></li>
+                <li><a href="gmaps-geolocation.html">Geolocation</a></li>
+                <li><a href="gmaps-marker.html">Marker</a></li>
+                <li><a href="gmaps-multiple-marker.html">Multiple Marker</a></li>
+                <li><a href="gmaps-route.html">Route</a></li>
+                <li><a href="gmaps-simple.html">Simple</a></li>
+              </ul>
+            </li>
+            <li><a class="nav-link" href="vector-map.html"><i class="fas fa-map-marked-alt"></i><span>Vector
+                  Map</span></a></li>
+            <li class="menu-header">Pages</li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="fas fa-lock"></i><span>Auth</span></a>
+              <ul class="dropdown-menu">
+                <li><a href="auth-forgot-password.html">Forgot Password</a></li>
+                <li><a href="auth-login.html">Login</a></li>
+                <li><a href="auth-register.html">Register</a></li>
+                <li><a href="auth-reset-password.html">Reset Password</a></li>
+                <li><a href="subscribe.html">Subscribe</a></li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i
+                  class="fas fa-exclamation-triangle"></i><span>Errors</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="nav-link" href="errors-503.html">503</a></li>
+                <li><a class="nav-link" href="errors-403.html">403</a></li>
+                <li><a class="nav-link" href="errors-404.html">404</a></li>
+                <li><a class="nav-link" href="errors-500.html">500</a></li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="far fa-file-alt"></i><span>Special Pages</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="nav-link" href="timeline.html">Timeline</a></li>
+                <li><a class="nav-link" href="pricing.html">Pricing</a></li>
+                <li><a class="nav-link" href="blank.html">Blank Page</a></li>
+<li><a class="nav-link" href="create-post.html">Create Post</a></li>
+                <li><a class="nav-link" href="posts.html">Posts</a></li>
+                <li><a class="nav-link" href="profile.html">Profile</a></li>
+                <li><a class="nav-link" href="contact.html">Contact</a></li>
+                <li><a class="nav-link" href="invoice.html">Invoice</a></li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a href="#" class="nav-link has-dropdown"><i class="fas fa-hand-point-down"></i><span>Multilevel</span></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">Menu 1</a></li>
+                <li class="dropdown">
+                  <a href="#" class="has-dropdown">Menu 2</a>
+                  <ul class="dropdown-menu">
+                    <li><a href="#">Child Menu 1</a></li>
+                    <li class="dropdown">
+                      <a href="#" class="has-dropdown">Child Menu 2</a>
+                      <ul class="dropdown-menu">
+                        <li><a href="#">Child Menu 1</a></li>
+                        <li><a href="#">Child Menu 2</a></li>
+                      </ul>
+                    </li>
+                    <li><a href="#"> Child Menu 3</a></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </aside>
+      </div>
+      <!-- Main Content -->
+      <div class="main-content">
+        <section class="section">
+          <div class="section-header">
+            <h1>Chart.JS</h1>
+            <div class="section-header-breadcrumb">
+              <div class="breadcrumb-item active"><a href="#">Dashboard</a></div>
+              <div class="breadcrumb-item"><a href="#">Charts</a></div>
+              <div class="breadcrumb-item">Chart.js</div>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="row">
+              <div class="col-12 col-md-6 col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h4>Bar Chart</h4>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="myChart2"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-md-6 col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h4>Line Chart</h4>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="myChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12 col-md-6 col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h4>Area Chart</h4>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="lineChartFill"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-md-6 col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h4>Line Chart</h4>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="line-chart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12 col-md-6 col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h4>Pie Chart</h4>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="myChart4"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-md-6 col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h4>Doughnut Chart</h4>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="myChart3"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12 col-md-6 col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h4>Polar Chart</h4>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="polar-chart"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-md-6 col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h4>Radar Chart</h4>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="radar-chart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12 col-md-6 col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h4>Line With Gradient Color</h4>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="line-chart4"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-md-6 col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h4>Line With Gradient Color</h4>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="line-chart3"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <div class="settingSidebar">
+			<a href="javascript:void(0)" class="settingPanelToggle"> <i
+				class="fa fa-spin fa-cog"></i>
+			</a>
+			<div class="settingSidebar-body ps-container ps-theme-default">
+				<div class=" fade show active">
+					<div class="setting-panel-header">Theme Customizer</div>
+					<div class="p-15 border-bottom">
+						<h6 class="font-medium m-b-10">Theme Layout</h6>
+						<div class="selectgroup layout-color w-50">
+							<label> <span class="control-label p-r-20">Light</span>
+								<input type="radio" name="custom-switch-input" value="1"
+								class="custom-switch-input" checked> <span
+								class="custom-switch-indicator"></span>
+							</label>
+						</div>
+						<div class="selectgroup layout-color  w-50">
+							<label> <span class="control-label p-r-20">Dark&nbsp;</span>
+								<input type="radio" name="custom-switch-input" value="2"
+								class="custom-switch-input"> <span
+								class="custom-switch-indicator"></span>
+							</label>
+						</div>
+					</div>
+				</div>
+				<div class="p-15 border-bottom">
+					<h6 class="font-medium m-b-10">Sidebar Colors</h6>
+					<div class="sidebar-setting-options">
+						<ul class="sidebar-color list-unstyled mb-0">
+							<li title="white" class="active">
+								<div class="white"></div>
+							</li>
+							<li title="blue">
+								<div class="blue"></div>
+							</li>
+							<li title="coral">
+								<div class="coral"></div>
+							</li>
+							<li title="purple">
+								<div class="purple"></div>
+							</li>
+							<li title="allports">
+								<div class="allports"></div>
+							</li>
+							<li title="barossa">
+								<div class="barossa"></div>
+							</li>
+							<li title="fancy">
+								<div class="fancy"></div>
+							</li>
+						</ul>
+					</div>
+		
+				</div>
+				<div class="p-15 border-bottom">
+					<h6 class="font-medium m-b-10">Theme Colors</h6>
+					<div class="theme-setting-options">
+						<ul class="choose-theme list-unstyled mb-0">
+							<li title="white" class="active">
+								<div class="white"></div>
+							</li>
+							<li title="blue">
+								<div class="blue"></div>
+							</li>
+							<li title="coral">
+								<div class="coral"></div>
+							</li>
+							<li title="purple">
+								<div class="purple"></div>
+							</li>
+							<li title="allports">
+								<div class="allports"></div>
+							</li>
+							<li title="barossa">
+								<div class="barossa"></div>
+							</li>
+							<li title="fancy">
+								<div class="fancy"></div>
+							</li>
+							<li title="cyan">
+								<div class="cyan"></div>
+							</li>
+							<li title="orange">
+								<div class="orange"></div>
+							</li>
+							<li title="green">
+								<div class="green"></div>
+							</li>
+							<li title="red">
+								<div class="red"></div>
+							</li>
+						</ul>
+					</div>
+				</div>
+				<div class="p-15 border-bottom">
+					<h6 class="font-medium m-b-10">Layout Options</h6>
+					<div class="theme-setting-options">
+						<label> <span class="control-label p-r-20">Compact
+								Sidebar Menu</span> <input type="checkbox"
+							name="custom-switch-checkbox" class="custom-switch-input"
+							id="mini_sidebar_setting"> <span
+							class="custom-switch-indicator"></span>
+						</label>
+					</div>
+				</div>
+				<div class="mt-3 mb-3 align-center">
+					<a href="#"
+						class="btn btn-icon icon-left btn-outline-primary btn-restore-theme">
+						<i class="fas fa-undo"></i> Restore Default
+					</a>
+				</div>
+			</div>
+		</div>
+      </div>
+      <footer class="main-footer">
+        <div class="footer-left">
+          Copyright &copy; 2020 <div class="bullet"></div> Design By <a href="#">Snkthemes</a>
+        </div>
+        <div class="footer-right">
+        </div>
+      </footer>
+    </div>
+  </div>
+  <!-- General JS Scripts -->
+  <script src="assets/js/app.min.js"></script>
+  <!-- JS Libraies -->
+  <script src="assets/bundles/chartjs/chart.min.js"></script>
+  <!-- Page Specific JS File -->
+  <script src="assets/js/page/chart-chartjs.js"></script>
+  <!-- Template JS File -->
+  <script src="assets/js/scripts.js"></script>
+  
+</body>
+
+</html>

@@ -1,0 +1,28 @@
+# https://hub.docker.com/_/mysql
+version: '3.7'
+
+services:
+
+  gl_db:
+    image: mysql
+    container_name: gl_db
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: administrator
+      MYSQL_DATABASE: gestaolegal
+      MYSQL_USER: gestaolegal
+      MYSQL_PASSWORD: gestaolegal
+    ports:
+      - "3306:3306"
+    expose:
+      - "3306"
+    volumes:
+    - /opt/gestaolegaldaj/docker_volumes/mysql:/var/lib/mysql
+
+  gl_adminer:
+    image: adminer
+    container_name: gl_adminer
+    restart: always
+    ports:
+      - "8080:8080"

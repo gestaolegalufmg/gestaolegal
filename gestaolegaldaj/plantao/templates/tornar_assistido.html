@@ -1,0 +1,552 @@
+{% extends "base_dashboard.html" %}
+{%block titulo%}Tornar Assistido{%endblock%}
+{% block conteudo %}
+{% block css %}
+<style>
+    input[type=number]::webkit-inner-spin-button,
+    input[type=number]::webkit-outer-spin-button {
+        -webkit-appearence: none !important;
+        margin: 0 !important;
+    }
+
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+</style>
+{% endblock %}
+
+
+<div class="card pessoa" id = "pessoa">
+    <div class="card-body">
+        <h2>{{atendido.nome}}</h2>
+        <div class= "form-validation">
+            <form class="form-valide" action="{{url_for('plantao.tornar_assistido', id_atendido = atendido.id)}}" method="POST" id="form">
+                {{ form.csrf_token }}
+                
+                <br><h4>Dados Pessoais</h4><br>
+            
+                <div class="form-group row" id="div_sexo">
+                    <label class="col-lg-4 col-form-label" for="sexo" >{{form.sexo.label}} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.sexo(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.sexo.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_raca">
+                    <label class="col-lg-4 col-form-label"  for="raca">{{form.raca.label}} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.raca(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.raca.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_profissao">
+                    <label class="col-lg-4 col-form-label" for="profissao"  > {{form.profissao.label}} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.profissao(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.profissao.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_rg">
+                    <label class="col-lg-4 col-form-label" for="rg" >{{form.rg.label}} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.rg(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.rg.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+
+<!--------------------------------------------------------------------------DADOS DE PESSOA FISICA---------------------------------------------------------------------------------->
+                <br><h4>Dados Sociais</h4><br>
+
+                <div class="form-group row" id="div_grau_instrucao">
+                    <label class="col-lg-4 col-form-label"  for="grau_instrucao">{{form.grau_instrucao.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.grau_instrucao(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.grau_instrucao.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <br><h4>Renda e Patrimônio</h4><br>    
+                <div class="form-group row" id="div_salario">
+                    <label class="col-lg-4 col-form-label" for="salario">{{form.salario.label}} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.salario(type="number", step="0.01", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.salario.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_beneficio">
+                    <label class="col-lg-4 col-form-label"  for="beneficio">{{form.beneficio.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.beneficio(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.beneficio.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_contribui_inss">
+                    <label class="col-lg-4 col-form-label"  for="contribui_inss">{{form.contribui_inss.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.contribui_inss(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.contribui_inss.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_qtd_pessoas_moradia">
+                    <label class="col-lg-4 col-form-label" for="qtd_pessoas_moradia">{{form.qtd_pessoas_moradia.label}} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.qtd_pessoas_moradia(type="number", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.qtd_pessoas_moradia.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_renda_familiar">
+                    <label class="col-lg-4 col-form-label" for="renda_familiar">{{form.renda_familiar.label}} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.renda_familiar(type="number", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.renda_familiar.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_participacao_renda">
+                    <label class="col-lg-4 col-form-label" for="participacao_renda">{{form.participacao_renda.label}} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.participacao_renda(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.participacao_renda.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_tipo_moradia">
+                    <label class="col-lg-4 col-form-label" for="tipo_moradia">{{form.tipo_moradia.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.tipo_moradia(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.tipo_moradia.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_possui_outros_imoveis">
+                    <label class="col-lg-4 col-form-label" for="possui_outros_imoveis">{{form.possui_outros_imoveis.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.possui_outros_imoveis(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.possui_outros_imoveis.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_possui_veiculos">
+                    <label class="col-lg-4 col-form-label" for="possui_veiculos">{{form.possui_veiculos.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.possui_veiculos(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.possui_veiculos.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_possui_veiculos_obs">
+                    <label class="col-lg-4 col-form-label" for="possui_veiculos_obs">{{form.possui_veiculos_obs.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.possui_veiculos_obs(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.possui_veiculos_obs.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_quantos_veiculos">
+                    <label class="col-lg-4 col-form-label" for="quantos_veiculos">{{form.quantos_veiculos.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.quantos_veiculos(type="number", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.quantos_veiculos.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_ano_veiculo">
+                    <label class="col-lg-4 col-form-label" for="ano_veiculo">{{form.ano_veiculo.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.ano_veiculo(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.ano_veiculo.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_doenca_grave_familia">
+                    <label class="col-lg-4 col-form-label" for="doenca_grave_familia">{{form.doenca_grave_familia.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.doenca_grave_familia(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.doenca_grave_familia.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_pessoa_doente">
+                    <label class="col-lg-4 col-form-label" for="pessoa_doente">{{form.pessoa_doente.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.pessoa_doente(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.pessoa_doente.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="pessoa_doente_obs">
+                    <label class="col-lg-4 col-form-label" for="pessoa_doente_obs">{{form.pessoa_doente_obs.label}}<span class="text-danger">*</span></label>
+                    <div class="col-lg-6">
+                        {{form.pessoa_doente_obs(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.pessoa_doente_obs.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_gastos_medicacao">
+                    <label class="col-lg-4 col-form-label" for="gastos_medicacao">{{form.gastos_medicacao.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.gastos_medicacao(type="number", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.gastos_medicacao.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_obs">
+                    <label class="col-lg-4 col-form-label" for="obs">{{form.obs.label}}</label>
+                    <div class="col-lg-6">
+                        {{form.obs(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.obs.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+<!--------------------------------------------------------------------------DADOS DE PESSOA FISICA---------------------------------------------------------------------------------->
+
+<!--------------------------------------------------------------------------DADOS DA PESSOA JURÍDICA------------------------------------------>
+                
+        {% if atendido.pj_constituida == '1' %}
+            <h4 id="h4_dados_juridicos">Dados Jurídicos</h4>
+            
+<!--------------------------------------------------------------------------DADOS DE PESSOA JURIDICA-------------------------------------------------------------------------------->
+                <div class="form-group row" id="div_socios">
+                    <label class="col-lg-4 col-form-label" aria-placeholder="Nome-CPF-Estado Civil" for="socios">{{form.socios.label}}</label>
+                    <div class="col-lg-6">
+                        {{form.socios(class_="form-control")}}
+                    </div>
+                </div> 
+
+            {% for error in form.socios.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+                
+
+                <div class="form-group row" id="div_situacao_receita">
+                    <label class="col-lg-4 col-form-label" for="situacao_receita">{{form.situacao_receita.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.situacao_receita(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.situacao_receita.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_enquadramento">
+                    <label class="col-lg-4 col-form-label" for="enquadramento">{{form.enquadramento.label}} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.enquadramento(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.enquadramento.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_sede_bh">
+                    <label class="col-lg-4 col-form-label" for="sede_bh">{{form.sede_bh.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.sede_bh(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.sede_bh.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_regiao_sede_bh">
+                    <label class="col-lg-4 col-form-label" for="regiao_sede_bh">{{form.regiao_sede_bh.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.regiao_sede_bh(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.regiao_sede_bh.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_regiao_sede_outros">
+                    <label class="col-lg-4 col-form-label" for="regiao_sede_outros">{{form.regiao_sede_outros.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.regiao_sede_outros(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.regiao_sede_outros.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_area_atuacao">
+                    <label class="col-lg-4 col-form-label" for="area_atuacao">{{form.area_atuacao.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.area_atuacao(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.area_atuacao.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_negocio_nascente">
+                    <label class="col-lg-4 col-form-label" for="negocio_nascente">{{form.negocio_nascente.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.negocio_nascente(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.negocio_nascente.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_orgao_registro">
+                    <label class="col-lg-4 col-form-label" for="orgao_registro">{{form.orgao_registro.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.orgao_registro(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.orgao_registro.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_faturamento_anual">
+                    <label class="col-lg-4 col-form-label" for="faturamento_anual">{{form.faturamento_anual.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.faturamento_anual(type="number", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.faturamento_anual.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_ultimo_balanco_neg">
+                    <label class="col-lg-4 col-form-label" for="ultimo_balanco_neg">{{form.ultimo_balanco_neg.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.ultimo_balanco_neg(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.ultimo_balanco_neg.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_resultado_econ_neg">
+                    <label class="col-lg-4 col-form-label" for="resultado_econ_neg">{{form.resultado_econ_neg.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.resultado_econ_neg(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.resultado_econ_neg.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_tem_funcionarios">
+                    <label class="col-lg-4 col-form-label" for="tem_funcionarios">{{form.tem_funcionarios.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.tem_funcionarios(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.tem_funcionarios.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_qtd_funcionarios">
+                    <label class="col-lg-4 col-form-label" for="qtd_funcionarios">{{form.qtd_funcionarios.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.qtd_funcionarios(type="number", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.qtd_funcionarios.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+        
+        {% endif %}        
+                </div>
+                <button type="submit" class="btn btn-primary" id="button">Tornar Assistido</button>
+            </form>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{url_for('static',filename='js/form_utils.js')}}"></script>
+<script src="{{url_for('static',filename='js/assistidoForm_utils.js')}}"></script>
+<script>
+   /* var IsRepresetanteLegal 
+    IsRepresetanteLegal = "{{atendido.pj_constituida}}"
+    console.log(IsRepresetanteLegal)*/
+
+    trataBotaoForm();
+    //validarRepresLegal(IsrepresetanteLegal)
+    //CHAMO AS FUNCOES DE VISIBILIDADE
+    var sedebh = document.getElementById('sede_bh')
+    var temFunc = document.getElementById('tem_funcionarios')
+
+    visibilidadePossui_veiculos()
+    visibilidadeDoenca_grave_familia()
+    visibilidadePessoaDoenteOBS()
+    if (sedebh != null) {
+        visibilidadeSede_bh()
+    }
+
+    if (temFunc != null) {
+        visibilidadeTem_funcionarios()
+    }
+
+    ////LINKO A FUNÇAO DE VISIBILIDADE AO CAMPO QUE ALTERA ESTA FUNCAO
+    document.getElementById('possui_veiculos').onchange = function() {visibilidadePossui_veiculos()};
+    document.getElementById('doenca_grave_familia').onchange = function() {visibilidadeDoenca_grave_familia()};
+    document.getElementById('pessoa_doente').onchange = function(){visibilidadePessoaDoenteOBS()};
+    if (sedebh != null) {
+        document.getElementById('sede_bh').onchange = function() {visibilidadeSede_bh()};
+    }
+
+    if (temFunc != null) {
+        document.getElementById('tem_funcionarios').onchange = function() {visibilidadeTem_funcionarios()};
+    }
+
+//Função que remove efeitos no tipo Number
+    document.addEventListener("wheel", function (event) {
+    if (document.activeElement.type === "number") {
+        document.activeElement.blur();
+    }
+    })
+
+/*TODO: Verificar a necessidade desta validação e, caso necessário, fazer ela em todos os formulários(preferencialmente no WTForms por ser mais rápido de replicar em outros forms)
+     function validar() {
+        var cpf = document.getElementById('val-cpf');
+
+       alert(TestaCPF(cpf.text));
+   }
+
+   function TestaCPF(strCPF) {
+    var Soma;
+    var Resto;
+    Soma = 0;
+  if (strCPF == "00000000000") return false;
+
+  for (i=1; i<=9; i++) Soma = Soma + parseInt(strCPF.substring(i-1, i)) * (11 - i);
+  Resto = (Soma * 10) % 11;
+
+    if ((Resto == 10) || (Resto == 11))  Resto = 0;
+    if (Resto != parseInt(strCPF.substring(9, 10)) ) return false;
+
+  Soma = 0;
+    for (i = 1; i <= 10; i++) Soma = Soma + parseInt(strCPF.substring(i-1, i)) * (12 - i);
+    Resto = (Soma * 10) % 11;
+
+    if ((Resto == 10) || (Resto == 11))  Resto = 0;
+    if (Resto != parseInt(strCPF.substring(10, 11) ) ) return false;
+    return true;
+}*/
+</script>
+{%endblock%}

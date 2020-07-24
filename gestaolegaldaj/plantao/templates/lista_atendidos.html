@@ -1,0 +1,71 @@
+{% extends "base_dashboard.html" %}
+
+{% block titulo %} Atendidos e Assistidos{% endblock titulo %}
+
+{% block conteudo %}
+<nav class="d-inline-block">
+  <ul class="pagination mb-0">
+    {% for page_num in atendidos.iter_pages(left_edge=3, right_edge=3, left_current=2, right_current=2) %}
+    {% if page_num and atendidos.page == page_num%}
+    <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+    {% elif page_num %}
+    <li class="page-item"><a class="page-link"
+        href="{{ url_for('plantao.listar_atendidos', page=page_num) }}">{{ page_num }}</a>
+      {% else %}
+    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+</nav>
+<div class="card">
+  <div class="card-body">
+    <div class="card-title">
+      <div class="d-flex flex-row">
+        <div class="d-flex justify-content-start">
+          <input type="hidden" name="csrf_token" id="token" value="{{ csrf_token() }}">
+          <div id="table-2_filter" class="dataTables_filter"><label>Buscar
+            <input type="search" id="busca" class="form-control form-control-sm" Atendido ou
+                Assistido:<input type="text" id="busca" class="form-control form-control-sm"
+                aria-controls="table-2"></label></div>
+        </div>
+        <div class="d-flex ml-auto">
+          <button type="submit" name="button" class="btn btn-primary ml-auto p-2"><a
+              style="color: inherit; text-decoration: none;" href="{{url_for('plantao.cadastro_na')}}">Cadastrar
+              Atendido</a></button>
+        </div>
+      </div>
+    </div>
+    <div id="renderizar_atendidos">
+      {% include 'busca_atendidos.html' %}
+    </div>
+  </div>
+</div>
+{% endblock conteudo %}
+
+{% block scripts %}
+
+<script>
+  let busca = document.getElementById('busca');
+  let token = document.getElementById('token').value;
+
+  $('#busca').on({
+    keyup: (event) => {
+      $.ajax({
+        method: "POST",
+        url: "{{url_for('plantao.listar_atendidos')}}",
+        headers: {
+          'X-CSRF-Token': token
+        },
+        contentType: "charset=utf-8",
+        data: $('#busca').val(),
+        success: (result) => {
+          document.getElementById('renderizar_atendidos').innerHTML = '';
+          $('#renderizar_atendidos').append(result);
+        }
+      })
+    }
+  })
+
+</script>
+
+{% endblock scripts %}

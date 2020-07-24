@@ -1,0 +1,100 @@
+{% extends "base_dashboard.html" %}
+
+
+{% block conteudo %}
+<nav class="d-inline-block">
+  <ul class="pagination mb-0">
+    {% for page_num in pagination.iter_pages(left_edge=3, right_edge=3, left_current=2, right_current=2) %}
+    {% if page_num and pagination.page == page_num%}
+    <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+    {% elif page_num %}
+    <li class="page-item"><a class="page-link"
+        href="{{ url_for('plantao.associa_orientacao_juridica',id_orientacao=orientacao_entidade.id, id_atendido=atendido.id, page=page_num) }}">{{ page_num }}</a>
+      {% else %}
+    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+</nav>
+<div class="card">
+  <div class="card-body">
+    <div class="card-title">
+      <div class="d-flex flex-row">
+        <h4 class="d-flex justify-content-start">Atendidos</h4>
+        <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm ml-auto " name="button"><a
+          href="{{url_for('principal.index')}}" style="text-decoration: none;color: white;">Sair</a></button>
+        </div>
+        <div class="d-flex justify-content-start">
+          <input type="hidden" name="csrf_token" id="token" value="{{ csrf_token() }}">
+          <div id="table-2_filter" class="dataTables_filter"><label>Buscar
+            <input type="text" id="busca" class="form-control form-control-sm" aria-controls="table-2"></label>
+          </div>
+        </div>
+    </div>
+    <form class="form-valide" action="#" method="POST" id="form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="table-responsive" id="renderizar_atendidos_oj">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            
+            <th>NOME</th>
+            <th>ORIENTAÇÃO JURÍDICA (ID: {{orientacao_entidade.id}})</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          {% for atendido in lista %}
+          <tr>
+            
+            <td>{{atendido.nome}}</td>
+            <td>
+              <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                href="{{url_for('plantao.associa_orientacao_juridica', id_orientacao = orientacao_entidade.id, id_atendido=atendido.id)}}"
+                style="text-decoration: none;color: white;">Associar à Orientação Jurídica</a></button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    </form>
+  </div>
+</div>
+{%endblock%}
+
+{% block scripts %}
+
+<script>
+  
+  let busca = document.getElementById('busca');
+  //let token = document.getElementById('token').value;
+
+  $('#busca').on({
+    keyup: (event) => {
+      $.ajax({
+        method: "GET",
+        url: `${window.origin}/plantao/busca_atendidos_oj/${busca.value}`,
+        success: (response) => {
+          $('tbody').html('');
+            $.each(response, (index,value) => {
+            $('tbody').append(`
+              <tr>
+                
+                <td>${value.nome}</td>
+                <td>
+                  <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                    href="${window.origin}/plantao/associa_orientacao_juridica/orientacao_entidade.id/${value.id}"
+                    style="text-decoration: none;color: white;">Associar à Orientação Jurídica</a></button>
+                </td>
+              </tr>        
+            `);
+          })  
+        }
+      })
+    }
+  })
+  
+</script>
+
+{% endblock %}

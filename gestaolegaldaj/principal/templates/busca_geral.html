@@ -1,0 +1,179 @@
+{% extends "base_dashboard.html" %}
+
+{% block titulo %}Busca geral {% endblock titulo %}
+
+{% block css %}
+
+{% endblock css %}
+
+{% block conteudo %}
+
+<div class="section">
+    <div class="section-body">
+        <div class="card">
+            <div class="card-header">
+              <h4>Usuários do sistema</h4>
+            </div>
+            <div class="card-body">
+
+              <nav class="d-inline-block">
+                <ul class="pagination mb-0">
+                  {% for page in usuarios.iter_pages() %}
+                  {% if page %}
+                  {% if page != usuarios.page %}
+                  <li class="page-item"><a class="page-link" href="{{ url_for('principal.busca_geral', page_usuario=page, busca_atual=busca_atual) }}">{{ page }}</a>
+                  </li>
+                  {% else %}
+                  <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+                  {% endif %}
+                  {% else %}
+                  <li class="page-item disabled"><a class="page-link" href="#">…</a></li>
+                  {% endif %}
+                  {% endfor %}
+                </ul>
+              </nav>
+
+              {% if usuarios.items %}  
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">E-mail</th>
+                    <th scope="col">Celular</th>
+                    <th scope="col"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for usuario in usuarios.items %}
+                  <tr>
+                    <td>{{usuario.nome}}</td>
+                    <td>{{usuario.email}}</td>
+                    <td>{{usuario.celular}}</td>
+                    <td>
+                      <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                        href="{{url_for('usuario.perfil_usuario', id_user = usuario.id)}}"
+                        style="text-decoration: none;color: white;">Visualizar</a></button>
+                    </td>
+                  </tr> 
+                {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <h3>Nenhuma correspondência encontrada</h3>
+              {% endif %}
+            </div>
+          </div>
+        
+          <div class="card">
+            <div class="card-header">
+              <h4>Assistidos</h4>
+            </div>
+
+            <div class="card-body">
+            {% if assistidos.items %}   
+
+              <nav class="d-inline-block">
+                <ul class="pagination mb-0">
+                  {% for page in assistidos.iter_pages() %}
+                  {% if page %}
+                  {% if page != assistidos.page %}
+                  <li class="page-item"><a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pfisica=page, busca_atual=busca_atual) }}">{{ page }}</a>
+                  </li>
+                  {% else %}
+                  <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+                  {% endif %}
+                  {% else %}
+                  <li class="page-item disabled"><a class="page-link" href="#">…</a></li>
+                  {% endif %}
+                  {% endfor %}
+                </ul>
+              </nav>
+
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">E-mail</th>
+                    <th scope="col">Celular</th>
+                    <th scope="col"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for assistido in assistidos.items %}
+                  <tr>
+                    <td>{{assistido.nome}}</td>
+                    <td>{{assistido.email}}</td>
+                    <td>{{assistido.celular}}</td>
+                    <td>
+                      <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                        href="{{url_for('plantao.perfil_assistido', _id=assistido.id)}}"
+                        style="text-decoration: none;color: white;">Visualizar</a></button>
+                    </td>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+            <h3>Nenhuma correspondência encontrada</h3>
+            {% endif %}
+            </div>
+          </div>
+        
+          <div class="card">
+            <div class="card-header">
+              <h4>Assistidos pessoas jurídicas</h4>
+            </div>
+            <div class="card-body">
+            {% if assistidos_pjuridica.items %}
+
+              <nav class="d-inline-block">
+                <ul class="pagination mb-0">
+                  {% for page in assistidos_pjuridica.iter_pages() %}
+                  {% if page %}
+                  {% if page != assistidos_pjuridica.page %}
+                  <li class="page-item"><a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pjuridica=page, busca_atual=busca_atual) }}">{{ page }}</a>
+                  </li>
+                  {% else %}
+                  <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+                  {% endif %}
+                  {% else %}
+                  <li class="page-item disabled"><a class="page-link" href="#">…</a></li>
+                  {% endif %}
+                  {% endfor %}
+                </ul>
+              </nav>
+
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Celular</th>
+                    <th scope="col"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for assistido_pjuridica in assistidos_pjuridica.items %}
+                  <tr>
+                    <td>{{assistido_pjuridica.nome}}</td>
+                    <td>{{assistido_pjuridica.email}}</td>
+                    <td>{{assistido_pjuridica.celular}}</td>
+                    <td>
+                      <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                        href="{{url_for('plantao.perfil_assistido', _id=assistido_pjuridica.id)}}"
+                        style="text-decoration: none;color: white;">Visualizar</a></button>
+                    </td>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+            <h3>Nenhuma correspondência encontrada</h3>  
+            {% endif %}
+            </div>
+          </div>
+    </div>
+</div>
+
+{% endblock conteudo %}
+

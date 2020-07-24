@@ -1,0 +1,204 @@
+{% extends 'base_dashboard.html' %}
+{% block titulo %} Perfil {{assistido.Atendido.nome}} {% endblock titulo %}
+
+{% block conteudo %}
+
+<div class="row">
+    <div class="col-md-6 col-xs-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>Dados de Atendimento</h4>
+            </div>
+            <div class="card-body">
+                <div class="py-2">
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Nome:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.nome}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Data de nascimento:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.data_nascimento}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            CPF:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.cpf or '--'}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            CNPJ:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.cnpj or '--'}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Celular:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.celular}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            E-mail:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.email}}
+                        </span>
+                    </p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+{% if assistido.Assistido.id != Null %}
+    <div class="col-md-6 col-xs-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>Dados de Assistido</h4>
+            </div>
+            <div class="card-body">
+                <div class="py-2">
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Sexo:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Assistido.sexo}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Profissão:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Assistido.profissao}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Raça:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Assistido.raca}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            RG:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Assistido.rg or '--'}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Grau de instrução:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Assistido.grau_instrucao}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Salário:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Assistido.salario}}
+                        </span>
+                    </p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+</div>
+
+{% if assistido.AssistidoPessoaJuridica.id != Null %}
+<div class="row">
+    <div class="col-md-6 col-xs-12">
+    <div class="card">
+        <div class="card-header">
+            <h4>Dados de Assistido Pessoa Jurídica</h4>
+        </div>
+        <div class="card-body">
+            <div class="py-2">
+
+                <p class="clearfix">
+                    <span class="float-left">
+                        Situação receita:
+                    </span>
+                    <span class="float-right text-muted">
+                        {{assistido.AssistidoPessoaJuridica.situacao_receita or '--'}}
+                    </span>
+                </p>
+
+                <p class="clearfix">
+                    <span class="float-left">
+                        Enquandramento:
+                    </span>
+                    <span class="float-right text-muted">
+                        {{assistido.AssistidoPessoaJuridica.enquadramento}}
+                    </span>
+                </p>
+
+                <p class="clearfix">
+                    <span class="float-left">
+                        Area de atuação:
+                    </span>
+                    <span class="float-right text-muted">
+                        {{assistido.AssistidoPessoaJuridica.area_atuacao}}
+                    </span>
+                </p>
+
+                <p class="clearfix">
+                    <span class="float-left">
+                        Órgão de registro:
+                    </span>
+                    <span class="float-right text-muted">
+                        {{assistido.AssistidoPessoaJuridica.orgao_registro}}
+                    </span>
+                </p>
+
+                <p class="clearfix">
+                    <span class="float-left">
+                        Faturamento anual:
+                    </span>
+                    <span class="float-right text-muted">
+                        {{assistido.AssistidoPessoaJuridica.faturamento_anual}}
+                    </span>
+                </p>
+
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+{% endif %}
+
+
+{% endblock %}

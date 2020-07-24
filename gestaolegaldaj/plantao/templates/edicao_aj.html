@@ -1,0 +1,125 @@
+{% extends "base_dashboard.html" %}
+{% block titulo %} Edição de Assistência Judiciária {% endblock titulo %}
+
+{% block conteudo %}
+
+<div class="card pessoa" id = "pessoa">
+    <div class="card-body">
+        <div class="row justify-content-between">
+   
+        </div>
+
+        <div class= "form-validation">
+            <form class="form-valide" action="#" method="POST" id="form">
+
+                {{ form.csrf_token }}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="areas_direito">{{form.areas_direito.label}}</label>
+                    <div class="col-lg-6">
+                        {{form.areas_direito(id="areas_direito", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.areas_direito.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="email">{{form.email.label}}</label>
+                    <div class="col-lg-6">
+                        {{form.email(type="email", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.email.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="telefone">{{form.telefone.label}}</label>
+                    <div class="col-lg-6">
+                        {{form.telefone(type="text",class_="form-control",id="telefone")}}
+                    </div>
+                </div>
+
+                {% for error in form.telefone.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" ><h3>Endereço</h3></div>
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="logradouro">{{form.logradouro.label}}</label>
+                    <div class="col-lg-6">
+                        {{form.logradouro(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.logradouro.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="numero">{{form.numero.label}}</label>
+                    <div class="col-lg-6">
+                        {{form.numero(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.numero.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="complemento">{{form.complemento.label}}</label>
+                    <div class="col-lg-6">
+                        {{form.complemento(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.complemento.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="bairro">{{form.bairro.label}}</label>
+                    <div class="col-lg-6">
+                        {{form.bairro(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.bairro.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="cep">{{form.cep.label}}</label>
+                    <div class="col-lg-6">
+                        {{form.cep(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.cep.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="regiao">{{form.regiao.label}}</label>
+                    <div class="col-lg-6">
+                        {{form.regiao(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.regiao.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <button type="submit" class="btn btn-primary" id="button">Atualizar</button>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+{% endblock conteudo %}
