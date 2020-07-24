@@ -6,3 +6,10 @@ Sistema desenvolvido para Divisão de Assistência Judiciária da Faculdade de D
 2. Baixe as dependências: `pip install -r requirements.txt`
 3. Na raiz do repositório, execute o comando `python app.py`
 4. Em um navegador, acesse o `localhost:5000`
+
+# Alteração do BD
+String de conexão: mysql+pysql://username:password@host:port/database
+
+flask db init
+flask db migrate
+flask db upgrade
