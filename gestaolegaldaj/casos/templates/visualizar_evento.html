@@ -1,0 +1,73 @@
+{% extends "base_dashboard.html" %}
+{% block titulo %}Evento #{{entidade_evento.id}}{%endblock %}
+
+{% block conteudo %}
+<div class="row my-4">
+    <div class="col-md-6 col-xs-12">
+        <div class="card">
+            <div class="card-body">
+                <p></p>
+                <p class="clearfix">
+                    <span class="float-left">
+                    Data do Ocorrido:
+                    </span>
+                    <span class="float-right text-muted">
+                    {{entidade_evento.data_evento}}
+                    </span>
+                </p>
+                <p class="clearfix">
+                    <span class="float-left">
+                    Tipo de Evento:
+                    </span>
+                    {% for key in tipo_evento %}
+                    {% if entidade_evento.tipo == tipo_evento[key][0] %}
+                    <span class="float-right text-muted">{{tipo_evento[key][1]}}</span>
+                    {% endif %}
+                    {% endfor %}
+                </p>
+                <p class="clearfix">
+                    <span class="float-left">
+                    Usuário Responsável:
+                    </span>
+                    <span class="float-right text-muted">{{entidade_evento.criado_por.nome}}</span>
+                </p>
+                <p class="clearfix">
+                    <span class="float-left">
+                    Descrição:
+                    </span>
+                    <div class="descricao text-muted text-right">{{entidade_evento.descricao}}</div>
+                </p>
+            </div>
+            <div class="card-footer text-right">
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            <h4>Arquivo Anexado:</h4>
+          </div>
+          <div class="card-body">
+            <div class="card card-primary">
+              <div class="card-header">
+                <h4 style="font-weight: normal">
+                  {% if entidade_evento.arquivo %}
+                    {% if (entidade_evento.arquivo.split('.')|length) > 1 %}
+                      entidade_evento_{{entidade_evento.id}}_{{entidade_evento.arquivo}}
+                    {%else%}
+                      Nenhum arquivo cadastrado
+                    {% endif %}
+                  {% else %}
+                    Nenhum arquivo cadastrado
+                  {% endif %}
+                </h4>
+                <div class="card-header-action">
+                  <a href="{{url_for('static', filename='entidade_eventos/entidade_evento_{}_{}'.format(entidade_evento.id, entidade_evento.arquivo) )}}" class="btn btn-primary {{'disabled' if not entidade_evento.arquivo else None}}">Download</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+</div>
+{% endblock conteudo %}

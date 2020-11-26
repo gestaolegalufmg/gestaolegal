@@ -1,0 +1,15 @@
+{% macro form_label(field) %}<!--Caso o campo seja condicional(Com requiredIf), vai ser preciso colocar o asterisco manualmente, se necessário-->
+    {% if field.flags.required %}
+            {{ field.label(text=field.label.text+'<span class="text-danger">*</span>', **kwargs)|safe}}
+    {% else %}
+            {{ field.label(**kwargs)|safe}}
+    {% endif %}
+{% endmacro %}
+
+{% macro form_field(field) %}
+    {{ field(**kwargs)|safe }}
+
+    {% for error in field.errors %}
+        <div class="alert alert-danger">{{error}}</div>
+    {% endfor %}
+{% endmacro %}

@@ -1,0 +1,364 @@
+{{ form.csrf_token }}
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="nome">{{ form.nome.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.nome(class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.nome.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="data_nascimento"  >{{ form.data_nascimento.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.data_nascimento(type="date", class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.data_nascimento.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_cpf">
+                    <label class="col-lg-4 col-form-label" for="cpf"  >{{ form.cpf.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.cpf(type="text" , class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.cpf.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="telefone">{{ form.telefone.label }}
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.telefone(type="text", class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.telefone.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="celular" >{{ form.celular.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.celular(type="text", class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.celular.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="email">{{ form.email.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.email(type="text", class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.email.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label"  for="estado_civil">{{ form.estado_civil.label }}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.estado_civil(class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.estado_civil.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="area_juridica">{{ form.area_juridica.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.area_juridica(type="text", class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.area_juridica.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="como_conheceu">{{ form.como_conheceu.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.como_conheceu(class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.como_conheceu.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_indicacao_orgao">
+                    <label class="col-lg-4 col-form-label" for="indicacao_orgao">{{ form.indicacao_orgao.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.indicacao_orgao(type="text", class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.indicacao_orgao.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label"  for="procurou_outro_local">{{ form.procurou_outro_local.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.procurou_outro_local(class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.procurou_outro_local.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_procurou_qual_local">
+                    <label class="col-lg-4 col-form-label" for="procurou_qual_local">{{ form.procurou_qual_local.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.procurou_qual_local(type="text", class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.procurou_qual_local.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="obs">{{ form.obs_atendido.label }}</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.obs_atendido(type="textarea", class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.obs_atendido.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" >
+                    <label class="col-lg-4 col-form-label" for="pj_constituida" >{{ form.pj_constituida.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.pj_constituida(class_="form-control") }}
+
+                    </div>
+                </div>
+
+                {% for error in form.pj_constituida.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_cnpj">
+                    <label class="col-lg-4 col-form-label" for="cnpj">{{ form.cnpj.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.cnpj(class_="form-control") }}
+                    </div>
+
+                </div>
+
+                {% for error in form.cnpj.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+<!----------------------Atendido é representante legal?------------------->
+                <div class="form-group row" id="div_repres_legal">
+                    <label class="col-lg-4 col-form-label" for="repres_legal" >{{ form.repres_legal.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.repres_legal(class_="form-control") }}
+
+                    </div>
+                </div>
+
+                {% for error in form.repres_legal.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row" id="div_nome_repres_legal">
+                    <label class="col-lg-4 col-form-label" for="nome_repres_legal">{{ form.nome_repres_legal.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.nome_repres_legal(class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.nome_repres_legal.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+
+                <div class="form-group row" id="div_cpf_repres_legal">
+                    <label class="col-lg-4 col-form-label" for="cpf_repres_legal"  >{{ form.cpf_repres_legal.label }} 
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.cpf_repres_legal(type="text" , class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.cpf_repres_legal.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                <div class="form-group row"id ="div_contato_repres_legal">
+                    <label class="col-lg-4 col-form-label" for="contato_repres_legal">{{ form.contato_repres_legal.label }}
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.contato_repres_legal(type="text", class_="form-control") }}
+                    </div>
+                </div>
+
+                {% for error in form.contato_repres_legal.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+
+            <div class="form-group row" id = "div_nascimento_repres_legal">
+                    <label class="col-lg-4 col-form-label" for="nascimento_repres_legal"  > {{form.nascimento_repres_legal.label}}
+                    </label>
+                    <div class="col-lg-6">
+                         {{form.nascimento_repres_legal(type="date", class_="form-control")}}
+                    </div>
+                </div>
+
+            {% for error in form.nascimento_repres_legal.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+
+                 <div class="form-group row" id="div_rg_repres_legal">
+                    <label class="col-lg-4 col-form-label" for="rg_repres_legal" >{{form.rg_repres_legal.label}}
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.rg_repres_legal(type="text" , class_="form-control")}} 
+                    </div>
+                </div>
+
+            {% for error in form.rg_repres_legal.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+ 
+
+                <div class="form-group row" id="div_pretende_constituir_pj">
+                    <label class="col-lg-4 col-form-label" for="pretende_constituir_pj" >{{ form.pretende_constituir_pj.label }}
+                    </label>
+                    <div class="col-lg-6">
+                        {{ form.pretende_constituir_pj(class_="form-control") }}
+
+                    </div>
+                </div>
+
+                {% for error in form.pretende_constituir_pj.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
+                </div>
+
+<!--------------------------------------------------------------------------------------ENDERECO------------------------------------------------------------------------------>
+            <div class="form-group row" ><h3>Endereço</h3></div>
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="logradouro">{{form.logradouro.label}} <span class="text-danger">*</span>
+                </label>
+                <div class="col-lg-6">
+                    {{form.logradouro(type="text",class_="form-control")}}
+                </div>
+            </div>
+
+            {% for error in form.logradouro.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row" >
+                <label class="col-lg-4 col-form-label" for="numero" >{{form.numero.label}} <span class="text-danger">*</span>
+                </label>
+                <div class="col-lg-6">
+                    {{form.numero(type="text",class_="form-control")}}
+                </div>
+            </div>
+
+            {% for error in form.numero.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="complemento">{{form.complemento.label}}
+                </label>
+                <div class="col-lg-6">
+                    {{form.complemento(type="text",class_="form-control")}}
+                </div>
+            </div>
+
+            {% for error in form.complemento.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="bairro">{{form.bairro.label}} <span class="text-danger">*</span>
+                </label>
+                <div class="col-lg-6">
+                    {{form.bairro(type="text",class_="form-control")}}
+                </div>
+            </div>
+
+            {% for error in form.bairro.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="cep" >{{form.cep.label}} <span class="text-danger">*</span>
+                </label>
+                <div class="col-lg-6">
+                    {{form.cep(type="text",class_="form-control")}}
+                </div>
+            </div>
+
+            {% for error in form.cep.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="cep" >{{form.cidade.label}} <span class="text-danger">*</span>
+                </label>
+                <div class="col-lg-6">
+                    {{form.cidade(type="text",class_="form-control")}}
+                </div>
+            </div>
+
+            {% for error in form.cidade.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="cep" >{{form.estado.label}} <span class="text-danger">*</span>
+                </label>
+                <div class="col-lg-6">
+                    {{form.estado(type="text",class_="form-control")}}
+                </div>
+            </div>
+
+            {% for error in form.estado.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}

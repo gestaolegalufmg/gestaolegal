@@ -1,0 +1,142 @@
+{% extends "base_dashboard.html" %}
+{% block titulo %}Escala do Plantão{% endblock titulo %}
+{% block css %}
+<link rel="stylesheet" href="{{url_for('static',filename='app_tema/assets/css/calendario.css')}}">
+{% endblock css %}
+
+{% block conteudo %}
+<div class="row">
+  <div class="col-12">
+    <div class="card card-primary">
+      <div class="card-header">
+          <h4>Nome do funcionário</h4>
+          <div class="card-header-action">
+            <button class="btn btn-primary ml-auto">Editar</button>
+          </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12 col-lg-5">
+    <div class="card">
+      <div class="card-body">
+        <div class="calendar"> 
+          <div class="year-header"> 
+             <span class="left-button" id="prev"> &lang; </span> 
+              <span class="year" id="label"></span> 
+              <span class="right-button" id="next"> &rang; </span>
+          </div> 
+          <table class="months-table"> 
+            <tbody>
+              <tr class="months-row">
+                <td class="month">Jan</td> 
+                <td class="month">Fev</td> 
+                <td class="month">Mar</td> 
+                <td class="month">Abr</td> 
+                <td class="month">Mai</td> 
+                <td class="month">Jun</td> 
+                <td class="month">Jul</td>
+                <td class="month">Ago</td> 
+                <td class="month">Set</td> 
+                <td class="month">Out</td>          
+                <td class="month">Nov</td>
+                <td class="month">Dez</td>
+              </tr>
+            </tbody>
+          </table> 
+            
+          <table class="days-table"> 
+            <td class="day">D</td> 
+            <td class="day">S</td> 
+            <td class="day">T</td> 
+            <td class="day">Q</td> 
+            <td class="day">Q</td> 
+            <td class="day">S</td> 
+            <td class="day">S</td>
+          </table> 
+          <div class="frame"> 
+            <table class="dates-table"> 
+                <tbody class="tbody">             
+                </tbody> 
+            </table>
+          </div> 
+          <button class="button" id="escolhe_data" data-toggle="modal" data-target="#confirmacao" style="margin-left: 6rem; background:#52A0FD;">Selecionar data</button>
+            
+        </div>
+      </div>
+    </div>
+  </div>
+
+        
+  <div class="col-12 col-lg-4">
+    <div class="card ">
+      <div class="card-header">
+          <h4>Dia do plantão: </h4>
+      </div>
+      <div class="card-body row">
+        <div class="dias" style=" background-color:#52A0FD; margin-right: 50%; margin-left: 7%;">1°</div>
+        <div class="dias" >2°</div>
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="card-header">
+        <h4>Usuários escalados:</h4>
+      </div>
+      <div class="card-body">
+          <label >-Nome</label>
+      </div>
+    </div>
+  </div>
+          
+
+  <div class="col-12 col-lg-3">
+    <div class="card">
+      <div class="card-header">
+        <h4>Seus dias de plantão:</h4>
+      </div>
+      <div class="card-body">
+          <label class="text-danger">-09/03 às 12h</label>
+      </div>
+    </div>
+
+    <div class="row" style="padding-left: 10%;">
+        <input class="col-2" type="checkbox" style="width: 20px; height: 20px; margin-top: 5%;"><label style="font-size: 17px; padding-left: 0%;" class="col">Lembre-me no dia anterior por e-mail.</label>
+    </div>
+  </div>
+</div>
+
+{% endblock conteudo %}
+
+{%block modal %}
+<!-- Modal -->
+<div class="modal fade" id="confirmacao" tabindex="-1" role="dialog" aria-labelledby="confirmacao" aria-hidden="true" >
+  <div class="modal-dialog" role="document">
+  <div class="modal-content">
+      <div class="modal-header">
+      <h5 class="modal-title" id="exampleModalLabel">Deseja confirmar o plantão?</h5>
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+      </button>
+      </div>
+      <div class="modal-body">
+          -09/03 às 12h
+      </div>
+      <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+      <button type="button" class="btn btn-primary">Confirmar</button>
+      </div>
+  </div>
+  </div>
+</div>
+{% endblock modal %}
+
+{% block scripts %}
+<script src="{{url_for('static',filename='js/card_caso.js')}}"></script>
+<!-- Dialog Box-->
+
+<script src="{{url_for('static',filename='js/calendario.js')}}"></script>
+{% endblock scripts %}

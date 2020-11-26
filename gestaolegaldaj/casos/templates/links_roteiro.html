@@ -1,0 +1,57 @@
+{% extends "base_dashboard.html" %} {%block titulo%}Gerenciar Roteiros{%endblock%}
+
+{% block conteudo %}
+<div class="card">
+    <div class="card-body">
+        <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
+            {{form.csrf_token()}}
+            <div class="form-group row">
+                <h3>Adicionar/Editar links de roteiro</h3>
+            </div>
+
+            <div class="form-group row">
+                {{form.area_direito.label(text=form.area_direito.label.text+'<span class="text-danger">*</span>',class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
+                <div class="col-12 col-lg-6 offset-lg-1">
+                    {{form.area_direito(class_='form-control')}}
+                </div>
+                {% for error in form.area_direito.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group row">
+                {{form.link.label(class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
+                <div class="col-12 col-lg-6 offset-lg-1">
+                    {{form.link(class_='form-control', placeholder='deixe em branco para remover o link previamente cadastrado', pattern='https?://.+')}}
+                </div>
+                {% for error in form.link.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+            </div>
+            <div class="form-group row">
+                {{form.submit(class_='btn btn-primary')}}
+            </div>
+        </form>
+        <div class="form-group row">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Área do direito</th>
+                            <th>Link para o roteiro</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for roteiro in roteiros %}
+                            <tr>
+                                <td>{{roteiro.area_direito}}</td>
+                                <td><a href="{{roteiro.link}}" target="_blank">{{roteiro.link}}</a></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

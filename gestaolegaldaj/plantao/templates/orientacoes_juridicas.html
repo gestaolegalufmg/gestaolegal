@@ -1,0 +1,73 @@
+{% extends "base_dashboard.html" %}
+{% block titulo %}Orientações Jurídicas{% endblock titulo %}
+
+{% block conteudo %}
+
+<nav class="d-inline-block">
+    <ul class="pagination mb-0">
+        {% for page_num in orientacoes.iter_pages(left_edge=3, right_edge=3, left_current=2, right_current=2) %}
+        {% if page_num and orientacoes.page == page_num %}
+            <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+        {% elif page_num %}
+            <li class="page-item"><a class="page-link"
+            href="{{ url_for('plantao.orientacoes_juridicas',page=page_num) }}">{{ page_num }}</a>
+            {% else %}
+                <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+        {% endif %}
+        {% endfor %}
+    </ul>
+</nav>
+<div class="card">
+    <div class="card-body">
+        <div class="card-title">
+            <div class="d-flex flex-row">
+                <input type="hidden" name="csrf_token" id="token" value="{{ csrf_token() }}">
+                <div id="table-2_filter" class="dataTables_filter"><label>Buscar
+                  <input type="text" id="busca" class="form-control form-control-sm" aria-controls="table-2"></label>
+                </div> 
+                <a class="btn mb-1 btn-flat btn-primary btn-lg ml-auto align-self-center" href="{{url_for('plantao.cadastro_orientacao_juridica')}}">Cadastrar nova Orientação Jurídica</a>
+            </div>
+        </div>
+
+          <div class="table-responsive " id="renderizar_oj">
+            <table class="table table-striped"> 
+                <thead>
+                    <tr>
+                        <th>Área do Direito</th>
+                        <th>Descrição</th>
+                        <th>Ações</th>
+                        <th> </th>
+                        <th> </th>
+                        <th> </th>
+                    </tr>
+                </thead>
+                <tbody id="tbody_orientacoes_juridicas">
+                    {% include 'busca_orientacoes_juridicas.html' %}
+                </tbody>
+            </table>
+          </div>
+    </div>
+</div>
+
+{% endblock conteudo %}
+
+{% block scripts %}
+
+<script>
+    let busca = document.getElementById('busca');
+
+    $('#busca').on({
+        keyup: (event) => {
+            $.ajax({
+                method: "GET",
+                url: `${window.origin}/plantao/busca_oj/${busca.value}`,
+                success: (result) => {
+                    document.getElementById('tbody_orientacoes_juridicas').innerHTML = '';
+                    $('tbody').append(result);
+        }
+            });
+        }
+    });
+</script>
+
+{% endblock scripts %}

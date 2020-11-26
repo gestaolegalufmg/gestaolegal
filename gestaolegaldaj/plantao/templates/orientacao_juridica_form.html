@@ -1,0 +1,64 @@
+{{ form.csrf_token }}
+
+<div class="form-group row" id="div_area_direito">
+    <label class="col-lg-4 col-form-label" for="area_direito">{{form.area_direito.label}} <span class="text-danger">*</span>
+    </label>
+    <div class="col-lg-6">
+        {{form.area_direito(class_="form-control")}}
+    </div>
+</div>
+
+{% for error in form.area_direito.errors %}
+    <div class="alert alert-danger">{{error}}</div>
+{% endfor %}
+
+
+<div class="form-group row" id="div_sub_area" hidden = "true">
+    <label class="col-lg-4 col-form-label" for="sub_area">{{form.sub_area.label}} <span class="text-danger">*</span>
+    </label>
+    <div class="col-lg-6">
+        {{form.sub_area(class_="form-control")}}
+    </div>
+</div>
+
+{% for error in form.sub_area.errors %}
+    <div class="alert alert-danger">{{error}}</div>
+{% endfor %}
+
+<div class="form-group row" id="div_sub_area_admin" hidden = "true">
+    <label class="col-lg-4 col-form-label" for="sub_area_admin">{{form.sub_areaAdmin.label}} <span class="text-danger">*</span>
+    </label>
+    <div class="col-lg-6">
+        {{form.sub_areaAdmin(class_="form-control")}}
+    </div>
+</div>
+
+{% for error in form.sub_areaAdmin.errors %}
+    <div class="alert alert-danger">{{error}}</div>
+{% endfor %}
+
+<div class="form-group row" id="div_descricao">
+    <label class="col-lg-4 col-form-label" for="descricao">{{form.descricao.label}}
+    </label>
+    <div class="col-lg-6">
+        {{form.descricao(type="textarea",class_="form-control")}}
+    </div>
+</div>
+
+{% for error in form.descricao.errors %}
+    <div class="alert alert-danger">{{error}}</div>
+{% endfor %}
+
+{% if tipo_classe(form, "CadastroOrientacaoJuridicaForm") %}
+    <div class="form-group row" id="div_encaminhar_outras_aj">
+        <label class="col-lg-4 col-form-label" for="encaminhar_outras_aj">{{form.encaminhar_outras_aj.label}}
+        </label>
+        <div class="col-lg-6">
+            {{form.encaminhar_outras_aj(type="text",class_="form-control")}}
+        </div>
+    </div>
+
+    {% for error in form.encaminhar_outras_aj.errors %}
+        <div class="alert alert-danger">{{error}}</div>
+    {% endfor %}
+{% endif %}

@@ -1,0 +1,39 @@
+{% extends "base_dashboard.html" %}
+{% block titulo %} Histórico #{{caso_id}} {{ super() }}{% endblock titulo %}
+{% block conteudo %}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card card-primary">
+            <div class="card-header">
+                <h4>Histórico</h4>
+            </div>
+            <div class="card-body">
+                <div class="col-12 col-lg-6">
+                      {% for historico in historicos %}
+                      <p class="clearfix">
+                        <span class="float-left">
+                          Usuário responsável pela alteração:
+                        </span>
+                        <span class="float-right text-muted">
+                          {{ historico.Usuario.nome }}
+                        </span>
+                      </p>
+                      
+                      <p class="clearfix">
+                        <span class="float-left">
+                          Data:
+                        </span>
+                        <span class="float-right text-muted">
+                          {{ historico.Historico.data }}
+                        </span>
+                      </p>
+                      <hr>
+                      {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock conteudo %}

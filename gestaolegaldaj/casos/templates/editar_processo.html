@@ -1,0 +1,137 @@
+{% extends "base_dashboard.html" %}
+{%block titulo%}Editar Processo #{{id_processo}}{%endblock%}
+{% block conteudo %}
+<div class="card">
+    <div class="card-body">
+        <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
+          {{ form.csrf_token }}
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="especie">{{form.especie.label}}</label>
+                <div class="col-lg-6">
+                    {{form.especie(class_='form-control')}}
+                </div>
+            </div>
+
+            {% for error in form.especie.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="numero">{{form.numero.label}}</label>
+                <div class="col-lg-6">
+                    {{form.numero(class_='form-control')}}
+                </div>
+            </div>
+
+            {% for error in form.numero.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="identificacao">{{form.identificacao.label}}</label>
+                <div class="col-lg-6">
+                    {{form.identificacao(class_='form-control')}}
+                </div>
+            </div>
+
+            {% for error in form.identificacao.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="vara">{{form.vara.label}}</label>
+                <div class="col-lg-6">
+                    {{form.vara(class_='form-control')}}
+                </div>
+            </div>
+
+            {% for error in form.vara.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+        
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="link">{{form.link.label}}</label>
+                <div class="col-lg-6">
+                    {{form.link(class_='form-control')}}
+                </div>
+            </div>
+
+            {% for error in form.link.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="probabilidade">{{form.probabilidade.label}}</label>
+                <div class="col-lg-6">
+                    {{form.probabilidade(class_='form-control')}}
+                </div>
+            </div>
+
+            {% for error in form.probabilidade.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="posicao_assistido">{{form.posicao_assistido.label}}</label>
+                <div class="col-lg-6">
+                    {{form.posicao_assistido(class_='form-control')}}
+                </div>
+            </div>
+
+            {% for error in form.posicao_assistido.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="valor_causa">{{form.valor_causa.label}}</label>
+                <div class="col-lg-6">
+                    {{form.valor_causa(class_='form-control')}}
+                </div>
+            </div>
+
+            {% for error in form.valor_causa.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="data_distribuicao">{{form.data_distribuicao.label}}</label>
+                <div class="col-lg-6">
+                    {{form.data_distribuicao(type="date", class_='form-control')}}
+                </div>
+            </div>
+
+            {% for error in form.data_distribuicao.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+           <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="data_transito_em_julgado">{{form.data_transito_em_julgado.label}}</label>
+                <div class="col-lg-6">
+                    {{form.data_transito_em_julgado(type="date", class_='form-control')}}
+                </div>
+            </div>
+
+            {% for error in form.data_transito_em_julgado.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row">
+                <label class="col-lg-4 col-form-label" for="obs">{{form.obs.label}}</label>
+                <div class="col-lg-6">
+                    {{form.obs(class_='form-control')}}
+                </div>
+            </div>
+
+            {% for error in form.obs.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            {{form.submit(class_='btn btn-flat btn-primary')}}
+
+        </form>
+    </div>
+    <div class="card-footer">
+        
+    </div>
+</div>
+{% endblock %}
