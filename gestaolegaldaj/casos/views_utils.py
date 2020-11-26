@@ -1,0 +1,54 @@
+from gestaolegaldaj.casos.models import Caso, situacao_deferimento
+from gestaolegaldaj import app
+from gestaolegaldaj.utils.models import queryFiltradaStatus
+from sqlalchemy import or_
+
+ROTA_PAGINACAO_CASOS = "casos.index"
+
+ROTA_PAGINACAO_MEUS_CASOS = "casos.meus_casos"
+TITULO_TOTAL_MEUS_CASOS = "Total de Casos: {}"
+
+opcoes_filtro_casos = situacao_deferimento
+opcoes_filtro_casos['TODOS'] = ('todos', 'Todos Casos')
+
+opcoes_filtro_meus_casos = {
+    'CADASTRADO_POR_MIM' : ('cad_por_mim', 'Cadastrado por mim')
+}
+opcoes_filtro_meus_casos['ATIVO'] = situacao_deferimento['ATIVO']
+opcoes_filtro_meus_casos['ARQUIVADO'] = situacao_deferimento['ARQUIVADO']
+
+
+
+
+
+def query_opcoes_filtro_casos(opcao_filtro):
+    if opcao_filtro == opcoes_filtro_casos['TODOS'][0]:
+        return queryFiltradaStatus(Caso).order_by(Caso.data_criacao.desc())
+    elif (opcao_filtro == opcoes_filtro_casos[key][0] for key in opcoes_filtro_casos):
+        return queryFiltradaStatus(Caso).filter(Caso.situacao_deferimento == opcao_filtro).order_by(Caso.data_criacao.desc())
+    else:
+        return None
+
+def query_meus_casos(id_usuario: int):
+    return queryFiltradaStatus(Caso) \
+               .filter(or_(Caso.id_usuario_responsavel == id_usuario, Caso.id_orientador == id_usuario, Caso.id_estagiario == id_usuario)) \
+               .order_by(Caso.data_criacao.desc())
+
+def titulo_total_meus_casos(numero_casos):
+    return TITULO_TOTAL_MEUS_CASOS.format(numero_casos)
+
+def query_opcoes_filtro_meus_casos(id_usuario, opcao_filtro):
+    if opcao_filtro == opcoes_filtro_meus_casos['CADASTRADO_POR_MIM'][0]:
+        return query_meus_casos(id_usuario) \
+                    .filter(Caso.id_criado_por == id_usuario)
+                    
+    elif (opcao_filtro == opcoes_filtro_meus_casos[key][0] for key in opcoes_filtro_meus_casos):
+        return query_meus_casos(id_usuario) \
+                    .filter(Caso.situacao_deferimento == opcao_filtro)
+    else:
+        return None
+
+def params_busca_casos(casos, rota_paginacao, opcao_filtro = None):
+    return {'casos'         : casos,
+            'rota_paginacao': rota_paginacao,
+            'opcao_filtro'  : opcao_filtro}

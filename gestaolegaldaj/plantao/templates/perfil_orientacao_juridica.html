@@ -1,0 +1,116 @@
+{% extends 'base_dashboard.html' %}
+
+{% block titulo %}
+    Orientação Júridica
+{% endblock titulo %}
+
+{% block conteudo %}
+    <div class="row">
+        <div class="col-md-6 col-xs-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Dados de Atendimento</h4>
+                </div>
+                <div class="card-body">
+                    <div class="py-2">
+                        <p class="clearfix">
+                            <span class="float-left">
+                                Área do Direito:
+                            </span>
+                            <span class="float-right text-muted">
+                                {{orientacao.area_direito}}
+                            </span>
+                        </p>
+                        <p class="clearfix">
+                            <span class="float-left">
+                                Sub-Área:
+                            </span>
+                            <span class="float-right text-muted">
+                                {{orientacao.sub_area}}
+                            </span>
+                        </p>
+                        <p class="clearfix">
+                            <span class="float-left">
+                                Descrição da Orientação Oferecida:
+                            </span>
+                            <span class="float-right text-muted">
+                                {{orientacao.descricao}}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xs-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Partes Envolvidas</h4>
+                    <div class="card-header-action">
+                        <a href="{{url_for('plantao.associacao_orientacao_juridica',id_orientacao = orientacao.id)}}" class="btn btn-info">Associar Novo Atendido</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if atendidos %}
+                        {% for atendido in atendidos %}
+                        <div class="card card-secondary">
+                            <div class="card-header">
+                                <div class="w-25">
+                                    <h4>{{atendido.nome or ' ---'}}</h4>
+                                </div>
+                                <h4>CPF: {{atendido.cpf or ' ---'}}</h4>
+                                <h4>CNPJ: {{atendido.cnpj or ' ---'}}</h4>
+                                <div class="card-header-action">
+                                        <a href="{{url_for('plantao.perfil_assistido', _id=atendido.id)}}" class="btn btn-primary">Visualizar</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="row justify-content-between">
+                            <div class="col-10"><h4>Nenhum atendido foi a associado a este caso.</h4></div>
+                            <div class="ml-auto"><a href="{{url_for('plantao.associacao_orientacao_juridica', id_orientacao = orientacao.id)}}" class="btn btn-primary">Associar</a></div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xs-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Encaminhamento para outras Assistências Judiciárias</h4>
+                    <div class="card-header-action">
+                        <a href="{{url_for('plantao.encaminha_assistencia_judiciaria',id_orientacao = orientacao.id)}}" class="btn btn-info">Encaminhar</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if assistencias %}
+                        {% for assistencia in assistencias %}
+                            <div class="card card-secondary">
+                                <div class="card-header">
+                                    <div class="w-25">
+                                        <h4>{{assistencia.nome or ' ---'}}</h4>
+                                    </div>
+                                    <h4>
+                                        regiao: 
+                                                {% for key in regiao_bh %} 
+                                                    {% if regiao_bh[key][0] == assistencia.regiao %} 
+                                                        {{regiao_bh[key][1]}}
+                                                    {% endif %} 
+                                                {% endfor %}
+                                    </h4>
+                                    <div class="card-header-action">
+                                            <a href="{{url_for('plantao.perfil_assistencia_judiciaria', _id=assistencia.id)}}" class="btn btn-primary">Visualizar</a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}  
+                    {% else %}
+                        <div class="row justify-content-between">
+                            <div class="col-10"><h4>O caso não foi encaminhado para nenhuma assistência judiciária.</h4></div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock conteudo %}

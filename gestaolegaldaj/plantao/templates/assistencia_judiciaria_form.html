@@ -1,0 +1,90 @@
+{{ form.csrf_token }}
+
+                <div class="form-group row" id="div_nome">
+                    <label class="col-lg-4 col-form-label" for="nome">{{form_label(form.nome)}}
+                    </label>
+                    <div class="col-lg-6">
+                        {{form_field(form.nome, class="form-control")}}
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="areas_atendidas">{{form_label(form.areas_atendidas)}}</label>
+                    <div class="col-lg-6">
+                        {{form_field(form.areas_atendidas, id="areas_atendidas", class="form-control", multiple="multiple")}}
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="telefone">{{form_label(form.telefone)}}</label>
+                    <div class="col-lg-6">
+                        {{form_field(form.telefone, type="text",class="form-control",id="telefone")}}
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="email">{{form_label(form.email)}}</label>
+                    <div class="col-lg-6">
+                        {{form_field(form.email, type="email", class="form-control")}}
+                    </div>
+                </div>
+
+                <div class="form-group row" ><h3>Endereço</h3></div>
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="logradouro">{{form_label(form.logradouro)}}</label>
+                    <div class="col-lg-6">
+                        {{form_field(form.logradouro, type="text", class="form-control")}}
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="numero">{{form_label(form.numero)}}</label>
+                    <div class="col-lg-6">
+                        {{form_field(form.numero, type="text", class="form-control")}}
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="complemento">{{form_label(form.complemento)}}</label>
+                    <div class="col-lg-6">
+                        {{form_field(form.complemento, type="text", class="form-control")}}
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="bairro">{{form_label(form.bairro)}}</label>
+                    <div class="col-lg-6">
+                        {{form_field(form.bairro, type="text", class="form-control")}}
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="cep">{{form_label(form.cep)}}</label>
+                    <div class="col-lg-6">
+                        {{form_field(form.cep, type="text", class="form-control")}}
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-lg-4 col-form-label" for="regiao">{{form_label(form.regiao)}}</label>
+                    <div class="col-lg-6">
+                        {{form_field(form.regiao, class="form-control")}}
+                    </div>
+                </div>
+
+                <div class="form-group row" id="div_cidade">
+                    <label class="col-lg-4 col-form-label" for="val-cidade">{{form_label(form.cidade)}}
+                    </label>
+                    <div class="col-lg-6">
+                        {{form_field(form.cidade, type="text",class="form-control")}}
+                    </div>
+                </div>
+
+                <div class="form-group row" id="div_estado">
+                    <label class="col-lg-4 col-form-label" for="val-estado">{{form_label(form.estado)}}
+                    </label>
+                    <div class="col-lg-6">
+                        {{form_field(form.estado, type="text",class="form-control")}}
+                    </div>
+                </div>

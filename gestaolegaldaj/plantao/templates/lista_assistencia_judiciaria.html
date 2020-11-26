@@ -1,0 +1,212 @@
+{% extends "base_dashboard.html" %} {% block titulo %}Assistências Judiciárias{%
+endblock %} {% block conteudo %} {% if assistencias %}
+<nav class="d-inline-block">
+  <ul class="pagination mb-0">
+    {% for page_num in assistencias.iter_pages(left_edge=3, right_edge=3,
+    left_current=2, right_current=2) %} {% if page_num and assistencias.page ==
+    page_num%}
+    <li class="page-item active">
+      <a class="page-link" href="#">{{ page_num }}</a>
+    </li>
+    {% elif page_num %}
+    <li class="page-item">
+      <a
+        class="page-link"
+        href="{{ url_for('plantao.listar_assistencias_judiciarias', page=page_num) }}"
+        >{{ page_num }}</a
+      >
+      {% else %}
+    </li>
+
+    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+    {% endif %} {% endfor %}
+  </ul>
+</nav>
+<div class="card">
+  <div class="card-body">
+    <div class="card-title">
+      <div class="d-flex flex-row">
+        <div class="d-flex justify-content-start">
+          <div id="table-2_filter" class="dataTables_filter">
+            <label
+              >Buscar
+              <input
+                type="text"
+                id="busca"
+                class="form-control form-control-sm"
+                aria-controls="table-2"
+            /></label>
+          </div>
+        </div>
+        {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],
+        usuario_urole_roles['COLAB_EXTERNO'][0],
+        usuario_urole_roles['COLAB_PROJETO'][0],
+        usuario_urole_roles['PROFESSOR'][0]] %}
+        <div class="d-flex ml-auto">
+          <div class="row align-items-center">
+            <a
+              href="{{url_for('plantao.nova_assistencia_judiciaria')}}"
+              class="btn btn-primary ml-auto p-2 mr-2"
+              >Cadastrar Assistência Judiciária</a
+            >
+          </div>
+        </div>
+
+        {% endif %}
+      </div>
+    </div>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Região</th>
+          <th>Áreas do Direito</th>
+          <th>Telefone</th>
+          <th>E-mail</th>
+          <th>Ações</th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for assistencia in assistencias.items %}
+
+        <tr>
+          <td>{{assistencia.nome}}</td>
+          {% for key in assistencia_jud_regioes %} {% if
+          assistencia_jud_regioes[key][0] == assistencia.regiao %}
+          <td>{{assistencia_jud_regioes[key][1]}}</td>
+          {% endif %} {% endfor %}
+          <td>
+            {% set vars = {'espaco': False} %} {% for key in
+            assistencia_jud_areas_atendidas %} {% if
+            assistencia_jud_areas_atendidas[key][0] in
+            assistencia.areas_atendidas %} {% if not vars.espaco %}
+            <span>{{assistencia_jud_areas_atendidas[key][1]}}</span>
+            {% if vars.update({'espaco': True}) %}{% endif %} {% else %}
+            <br /><span>{{assistencia_jud_areas_atendidas[key][1]}}</span>
+            {% endif %} {% endif %} {% endfor %}
+          </td>
+          <td>{{assistencia.telefone}}</td>
+          <td>{{assistencia.email}}</td>
+
+          <td>
+            <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm">
+              <a
+                href="{{url_for('plantao.perfil_assistencia_judiciaria', _id=assistencia.id)}}"
+                style="text-decoration: none; color: aliceblue;"
+                >Visualizar</a
+              >
+            </button>
+          </td>
+          <td>
+            <button
+              type="submit"
+              class="btn mr-2 btn-flat btn-primary btn-sm"
+              name="button"
+            >
+              <a
+                href="{{url_for('plantao.editar_assistencia_judiciaria', id_assistencia_judiciaria = assistencia.id)}}"
+                style="text-decoration: none; color: aliceblue;"
+                >Editar</a
+              >
+            </button>
+          </td>
+
+          {% if current_user.urole == "admin" %}
+          <td>
+            <button
+              type="submit"
+              class="btn mb-1 ml-1 btn-flat btn-danger btn-sm"
+              onclick="return confirm('Tem certeza que deseja excluir esta assistência judiciária?');"
+            >
+              <a
+                href="{{url_for('plantao.excluir_assistencia_judiciaria', _id=assistencia.id)}}"
+                style="text-decoration: none; color: aliceblue;"
+                >Excluir</a
+              >
+            </button>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="row">
+  <h3>Nenhuma assistência judiciária no momento.</h3>
+  <a
+    href="{{url_for('plantao.nova_assistencia_judiciaria')}}"
+    class="btn btn-primary ml-auto p-2"
+    >Cadastrar nova assistência judiciária</a
+  >
+</div>
+{% endif %} {% endblock %} {% block scripts %}
+<script>
+  const capitalize = (s) => {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+  let busca = document.getElementById("busca");
+  $("#busca").on({
+    keyup: () => {
+      $.ajax({
+        method: "GET",
+        url: `${window.origin}/plantao/busca_assistencia_judiciaria/${busca.value}`,
+        success: (response) => {
+          $("tbody").html("");
+          $.each(response, (indice, valor) => {
+            let areas = valor.areas_atendidas.split(",");
+            let aux = "";
+            $.each(areas, (index, value) => {
+              aux += `<div>${capitalize(value)}</div>`;
+            });
+            $("tbody").append(`
+                        
+                            <tr>
+                                <td>${valor.nome}</td>
+                                <td>${capitalize(
+                                  valor.regiao.replace("_", " ")
+                                )}</td>
+                                <td>
+                                    ${aux} 
+                                </td>
+                                <td>${valor.telefone}</td>
+                                <td>${valor.email}</td>
+                                <td>
+                                    <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button">
+                                        <a href="${
+                                          window.origin
+                                        }/plantao/perfil_assistencia_judiciaria/${
+              valor.id
+            }" style="text-decoration: none;color: aliceblue;">Visualizar</a>
+                                    </button>
+                                </td>
+                                <td>
+                                    <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button">
+                                        <a href="${
+                                          window.origin
+                                        }/plantao/editar_assistencia_judiciaria/${
+              valor.id
+            }" style="text-decoration: none;color: aliceblue;">Editar</a>
+                                    </button>
+                                </td>
+                                <td>
+                                    <button type="submit" class="btn mb-1 ml-1 btn-flat btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja excluir esta assistência judiciária?');">
+                                        <a href="${
+                                          window.origin
+                                        }/plantao/excluir_assistencia_judiciaria/${
+              valor.id
+            }" style="text-decoration: none;color: aliceblue;">Excluir</a>
+                                    </button>
+                                 </td>
+                            </tr>
+                        `);
+          });
+        },
+      });
+    },
+  });
+</script>
+{% endblock scripts %}

@@ -1,0 +1,21 @@
+{% for orientacao in orientacoes.items %}
+                    
+<tr>
+    <td>{{orientacao.area_direito}}</td>
+    <td>{{orientacao.descricao}}</td>
+    <td><a href="{{url_for('plantao.perfil_oj', id = orientacao.id)}}" class="btn mb-1 btn-flat btn-primary btn-sm">Visualizar</a></td>
+    <td><a href="{{url_for('plantao.editar_orientacao_juridica', id_oj = orientacao.id)}}" class="btn mb-1 btn-flat btn-primary btn-sm">Editar</a></td>
+    <td><a href="{{url_for('plantao.associacao_orientacao_juridica',id_orientacao = orientacao.id)}}" class="btn mb-1 btn-flat btn-primary btn-sm">Associar</a></td>
+    <td>
+        <form action="{{url_for('plantao.excluir_oj')}}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div>
+              <input type="hidden" name="id" value="{{orientacao.id}}">
+            </div>
+            <button type="submit" class="btn ml-1 btn-flat btn-danger btn-sm"
+              onclick="return confirm('Você deseja realmente excluir essa orientação jurídica?');">Excluir</button>
+        </form>
+    </td>
+</tr>
+                    
+{% endfor %}

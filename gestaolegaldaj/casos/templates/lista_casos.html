@@ -1,0 +1,70 @@
+{% extends "base_dashboard.html" %} {% block titulo %}Gestão de Casos{% endblock %} 
+
+{%block modal %}
+
+  {% include 'modais_card_caso.html' %}
+
+{% endblock %}
+
+{% block conteudo %}
+
+<div class="card">
+    <div class="card-body">
+        <div class="card-title">
+            <div class="d-flex ml-auto" style="background-color: none;">
+                <div class="ml-auto p-2 ">
+                    <select class="form-control" id="filtro" name="filtro">
+            <option value="{{opcoes_filtro_casos['TODOS'][0]}}">{{opcoes_filtro_casos['TODOS'][1]}}</option>
+            <option value="{{opcoes_filtro_casos['AGUARDANDO_DEFERIMENTO'][0]}}">{{opcoes_filtro_casos['AGUARDANDO_DEFERIMENTO'][1]}}</option>
+            <option value="{{opcoes_filtro_casos['ATIVO'][0]}}">{{opcoes_filtro_casos['ATIVO'][1]}}</option>
+            <option value="{{opcoes_filtro_casos['INDEFERIDO'][0]}}">{{opcoes_filtro_casos['INDEFERIDO'][1]}}</option>
+            <option value="{{opcoes_filtro_casos['ARQUIVADO'][0]}}">{{opcoes_filtro_casos['ARQUIVADO'][1]}}</option>
+            <option value="{{opcoes_filtro_casos['SOLUCIONADO'][0]}}">{{opcoes_filtro_casos['SOLUCIONADO'][1]}}</option>
+          </select>
+                </div>
+
+                <div class="d-flex flex-row ">
+                    {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0]], usuario_urole_roles['ESTAGIARIO_DIREITO'][0] %}
+                    <a class="btn btn-primary ml-auto pt-1 " style="height: 42px; margin-top: 8px;" href="{{url_for('casos.novo_caso')}}">Cadastrar
+              Caso</a>
+           {% endif %}
+                </div>
+            </div>
+            <br>
+
+            <div class="section-body">
+                <div class="row" id="row_casos">
+
+                    {% include 'busca_casos.html' %}
+
+                </div>
+
+            </div>
+            {% endblock %} 
+            
+            {% block scripts %}
+              <script src="{{url_for('static',filename='js/card_caso.js')}}"></script>
+              <script>
+                $(document).ready(function() {
+
+                  $("#filtro").change(function() {
+
+                      $.ajax({
+                          method: "GET",
+                          url: "{{url_for('casos.ajax_filtro_casos')}}",
+                          data: {
+                              opcao_filtro: $('#filtro').val()
+                          },
+                          success: (result) => {
+                              document.getElementById('row_casos').innerHTML = '';
+                              $('#row_casos').append(result);
+                          }
+                      })
+
+                  });
+
+                  document.getElementById('filtro').value = "{{opcao_filtro}}"
+
+                });
+              </script>
+            {% endblock %}
