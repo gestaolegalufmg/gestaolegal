@@ -4,19 +4,19 @@ from flask import Flask, render_template, current_app
 from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-#from flask_mail import Mail     --> Quando usar e-mail, precisa dessa biblioteca
+from flask_mail import Mail, Message
 
 login_manager = LoginManager()
 
 app = Flask(__name__)
 
 app.config['SECRET_KEY'] = 'w8oyUPlywjAAN51OXBdfJUZ8icsRCCP7'
-
+app.config['UPLOADS'] = './static/casos'
 ############################################################
 ################## BANCO DE DADOS ##########################
 ############################################################
 
-app.config['SQLALCHEMY_DATABASE_URI'] =  "mysql+pymysql://gestaolegalnew:bd@gestaolegal@gestaolegalnew.mysql.dbaas.com.br/gestaolegalnew"
+app.config['SQLALCHEMY_DATABASE_URI'] =  "mysql+pymysql://gestaolegalold:bd@gestaolegal@gestaolegalold.mysql.dbaas.com.br/gestaolegalold"
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_recycle": 10}
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -26,6 +26,24 @@ Migrate(app,db, compare_type = True)
 #############################################################
 ########### VARIÁVEIS/FUNÇÕES DO TEMPLATE ###################
 #############################################################
+@app.context_processor
+def processor_tipo_classe():
+    def tipo_classe(var: object, tipo: str):
+        return  var.__class__.__name__ == tipo
+    return dict(tipo_classe=tipo_classe)
+
+@app.context_processor
+def processor_formata_float():
+    def formata_float(numero: float):
+        lista_char = list(str(numero))
+
+        for i in range(len(lista_char)):
+            if lista_char[i] == '.':
+                lista_char[i] = ','
+                break 
+        return  "".join(lista_char)
+    return dict(formata_float=formata_float)
+
 from gestaolegaldaj.usuario.models import usuario_urole_roles
 @app.context_processor
 def insere_usuario_roles():
@@ -51,10 +69,61 @@ from gestaolegaldaj.plantao.models import como_conheceu_daj
 def insere_como_conheceu_dajUsuario():
     return dict(como_conheceu_daj = como_conheceu_daj)
 
-from gestaolegaldaj.plantao.forms import assistido_fisicoOuJuridico
+from gestaolegaldaj.plantao.models import assistencia_jud_areas_atendidas
 @app.context_processor
-def insere_assistido_fisicoOuJuridico():
-    return dict(assistido_fisicoOuJuridico = assistido_fisicoOuJuridico)
+def insere_assistencia_jud_areas_atendidas():
+    return dict(assistencia_jud_areas_atendidas = assistencia_jud_areas_atendidas)
+
+from gestaolegaldaj.plantao.models import assistencia_jud_regioes
+@app.context_processor
+def insere_assistencia_jud_regioes():
+    return dict(assistencia_jud_regioes = assistencia_jud_regioes)
+
+from gestaolegaldaj.plantao.models import qual_pessoa_doente
+@app.context_processor
+def insere_qual_pessoa_doente():
+    return dict(qual_pessoa_doente = qual_pessoa_doente)
+
+from gestaolegaldaj.plantao.models import regiao_bh
+@app.context_processor
+def insere_regiao_bh():
+    return dict(regiao_bh = regiao_bh)
+
+from gestaolegaldaj.plantao.models import escolaridade
+@app.context_processor
+def insere_escolaridade():
+    return dict(escolaridade = escolaridade)
+
+from gestaolegaldaj.plantao.models import enquadramento
+@app.context_processor
+def insere_enquadramento():
+    return dict(enquadramento = enquadramento)
+
+from gestaolegaldaj.plantao.models import area_atuacao
+@app.context_processor
+def insere_area_atuacao():
+    return dict(area_atuacao = area_atuacao)
+
+from gestaolegaldaj.plantao.models import orgao_reg
+@app.context_processor
+def insere_orgao_reg():
+    return dict(orgao_reg = orgao_reg)
+
+from gestaolegaldaj.casos.models import situacao_deferimento
+@app.context_processor
+def insere_situacao_deferimento():
+    return dict(situacao_deferimento = situacao_deferimento)
+
+from gestaolegaldaj.casos.models import tipo_evento
+@app.context_processor
+def insere_tipo_evento():
+    return dict(tipo_evento = tipo_evento)
+
+############################################################
+####################### USUARIO PADRAO #####################
+############################################################
+
+app.config['ADMIN_PADRAO'] = 10
 
 ############################################################
 ####################### USUARIO PADRAO #####################
@@ -68,19 +137,42 @@ app.config['ADMIN_PADRAO'] = 10
 
 app.config['USUARIOS_POR_PAGINA'] = 20
 app.config['ATENDIDOS_POR_PAGINA'] = 20
+app.config['ASSISTENCIA_JURIDICA_POR_PAGINA'] = 20
+app.config['CASOS_POR_PAGINA'] = 20
 
 ############################################################
 ######################## EMAIL #############################
 ############################################################
 
-# EMAIL DEVE SER CONFIGURADO ANTES DE USAR (apague este comentário depois de configurar)
-'''
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USE_SSL']=True
-app.config['MAIL_USERNAME'] = ''
-app.config['MAIL_PASSWORD'] = ''
-'''
+app.config['MAIL_USERNAME'] = 'gestaolegaldaj@gmail.com'
+app.config['MAIL_PASSWORD'] = 'gestaolegaldaj@12'
+
+mail = Mail(app)
+
+#############################################################
+########## FUNCAO (GLOBAL) PARA FORMATAR TEXTO ##############
+#############################################################
+
+def formatarTipoDeEvento(string):
+    return {
+        'contato':'Contato',
+        'reuniao':'Reunião',
+        'protocolo_peticao':'Protocolo de Petição',
+        'diligencia_externa':'Diligência Externa',
+        'audiencia':'Audiência',
+        'conciliacao':'Conciliação',
+        'decisao_judicial':'Decisão Judicial',
+        'redist_caso':'Redistribuição do Caso',
+        'encerramento_caso':'Encerramento do Caso',
+        'outros':'Outros',
+        'redist_caso': 'Redistribuição do Caso'
+    }.get(string, 'outros') 
+
+app.jinja_env.globals.update(formatarTipoDeEvento=formatarTipoDeEvento)
+
 
 #############################################################
 ################## CONFIGURA LOGIN ##########################
@@ -120,7 +212,10 @@ from gestaolegaldaj.usuario.models import Usuario
 from gestaolegaldaj.principal.views import principal
 from gestaolegaldaj.usuario.views import usuario
 from gestaolegaldaj.plantao.views import plantao
+from gestaolegaldaj.casos.views import casos
 
 app.register_blueprint(principal)
 app.register_blueprint(usuario, url_prefix='/usuario')
 app.register_blueprint(plantao, url_prefix='/plantao')
+app.register_blueprint(casos, url_prefix='/casos')
+

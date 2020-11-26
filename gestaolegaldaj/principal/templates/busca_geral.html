@@ -1,6 +1,6 @@
 {% extends "base_dashboard.html" %}
 
-{% block titulo %}Busca geral {% endblock titulo %}
+{% block titulo %}Busca Geral {% endblock titulo %}
 
 {% block css %}
 
@@ -10,12 +10,66 @@
 
 <div class="section">
     <div class="section-body">
+      <div class="card">
+        <div class="card-header">
+          <h4>Casos</h4>
+        </div>
+        <div class="card-body">
+          {% if casos %}
+            <nav class="d-inline-block">
+              <ul class="pagination mb-0">
+                {% for page in casos.iter_pages() %}
+                  {% if page %}
+                    {% if page != casos.page %}
+                      <li class="page-item"><a class="page-link" href="{{ url_for('principal.busca_geral', page_caso=page, busca_atual=busca_atual) }}">{{ page }}</a>
+                    </li>
+                    {% else %}
+                      <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+                    {% endif %}
+                    {% else %}
+                      <li class="page-item disabled"><a class="page-link" href="#">…</a></li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </nav>
+          {% endif %}
+
+          {% if casos and casos.items %}
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th scope="col">Número</th>
+                <th scope="col">Área do direito</th>
+                <th scope="col">Situação</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for caso in casos.items %}
+              <tr>
+                <td>{{caso.id}}</td>
+                <td>{{caso.area_direito}}</td>
+                <td>{{caso.situacao_deferimento}}</td>
+                <td>
+                  <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                    href="{{url_for('casos.visualizar_caso', id = caso.id)}}"
+                    style="text-decoration: none;color: white;">Visualizar</a></button>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <h3>Nenhuma correspondência encontrada</h3>
+          {% endif %}
+        </div>
+      </div>
+
         <div class="card">
             <div class="card-header">
-              <h4>Usuários do sistema</h4>
+              <h4>Usuários do Sistema</h4>
             </div>
             <div class="card-body">
-
               <nav class="d-inline-block">
                 <ul class="pagination mb-0">
                   {% for page in usuarios.iter_pages() %}
@@ -70,7 +124,7 @@
             </div>
 
             <div class="card-body">
-            {% if assistidos.items %}   
+            {% if assistidos.items %}
 
               <nav class="d-inline-block">
                 <ul class="pagination mb-0">
@@ -121,7 +175,7 @@
         
           <div class="card">
             <div class="card-header">
-              <h4>Assistidos pessoas jurídicas</h4>
+              <h4>Assistidos Pessoas Jurídicas</h4>
             </div>
             <div class="card-body">
             {% if assistidos_pjuridica.items %}

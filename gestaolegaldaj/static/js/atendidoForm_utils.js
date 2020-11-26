@@ -1,5 +1,7 @@
 function validarPjConstituida() {
 
+    validarRepresLegal()
+
     var elemento_selecionado = document.getElementById('pj_constituida');
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
 
@@ -23,7 +25,10 @@ function validarRepresLegal() {
     var elemento_selecionado = document.getElementById('repres_legal');
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
 
-    if(string_selecionada == "Sim"){
+    var pj_constituida = document.getElementById('pj_constituida');
+    var pj_constituida_opcao = pj_constituida.options[pj_constituida.selectedIndex].text;
+
+    if((string_selecionada == "Sim") || (pj_constituida_opcao == "Não")){
 
         document.getElementById("nome_repres_legal").required = false;
         document.getElementById("div_nome_repres_legal").hidden = true;
