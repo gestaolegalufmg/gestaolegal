@@ -1,31 +1,13 @@
-function visibilidadePJ(){
-    var elemento_selecionado = document.getElementById('pj_constituida');
-    var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
+function assistido_visibilidadePjConstituida(pj_constituida){
 
-    if (!document.getElementById('pj_constituida').hidden){
-        if (string_selecionada == "Sim"){
-            document.getElementById("hidePJ").hidden = false;
-        }
-        else{
-            document.getElementById("hidePJ").hidden =true;
-        }
+    if ((pj_constituida == '1') || (pj_constituida == 'Sim')){
+        document.getElementById("campos_pj_constituida").hidden = false;
     }
-}
-
-function visibilidadeRepresLegal(){
-    var elemento_selecionado = document.getElementById('repres_legal');
-    var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
-
-    if (!document.getElementById('repres_legal').hidden){
-        if (string_selecionada == "Sim"){
-            document.getElementById("hideRepresLegal").hidden = true;
-        }
-        else{
-            document.getElementById("hideRepresLegal").hidden =false;
-        }
+    else{
+        document.getElementById("campos_pj_constituida").hidden =true;
     }
-}
 
+}
 
 function visibilidadeTem_funcionarios(){
     var elemento_selecionado = document.getElementById('tem_funcionarios');
@@ -57,7 +39,28 @@ function visibilidadeSede_bh(){
     }
 }
 
-function visibilidadeDoenca_grave_familia(){
+function visibilidadePessoaDoenteOBS(pessoa_doenteOutrosDesc){
+    
+    var elemento_selecionado = document.getElementById('pessoa_doente');
+    var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
+
+    var doenca_grave_familia = document.getElementById('doenca_grave_familia');
+    var doenca_grave_familia_option = doenca_grave_familia.options[doenca_grave_familia.selectedIndex].text;
+
+    if (!document.getElementById('div_pessoa_doente').hidden || !document.getElementById('div_doenca_grave_familia').hidden){
+        if ((string_selecionada == pessoa_doenteOutrosDesc) && (doenca_grave_familia_option == "Sim")){
+            document.getElementById("div_pessoa_doente_obs").hidden = false;
+        }
+        else{
+            document.getElementById("div_pessoa_doente_obs").hidden =true;
+        }
+    }
+}
+
+function visibilidadeDoenca_grave_familia(pessoa_doenteOutrosDesc){
+
+    visibilidadePessoaDoenteOBS(pessoa_doenteOutrosDesc)
+
     var elemento_selecionado = document.getElementById('doenca_grave_familia');
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
 
@@ -69,27 +72,9 @@ function visibilidadeDoenca_grave_familia(){
         else{
             document.getElementById("div_pessoa_doente").hidden =true;
             document.getElementById("div_gastos_medicacao").hidden =true;
-            document.getElementById("pessoa_doente_obs").hidden =true;
-
         }
     }
 }
-
-function visibilidadePessoaDoenteOBS(){
-    var elemento_selecionado = document.getElementById('pessoa_doente');
-    var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
-
-    if (!document.getElementById('div_pessoa_doente').hidden){
-        if (string_selecionada == "Outros"){
-            document.getElementById("pessoa_doente_obs").hidden = false;
-        }
-        else{
-            document.getElementById("pessoa_doente_obs").hidden =true;
-        }
-    }
-}
-
-
 
 function visibilidadePossui_veiculos(){
     var elemento_selecionado = document.getElementById('possui_veiculos');
