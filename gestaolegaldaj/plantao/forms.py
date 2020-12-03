@@ -1,32 +1,40 @@
 from flask_wtf import FlaskForm
-from wtforms import (DateField, SelectField, StringField, SubmitField,
-                     TextAreaField, IntegerField, FloatField)
-from wtforms.validators import AnyOf, DataRequired, Email, Length, Optional, InputRequired, StopValidation, NumberRange
-from gestaolegaldaj.usuario.models import sexo_usuario,estado_civilUsuario, tipo_bolsaUsuario, usuario_urole_roles
-from gestaolegaldaj.plantao.models import (como_conheceu_daj,area_do_direito, Assistido, AssistidoPessoaJuridica, Atendido,
-                                            raca_cor,escolaridade,beneficio,contribuicao_inss,participacao_renda,
-                                            moradia,qual_pessoa_doente, enquadramento, regiao_bh, area_atuacao, orgao_reg,se_civel,se_administrativo)
-from gestaolegaldaj.utils.forms import RequiredIf, RequiredIf_InputRequired, MyFloatField
+from wtforms import (DateField, FloatField, IntegerField, SelectField,
+                     SelectMultipleField, StringField, SubmitField,
+                     TextAreaField)
+from wtforms.validators import (AnyOf, DataRequired, Email, InputRequired,
+                                Length, NumberRange, Optional, StopValidation)
+
+from gestaolegaldaj.plantao.models import (Assistido, AssistidoPessoaJuridica,
+                                           Atendido, area_atuacao,
+                                           area_do_direito, beneficio,
+                                           como_conheceu_daj,
+                                           contribuicao_inss, enquadramento,
+                                           escolaridade, moradia, orgao_reg,
+                                           participacao_renda,
+                                           qual_pessoa_doente, raca_cor,
+                                           regiao_bh, se_administrativo,
+                                           se_civel,
+                                           assistencia_jud_areas_atendidas,
+                                           assistencia_jud_regioes)
 from gestaolegaldaj.usuario.forms import EnderecoForm
+from gestaolegaldaj.usuario.models import (estado_civilUsuario, sexo_usuario,
+                                           tipo_bolsaUsuario,
+                                           usuario_urole_roles)
+from gestaolegaldaj.utils.forms import (MyFloatField, RequiredIf,
+                                        RequiredIf_InputRequired)
+
 #####################################################
 ##################### CONSTANTES ####################
 #####################################################
-assistido_fisicoOuJuridico = {
-    "JURIDICO" : ("jur","Jurídica"),
-    "FISICO"   : ("fis","Física")
-}
 
 orientacao_AdminOuCivil = {
     "ADMINISTRADOR" : ("adm","Administrador"),
-    "CÍVEL"   : ("civ","Cível")
+    "CIVEL"   : ("civ","Cível")
 }
 
-#####################################################
-################## CONSTANTES #######################
-#####################################################
-
 MSG_NaoPodeEstarEmBranco   = "{} não pode estar em branco!"
-MSG_SelecioneUmaOpcaoLista = "Por favor seleciona uma opção de {} da lista"
+MSG_SelecioneUmaOpcaoLista = "Por favor selecione uma opção de {} da lista"
 MSG_EscolhaUmaData         = "Por favor, escolha uma data {}"
 
 max_nome               = 80
@@ -56,6 +64,8 @@ max_ano_veiculo        = 5
 max_sit_receita        = 100
 max_sede_outros        = 100
 max_qts_func           = 7
+max_descricao          = 1000
+
 
 
 #####################################################
@@ -64,7 +74,7 @@ max_qts_func           = 7
 class OrientacaoJuridicaForm(FlaskForm):
     area_direito    = SelectField('Área do Direito',
                                 choices=[
-                                    (area_do_direito['CÍVEL'][0],area_do_direito['CÍVEL'][1]),
+                                    (area_do_direito['CIVEL'][0],area_do_direito['CIVEL'][1]),
                                     (area_do_direito['TRABALHISTA'][0],area_do_direito['TRABALHISTA'][1]),
                                     (area_do_direito['ADMINISTRATIVO'][0],area_do_direito['ADMINISTRATIVO'][1]),
                                     (area_do_direito['PENAL'][0],area_do_direito['PENAL'][1]),
@@ -87,7 +97,7 @@ class OrientacaoJuridicaForm(FlaskForm):
                                     (se_civel['SUCESSOES'][0],se_civel['SUCESSOES'][1])
                                     ],
                                 validators=[
-                                    DataRequired(MSG_SelecioneUmaOpcaoLista.format("da sub-área Cível")),
+                                    RequiredIf(area_direito = area_do_direito['CIVEL'][0], message = MSG_SelecioneUmaOpcaoLista.format("da sub-área Cível")),
                                     AnyOf([se_civel[key][0] for key in se_civel], message="Desculpe, ocorreu um erro. Por favor, atualize a página.")
                                     ]
                                 )
@@ -98,24 +108,30 @@ class OrientacaoJuridicaForm(FlaskForm):
                                     (se_administrativo['TRIBUTARIO'][0],se_administrativo['TRIBUTARIO'][1])
                                     ],
                                 validators=[
-                                    DataRequired(MSG_SelecioneUmaOpcaoLista.format("da sub-área Administrativo")),
+                                    RequiredIf(area_direito = area_do_direito['ADMINISTRATIVO'][0], message = MSG_SelecioneUmaOpcaoLista.format("da sub-área Administrativo")),
                                     AnyOf([se_administrativo[key][0] for key in se_administrativo], message="Desculpe, ocorreu um erro. Por favor, atualize a página.")
                                     ]
                                 )
 
-    descricao       = StringField('Breve descrição da Orientação Jurídica dada',
+    descricao       = TextAreaField('Breve descrição da Orientação Jurídica dada',
                                    validators=[
-                                       Optional()
+                                       Optional(),
+                                       Length(max=max_descricao, message="A descrição não pode conter mais de {} caracteres!".format(max_descricao))
                                        ]
                                )
 
-class CadastroAtendidoForm(EnderecoForm):
-    id_orientacaoJuridica              = StringField('id_orientacaoJuridica',
-                                        validators=[
-                                                Optional()
-                                            ]
-                                        )
+class CadastroOrientacaoJuridicaForm(OrientacaoJuridicaForm):
+    encaminhar_outras_aj = SelectField('Encaminhamento para outras Assistências Judiciárias',
+                                    choices=[
+                                        (True,'Sim'),
+                                        (False,'Não')
+                                        ],
+                                    coerce=lambda x: x == 'True', #https://stackoverflow.com/questions/33429510/wtforms-selectfield-not-properly-coercing-for-booleans
+                                    validators=[InputRequired(MSG_SelecioneUmaOpcaoLista.format('de "Encaminhamento para outras Assistências Judiciárias"'))],
+                                    default = 'False'
+                                )
 
+class CadastroAtendidoForm(EnderecoForm):
     nome            = StringField('Nome',
                                    validators=[
                                        DataRequired(MSG_NaoPodeEstarEmBranco.format('O nome')),
@@ -125,7 +141,7 @@ class CadastroAtendidoForm(EnderecoForm):
 
     email               = StringField('Endereço de e-mail',
                                     validators=[
-                                        DataRequired(MSG_NaoPodeEstarEmBranco.format('O email')),
+                                        DataRequired(MSG_NaoPodeEstarEmBranco.format('O e-mail')),
                                         Email("Formato de email inválido! Certifique-se de que ele foi digitado corretamente.")
                                         ]
                                     )
@@ -224,7 +240,7 @@ class CadastroAtendidoForm(EnderecoForm):
                                     ]
                                 )
 
-    obs                 = TextAreaField('Observações',
+    obs_atendido        = TextAreaField('Observações',
                                         validators=[
                                             Optional(),
                                             Length(max=max_obs, message="Por favor, use no máximo {} caracteres para as observações.".format(max_obs))
@@ -256,7 +272,7 @@ class CadastroAtendidoForm(EnderecoForm):
 
     nome_repres_legal            = StringField('Nome do representante legal:',
                                    validators=[
-                                       RequiredIf(repres_legal = False,message = MSG_NaoPodeEstarEmBranco.format('O Nome do representante legal')),
+                                       RequiredIf(repres_legal = False, pj_constituida = True,message = MSG_NaoPodeEstarEmBranco.format('O Nome do representante legal')),
                                        Length(max=max_nome, message="O nome não pode conter mais de {} caracteres!".format(max_nome))
                                        ]
                                )
@@ -424,7 +440,7 @@ class TornarAssistidoForm(FlaskForm):
                                     ]
                                 )
 
-    renda_familiar              = IntegerField('Qual o valor da renda familiar?',
+    renda_familiar              = MyFloatField('Qual o valor da renda familiar?',
                                     validators=[
                                         DataRequired(MSG_NaoPodeEstarEmBranco.format('"Qual o valor da renda familiar?"')),
                                         NumberRange(min = 0 ,max=999999999, message="Por favor, use no máximo {} numeros.".format(999999999))
@@ -449,6 +465,7 @@ class TornarAssistidoForm(FlaskForm):
                                     choices=[
                                         (moradia['PROPRIA_QUITADA'][0], moradia['PROPRIA_QUITADA'][1]),
                                         (moradia['PROPRIA_FINANCIADA'][0], moradia['PROPRIA_FINANCIADA'][1]),
+                                        (moradia['MORADIA_CEDIDA'][0], moradia['MORADIA_CEDIDA'][1]),
                                         (moradia['OCUPADA_IRREGULAR'][0], moradia['OCUPADA_IRREGULAR'][1]),
                                         (moradia['EM_CONSTRUCAO'][0], moradia['EM_CONSTRUCAO'][1]),
                                         (moradia['ALUGADA'][0], moradia['ALUGADA'][1]),
@@ -539,14 +556,14 @@ class TornarAssistidoForm(FlaskForm):
                                 ]
                             )
 
-    gastos_medicacao    = IntegerField('Valores gastos com medicação',
+    gastos_medicacao    = MyFloatField('Valores gastos com medicação',
                                     validators=[
                                         RequiredIf(doenca_grave_familia = 'sim', message = MSG_NaoPodeEstarEmBranco.format('"Valores gastos com medicação"')),
                                         NumberRange(min = 0 ,max=999999999, message="Por favor, use no máximo {} numeros.".format(999999999))
                                     ]
                                 )
 
-    obs                     = TextAreaField('Observações adicionais',
+    obs_assistido       = TextAreaField('Observações adicionais',
                                 validators=[
                                     Optional(),
                                     Length(max=max_obs, message="Por favor, use no máximo {} caracteres para descrever a profissão.".format(max_obs))
@@ -653,7 +670,7 @@ class TornarAssistidoForm(FlaskForm):
                                     validators=[RequiredIf(pj_constituida = True, message = MSG_SelecioneUmaOpcaoLista.format('de "Órgão competente pelo registro do ato constitutivo"'))]
                                 )
 
-    faturamento_anual       = IntegerField('Faturamento anual',
+    faturamento_anual       = MyFloatField('Faturamento anual',
                                     validators=[
                                         RequiredIf(pj_constituida = True, message = MSG_NaoPodeEstarEmBranco.format('Faturamento anual')),
                                         NumberRange(min = 0 ,max=999999999, message="Por favor, use no máximo {} numeros.".format(999999999))
@@ -699,88 +716,68 @@ class TornarAssistidoForm(FlaskForm):
 class EditarAssistidoForm(CadastroAtendidoForm, TornarAssistidoForm):
     e_isso = None
 
-class EditarAJ(FlaskForm):
-    '''Formulário para edição de Assistências Judiciárias'''
-
-    areas_direito = SelectField('Áreas do Direito',
-                        choices=[
-                            ('civel','Cível'),
-                            ('trabalhista','Trabalhista'),
-                            ('administrativo','Administrativo'),
-                            ('penal','Penal'),
-                            ('empresarial','Empresarial'),
-                            ('ambiental','Ambiental'),
-                            ('consumidor','Consumidor'),
-                            ('contratos','Contratos'),
-                            ('responsabilidade_civil','Responsabilidade Civil'),
-                            ('reais','Reais'),
-                            ('familia','Família'),
-                            ('sucessoes','Sucessões'),
-                            ('previdenciario','Previdenciário'),
-                            ('tributario','Tributário')
-                        ]
-                    )
-    # Endereço
-    logradouro          = StringField('Logradouro',
+class AssistenciaJudiciariaForm(EnderecoForm):
+    nome          = StringField('Nome',
                                     validators=[
-                                        DataRequired(MSG_NaoPodeEstarEmBranco.format('O logradouro')),
-                                        Length(max=max_logradouro, message="Por favor, use no máximo {} caracteres para o logradouro.".format(max_logradouro))
+                                        DataRequired(MSG_NaoPodeEstarEmBranco.format('O nome')),
+                                        Length(max=max_nome, message="Por favor, use no máximo {} caracteres para o telefone".format(max_nome))
+                                    ]
+                                )
+
+    areas_atendidas = SelectMultipleField("Áreas do Direito", 
+                                        choices=[
+                                            (assistencia_jud_areas_atendidas["CIVEL"][0], assistencia_jud_areas_atendidas["CIVEL"][1]),
+                                            (assistencia_jud_areas_atendidas["TRABALHISTA"][0], assistencia_jud_areas_atendidas["TRABALHISTA"][1]),
+                                            (assistencia_jud_areas_atendidas["ADMINISTRATIVO"][0], assistencia_jud_areas_atendidas["ADMINISTRATIVO"][1]),
+                                            (assistencia_jud_areas_atendidas["PENAL"][0], assistencia_jud_areas_atendidas["PENAL"][1]),
+                                            (assistencia_jud_areas_atendidas["EMPRESARIAL"][0], assistencia_jud_areas_atendidas["EMPRESARIAL"][1]),
+                                            (assistencia_jud_areas_atendidas["AMBIENTAL"][0], assistencia_jud_areas_atendidas["AMBIENTAL"][1]),
+                                            (assistencia_jud_areas_atendidas["CONSUMIDOR"][0], assistencia_jud_areas_atendidas["CONSUMIDOR"][1]),
+                                            (assistencia_jud_areas_atendidas["CONTRATOS"][0], assistencia_jud_areas_atendidas["CONTRATOS"][1]),
+                                            (assistencia_jud_areas_atendidas["RESPONSABILIDADE_CIVIL"][0], assistencia_jud_areas_atendidas["RESPONSABILIDADE_CIVIL"][1]),
+                                            (assistencia_jud_areas_atendidas["REAIS"][0], assistencia_jud_areas_atendidas["REAIS"][1]),
+                                            (assistencia_jud_areas_atendidas["FAMILIA"][0], assistencia_jud_areas_atendidas["FAMILIA"][1]),
+                                            (assistencia_jud_areas_atendidas["SUCESSOES"][0], assistencia_jud_areas_atendidas["SUCESSOES"][1]),
+                                            (assistencia_jud_areas_atendidas["PREVIDENCIARIO"][0], assistencia_jud_areas_atendidas["PREVIDENCIARIO"][1]),
+                                            (assistencia_jud_areas_atendidas["TRIBUTARIO"][0], assistencia_jud_areas_atendidas["TRIBUTARIO"][1])
+                                        ], 
+                                        validators=[
+                                            DataRequired("Escolha pelo menos uma área do Direito!"),
                                         ]
-                                    )
+                                        )
 
-    numero              = StringField('Número',
-                                    validators=[
-                                        DataRequired(MSG_NaoPodeEstarEmBranco.format('O numero')),
-                                        Length(max=max_numero, message="Por favor, use no máximo {} caracteres para o número.".format(max_numero))
-                                        ]
-                                    )
+    regiao          = SelectField("Região", 
+                                  choices = [
+                                    (assistencia_jud_regioes["NORTE"][0], assistencia_jud_regioes["NORTE"][1]),
+                                    (assistencia_jud_regioes["SUL"][0], assistencia_jud_regioes["SUL"][1]),
+                                    (assistencia_jud_regioes["LESTE"][0], assistencia_jud_regioes["LESTE"][1]),
+                                    (assistencia_jud_regioes["OESTE"][0], assistencia_jud_regioes["OESTE"][1]),
+                                    (assistencia_jud_regioes["NOROESTE"][0], assistencia_jud_regioes["NOROESTE"][1]),
+                                    (assistencia_jud_regioes["CENTRO_SUL"][0], assistencia_jud_regioes["CENTRO_SUL"][1]),
+                                    (assistencia_jud_regioes["NORDESTE"][0], assistencia_jud_regioes["NORDESTE"][1]),
+                                    (assistencia_jud_regioes["PAMPULHA"][0], assistencia_jud_regioes["PAMPULHA"][1]),
+                                    (assistencia_jud_regioes["BARREIRO"][0], assistencia_jud_regioes["BARREIRO"][1]),
+                                    (assistencia_jud_regioes["VENDA_NOVA"][0], assistencia_jud_regioes["VENDA_NOVA"][1]),
+                                    (assistencia_jud_regioes["CONTAGEM"][0], assistencia_jud_regioes["CONTAGEM"][1]),
+                                    (assistencia_jud_regioes["BETIM"][0], assistencia_jud_regioes["BETIM"][1])
+                                  ],
+                                  validators= [
+                                    DataRequired(MSG_SelecioneUmaOpcaoLista.format('de "Região"'))
+                                  ]
+                                )
 
-    complemento         = StringField('Complemento',
-                                    validators=[
-                                        Optional(),
-                                        Length(max=max_complemento, message="Por favor, use no máximo {} caracteres para o complemento.".format(max_complemento))
-                                        ]
-                                    )
+    telefone        = StringField('Telefone',
+                                validators=[
+                                    DataRequired(MSG_NaoPodeEstarEmBranco.format('O telefone')),
+                                    Length(max=max_celular, message="Por favor, use no máximo {} caracteres para o telefone".format(max_celular))
+                                    ]
+                                )
 
-    bairro              = StringField('Bairro',
-                                    validators=[
-                                        DataRequired(MSG_NaoPodeEstarEmBranco.format('O bairro')),
-                                        Length(max=max_bairro, message="Por favor, use no máximo {} caracteres para o bairro.".format(max_bairro))
-                                        ]
-                                    )
-
-    cep                 = StringField('CEP',
-                                    validators=[
-                                        DataRequired(MSG_NaoPodeEstarEmBranco.format('O CEP')),
-                                        Length(max=max_cep, message="Por favor, use no máximo {} caracteres para o CEP.".format(max_cep))
-                                        ]
-                                    )
-
-    regiao = SelectField('Região',
-                choices=[
-                    ('norte','Norte'),
-                    ('sul','Sul'),
-                    ('leste','Leste'),
-                    ('oeste','Oeste'),
-                    ('noroeste','Noroeste'),
-                    ('centro_sul','Centro-Sul'),
-                    ('nordeste','Nordeste'),
-                    ('pampulha','Pampulha'),
-                    ('barreiro','Barreiro'),
-                    ('venda_nova','Venda Nova'),
-                    ('contagem','Contagem'),
-                    ('betim','Betim')
-                ]
-            )
-     
-    telefone = StringField('Telefone',
-                    validators=[
-                        Length(max=max_telefone, message="Você excedeu o máximo de caracteres.")
-                    ]
-                )
-
-    email = StringField('E-mail',
-                validators=[
-                    Email()
-                ]
-            ) 
+    email           = StringField('Endereço de e-mail',
+                                validators=[
+                                    DataRequired(MSG_NaoPodeEstarEmBranco.format('O email')),
+                                    Email("Formato de e-mail inválido! Certifique-se de que ele foi digitado corretamente.")
+                                    ]
+                                )
+                                
+    submit          = SubmitField('cadastrar')
