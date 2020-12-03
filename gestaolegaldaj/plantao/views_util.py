@@ -2,13 +2,26 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 from flask_paginate import Pagination, get_page_args
 
-from gestaolegaldaj import db, login_required
+from gestaolegaldaj import app,db, login_required
 from gestaolegaldaj.usuario.models import Usuario, usuario_urole_roles, Endereco
 from gestaolegaldaj.plantao.models import Atendido, Assistido, AssistidoPessoaJuridica
-from gestaolegaldaj.plantao.forms import CadastroAtendidoForm, TornarAssistidoForm, assistido_fisicoOuJuridico, EditarAssistidoForm
+from gestaolegaldaj.plantao.forms import CadastroAtendidoForm, TornarAssistidoForm, EditarAssistidoForm
+
+##############################################################
+################## CONSTANTES ################################
+##############################################################
+
+tipos_busca_atendidos = {
+        'TODOS' : 'todos',
+        'ATENDIDOS': 'atendidos',
+        'ASSISTIDOS': 'assistidos'
+    }
+
+##############################################################
+################## FUNCOES ###################################
+##############################################################
 
 def setDadosAtendido(entidade_atendido: Atendido, form):
-    entidade_atendido.id_orientacaoJuridica = 0
     entidade_atendido.nome                 = form.nome.data
     entidade_atendido.data_nascimento      = form.data_nascimento.data
     entidade_atendido.cpf                  = form.cpf.data
@@ -19,20 +32,21 @@ def setDadosAtendido(entidade_atendido: Atendido, form):
     entidade_atendido.area_juridica        = form.area_juridica.data
     entidade_atendido.como_conheceu        = form.como_conheceu.data
     entidade_atendido.procurou_outro_local = form.procurou_outro_local.data
-    entidade_atendido.obs                  = form.obs.data
+    entidade_atendido.obs                  = form.obs_atendido.data
     entidade_atendido.endereco.logradouro  = form.logradouro.data
     entidade_atendido.endereco.numero      = form.numero.data
     entidade_atendido.endereco.complemento = form.complemento.data
     entidade_atendido.endereco.bairro      = form.bairro.data
     entidade_atendido.endereco.cep         = form.cep.data
+    entidade_atendido.endereco.cidade      = form.cidade.data
+    entidade_atendido.endereco.estado      = form.estado.data
     entidade_atendido.pj_constituida       = form.pj_constituida.data
     entidade_atendido.pretende_constituir_pj = form.pretende_constituir_pj.data
-    entidade_atendido.id_orientacaoJuridica = form.id_orientacaoJuridica.data
 
     entidade_atendido.setIndicacao_orgao(form.indicacao_orgao.data, entidade_atendido.como_conheceu)
     entidade_atendido.setCnpj(entidade_atendido.pj_constituida, form.cnpj.data, form.repres_legal.data)
-    entidade_atendido.setRepres_legal(entidade_atendido.repres_legal, form.nome_repres_legal.data, 
-                                      form.cpf_repres_legal.data, form.contato_repres_legal.data, 
+    entidade_atendido.setRepres_legal(entidade_atendido.repres_legal, entidade_atendido.pj_constituida,form.nome_repres_legal.data,
+                                      form.cpf_repres_legal.data, form.contato_repres_legal.data,
                                       form.rg_repres_legal.data, form.nascimento_repres_legal.data)
     entidade_atendido.setProcurou_qual_local(entidade_atendido.procurou_outro_local, form.procurou_qual_local.data)
 
@@ -48,15 +62,16 @@ def setValoresFormAtendido(entidade_atendido: Atendido, form: CadastroAtendidoFo
    form.indicacao_orgao.data       = entidade_atendido.indicacao_orgao
    form.procurou_outro_local.data  = False if entidade_atendido.procurou_outro_local == '0' else True
    form.procurou_qual_local.data   = entidade_atendido.procurou_qual_local
-   form.obs.data                   = entidade_atendido.obs
+   form.obs_atendido.data          = entidade_atendido.obs
    form.cpf.data                   = entidade_atendido.cpf
    form.cnpj.data                  = entidade_atendido.cnpj
-   #form.cpfOuCnpj.data             = 'cpf' if form.cpf.data else 'cnpj'
    form.logradouro.data            = entidade_atendido.endereco.logradouro
    form.numero.data                = entidade_atendido.endereco.numero
    form.complemento.data           = entidade_atendido.endereco.complemento
    form.bairro.data                = entidade_atendido.endereco.bairro
    form.cep.data                   = entidade_atendido.endereco.cep
+   form.cidade.data                = entidade_atendido.endereco.cidade
+   form.estado.data                = entidade_atendido.endereco.estado
    form.pj_constituida.data        = False if entidade_atendido.pj_constituida == '0' else True
    form.repres_legal.data          = False if entidade_atendido.repres_legal == '0' else True
    form.nome_repres_legal.data     = entidade_atendido.nome_repres_legal
@@ -64,8 +79,7 @@ def setValoresFormAtendido(entidade_atendido: Atendido, form: CadastroAtendidoFo
    form.contato_repres_legal.data  = entidade_atendido.contato_repres_legal
    form.rg_repres_legal.data       = entidade_atendido.rg_repres_legal
    form.nascimento_repres_legal.data  = entidade_atendido.nascimento_repres_legal
-   form.pretende_constituir_pj.data= entidade_atendido.pretende_constituir_pj
-   form.id_orientacaoJuridica.data     = entidade_atendido.id_orientacaoJuridica
+   form.pretende_constituir_pj.data = False if entidade_atendido.pretende_constituir_pj == '0' else True
 
 def validaDadosEditar_atendidoForm(form, emailAtual: str):
         emailRepetido = Atendido.query.filter_by(email= form.email.data).first()
@@ -81,10 +95,10 @@ def validaDadosEditar_atendidoForm(form, emailAtual: str):
         return True
 
 def setDadosGeraisAssistido(entidade_assistido, form: TornarAssistidoForm):
-    entidade_assistido.sexo      = form.sexo.data
-    entidade_assistido.raca      = form.raca.data
-    entidade_assistido.profissao = form.profissao.data
-    entidade_assistido.rg        = form.rg.data
+    entidade_assistido.sexo                  = form.sexo.data
+    entidade_assistido.raca                  = form.raca.data
+    entidade_assistido.profissao             = form.profissao.data
+    entidade_assistido.rg                    = form.rg.data
     entidade_assistido.grau_instrucao        = form.grau_instrucao.data
     entidade_assistido.salario               = form.salario.data
     entidade_assistido.beneficio             = form.beneficio.data
@@ -96,7 +110,7 @@ def setDadosGeraisAssistido(entidade_assistido, form: TornarAssistidoForm):
     entidade_assistido.possui_outros_imoveis = form.possui_outros_imoveis.data
     entidade_assistido.possui_veiculos       = form.possui_veiculos.data
     entidade_assistido.doenca_grave_familia  = form.doenca_grave_familia.data
-    entidade_assistido.obs                   = form.obs.data
+    entidade_assistido.obs                   = form.obs_assistido.data
 
     entidade_assistido.setCamposVeiculo(entidade_assistido.possui_veiculos,
                                                     form.possui_veiculos_obs.data,
@@ -121,3 +135,14 @@ def setDadosAssistidoPessoaJuridica(entidade_assistidoPessoaJuridica: AssistidoP
 
     entidade_assistidoPessoaJuridica.setQtd_funcionarios(entidade_assistidoPessoaJuridica.tem_funcionarios, form.qtd_funcionarios.data)
     entidade_assistidoPessoaJuridica.setCamposRegiao_sede(entidade_assistidoPessoaJuridica.sede_bh, form.regiao_sede_bh.data, form.regiao_sede_outros.data)
+
+def serializar(lista):
+	return [x.as_dict() for x in lista]
+
+def busca_todos_atendidos_assistidos(busca, page):
+    return (db.session
+              .query(Atendido, Assistido)
+              .outerjoin(Assistido)
+              .filter(((Atendido.nome.contains(busca)) | (Atendido.cpf.contains(busca)) | (Atendido.cnpj.contains(busca))) & (Atendido.status == True))
+              .order_by(Atendido.nome)
+              .paginate(page, app.config['ATENDIDOS_POR_PAGINA'], False))

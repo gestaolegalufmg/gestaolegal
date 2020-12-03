@@ -5,18 +5,19 @@ from enum import Enum
 from flask import session
 from flask_bcrypt import Bcrypt
 from flask_login import UserMixin
-from sqlalchemy.sql import expression
 from sqlalchemy import null
+from sqlalchemy.orm import backref, relationship
+from sqlalchemy.sql import expression
 
 from gestaolegaldaj import db
-from datetime import datetime
+from gestaolegaldaj.casos.models import associacao_casos_atendidos
 
 ##############################################################
 ################## CONSTANTES/ENUMS ##########################
 ##############################################################
 
 area_do_direito = {
-    'CÍVEL'                : ('civel','Cível'),
+    'CIVEL'                : ('civel','Cível'),
     'TRABALHISTA'          : ('trabalhista', 'Trabalhista'),
     'ADMINISTRATIVO'       : ('administrativo', 'Administrativo'),
     'PENAL'                : ('penal', 'Penal'),
@@ -113,13 +114,14 @@ participacao_renda = {
 
 moradia = {
 
-    "PROPRIA_QUITADA"           :   ("propria_quitada","Própria quitada"),
-    "PROPRIA_FINANCIADA"         :  ("propria_financiada","Própria financiada"),
-    "OCUPADA_IRREGULAR"         :   ("ocupada_irregular","Ocupada/Irregular"),
-    "EM_CONSTRUCAO"             :   ("em_construcao","Em construção"),
-    "ALUGADA"                   :   ("alugada","Alugada"),
-    "PARENTES_OU_AMIGOS"        :   ("parentes_amigos","Parentes ou Amigos"),
-    "SITUACAO_DE_RUA"           :   ("situacao_rua","Situação de rua")
+    "PROPRIA_QUITADA"           :   ("propria_quitada","Moradia Própria quitada"),
+    "PROPRIA_FINANCIADA"        :   ("propria_financiada","Moradia Própria financiada"),
+    "MORADIA_CEDIDA"            :   ("moradia_cedida","Moradia Cedida"),
+    "OCUPADA_IRREGULAR"         :   ("ocupada_irregular","Moradia Ocupada/Irregular"),
+    "EM_CONSTRUCAO"             :   ("em_construcao","Moradia Em construção"),
+    "ALUGADA"                   :   ("alugada","Moradia Alugada"),
+    "PARENTES_OU_AMIGOS"        :   ("parentes_amigos","Mora na casa de Parentes ou Amigos"),
+    "SITUACAO_DE_RUA"           :   ("situacao_rua","Pessoa em Situação de Rua")
 
 
 }
@@ -182,6 +184,38 @@ orgao_reg = {
 
 }
 
+assistencia_jud_areas_atendidas = {
+    "CIVEL"                  :(area_do_direito['CIVEL'][0],area_do_direito['CIVEL'][1]),
+    "TRABALHISTA"            :(area_do_direito['TRABALHISTA'][0],area_do_direito['TRABALHISTA'][1]),
+    "ADMINISTRATIVO"         :(area_do_direito['ADMINISTRATIVO'][0],area_do_direito['ADMINISTRATIVO'][1]),
+    "PENAL"                  :(area_do_direito['PENAL'][0],area_do_direito['PENAL'][1]),
+    "EMPRESARIAL"            :(area_do_direito['EMPRESARIAL'][0],area_do_direito['EMPRESARIAL'][1]),
+    "AMBIENTAL"              :(area_do_direito['AMBIENTAL'][0],area_do_direito['AMBIENTAL'][1]),
+    "CONSUMIDOR"             :('consumidor','Consumidor'),
+    "CONTRATOS"              :('contratos','Contratos'),
+    "RESPONSABILIDADE_CIVIL" :('responsabilidade_civil','Responsabilidade Civil'),
+    "REAIS"                  :('reais','Reais'),
+    "FAMILIA"                :('familia','Família'),
+    "SUCESSOES"              :('sucessoes','Sucessões'),
+    "PREVIDENCIARIO"         :('previdenciario','Previdenciário'),
+    "TRIBUTARIO"             :('tributario','Tributário')
+}
+
+assistencia_jud_regioes={
+    "NORTE"      :('norte','Norte'),
+    "SUL"        :('sul','Sul'),
+    "LESTE"      :('leste','Leste'),
+    "OESTE"      :('oeste','Oeste'),
+    "NOROESTE"   :('noroeste','Noroeste'),
+    "CENTRO_SUL" :('centro_sul','Centro-Sul'),
+    "NORDESTE"   :('nordeste','Nordeste'),
+    "PAMPULHA"   :('pampulha','Pampulha'),
+    "BARREIRO"   :('barreiro','Barreiro'),
+    "VENDA_NOVA" :('venda_nova','Venda Nova'),
+    "CONTAGEM"   :('contagem','Contagem'),
+    "BETIM"      :('betim','Betim')
+}
+
 
 
 class Atendido(db.Model):
@@ -189,8 +223,10 @@ class Atendido(db.Model):
     __tablename__ = 'atendidos'
 
     id                    = db.Column(db.Integer, primary_key = True)
-    id_orientacaoJuridica = db.Column(db.Integer, db.ForeignKey("orientacao_juridica.id"))
-    orientacaoJuridica    = db.relationship("OrientacaoJuridica", lazy="joined")
+    orientacoesJuridicas  = db.relationship("OrientacaoJuridica", secondary="atendido_xOrientacaoJuridica")
+    casos                 = db.relationship("Caso", secondary=associacao_casos_atendidos, back_populates='clientes')
+
+
 
     #Dados básicos
     nome                = db.Column(db.String(80,  collation = 'latin1_general_ci'),  nullable=False)
@@ -204,6 +240,8 @@ class Atendido(db.Model):
     email               = db.Column(db.String(80,  collation = 'latin1_general_ci'), unique=True, nullable=False)
     estado_civil        = db.Column(db.String(80,  collation = 'latin1_general_ci'), nullable = False)
 
+
+
     #antiga Área_demanda
     area_juridica          = db.Column(db.String(80, collation = 'latin1_general_ci'), nullable=False)
     como_conheceu          = db.Column(db.String(80, collation = 'latin1_general_ci'), nullable=False)
@@ -212,14 +250,14 @@ class Atendido(db.Model):
     procurou_qual_local    = db.Column(db.String(80, collation = 'latin1_general_ci'))
     obs                    = db.Column(db.Text(      collation = 'latin1_general_ci'))
     pj_constituida         = db.Column(db.String(80, collation = 'latin1_general_ci'), nullable=False)
-    #TODO Deixar coluna tipo Boolean
-    repres_legal           = db.Column(db.String(80, collation = 'latin1_general_ci'))
+    repres_legal           = db.Column(db.Boolean)
     nome_repres_legal      = db.Column(db.String(80, collation = 'latin1_general_ci'))
     cpf_repres_legal       = db.Column(db.String(14, collation = 'latin1_general_ci'))
     contato_repres_legal   = db.Column(db.String(18, collation = 'latin1_general_ci'))
     rg_repres_legal        = db.Column(db.String(50, collation = 'latin1_general_ci'))
     nascimento_repres_legal = db.Column(db.Date)
     pretende_constituir_pj = db.Column(db.String(80, collation = 'latin1_general_ci'))
+    status                 = db.Column(db.Integer, nullable = False)
 
     def setIndicacao_orgao(self, indicacao_orgao, como_conheceu):
         if como_conheceu == como_conheceu_daj['ORGAOSPUBLICOS'][0]:
@@ -235,9 +273,9 @@ class Atendido(db.Model):
             self.cnpj = null()
             self.repres_legal = null()
 
-    def setRepres_legal(self, repres_legal, nome_repres_legal, cpf_repres_legal,
+    def setRepres_legal(self, repres_legal, pj_constituida,nome_repres_legal, cpf_repres_legal,
                         contato_repres_legal, rg_repres_legal, nascimento_repres_legal):
-        if repres_legal == 0:
+        if (repres_legal  == False) and pj_constituida:
             self.nome_repres_legal = nome_repres_legal
             self.cpf_repres_legal = cpf_repres_legal
             self.contato_repres_legal = contato_repres_legal
@@ -279,12 +317,12 @@ class Assistido(db.Model):
     #Dados sociais
     grau_instrucao      = db.Column(db.String(100, collation = 'latin1_general_ci'), nullable=False)
 
-    #Renda e patrimõnio
-    salario                = db.Column(db.Numeric(10,4), nullable=False)
+    #Renda e patrimônio
+    salario                = db.Column(db.Numeric(10,2), nullable=False)
     beneficio              = db.Column(db.String(30, collation = 'latin1_general_ci'), nullable=False)
     contribui_inss         = db.Column(db.String(20, collation = 'latin1_general_ci'),nullable=False)
     qtd_pessoas_moradia    = db.Column(db.Integer, nullable=False)
-    renda_familiar         = db.Column(db.Integer, nullable=False)
+    renda_familiar         = db.Column(db.Numeric(10,2), nullable=False)
     participacao_renda     = db.Column(db.String(100, collation = 'latin1_general_ci'), nullable=False)
     tipo_moradia           = db.Column(db.String(100, collation = 'latin1_general_ci'), nullable=False)
     possui_outros_imoveis  = db.Column(db.Boolean, nullable=False)
@@ -295,7 +333,7 @@ class Assistido(db.Model):
     doenca_grave_familia   = db.Column(db.String(20, collation = 'latin1_general_ci'),nullable=False)
     pessoa_doente          = db.Column(db.String(50, collation = 'latin1_general_ci'))
     pessoa_doente_obs      = db.Column(db.String(100, collation = 'latin1_general_ci'))
-    gastos_medicacao       = db.Column(db.Integer)
+    gastos_medicacao       = db.Column(db.Numeric(10,2))
     obs                    = db.Column(db.String(1000, collation = 'latin1_general_ci'))
 
     def setCamposVeiculo(self, possui_veiculos, possui_veiculos_obs, quantos_veiculos, ano_veiculo):
@@ -311,8 +349,11 @@ class Assistido(db.Model):
     def setCamposDoenca(self, doenca_grave_familia, pessoa_doente, pessoa_doente_obs, gastos_medicacao):
         if doenca_grave_familia == 'sim':
             self.pessoa_doente     = pessoa_doente
-            self.pessoa_doente_obs = pessoa_doente_obs
             self.gastos_medicacao  = gastos_medicacao
+            if pessoa_doente == 'sim':
+                self.pessoa_doente_obs = pessoa_doente_obs
+            else:
+                self.pessoa_doente_obs = null()
         else:
             self.pessoa_doente     = null()
             self.pessoa_doente_obs = null()
@@ -338,7 +379,7 @@ class AssistidoPessoaJuridica(db.Model):
     area_atuacao        = db.Column(db.String(50, collation = 'latin1_general_ci'), nullable=False)
     negocio_nascente    = db.Column(db.Boolean, nullable=False)
     orgao_registro      = db.Column(db.String(100, collation = 'latin1_general_ci'), nullable=False)
-    faturamento_anual   = db.Column(db.Integer,nullable=False)
+    faturamento_anual   = db.Column(db.Numeric(10,2), nullable=False)
     ultimo_balanco_neg  = db.Column(db.String(50, collation = 'latin1_general_ci'))
     resultado_econ_neg  = db.Column(db.String(50, collation = 'latin1_general_ci'))
     tem_funcionarios    = db.Column(db.String(20, collation = 'latin1_general_ci'), nullable=False)
@@ -369,3 +410,63 @@ class OrientacaoJuridica(db.Model):
     area_direito        = db.Column(db.String(50, collation = 'latin1_general_ci'), nullable = False)
     sub_area            = db.Column(db.String(50, collation = 'latin1_general_ci'))
     descricao           = db.Column(db.String(1000, collation = 'latin1_general_ci'), nullable = False)
+    status              = db.Column(db.Integer, nullable = False)
+
+    assistenciasJudiciarias = db.relationship("AssistenciaJudiciaria", secondary="assistenciasJudiciarias_xOrientacao_juridica", backref='AssistenciaJudiciaria')
+    atendidos               = db.relationship("Atendido", secondary="atendido_xOrientacaoJuridica")
+
+    def setSubAreas(self, area_direito, sub_area, sub_areaAdmin):
+        if area_direito == area_do_direito['CIVEL'][0]:
+            self.sub_area = sub_area
+        elif area_direito == area_do_direito['ADMINISTRATIVO'][0]:
+            self.sub_area = sub_areaAdmin
+        else:
+            self.sub_area = null()
+
+    def as_dict(self):
+       return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+class Atendido_xOrientacaoJuridica(db.Model):
+    __tablename__= "atendido_xOrientacaoJuridica"
+
+    id                       = db.Column(db.Integer, primary_key=True)
+    id_orientacaoJuridica    = db.Column(db.Integer, db.ForeignKey('orientacao_juridica.id'))
+    id_atendido              = db.Column(db.Integer, db.ForeignKey('atendidos.id'))
+
+    atendido                 = db.relationship(Atendido, backref=db.backref("atendido_xOrientacaoJuridica"))
+    orientacaoJuridica       = db.relationship(OrientacaoJuridica, backref=db.backref("atendido_xOrientacaoJuridica"))
+
+# ASSISTÊNCIA JUDICIÁRIA
+class AssistenciaJudiciaria(db.Model):
+    __tablename__= "assistencias_judiciarias"
+
+    id                  = db.Column(db.Integer, primary_key=True)
+    nome                = db.Column(db.String(150, collation = 'latin1_general_ci'), nullable=False)
+    regiao              = db.Column(db.String(80, collation = 'latin1_general_ci'), nullable=False)
+    areas_atendidas     = db.Column(db.String(1000, collation = 'latin1_general_ci'), nullable = False)
+    endereco_id         = db.Column(db.Integer, db.ForeignKey("enderecos.id"))
+    endereco            = db.relationship("Endereco", lazy="joined")
+    telefone            = db.Column(db.String(18, collation = 'latin1_general_ci'), nullable=False)
+    email               = db.Column(db.String(80, collation = 'latin1_general_ci'), unique=True, nullable=False)
+    status              = db.Column(db.Integer, nullable = False)
+
+    orientacoesJuridicas = db.relationship("OrientacaoJuridica", secondary="assistenciasJudiciarias_xOrientacao_juridica")
+
+    def setAreas_atendidas(self, opcoes):
+        self.areas_atendidas = ",".join(opcoes)
+
+    def getAreas_atendidas(self):
+        return self.areas_atendidas.split(",")
+
+    def as_dict(self):
+       return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+class AssistenciaJudiciaria_xOrientacaoJuridica(db.Model):
+    __tablename__= "assistenciasJudiciarias_xOrientacao_juridica"
+
+    id                       = db.Column(db.Integer, primary_key=True)
+    id_orientacaoJuridica    = db.Column(db.Integer, db.ForeignKey('orientacao_juridica.id'))
+    id_assistenciaJudiciaria = db.Column(db.Integer, db.ForeignKey('assistencias_judiciarias.id'))
+
+    assistenciaJudiciaria    = db.relationship(AssistenciaJudiciaria, backref=db.backref("assistenciasJudiciarias_xOrientacao_juridica"))
+    orientacaoJuridica     = db.relationship(OrientacaoJuridica, backref=db.backref("assistenciasJudiciarias_xOrientacao_juridica"))

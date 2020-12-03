@@ -1,6 +1,5 @@
 {% extends "base_dashboard.html" %}
 {%block titulo%}Cadastro de Orientação Jurídica{%endblock%}
-{% block conteudo %}
 
 {% block css %}
 <style>
@@ -16,63 +15,15 @@
 </style>
 {% endblock %}
 
+{% block conteudo %}
 <div class="card pessoa" id = "pessoa">
     <div class="card-body">
         <div class="form-group row" ><h3>Dados da Orientação Jurídica</h3></div>
         <div style="height: 30px;"></div>
         <div class= "form-validation">
-            <form class="form-valide" action="#" method="POST" id="form">
-                {{ form.csrf_token }}
-
-                <div class="form-group row" id="div_area_direito">
-                    <label class="col-lg-4 col-form-label" for="area_direito">{{form.area_direito.label}} <span class="text-danger">*</span>
-                    </label>
-                    <div class="col-lg-6">
-                        {{form.area_direito(class_="form-control")}}
-                    </div>
-                </div>
-
-                {% for error in form.area_direito.errors %}
-                    <div class="alert alert-danger">{{error}}</div>
-                {% endfor %}
-
-
-                <div class="form-group row" id="div_sub_area" hidden = "true">
-                    <label class="col-lg-4 col-form-label" for="val-sub_area">{{form.sub_area.label}} <span class="text-danger">*</span>
-                    </label>
-                    <div class="col-lg-6">
-                        {{form.sub_area(class_="form-control")}}
-                    </div>
-                </div>
-
-                {% for error in form.sub_areaAdmin.errors %}
-                    <div class="alert alert-danger">{{error}}</div>
-                {% endfor %}
-
-                <div class="form-group row" id="div_sub_area_admin" hidden = "true">
-                    <label class="col-lg-4 col-form-label" for="val-sub_area_admin">{{form.sub_areaAdmin.label}} <span class="text-danger">*</span>
-                    </label>
-                    <div class="col-lg-6">
-                        {{form.sub_areaAdmin(class_="form-control")}}
-                    </div>
-                </div>
-
-                {% for error in form.sub_areaAdmin.errors %}
-                    <div class="alert alert-danger">{{error}}</div>
-                {% endfor %}
-
-                <div class="form-group row" id="div_descricao">
-                    <label class="col-lg-4 col-form-label" for="val-descricao">{{form.descricao.label}}
-                    </label>
-                    <div class="col-lg-6">
-                        {{form.descricao(type="text",class_="form-control")}}
-                    </div>
-                </div>
-
-                {% for error in form.descricao.errors %}
-                    <div class="alert alert-danger">{{error}}</div>
-                {% endfor %}
-
+            <form class="form-valide" action="" method="POST" id="form">
+                
+                {% include "orientacao_juridica_form.html" %}
 
                 <button type="submit" class="btn btn-primary" id="button">Cadastrar</button>
             </form>
@@ -84,9 +35,10 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{url_for('static',filename='js/form_utils.js')}}"></script>
 <script src="{{url_for('static',filename='js/orientacao.js')}}"></script>
 <script>
-    //trataBotaoForm();
+    trataBotaoForm();
 
     //CHAMO A VALIDACAO
     validarCampoAreaDireito();

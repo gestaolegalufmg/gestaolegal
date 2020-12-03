@@ -1,5 +1,5 @@
 {% extends 'base_dashboard.html' %}
-{% block titulo %} Perfil {{assistido.Atendido.nome}} {% endblock titulo %}
+{% block titulo %} Perfil {{assistido.Atendido.nome.capitalize()}} {% endblock titulo %}
 
 {% block conteudo %}
 
@@ -82,7 +82,11 @@
                             Sexo:
                         </span>
                         <span class="float-right text-muted">
-                            {{assistido.Assistido.sexo}}
+                            {% for key in sexo_usuario %}
+                                {% if sexo_usuario[key][0] == assistido.Assistido.sexo %}
+                                    {{sexo_usuario[key][1]}}
+                                {% endif %}
+                            {% endfor %}
                         </span>
                     </p>
 
@@ -115,10 +119,14 @@
 
                     <p class="clearfix">
                         <span class="float-left">
-                            Grau de instrução:
+                            Grau de Instrução:
                         </span>
                         <span class="float-right text-muted">
-                            {{assistido.Assistido.grau_instrucao}}
+                            {% for key in escolaridade %}
+                                {% if escolaridade[key][0] == assistido.Assistido.grau_instrucao %}
+                                    {{escolaridade[key][1]}}
+                                {% endif %}
+                            {% endfor %}
                         </span>
                     </p>
 
@@ -127,7 +135,7 @@
                             Salário:
                         </span>
                         <span class="float-right text-muted">
-                            {{assistido.Assistido.salario}}
+                            {{"R$ " + formata_float(assistido.Assistido.salario)}}
                         </span>
                     </p>
 
@@ -135,8 +143,8 @@
             </div>
         </div>
     </div>
-{% endif %}
 </div>
+{% endif %}
 
 {% if assistido.AssistidoPessoaJuridica.id != Null %}
 <div class="row">
@@ -150,7 +158,7 @@
 
                 <p class="clearfix">
                     <span class="float-left">
-                        Situação receita:
+                        Situação Receita:
                     </span>
                     <span class="float-right text-muted">
                         {{assistido.AssistidoPessoaJuridica.situacao_receita or '--'}}
@@ -159,37 +167,49 @@
 
                 <p class="clearfix">
                     <span class="float-left">
-                        Enquandramento:
+                        Enquadramento:
                     </span>
                     <span class="float-right text-muted">
-                        {{assistido.AssistidoPessoaJuridica.enquadramento}}
+                        {% for key in enquadramento %}
+                            {% if enquadramento[key][0] == assistido.AssistidoPessoaJuridica.enquadramento %}
+                                {{enquadramento[key][1]}}
+                            {% endif %}
+                        {% endfor %}
                     </span>
                 </p>
 
                 <p class="clearfix">
                     <span class="float-left">
-                        Area de atuação:
+                        Area de Atuação:
                     </span>
                     <span class="float-right text-muted">
-                        {{assistido.AssistidoPessoaJuridica.area_atuacao}}
+                        {% for key in area_atuacao %}
+                            {% if area_atuacao[key][0] == assistido.AssistidoPessoaJuridica.area_atuacao %}
+                                {{area_atuacao[key][1]}}
+                            {% endif %}
+                        {% endfor %}
                     </span>
                 </p>
 
                 <p class="clearfix">
                     <span class="float-left">
-                        Órgão de registro:
+                        Órgão de Registro:
                     </span>
                     <span class="float-right text-muted">
-                        {{assistido.AssistidoPessoaJuridica.orgao_registro}}
+                        {% for key in orgao_reg %}
+                            {% if orgao_reg[key][0] == assistido.AssistidoPessoaJuridica.orgao_registro %}
+                                {{orgao_reg[key][1]}}
+                            {% endif %}
+                        {% endfor %}
                     </span>
                 </p>
 
                 <p class="clearfix">
                     <span class="float-left">
-                        Faturamento anual:
+                        Faturamento Anual:
                     </span>
                     <span class="float-right text-muted">
-                        {{assistido.AssistidoPessoaJuridica.faturamento_anual}}
+                        {{"R$ " + formata_float(assistido.AssistidoPessoaJuridica.faturamento_anual)}}
                     </span>
                 </p>
 
@@ -197,8 +217,71 @@
         </div>
     </div>
     </div>
-</div>
 {% endif %}
+    <div class="col-md-6 col-xs-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>Endereço</h4>
+            </div>
+            <div class="card-body">
+                <div class="py-2">
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Logradouro:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.endereco.logradouro}}
+                        </span>
+                    </p>
 
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Número:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.endereco.numero}}
+                        </span>
+                    </p>
 
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Complemento:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.endereco.complemento or '--'}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Bairro:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.endereco.bairro}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            CEP:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.endereco.cep}}
+                        </span>
+                    </p>
+
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Cidade:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Atendido.endereco.cidade}}, {{assistido.Atendido.endereco.estado}}
+                        </span>
+                    </p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
