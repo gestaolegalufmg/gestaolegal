@@ -38,3 +38,6 @@ Werkzeug==1.0.0
 wincertstore==0.2
 wrapt==1.11.1
 WTForms==2.2.1
+
+Flask-mail
+email-validator
