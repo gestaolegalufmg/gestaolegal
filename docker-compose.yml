@@ -2,6 +2,17 @@
 version: '3.7'
 
 services:
+  app:
+    build: .
+    container_name: gestaolegal
+    restart: always
+    environment:
+      FLASK_ENV: development
+    ports:
+      - "5000:5000"
+    volumes:
+      - "./:/src"
+    entrypoint: "python /src/app.py"
 
   gl_db:
     image: mysql
