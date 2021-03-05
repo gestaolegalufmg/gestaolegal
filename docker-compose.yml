@@ -2,9 +2,9 @@
 version: '3.7'
 
 services:
-  app:
+  gl_app:
     build: .
-    container_name: app
+    container_name: gl_app
     restart: unless-stopped
     ports:
       - "5000:5000"
@@ -14,9 +14,9 @@ services:
         target: /code
     command: [ "python", "./app.py"]
 
-  db:
+  gl_db:
     image: mysql
-    container_name: db
+    container_name: gl_db
     command: --default-authentication-plugin=mysql_native_password
     restart: unless-stopped
     environment:
@@ -33,9 +33,9 @@ services:
         source: /opt/docker_volumes/mysql_data
         target: /var/lib/mysql
 
-  adminer:
+  gl_adminer:
     image: adminer
-    container_name: adminer
+    container_name: gl_adminer
     restart: unless-stopped
     ports:
       - "8080:8080"
