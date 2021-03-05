@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import (DateField, FloatField, IntegerField, SelectField,
                      SelectMultipleField, StringField, SubmitField,
-                     TextAreaField)
+                     TextAreaField, HiddenField, TimeField)
 from wtforms.validators import (AnyOf, DataRequired, Email, InputRequired,
                                 Length, NumberRange, Optional, StopValidation)
 
@@ -781,3 +781,29 @@ class AssistenciaJudiciariaForm(EnderecoForm):
                                 )
                                 
     submit          = SubmitField('cadastrar')
+
+
+
+class AbrirPlantaoForm(FlaskForm):
+    data_abertura = DateField(
+                              'Data de abertura',
+                               validators=[DataRequired(MSG_EscolhaUmaData.format("de abertura"))]
+                                )
+    hora_abertura = TimeField(
+                                'Horário de Abertura',
+                                validators=[DataRequired('Por favor, escolha um horário de abertura.')]
+                                )
+
+class SelecionarDuracaoPlantaoForm(FlaskForm):
+    hdnDiasEscolhidos = HiddenField('Dias escolhidos')
+    submit = SubmitField('Confirmar')
+
+class FecharPlantaoForm(FlaskForm):
+    data_fechamento = DateField(
+                                'Data de fechamento',
+                                validators=[DataRequired(MSG_EscolhaUmaData.format("de fechamento"))]
+                                )
+    hora_fechamento = TimeField(
+                                'Horário de fechamento',
+                                validators=[DataRequired('Por favor, escolha um horário de fechamento.')]
+                                )

@@ -1,0 +1,63 @@
+{% extends "base_dashboard.html" %}
+
+{% block titulo %}Notificações{% endblock %}
+
+{% block conteudo %}
+<nav class="d-inline-block">
+  <ul class="pagination mb-0">
+    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+    <li class="page-item"><a class="page-link"
+        href="">2</a>
+    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+  </ul>
+</nav>
+
+<div class="card">
+  <div class="card-body">
+    <div class="container table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Caráter da Notificação</th>
+                    <th>Data</th>
+                    <th>Criador</th>
+                    <th>Página de Origem</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Abertura do Plantão</td>
+                    <td>22/12/2020</td>
+                    <td>Administrador</td>
+                    <td>
+                        <div class="row">
+                            <a href="" class="btn ml-2 mr-2 btn-flat btn-primary">Ir à página</a>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Fechamento do Plantão</td>
+                    <td>28/12/2020</td>
+                    <td>Professor</td>
+                    <td>
+                        <div class="row">
+                            <a href="" class="btn ml-2 mr-2 btn-flat btn-primary">Ir à página</a>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Ano Novo</td>
+                    <td>01/01/2021</td>
+                    <td>Estagiário</td>
+                    <td>
+                        <div class="row">
+                            <a href="" class="btn ml-2 mr-2 btn-flat btn-primary">Ir à página</a>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

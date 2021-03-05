@@ -1,19 +1,32 @@
 from flask_wtf import FlaskForm
 from wtforms import HiddenField, SubmitField, SelectField, StringField, TextAreaField, DateField, FileField, FloatField
-from wtforms.validators import InputRequired, DataRequired
+from wtforms.validators import InputRequired, DataRequired, Optional
 from gestaolegaldaj.plantao.forms import area_do_direito, assistencia_jud_areas_atendidas
 from gestaolegaldaj.casos.models import situacao_deferimento
 
 class CasoForm(FlaskForm):
     clientes     = HiddenField(validators=[InputRequired('Por favor, selecione pelo menos um cliente para associar ao caso')])
-    orientador   = HiddenField()
-    estagiario   = HiddenField()
     area_direito = SelectField('Área do Direito', choices=[(assistencia_jud_areas_atendidas[key][0],assistencia_jud_areas_atendidas[key][1]) for key in assistencia_jud_areas_atendidas])
     descricao    = TextAreaField('Descrição')
     submit       = SubmitField('Enviar')
 
-class EditarCasoForm(CasoForm):
-    situacao_deferimento = SelectField('Status do caso', choices=[(situacao_deferimento[key][0], situacao_deferimento[key][1]) for key in situacao_deferimento])
+class EditarCasoForm(FlaskForm):
+    orientador   = HiddenField()
+    estagiario   = HiddenField()
+    colaborador  = HiddenField()
+    area_direito = SelectField('Área do Direito', choices=[(assistencia_jud_areas_atendidas[key][0],assistencia_jud_areas_atendidas[key][1]) for key in assistencia_jud_areas_atendidas])
+    descricao    = TextAreaField('Descrição')
+    situacao_deferimento_ativo = SelectField('Status do caso', choices=[
+                                                                        ('ativo','Ativo'),
+                                                                        ('arquivado','Arquivado'),
+                                                                        ('solucionado', 'Solucionado')
+                                                                    ],
+                                                                validators = [Optional()])
+    situacao_deferimento_indeferido = SelectField('Status do caso', choices=[
+                                                                             ('indeferido','Indeferido'),
+                                                                             ('ativo','Ativo')
+                                                                        ],
+                                                                    validators = [Optional()])
 
 class RoteiroForm(FlaskForm):
     area_direito = SelectField('Área do Direito', choices=[(assistencia_jud_areas_atendidas[key][0],assistencia_jud_areas_atendidas[key][1]) for key in assistencia_jud_areas_atendidas], validators=[InputRequired('Campo obrigaatório')])
@@ -64,6 +77,7 @@ class ProcessoForm(FlaskForm):
     submit                   = SubmitField('Associar Processo')
 
 class EventoForm(FlaskForm):
+    usuario   = HiddenField()
     tipo                   = SelectField('Tipo de Evento',
                                 choices=[
                                         ('contato','Contato'),

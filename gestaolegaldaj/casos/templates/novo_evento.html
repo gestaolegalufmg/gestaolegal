@@ -1,11 +1,15 @@
 {% extends "base_dashboard.html" %}
-{% import "base_form.html" as formutils %}
+{% import "base_form_evento.html" as formutils %}
 {%block titulo%}Novo Evento - Caso #{{id_caso}}{%endblock%}
+{% block css %} 
+<link rel="stylesheet" href="{{url_for('static',filename='temas_externos/select2.min.css')}}">
+{% endblock css %}
 {% block conteudo %}
 <div class="card">
-    <div class="card-body">
+    <div class="card-body">      
         <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
             {{form.hidden_tag()}}
+            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('casos.api_casos_buscar_usuario', _external=True)}}">
             <div class="form-group row">
                 {{formutils.form_label(form.data_evento, class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
                  <div class="col-12 col-lg-6 offset-lg-1">
@@ -19,13 +23,11 @@
                 </div>
             </div>
             <div class="form-group row">
-                <div class="col-12 col-lg-6 offset-lg-1 col-form-label">
-                    Usuário Responsável
+                <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="usuario-js">Usuário Responsável</label>
+                <div class="col-12 col-lg-6 offset-lg-1">
+                    <select class="form-control" id="usuario-js" name="usuario-js" ></select>
                 </div>
-                 <div class="col-12 col-lg-6 offset-lg-1">
-                    
-                 </div>
-             </div>
+            </div>
             <div class="form-group row">
                 {{formutils.form_label(form.descricao, class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
                  <div class="col-12 col-lg-6 offset-lg-1">
@@ -53,5 +55,5 @@
 
 {% block scripts %}
     <script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
-    <script src="{{url_for('static',filename='js/novo_caso.js')}}"></script>
+    <script src="{{url_for('static',filename='js/novo_evento.js')}}"></script>
 {% endblock scripts %}

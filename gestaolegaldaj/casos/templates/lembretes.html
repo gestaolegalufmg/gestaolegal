@@ -4,7 +4,7 @@
 
     
     {% if lembretes %}
-    <div class="row card mr-1 card-primary" style="margin-left: 3px;">
+    <div class="row card ml-1 mr-1 card-primary">
         <div class="card-header">
             <h4>Ações:</h4>
             <div class="card-header-action"><a href="{{url_for('casos.cadastrar_lembrete', id_do_caso=lembretes[0].id_caso)}}">

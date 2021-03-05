@@ -88,12 +88,12 @@
                             <div class="card card-secondary">
                                 <div class="card-header">
                                     <div class="w-25">
-                                        <h4>{{assistencia.nome or ' ---'}}</h4>
+                                        <h4>{{assistencia.assistenciaJudiciaria.nome or ' ---'}}</h4>
                                     </div>
                                     <h4>
-                                        regiao: 
+                                        Região: 
                                                 {% for key in regiao_bh %} 
-                                                    {% if regiao_bh[key][0] == assistencia.regiao %} 
+                                                    {% if regiao_bh[key][0] == assistencia.assistenciaJudiciaria.regiao %}
                                                         {{regiao_bh[key][1]}}
                                                     {% endif %} 
                                                 {% endfor %}

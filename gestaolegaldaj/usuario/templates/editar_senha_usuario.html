@@ -1,20 +1,34 @@
 {% extends "base_dashboard.html" %}
 {% block titulo %}Editar senha{% endblock titulo %}
 {% block conteudo %}
-<form action="" method="POST" id="form">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-    <div>
-        <span>Nova senha:</span>
-        <input type="password" id="senha" name="senha" required style="margin: 5px;" maxlength="60" placeholder="Escolha uma senha segura">
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <form class="form" action="" method="POST" id="form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group row">
+                        <label for="senha" class="col-12 col-lg-6 offset-lg-1 col-form-label">Nova senha:</label>
+                        <div class="col-12 col-lg-6 offset-lg-1">
+                            <input class="form-control" type="password" id="senha" name="senha" required maxlength="60" placeholder="Escolha uma senha segura">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group row">
+                        <label for="confirmacao" class="col-12 col-lg-6 offset-lg-1 col-form-label">Confirme sua senha:</label>
+                        <div class="col-12 col-lg-6 offset-lg-1">
+                            <input class="form-control" type="password" id="confirmacao" name="confirmacao" required maxlength="60" placeholder="Confirme sua senha">
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-flat btn-primary font-weight-normal" type="submit" id="button">Confirmar</button>
+                    <button type="button" class="btn btn-flat btn-primary font-weight-normal"><a href="{{url_for('principal.index')}}" style="color: inherit; text-decoration: none;">Cancelar</a></button>
+                
+                </form>
+            </div>
+        </div>
     </div>
-    <div>
-        <span>Confirme sua senha:</span>
-        <input type="password" id="confirmacao" name="confirmacao" required style="margin: 5px;" maxlength="60" placeholder="Confirme sua senha">
-    </div>
-    <button type="submit" id="button">Confirmar</button>
-    <button type="button"><a href="{{url_for('principal.index')}}" style="color: inherit; text-decoration: none;">Cancelar</a></button>
-</form>
+</div>
 {% endblock %}
 
 {% block scripts %}

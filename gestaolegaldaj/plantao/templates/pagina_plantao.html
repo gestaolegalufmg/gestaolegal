@@ -1,17 +1,47 @@
 {% extends "base_dashboard.html" %}
 {% block titulo %}Escala do Plantão{% endblock titulo %}
 {% block css %}
-<link rel="stylesheet" href="{{url_for('static',filename='app_tema/assets/css/calendario.css')}}">
+<link rel="stylesheet" href="{{url_for('static',filename='css/calendario.css')}}">
+<style>
+  .numero_plantao_a_marcar{
+    background-color:#52A0FD;
+  }
+  .disponivel{
+    border-color:#25FD00;
+    border-width: 2px;
+    
+  }
+  .indisponivel{
+    border-color:red;
+    border-width: 2px;
+  }
+</style>
 {% endblock css %}
 
 {% block conteudo %}
+<input type="hidden" id="hdnAjaxEscala" value="{{url_for('plantao.ajax_obter_escala_plantao')}}">
 <div class="row">
   <div class="col-12">
     <div class="card card-primary">
-      <div class="card-header">
-          <h4>Nome do funcionário</h4>
-          <div class="card-header-action">
-            <button class="btn btn-primary ml-auto">Editar</button>
+      <div class="card-header row">
+          <div class="col-6">
+            <h4>Nome do funcionário: {{ current_user.nome}}</h4>
+          </div>
+          
+          <div class="col-6">
+            <div class="d-flex flex-md-row-reverse flex-column-reverse">
+              <div class="card-header-action m-1">
+                <button class="btn btn-primary ml-auto">Editar</button>
+              </div>
+              {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0]] %}
+                <div class="card-header-action m-1">
+                  <a class="btn btn-primary ml-auto" href="{{url_for('plantao.editar_abertura')}}">Editar Abertura</a>
+                </div>
+                <div class="card-header-action m-1">
+                  <a class="btn btn-primary ml-auto" href="{{url_for('plantao.configurar_abertura')}}">Configurar Abertura</a>
+                </div>
+              {% endif %}
+            </div>
           </div>
       </div>
     </div>
@@ -21,7 +51,7 @@
 <div class="row">
   <div class="col-12 col-lg-5">
     <div class="card">
-      <div class="card-body">
+      <div class="card-body d-flex justify-content-center" >
         <div class="calendar"> 
           <div class="year-header"> 
              <span class="left-button" id="prev"> &lang; </span> 
@@ -31,21 +61,21 @@
           <table class="months-table"> 
             <tbody>
               <tr class="months-row">
-                <td class="month">Jan</td> 
-                <td class="month">Fev</td> 
-                <td class="month">Mar</td> 
-                <td class="month">Abr</td> 
-                <td class="month">Mai</td> 
-                <td class="month">Jun</td> 
-                <td class="month">Jul</td>
-                <td class="month">Ago</td> 
-                <td class="month">Set</td> 
-                <td class="month">Out</td>          
-                <td class="month">Nov</td>
-                <td class="month">Dez</td>
+                <td class="month" id="month1" >Jan</td>
+                <td class="month" id="month2" >Fev</td>
+                <td class="month" id="month3" >Mar</td>
+                <td class="month" id="month4" >Abr</td>
+                <td class="month" id="month5" >Mai</td>
+                <td class="month" id="month6" >Jun</td>
+                <td class="month" id="month7" >Jul</td>
+                <td class="month" id="month8" >Ago</td>
+                <td class="month" id="month9" >Set</td>
+                <td class="month" id="month10">Out</td>
+                <td class="month" id="month11">Nov</td>
+                <td class="month" id="month12">Dez</td>
               </tr>
             </tbody>
-          </table> 
+          </table>
             
           <table class="days-table"> 
             <td class="day">D</td> 
@@ -58,26 +88,31 @@
           </table> 
           <div class="frame"> 
             <table class="dates-table"> 
-                <tbody class="tbody">             
+                <tbody class="tbody">
                 </tbody> 
             </table>
           </div> 
-          <button class="button" id="escolhe_data" data-toggle="modal" data-target="#confirmacao" style="margin-left: 6rem; background:#52A0FD;">Selecionar data</button>
-            
+          <div class="d-flex justify-content-center">
+             <button class="button btn-primary" id="escolhe_data" data-toggle="modal" data-target="#confirmacao" >Selecionar data</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-        
+
   <div class="col-12 col-lg-4">
     <div class="card ">
       <div class="card-header">
           <h4>Dia do plantão: </h4>
       </div>
-      <div class="card-body row">
-        <div class="dias" style=" background-color:#52A0FD; margin-right: 50%; margin-left: 7%;">1°</div>
-        <div class="dias" >2°</div>
+      <div class="card-body row justify-content-center">
+        <div class="col" >
+          <div class="dias col-lg-8" id="numero_plantao_1">1°</div>
+        </div>
+        <div class="col" >
+          <div class="dias col-lg-8" id="numero_plantao_2">2°</div>
+        </div>
       </div>
     </div>
 
@@ -86,25 +121,32 @@
       <div class="card-header">
         <h4>Usuários escalados:</h4>
       </div>
-      <div class="card-body">
-          <label >-Nome</label>
-      </div>
+      <div class="card-body events-container"></div>
     </div>
   </div>
-          
+
 
   <div class="col-12 col-lg-3">
     <div class="card">
       <div class="card-header">
         <h4>Seus dias de plantão:</h4>
       </div>
-      <div class="card-body">
-          <label class="text-danger">-09/03 às 12h</label>
+      <div class="card-body" id="dias_plantao">
+        {% include 'lista_datas_plantao.html' %}
       </div>
     </div>
 
-    <div class="row" style="padding-left: 10%;">
-        <input class="col-2" type="checkbox" style="width: 20px; height: 20px; margin-top: 5%;"><label style="font-size: 17px; padding-left: 0%;" class="col">Lembre-me no dia anterior por e-mail.</label>
+    <div class="card">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-lg-2">
+            <input type="checkbox" checked >
+          </div>
+          <div class="col">
+            <label>Lembre-me no dia anterior por e-mail.</label>
+          </div>        
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -122,12 +164,12 @@
           <span aria-hidden="true">&times;</span>
       </button>
       </div>
-      <div class="modal-body">
-          -09/03 às 12h
+      <div class="modal-body" id="id_body_modal">
+
       </div>
       <div class="modal-footer">
       <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-      <button type="button" class="btn btn-primary">Confirmar</button>
+      <button type="button" class="btn btn-primary" data-dismiss="modal" id="id_botao_confirmar_modal">Confirmar</button>
       </div>
   </div>
   </div>
@@ -135,8 +177,362 @@
 {% endblock modal %}
 
 {% block scripts %}
-<script src="{{url_for('static',filename='js/card_caso.js')}}"></script>
-<!-- Dialog Box-->
 
-<script src="{{url_for('static',filename='js/calendario.js')}}"></script>
+<script>
+  var event_data = {};
+  $(document).ready(function() {
+    atualiza_numero_plantao_a_marcar('{{numero_plantao}}');
+  });
+</script>
+
+<script>
+  function atualiza_numero_plantao_a_marcar(numero_plantao){
+    switch(numero_plantao){
+      case '1':
+        $(".numero_plantao_a_marcar").removeClass('numero_plantao_a_marcar')
+        $("#numero_plantao_1").addClass('numero_plantao_a_marcar')
+        break;
+      case '2':
+        $(".numero_plantao_a_marcar").removeClass('numero_plantao_a_marcar')
+        $("#numero_plantao_2").addClass('numero_plantao_a_marcar')
+        break;
+      default:
+        $(".numero_plantao_a_marcar").removeClass('numero_plantao_a_marcar') 
+    }
+  }
+
+  document.getElementById("escolhe_data").onclick = function() {
+    
+    colore_calendario();
+    ano = document.getElementsByClassName("year")[0].innerHTML
+    mes = document.getElementsByClassName("active-month")[0].id.substring(5)
+    dia = document.getElementsByClassName("active-date")[0].innerHTML
+
+    document.getElementById("id_body_modal").innerHTML = ''
+    document.getElementById("id_body_modal").append("Data selecionada: " + dia + "/" + mes + "/" + ano)
+  };
+
+  $("#id_botao_confirmar_modal").click(function() {
+    $.ajax({
+        type: "GET",
+        url: "{{url_for('plantao.ajax_confirma_data_plantao')}}",
+        contentType: 'application/json;charset=UTF-8',
+        data: {
+            ano: document.getElementsByClassName("year")[0].innerHTML,
+            mes: document.getElementsByClassName("active-month")[0].id.substring(5),
+            dia: document.getElementsByClassName("active-date")[0].innerHTML
+        },
+        success: (result) => {
+          $("#dias_plantao").empty()
+          $("#dias_plantao").append(result['lista_datas'])
+
+          atualiza_numero_plantao_a_marcar(String(result['numero_plantao']))
+
+          //Mostrar notificação na tela
+          switch(result['tipo_mensagem']){
+            case 'success':
+                iziToast.success({
+                    title: 'Sucesso!',
+                    message: result['mensagem'],
+                    position: 'topCenter'
+                });
+                break;
+            case 'warning':
+                iziToast.warning({
+                    title: 'Atenção:',
+                    message: result['mensagem'],
+                    position: 'topCenter'
+                });
+          }
+        }
+    })
+  });
+
+</script>
+
+<script>
+
+// Setup the calendar with the current date
+var event_data = {"events":[]};
+
+$(document).ready(function(){
+    $.ajax({
+        type: "GET",
+        url: window.origin + $("#hdnAjaxEscala").val(),
+        contentType: 'application/json;charset=UTF-8',
+        success: (result) => {
+          event_data = {
+            "events": result
+          }
+
+            var date = new Date();
+            var today = date.getDate();
+            // Set click handlers for DOM elements
+            $(".right-button").click({date: date}, next_year);
+            $(".left-button").click({date: date}, prev_year);
+            $(".month").click({date: date}, month_click);
+            $("#add-button").click({date: date}, new_event);
+            // Set current month as active
+            $(".months-row").children().eq(date.getMonth()).addClass("active-month");
+
+            init_calendar(date);
+            show_events(event_data.events, months[date.getMonth()], today);
+            colore_calendario();
+        }
+    });
+});
+
+// Initialize the calendar by appending the HTML dates
+function init_calendar(date) {
+    $(".tbody").empty();
+    $(".events-container").empty();
+    var calendar_days = $(".tbody");
+    var month = date.getMonth();
+    var year = date.getFullYear();
+    var day_count = days_in_month(month, year);
+    var row = $("<tr class='table-row'></tr>");
+    var today = date.getDate();
+    // Set date to 1 to find the first day of the month
+    date.setDate(1);
+    var first_day = date.getDay();
+    // 35+firstDay is the number of date elements to be added to the dates table
+    // 35 is from (7 days in a week) * (up to 5 rows of dates in a month)
+    for(var i=0; i<35+first_day; i++) {
+        // Since some of the elements will be blank, 
+        // need to calculate actual date from index
+        var day = i-first_day+1;
+        // If it is a sunday, make a new row
+        if(i%7===0) {
+            calendar_days.append(row);
+            row = $("<tr class='table-row'></tr>");
+        }
+        // if current index isn't a day in this month, make it blank
+        if(i < first_day || day > day_count) {
+            var curr_date = $("<td class='table-date nil'>"+"</td>");
+            row.append(curr_date);
+        }   
+        else {
+            var curr_date = $("<td class='table-date'>"+day+"</td>");
+            var events = check_events(day, month+1, year);
+            if(today===day && $(".active-date").length===0) {
+                curr_date.addClass("active-date");
+                show_events(events, months[month], day);
+            }
+            // If this date has any events, style it with .event-date
+            if(events.length!==0) {
+                curr_date.addClass("event-date");
+            }
+            // Set onClick handler for clicking a date
+            curr_date.click({events: events, month: months[month], day:day}, date_click);
+            row.append(curr_date);
+        }
+       
+    }
+    // Append the last row and set the current year
+    calendar_days.append(row);
+    $(".year").text(year);
+}
+
+// Get the number of days in a given month/year
+function days_in_month(month, year) {
+    var monthStart = new Date(year, month, 1);
+    var monthEnd = new Date(year, month + 1, 1);
+    return (monthEnd - monthStart) / (1000 * 60 * 60 * 24);    
+}
+
+// Event handler for when a date is clicked
+function date_click(event) {
+    $(".events-container").show(250);
+    $("#dialog").hide(250);
+    $(".active-date").removeClass("active-date");
+    $(this).addClass("active-date");
+    show_events(event.data.events, event.data.month, event.data.day);
+    colore_calendario();
+};
+
+// Event handler for when a month is clicked
+function month_click(event) {
+    $(".events-container").show(250);
+    $("#dialog").hide(250);
+    var date = event.data.date;
+    $(".active-month").removeClass("active-month");
+    $(this).addClass("active-month");
+    var new_month = $(".month").index(this);
+    date.setMonth(new_month);
+    init_calendar(date);
+    colore_calendario();
+}
+
+// Event handler for when the year right-button is clicked
+function next_year(event) {
+    $("#dialog").hide(250);
+    var date = event.data.date;
+    var new_year = date.getFullYear()+1;
+    $("year").html(new_year);
+    date.setFullYear(new_year);
+    init_calendar(date);
+    colore_calendario();
+}
+
+// Event handler for when the year left-button is clicked
+function prev_year(event) {
+    $("#dialog").hide(250);
+    var date = event.data.date;
+    var new_year = date.getFullYear()-1;
+    $("year").html(new_year);
+    date.setFullYear(new_year);
+    init_calendar(date);
+    colore_calendario();
+}
+
+// Event handler for clicking the new event button
+function new_event(event) {
+    // if a date isn't selected then do nothing
+    if($(".active-date").length===0)
+        return;
+    // remove red error input on click
+    $("input").click(function(){
+        $(this).removeClass("error-input");
+    })
+    // empty inputs and hide events
+    $("#dialog input[type=text]").val('');
+    $("#dialog input[type=number]").val('');
+    $(".events-container").hide(250);
+    $("#dialog").show(250);
+    // Event handler for cancel button
+    $("#cancel-button").click(function() {
+        $("#name").removeClass("error-input");
+        $("#count").removeClass("error-input");
+        $("#dialog").hide(250);
+        $(".events-container").show(250);
+    });
+    // Event handler for ok button
+    $("#ok-button").unbind().click({date: event.data.date}, function() {
+        var date = event.data.date;
+        var name = $("#name").val().trim();
+        var count = parseInt($("#count").val().trim());
+        var day = parseInt($(".active-date").html());
+        // Basic form validation
+        if(name.length === 0) {
+            $("#name").addClass("error-input");
+        }
+        else if(isNaN(count)) {
+            $("#count").addClass("error-input");
+        }
+        else {
+            $("#dialog").hide(250);
+            console.log("new event");
+            new_event_json(name, count, date, day);
+            date.setDate(day);
+            init_calendar(date);
+        }
+    });
+}
+
+// Adds a json event to event_data
+function new_event_json(name, count, date, day) {
+    var event = {
+        "occasion": name,
+        "invited_count": count,
+        "year": date.getFullYear(),
+        "month": date.getMonth()+1,
+        "day": day
+    };
+    event_data["events"].push(event);
+}
+
+// Display all events of the selected date in card views
+function show_events(events, month, day) {
+    // Clear the dates container
+    $(".events-container").empty();
+    $(".events-container").show(250);
+    // If there are no events for this date, notify the user
+    if(events.length===0) {
+        var event_card = $(`<div class="card card-danger"><div class="card-body"><li>Não há escalados para ${day} de ${month}.</li></div></div>'`);
+        $(".events-container").append(event_card);
+    }
+    else {
+        // Go through and add each event as a card to the events container
+        var event_card_top = $('<div class="card card-primary"><div class="card-body"></div></div>');
+        for(_event of events) {
+            $(event_card_top).find('.card-body').append($("<li class='data_plantao'>"+_event.nome+"</li>"));
+        }
+        $(".events-container").append(event_card_top);
+    }
+}
+
+// Checks if a specific date has any events
+function check_events(day, month, year) {
+    var events = [];
+    for(var i=0; i<event_data["events"].length; i++) {
+        var event = event_data["events"][i];
+        if(event["day"]==day &&
+            event["month"]==month &&
+            event["year"]==year) {
+                events.push(event);
+            }
+    }
+    return events;
+}
+
+const months = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro"
+];
+
+function colore_calendario(){ 
+
+    var quantidade_de_dias = (document.getElementsByClassName("table-date"))
+    var quantidade_de_dias_nulos = (document.getElementsByClassName("nil"))
+    var dias_no_mes = (quantidade_de_dias.length - quantidade_de_dias_nulos.length)
+
+    $.ajax({
+        type: "GET",
+        url: "{{url_for('plantao.ajax_disponibilidade_de_vagas')}}",
+        contentType: 'application/json;charset=UTF-8',
+        data: {
+            ano: document.getElementsByClassName("year")[0].innerHTML,
+            mes: document.getElementsByClassName("active-month")[0].id.substring(5),
+            dias_deste_mes: dias_no_mes             
+        },
+        success: (result) => {
+          
+          var elementos = (document.getElementsByClassName("table-date"))
+          var elementosNulos = (document.getElementsByClassName("nil"))
+          var diasDeEventos = (document.getElementsByClassName("event-date"))
+  
+          var i;   
+
+            $.each(result, function(index){
+              
+              for (i = 0; i < elementos.length; i++) {
+                if(elementos[i].innerText == result[index].Dia){
+                  if(result[index].Vagas == true){
+                    $(elementos[i]).addClass("disponivel");
+                  }
+                  else{
+                    $(elementos[i]).addClass("indisponivel");
+                  }                
+                }
+              }         
+            }); 
+
+            $(elementosNulos).removeClass("disponivel");
+            $(diasDeEventos).removeClass("disponivel");
+          }
+    })
+      
+  }
+</script>
+
 {% endblock scripts %}

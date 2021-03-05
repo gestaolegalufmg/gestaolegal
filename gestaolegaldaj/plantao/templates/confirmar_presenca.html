@@ -1,0 +1,74 @@
+{% extends "base_dashboard.html" %}
+
+{% block titulo %}Confirmar Presença{% endblock %}
+
+{% block conteudo %}
+<nav class="d-inline-block">
+  
+</nav>
+<div class="row">
+  <div class="col-lg-4">
+      <div class="card">
+        <div class="card-body">
+            <label>Data: &nbsp;</label>
+            <input type="date">
+        </div>
+      </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body">
+    
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Cargo</th>
+            <th>Entrada</th>
+            <th>Confirmar</th>
+            <th>Saída</th>
+            <th>Confirmar</th>
+          </tr>
+        </thead>
+        <tbody>
+         
+          <tr>
+            <td>Ana</td>
+
+            <td>Estagiario</td>
+           
+            <td>
+                10:00
+            </td>
+         
+            <td>
+              <div class="col-lg-5">
+                <input type="checkbox">
+              </div>
+            </td>
+
+            <td>
+                11:00
+            </td>
+
+            <td>
+              <div class="col-lg-5">
+                <input type="checkbox">
+              </div>
+            </td>
+          </tr>
+         
+        </tbody>
+      </table>
+    </div>
+    <div class="d-flex justify-content-center">
+    <button type="submit" class="btn mr-2 btn-flat btn-primary " name="button">Salvar</button>
+  </div>
+</div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "base_dashboard.html" %}
+
+{% block titulo %}Relatórios{% endblock %}
+
+{% block conteudo %}
+
+        <div class="card">
+            <div class="card-body">
+                <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
+                    <div class="form-group row">
+                       <label class="col-12 col-lg-6 offset-lg-1 col-form-label">Tipo de relatório:</label>
+                         <div class="col-12 col-lg-6 offset-lg-1">
+                          <select class="form-control" id="tipo_relatorio">
+                              <option value="1">Horário de chegada e saída dos estagiários</option>
+                              <option value="2">N° de casos Orientação Jurídica</option>
+                              <option value="3">N° de casos cadastrados</option>
+                              <option value="4">N° de casos arquivados / solucionados / ativos</option>
+                          </select>
+                         </div>
+                    </div>
+
+                    <div class="form-group row" id="escolhe_estagiario">
+                        <label class="col-12 col-lg-6 offset-lg-1 col-form-label">Estagiários:</label>
+                          <div class="col-12 col-lg-6 offset-lg-1">
+                            <select class="form-control" >
+                                <option>Fulano</option>
+                            </select>
+                          </div>
+                    </div>
+
+                    <div class="form-group row" id="escolhe_area_direito">
+                        <label class="col-12 col-lg-6 offset-lg-1 col-form-label">Área do Direito:</label>
+                          <div class="col-12 col-lg-6 offset-lg-1">
+                            <select class="form-control" >
+                                <option>Consumidor</option>
+                                <option> Contratos</option>
+                                <option>Trabalhista</option>
+                                <option>Administrativo</option>
+                                <option>Previdenciário</option>
+                                <option>Sucessões</option>
+                                <option>Família</option>
+                                <option> Penal</option>
+                                <option> Ambiental</option>
+                                <option>Tributário</option>
+                                <option>Cível</option>
+                            </select>
+                          </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label class="col-12 col-lg-6 offset-lg-1 col-form-label">Período:</label>
+                          <div class="col-12 col-lg-6 offset-lg-1 row">
+                                <div class="col-5">
+                                    <input type="date" class="form-control">
+                                </div>
+                                <div class="col d-flex justify-content-center">
+                                    <label>à</label>
+                                </div>
+                                <div class="col-5">
+                                    <input type="date" class="form-control">
+                                </div>
+                          </div>
+                    </div>
+
+                    
+                    <a href="" class="btn btn-primary">Gerar Relatório</a>
+                    
+                </form>
+            </div>
+        </div>
+
+
+       
+
+{% endblock conteudo %}
+{% block scripts %}
+<script>
+    function esconde_campos(){
+        switch(document.getElementById('tipo_relatorio').value){
+        case "1":
+            document.getElementById('escolhe_estagiario').hidden = false
+            document.getElementById('escolhe_area_direito').hidden = true
+            break
+        case "2":
+            document.getElementById('escolhe_estagiario').hidden = true
+            document.getElementById('escolhe_area_direito').hidden = false
+            break 
+        case "3":
+            document.getElementById('escolhe_estagiario').hidden = true
+            document.getElementById('escolhe_area_direito').hidden = false
+            break    
+        case "4":
+            document.getElementById('escolhe_estagiario').hidden = true
+            document.getElementById('escolhe_area_direito').hidden = false
+            break 
+    }
+    }
+
+    esconde_campos()
+
+    document.getElementById("tipo_relatorio").onchange = function() {
+        esconde_campos()
+    }
+
+    
+</script>
+{% endblock %}

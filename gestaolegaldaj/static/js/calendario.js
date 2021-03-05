@@ -1,17 +1,30 @@
 // Setup the calendar with the current date
+var event_data = {"events":[]};
+
 $(document).ready(function(){
-    var date = new Date();
-    var today = date.getDate();
-    // Set click handlers for DOM elements
-    $(".right-button").click({date: date}, next_year);
-    $(".left-button").click({date: date}, prev_year);
-    $(".month").click({date: date}, month_click);
-    $("#add-button").click({date: date}, new_event);
-    // Set current month as active
-    $(".months-row").children().eq(date.getMonth()).addClass("active-month");
-    init_calendar(date);
-    var events = check_events(today, date.getMonth()+1, date.getFullYear());
-    show_events(events, months[date.getMonth()], today);
+    $.ajax({
+        type: "GET",
+        url: window.origin + $("#hdnAjaxEscala").val(),
+        contentType: 'application/json;charset=UTF-8',
+        success: (result) => {
+          event_data = {
+            "events": result
+          }
+
+            var date = new Date();
+            var today = date.getDate();
+            // Set click handlers for DOM elements
+            $(".right-button").click({date: date}, next_year);
+            $(".left-button").click({date: date}, prev_year);
+            $(".month").click({date: date}, month_click);
+            $("#add-button").click({date: date}, new_event);
+            // Set current month as active
+            $(".months-row").children().eq(date.getMonth()).addClass("active-month");
+
+            init_calendar(date);
+            show_events(event_data.events, months[date.getMonth()], today);
+        }
+    });
 });
 
 // Initialize the calendar by appending the HTML dates
@@ -173,30 +186,18 @@ function show_events(events, month, day) {
     // Clear the dates container
     $(".events-container").empty();
     $(".events-container").show(250);
-    console.log(event_data["events"]);
     // If there are no events for this date, notify the user
     if(events.length===0) {
-        var event_card = $("<div class='event-card'></div>");
-        var event_name = $("<div class='event-name'>Não há escalados para "+day+" de "+month+" .</div>");
-        $(event_card).css({ "border-left": "10px solid #FF1744" });
-        $(event_card).append(event_name);
+        var event_card = $(`<div class="card card-danger"><div class="card-body"><li>Não há escalados para ${day} de ${month}.</li></div></div>'`);
         $(".events-container").append(event_card);
     }
     else {
         // Go through and add each event as a card to the events container
-        for(var i=0; i<events.length; i++) {
-            var event_card = $("<div class='event-card'></div>");
-            var event_name = $("<div class='event-name'>"+events[i]["occasion"]+":</div>");
-            var event_count = $("<div class='event-count'>"+events[i]["invited_count"]+" Invited</div>");
-            if(events[i]["cancelled"]===true) {
-                $(event_card).css({
-                    "border-left": "10px solid #FF1744"
-                });
-                event_count = $("<div class='event-cancelled'>Cancelled</div>");
-            }
-            $(event_card).append(event_name).append(event_count);
-            $(".events-container").append(event_card);
+        var event_card_top = $('<div class="card card-primary"><div class="card-body"></div></div>');
+        for(_event of events) {
+            $(event_card_top).find('.card-body').append($("<li class='data_plantao'>"+_event.nome+"</li>"));
         }
+        $(".events-container").append(event_card_top);
     }
 }
 
@@ -205,115 +206,26 @@ function check_events(day, month, year) {
     var events = [];
     for(var i=0; i<event_data["events"].length; i++) {
         var event = event_data["events"][i];
-        if(event["day"]===day &&
-            event["month"]===month &&
-            event["year"]===year) {
+        if(event["day"]==day &&
+            event["month"]==month &&
+            event["year"]==year) {
                 events.push(event);
             }
     }
     return events;
 }
 
-// Given data for events in JSON format
-var event_data = {
-    "events": [
-    {
-        "occasion": " Repeated Test Event ",
-        "invited_count": 120,
-        "year": 2017,
-        "month": 5,
-        "day": 10,
-        "cancelled": true
-    },
-    {
-        "occasion": " Repeated Test Event ",
-        "invited_count": 120,
-        "year": 2017,
-        "month": 5,
-        "day": 10,
-        "cancelled": true
-    },
-        {
-        "occasion": " Repeated Test Event ",
-        "invited_count": 120,
-        "year": 2017,
-        "month": 5,
-        "day": 10,
-        "cancelled": true
-    },
-    {
-        "occasion": " Repeated Test Event ",
-        "invited_count": 120,
-        "year": 2017,
-        "month": 5,
-        "day": 10
-    },
-        {
-        "occasion": " Repeated Test Event ",
-        "invited_count": 120,
-        "year": 2017,
-        "month": 5,
-        "day": 10,
-        "cancelled": true
-    },
-    {
-        "occasion": " Repeated Test Event ",
-        "invited_count": 120,
-        "year": 2017,
-        "month": 5,
-        "day": 10
-    },
-        {
-        "occasion": " Repeated Test Event ",
-        "invited_count": 120,
-        "year": 2017,
-        "month": 5,
-        "day": 10,
-        "cancelled": true
-    },
-    {
-        "occasion": " Repeated Test Event ",
-        "invited_count": 120,
-        "year": 2017,
-        "month": 5,
-        "day": 10
-    },
-        {
-        "occasion": " Repeated Test Event ",
-        "invited_count": 120,
-        "year": 2017,
-        "month": 5,
-        "day": 10,
-        "cancelled": true
-    },
-    {
-        "occasion": " Repeated Test Event ",
-        "invited_count": 120,
-        "year": 2017,
-        "month": 5,
-        "day": 10
-    },
-    {
-        "occasion": " Test Event",
-        "invited_count": 120,
-        "year": 2017,
-        "month": 5,
-        "day": 11
-    }
-    ]
-};
-
-const months = [ 
-    "Janeiro", 
-    "Fevereiro", 
-    "Março", 
-    "Abril", 
-    "Maio", 
-    "Junho", 
-    "Julho", 
-    "Agosto", 
-    "Setembro", 
-    "Outubro", 
-    "Novembro", 
-    "Dezembro" 
+const months = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro"
 ];

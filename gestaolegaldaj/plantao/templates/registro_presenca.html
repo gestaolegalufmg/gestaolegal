@@ -1,0 +1,68 @@
+{% extends "base_dashboard.html" %}
+{% block titulo %}Registro de Presença do Plantão{% endblock titulo %}
+
+
+{% block conteudo %}
+<div class="row">
+  <div class="col-12">
+    <div class="card card-primary">
+      <div class="card-header">
+          <h4>Nome do funcionário - Cargo</h4>
+          
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+    <div class="col-12 col-lg-4 ">
+        <div class="card ">
+            <div class="card-header d-flex justify-content-center">
+                <h4>Data de hoje: </h4>
+            </div>
+            <div class="card-body d-flex justify-content-center">
+            <h6>14/10/2020</h6>
+            </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4 ">
+        <div class="card ">
+            <div class="card-header d-flex justify-content-center">
+                <h4>Registrando </h4>
+            </div>
+            <div class="card-body d-flex justify-content-center">
+            <h6 class="text-danger">Entrada</h6>
+            </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4 ">
+        <div class="card ">
+            <div class="card-header d-flex justify-content-center">
+                <h4>Horário: </h4>
+            </div>
+            <div class="card-body row d-flex justify-content-center">
+            <input type="time" style="width: 40%; text-align: center; font-weight: 700;">
+
+            </div>
+      </div>
+    </div>
+</div>
+
+<div class="row d-flex justify-content-center">
+    
+    <button class="btn btn-primary col-lg-3">Registrar</button>
+    
+</div>
+
+
+
+{% endblock conteudo %}
+
+
+
+{% block scripts %}
+<script src="{{url_for('static',filename='js/card_caso.js')}}"></script>
+<!-- Dialog Box-->
+{% endblock scripts %}

@@ -8,11 +8,19 @@
             <div class="card-body">
                 <p></p>
                 <p class="clearfix">
+                  <span class="float-left">
+                  Data de Criação:
+                  </span>
+                  <span class="float-right text-muted">
+                  {{entidade_evento.data_criacao.strftime('%d/%m/%Y')}}
+                  </span>
+                </p>
+                <p class="clearfix">
                     <span class="float-left">
                     Data do Ocorrido:
                     </span>
                     <span class="float-right text-muted">
-                    {{entidade_evento.data_evento}}
+                    {{entidade_evento.data_evento.strftime('%d/%m/%Y')}}
                     </span>
                 </p>
                 <p class="clearfix">
@@ -29,7 +37,7 @@
                     <span class="float-left">
                     Usuário Responsável:
                     </span>
-                    <span class="float-right text-muted">{{entidade_evento.criado_por.nome}}</span>
+                    <span class="float-right text-muted">{{formatarNomeDoUsuario(entidade_evento.id_usuario_responsavel)}}</span>
                 </p>
                 <p class="clearfix">
                     <span class="float-left">
@@ -53,7 +61,7 @@
                 <h4 style="font-weight: normal">
                   {% if entidade_evento.arquivo %}
                     {% if (entidade_evento.arquivo.split('.')|length) > 1 %}
-                      entidade_evento_{{entidade_evento.id}}_{{entidade_evento.arquivo}}
+                      evento_{{entidade_evento.id}}_{{entidade_evento.arquivo}}
                     {%else%}
                       Nenhum arquivo cadastrado
                     {% endif %}
@@ -62,7 +70,7 @@
                   {% endif %}
                 </h4>
                 <div class="card-header-action">
-                  <a href="{{url_for('static', filename='entidade_eventos/entidade_evento_{}_{}'.format(entidade_evento.id, entidade_evento.arquivo) )}}" class="btn btn-primary {{'disabled' if not entidade_evento.arquivo else None}}">Download</a>
+                  <a href="{{url_for('static', filename='eventos/evento_{}_{}'.format(entidade_evento.id, entidade_evento.arquivo) )}}" class="btn btn-primary {{'disabled' if not entidade_evento.arquivo else None}}">Download</a>
                 </div>
               </div>
             </div>

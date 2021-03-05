@@ -6,7 +6,7 @@ from flask import (Blueprint, abort, current_app, flash, json, redirect,
                    render_template, request, url_for)
 from flask_login import current_user
 from flask_paginate import Pagination, get_page_args
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, null
 from sqlalchemy.exc import SQLAlchemyError
 
 from gestaolegaldaj import app, db, login_required
@@ -28,10 +28,23 @@ casos = Blueprint('casos', __name__, template_folder='templates')
 @casos.route('/')
 @login_required()
 def index():
+    #ATUALIZAR TODOS OS NÚMEROS DO ÚLTIMO PROCESSO DE TODOS OS CASOS
+    def atualizar_ultimo_processo_dos_casos():
+        lista_de_casos = Caso.query.all()
+
+        for caso in lista_de_casos:
+            processos = Processo.query.filter_by(id_caso = caso.id, status = True).all()
+            if processos:
+               ultimo_processo = processos[-1:]
+               caso.numero_ultimo_processo = ultimo_processo[0].numero
+            
+        db.session.commit()
+
     page = request.args.get('page', 1, type=int)
     opcao_filtro = request.args.get('opcao_filtro', opcoes_filtro_casos['TODOS'][0], type=str)
 
     casos = query_opcoes_filtro_casos(opcao_filtro).paginate(page, app.config['CASOS_POR_PAGINA'], False)
+    
     
     return render_template(
                             'lista_casos.html', 
@@ -46,8 +59,7 @@ def ajax_filtro_casos():
     opcao_filtro = request.args.get('opcao_filtro', opcoes_filtro_casos['TODOS'][0], type=str)
 
     casos = query_opcoes_filtro_casos(opcao_filtro).paginate(page, app.config['CASOS_POR_PAGINA'], False)
-
-
+            
     return render_template(
                             'busca_casos.html', 
                             **params_busca_casos(casos, ROTA_PAGINACAO_CASOS, opcao_filtro) 
@@ -159,18 +171,36 @@ def associa_caso():
 @login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['ESTAGIARIO_DIREITO'][0],usuario_urole_roles['PROFESSOR'][0],usuario_urole_roles['ORIENTADOR'][0],usuario_urole_roles['COLAB_EXTERNO'][0]])
 def editar_caso(id_caso):
     def setValoresCaso(form : EditarCasoForm, entidade_caso: Caso):
-        form.clientes.data = entidade_caso.clientes
-        form.orientador.data = entidade_caso.orientador
+        form.orientador.data = entidade_caso.id_orientador
+        form.estagiario.data = entidade_caso.id_estagiario
+        form.colaborador.data = entidade_caso.id_colaborador
         form.area_direito.data = entidade_caso.area_direito
         form.descricao.data = entidade_caso.descricao
-        form.situacao_deferimento.data = entidade_caso.situacao_deferimento
+        if entidade_caso.situacao_deferimento == situacao_deferimento['ATIVO'][0]:
+            form.situacao_deferimento_ativo.data = entidade_caso.situacao_deferimento
+        if entidade_caso.situacao_deferimento == situacao_deferimento['INDEFERIDO'][0]:
+            form.situacao_deferimento_indeferido.data = entidade_caso.situacao_deferimento
 
     def setDadosCaso(form : EditarCasoForm, entidade_caso: Caso):
-        entidade_caso.clientes = form.clientes.data
-        entidade_caso.orientador = form.orientador.data
+        if form.orientador.data == '':
+            entidade_caso.id_orientador = null()
+        else:
+            entidade_caso.id_orientador = int(form.orientador.data)
+        if form.estagiario.data == '':
+            entidade_caso.id_estagiario = null()
+        else:
+            entidade_caso.id_estagiario = int(form.estagiario.data)
+        if form.colaborador.data == '':
+            entidade_caso.id_colaborador = null()
+        else:
+            entidade_caso.id_colaborador = int(form.colaborador.data)
         entidade_caso.area_direito = form.area_direito.data
         entidade_caso.descricao = form.descricao.data
-        entidade_caso.situacao_deferimento = form.situacao_deferimento.data 
+        entidade_caso.data_modificacao = datetime.now()
+        if entidade_caso.situacao_deferimento == situacao_deferimento['ATIVO'][0]:
+            entidade_caso.situacao_deferimento = form.situacao_deferimento_ativo.data
+        if entidade_caso.situacao_deferimento == situacao_deferimento['INDEFERIDO'][0]:
+            entidade_caso.situacao_deferimento = form.situacao_deferimento_indeferido.data
 
 ############################## IMPLEMENTAÇÃO DA ROTA ###########################################################3
 
@@ -183,9 +213,13 @@ def editar_caso(id_caso):
     form = EditarCasoForm()
     if request.method == 'POST':
         if not form.validate():
-            return render_template('editar_caso.html', form = form)
+            return render_template('editar_caso.html', form = form, caso = entidade_caso)
 
         setDadosCaso(form, entidade_caso)
+        arquivo = request.files.get('arquivo')
+        entidade_caso.arquivo = arquivo.filename if arquivo else None
+        if arquivo:
+            arquivo.save(os.path.join(current_app.root_path,'static','casos', arquivo.filename),)
         db.session.commit()
         cadastrar_historico(current_user.id,id_caso) # Cadastra um novo histórico de edição
         flash('Caso editado com sucesso!',"success")
@@ -193,7 +227,29 @@ def editar_caso(id_caso):
 
     setValoresCaso(form, entidade_caso)
 
-    return render_template('editar_caso.html', form = form)
+    return render_template('editar_caso.html', form = form, caso = entidade_caso)
+    
+@casos.route('excluir_assistido_caso/<id_caso>/<id_assistido>', methods=['POST','GET'])
+@login_required()
+def excluir_assistido_caso(id_caso, id_assistido):
+    entidade_caso = Caso.query.filter_by(id = id_caso).first()
+    cliente = Atendido.query.filter_by(id = id_assistido).first()
+    entidade_caso.clientes.remove(cliente)
+    db.session.commit()
+    return redirect(url_for('casos.index'))
+
+@casos.route('adicionar_assistido_caso/<id_caso>', methods=['POST','GET'])
+@login_required()
+def adicionar_assistido_caso(id_caso):
+    entidade_caso = Caso.query.filter_by(id = id_caso, status = True).first()
+    if request.method == 'POST':
+        clientes = request.form['adicao_assistido'+ id_caso]
+        if clientes != "":
+            for id_cliente in clientes.split(sep=','):
+                cliente = Atendido.query.get(int(id_cliente))
+                entidade_caso.clientes.append(cliente)
+        db.session.commit()
+    return redirect(url_for('casos.index'))
 
 @casos.route('/api/buscar_assistido',methods=['GET'])
 @login_required()
@@ -282,9 +338,63 @@ def api_casos_buscar_casos():
     )
     return response
 
+@casos.route('/api/buscar_orientador',methods=['GET'])
+@login_required()
+def api_casos_buscar_orientador():
+    termo = request.args.get('q', type=str)
+    if termo:
+        _usuarios = Usuario.query.filter(Usuario.nome.like(termo+'%')).filter(Usuario.status.is_(True)).filter_by(urole = 'orient').order_by(Usuario.nome).all()
+    else:
+        _usuarios = Usuario.query.filter(Usuario.status.is_(True)).filter_by(urole = 'orient').order_by(Usuario.nome).limit(5).all()
+
+    # Dados formatados para o select2
+    usuarios_clean = [{'id':usuario.id, 'text':usuario.nome} for usuario in _usuarios]
+    response = app.response_class(
+        response = json.dumps({'results':usuarios_clean}),
+        status = 200,
+        mimetype = 'application/json'
+    )
+    return response
+
+@casos.route('/api/buscar_estagiario',methods=['GET'])
+@login_required()
+def api_casos_buscar_estagiario():
+    termo = request.args.get('q', type=str)
+    if termo:
+        _usuarios = Usuario.query.filter(Usuario.nome.like(termo+'%')).filter(Usuario.status.is_(True)).filter_by(urole = 'estag_direito').order_by(Usuario.nome).all()
+    else:
+        _usuarios = Usuario.query.filter(Usuario.status.is_(True)).filter_by(urole = 'estag_direito').order_by(Usuario.nome).limit(5).all()
+
+    # Dados formatados para o select2
+    usuarios_clean = [{'id':usuario.id, 'text':usuario.nome} for usuario in _usuarios]
+    response = app.response_class(
+        response = json.dumps({'results':usuarios_clean}),
+        status = 200,
+        mimetype = 'application/json'
+    )
+    return response
+
+@casos.route('/api/buscar_colaborador',methods=['GET'])
+@login_required()
+def api_casos_buscar_colaborador():
+    termo = request.args.get('q', type=str)
+    if termo:
+        _usuarios = Usuario.query.filter(Usuario.nome.like(termo+'%')).filter(Usuario.status.is_(True)).filter_by(urole = 'colab_ext').order_by(Usuario.nome).all()
+    else:
+        _usuarios = Usuario.query.filter(Usuario.status.is_(True)).filter_by(urole = 'colab_ext').order_by(Usuario.nome).limit(5).all()
+
+    # Dados formatados para o select2
+    usuarios_clean = [{'id':usuario.id, 'text':usuario.nome} for usuario in _usuarios]
+    response = app.response_class(
+        response = json.dumps({'results':usuarios_clean}),
+        status = 200,
+        mimetype = 'application/json'
+    )
+    return response
+
 #Cadastrar/editar links de roteiro
 @casos.route('/links_roteiro', methods=['GET','POST'])
-@login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['COLAB_EXTERNO'][0]])
+@login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0]])
 def editar_roteiro():
     _form = RoteiroForm()
     if _form.validate_on_submit():
@@ -306,12 +416,33 @@ def editar_roteiro():
 @login_required()
 def eventos(id_caso):
     page = request.args.get('page', 1, type=int)
-    _eventos = Evento.query.filter_by(id_caso = id_caso, status = True).paginate(page, app.config['CASOS_POR_PAGINA'], False)
+    opcao_filtro = request.args.get('opcao_filtro', opcoes_filtro_eventos['TODOS'][0], type=str)
+
+    _eventos = query_opcoes_filtro_eventos(id_caso, opcao_filtro).paginate(page, app.config['CASOS_POR_PAGINA'], False)
+   
+
     if not _eventos.items:
         flash('Não há eventos cadastrados para este caso.','warning')
         return redirect(url_for('casos.visualizar_caso', id = id_caso))
 
-    return render_template('eventos.html', caso_id = id_caso, eventos = _eventos)
+    return render_template(
+                            'eventos.html', 
+                            opcoes_filtro_eventos = opcoes_filtro_eventos, 
+                            **params_busca_eventos(_eventos, ROTA_PAGINACAO_EVENTOS, id_caso, opcao_filtro)
+                        )
+
+@casos.route('/ajax_filtro_eventos/<id_caso>')
+@login_required()
+def ajax_filtro_eventos(id_caso):
+    page = request.args.get('page', 1, type=int)
+    opcao_filtro = request.args.get('opcao_filtro', opcoes_filtro_meus_casos['ATIVO'][0], type=str)
+
+    _eventos = query_opcoes_filtro_eventos(id_caso, opcao_filtro).paginate(page, app.config['CASOS_POR_PAGINA'], False)
+
+    return render_template(
+                            'busca_eventos.html', 
+                            **params_busca_eventos(_eventos, ROTA_PAGINACAO_EVENTOS, id_caso, opcao_filtro)
+                        )
 
 # Rota para página de lembretes
 @casos.route('/lembretes/<id_caso>')
@@ -469,19 +600,33 @@ def ajax_filtro_meus_casos():
 def novo_evento(id_caso):
     _form = EventoForm()
     if _form.validate_on_submit():
-        
+
         arquivo = request.files.get('arquivo')
         nome_arquivo = None
-        
-        _evento = Evento(
-            id_caso       = id_caso,
-            tipo          = _form.tipo.data,
-            descricao     = _form.descricao.data,
-            data_evento   = _form.data_evento.data,
-            arquivo       = (datetime.now().strftime("%d%m%Y") + '.' + (arquivo.filename.split(".")[1]) if arquivo else None),
-            data_criacao  = datetime.now(),
-            id_criado_por = current_user.id,
-        )
+
+        if _form.usuario.data:
+
+            _evento = Evento(
+                id_caso       = id_caso,
+                tipo          = _form.tipo.data,
+                descricao     = _form.descricao.data,
+                data_evento   = _form.data_evento.data,
+                arquivo       = (datetime.now().strftime("%d%m%Y") + '.' + (arquivo.filename.split(".")[1]) if arquivo else None),
+                data_criacao  = datetime.now(),
+                id_criado_por = current_user.id,
+                id_usuario_responsavel = _form.usuario.data
+            )
+        else:
+            _evento = Evento(
+                id_caso       = id_caso,
+                tipo          = _form.tipo.data,
+                descricao     = _form.descricao.data,
+                data_evento   = _form.data_evento.data,
+                arquivo       = (datetime.now().strftime("%d%m%Y") + '.' + (arquivo.filename.split(".")[1]) if arquivo else None),
+                data_criacao  = datetime.now(),
+                id_criado_por = current_user.id,
+                id_usuario_responsavel = None
+            )
 
         db.session.add(_evento)
         db.session.commit()
@@ -503,12 +648,19 @@ def editar_evento(id_evento):
         form.tipo.data = entidade_evento.tipo
         form.descricao.data = entidade_evento.descricao
         form.data_evento.data = entidade_evento.data_evento
-
+        form.usuario.data = entidade_evento.id_usuario_responsavel
     def setDadosEvento(form : EventoForm, entidade_evento: Evento):
-        entidade_evento.tipo = form.tipo.data
-        entidade_evento.descricao = form.descricao.data
-        entidade_evento.data_evento = form.data_evento.data
-
+        if form.usuario.data:
+            entidade_evento.tipo = form.tipo.data
+            entidade_evento.descricao = form.descricao.data
+            entidade_evento.data_evento = form.data_evento.data
+            entidade_evento.id_usuario_responsavel = form.usuario.data
+        else:
+            entidade_evento.tipo = form.tipo.data
+            entidade_evento.descricao = form.descricao.data
+            entidade_evento.data_evento = form.data_evento.data
+            entidade_evento.id_usuario_responsavel = None
+            
     entidade_evento = Evento.query.filter_by(id = id_evento, status = True).first()
     if not entidade_evento:
         flash("Esse evento não existe!", "warning")
@@ -532,12 +684,19 @@ def editar_evento(id_evento):
         return redirect(url_for('casos.eventos', id_caso = entidade_evento.id_caso))
 
     setValoresEvento(form, entidade_evento)
-    return render_template('editar_evento.html', form = form, id_evento = id_evento)
+
+    
+    if entidade_evento.usuario_responsavel:
+        nome_usuario = entidade_evento.usuario_responsavel.nome
+        
+    else:
+        nome_usuario = "Não Há"
+        
+    return render_template('editar_evento.html', form = form, id_evento = id_evento, usuario = nome_usuario)
 
 @casos.route('/excluir_evento/<id_evento>', methods=['GET','POST'])
 @login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles['COLAB_EXTERNO'][0]])
-def excluir_evento(id_evento):
-
+def excluir_evento(id_evento):  
     entidade_usuario = Usuario.query.filter_by(id = current_user.id, status = True).first()
     entidade_evento = db.session.query(Evento).get(id_evento)
     
@@ -599,9 +758,17 @@ def novo_processo(id_caso):
                                     id_criado_por            = current_user.id 
             )
 
+        if Processo.query.filter_by(numero = int(form.numero.data)).count() > 0:
+            flash('O número deste processo já está cadastrado no sistema', 'warning')
+            return render_template('novo_processo.html', form = form)
+
+        caso = Caso.query.filter_by(id = entidade_processo.id_caso).first()
+        caso.numero_ultimo_processo = entidade_processo.numero
+
         db.session.add(entidade_processo)
         db.session.commit()
         flash('Processo associado com sucesso!', "success")
+        
         return redirect(url_for('casos.index'))
 
     return render_template('novo_processo.html', form = form)
@@ -613,6 +780,12 @@ def visualizar_processo(id_processo):
     _processo = Processo.query.filter_by(id = id_processo, status = True).first_or_404()
     return render_template('visualizar_processo.html', processo = _processo, id_caso = id_caso )
 
+# visualizar um processo apenas com o numero do processo
+@casos.route('/visualizar_processo_com_numero/<int:numero_processo>', methods=['GET'])
+@login_required()
+def visualizar_processo_com_numero(numero_processo):
+    _processo = Processo.query.filter_by(numero = numero_processo, status = True).first_or_404()
+    return render_template('visualizar_processo.html', processo = _processo, id_caso = _processo.id_caso )
 # Cadastrar evento
 @casos.route('/cadastrar_evento')
 def cadastrar_evento():
@@ -641,7 +814,17 @@ def excluir_processo(id_processo):
 
         return False  
 
-
+    def atualizarUltimoProcesso(id_do_caso):
+        processos = Processo.query.filter_by(id_caso = id_do_caso, status = True).all()
+        entidade_caso = Caso.query.filter_by(id = id_do_caso, status = True).first()
+        if processos:         
+            ultimo_processo = processos[-1:]
+            entidade_caso.numero_ultimo_processo = ultimo_processo[0].numero
+            db.session.commit()
+        else:
+            entidade_caso.numero_ultimo_processo = None
+            db.session.commit()
+            
 
     id_caso = request.args.get('id_caso', -1, type = int)
     
@@ -650,6 +833,7 @@ def excluir_processo(id_processo):
     if validaExclusao(processo):
         processo.status = False
         db.session.commit()
+        atualizarUltimoProcesso(id_caso)
         flash('Processo excluído!', 'success')
     else:
         flash('Você não pode excluir este processo.', 'warning')

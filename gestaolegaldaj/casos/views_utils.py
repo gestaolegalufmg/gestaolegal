@@ -1,9 +1,10 @@
-from gestaolegaldaj.casos.models import Caso, situacao_deferimento
+from gestaolegaldaj.casos.models import Caso, situacao_deferimento, tipo_evento, Evento
 from gestaolegaldaj import app
 from gestaolegaldaj.utils.models import queryFiltradaStatus
 from sqlalchemy import or_
 
 ROTA_PAGINACAO_CASOS = "casos.index"
+ROTA_PAGINACAO_EVENTOS = "casos.eventos"
 
 ROTA_PAGINACAO_MEUS_CASOS = "casos.meus_casos"
 TITULO_TOTAL_MEUS_CASOS = "Total de Casos: {}"
@@ -16,6 +17,9 @@ opcoes_filtro_meus_casos = {
 }
 opcoes_filtro_meus_casos['ATIVO'] = situacao_deferimento['ATIVO']
 opcoes_filtro_meus_casos['ARQUIVADO'] = situacao_deferimento['ARQUIVADO']
+
+opcoes_filtro_eventos = tipo_evento
+opcoes_filtro_eventos['TODOS'] = ('todos', 'Todos')
 
 
 
@@ -52,3 +56,22 @@ def params_busca_casos(casos, rota_paginacao, opcao_filtro = None):
     return {'casos'         : casos,
             'rota_paginacao': rota_paginacao,
             'opcao_filtro'  : opcao_filtro}
+
+def query_opcoes_filtro_eventos(id_caso, opcao_filtro):
+    if opcao_filtro == opcoes_filtro_eventos['TODOS'][0]:
+        return queryFiltradaStatus(Evento)\
+                    .filter_by(id_caso = id_caso)\
+                    .order_by(Evento.data_criacao.desc())
+    elif (opcao_filtro == opcoes_filtro_eventos[key][0] for key in opcoes_filtro_eventos):
+        return queryFiltradaStatus(Evento)\
+                    .filter_by(id_caso = id_caso)\
+                    .filter(Evento.tipo == opcao_filtro)\
+                    .order_by(Evento.data_criacao.desc())
+    else:
+        return None
+
+def params_busca_eventos(eventos, rota_paginacao, caso_id,opcao_filtro = None):
+    return {'eventos'       : eventos,
+            'rota_paginacao': rota_paginacao,
+            'opcao_filtro'  : opcao_filtro,
+            'caso_id'       : caso_id}
