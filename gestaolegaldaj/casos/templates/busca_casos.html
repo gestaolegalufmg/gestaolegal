@@ -50,8 +50,73 @@
                 </span>
                 <span class="float-right text-muted">
                   {% for cliente in caso.clientes %}
-                    {{cliente.nome}}  
+                    {{cliente.nome}}
+                    <br>
                   {% endfor %}
+                  <a href="#" data-toggle="modal" data-target="#modalExemplo{{caso.id}}">Gerenciar assistidos</a>
+                  {%block modal %}
+
+                    {% for caso in casos.items %}
+                    <div class="modal fade" id="modalExemplo{{caso.id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="exampleModalLabel">Gerenciar Assistidos</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="container-fluid">
+                                        <table class="table table-striped">
+                                            <tbody>
+                                                <form action="{{url_for('casos.adicionar_assistido_caso', id_caso = caso.id)}}" method="POST" id="form">
+                                                    <input type="hidden" name="csrf_token"  value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="adicao_assistido{{caso.id}}"  id="adicao_assistido{{caso.id}}">
+                                                    <input type="hidden" id="apiCasosBuscarAtendido" value="{{url_for('casos.api_casos_buscar_assistido', _external=True)}}">
+                                                    <div class="form-row align-items-center">
+                                                        <div class="form-group col-md-3">
+                                                            <label class="col-form-label" for="clientes-js">Adicionar Assistidos</label>
+                                                        </div>
+                                                        <div class="form-group col-md-5">
+                                                            <select class="form-control" id="clientes-js{{caso.id}}" name="clientes-js{{caso.id}}" multiple="multiple"></select>
+                                                        </div>
+                                                        <div class="form-group col-md-auto">
+                                                            <button class="btn btn-flat btn-primary">
+                                                                Adicionar
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                                <div class="row">
+                                                    {% for cliente in caso.clientes %}
+                                                    <tr>
+                                                        <td>
+                                                            <label>
+                                                                {{cliente.nome}}   
+                                                            </label>
+                                                        </td>
+                                                        <td>
+                                                            <form action="{{url_for('casos.excluir_assistido_caso', id_caso = caso.id, id_assistido = cliente.id)}}" method="POST">
+                                                                <input type="hidden" name="csrf_token"  value="{{ csrf_token() }}"> 
+                                                                <button class="btn ml-1 btn-flat btn-danger mr-2">
+                                                                    Excluir
+                                                                </button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </div>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                  {% endblock %}
                 </span>
             </p>
             <p class="clearfix">
@@ -78,6 +143,18 @@
                     {{caso.data_modificacao}}
                 </span>
             </p>
+            <p class="clearfix">
+                <span class="float-left">
+                    Último processo:
+                </span>
+                <span class="float-right text-muted">
+                    {% if caso.numero_ultimo_processo is not none%}
+                    <a href="{{url_for('casos.visualizar_processo_com_numero', numero_processo = caso.numero_ultimo_processo)}}">{{caso.numero_ultimo_processo}}</a>
+                    {% else %}
+                        --
+                    {%endif %}  
+                </span>
+            </p>
 
           </div>
           <div class="card-footer d-inline-flex justify-content-end">
@@ -86,14 +163,14 @@
                 <input type="hidden" value="{{url_for('casos.indeferir_caso', id_caso=caso.id)}}" id="url_indeferir_caso{{caso.id}}">
                 
                 <button  class="btn btn-warning mr-2" data-toggle="modal" data-target="indeferir">
-                    <a style="text-decoration: none;color: aliceblue;" id_caso="{{caso.id}}" id="a_indeferir"
+                    <aid_caso="{{caso.id}}" id="a_indeferir"
                         onclick="indeferir_caso(document.getElementById('url_indeferir_caso{{caso.id}}').value)">
                         Indeferir
                     </a>
                 </button>
 
                 <button class="btn btn-success mr-2" data-toggle="modal" data-target="deferir">
-                    <a style="text-decoration: none;color: aliceblue;" id_caso="{{caso.id}}" id="a_deferir{{caso.id}}"
+                    <a id_caso="{{caso.id}}" id="a_deferir{{caso.id}}"
                         onclick="deferir_caso(document.getElementById('url_deferir_caso{{caso.id}}').value)">
                         Deferir
                     </a>

@@ -1,11 +1,15 @@
 {% extends "base_dashboard.html" %}
-{% import "base_form.html" as formutils %}
+{% import "base_form_evento.html" as formutils %}
 {%block titulo%}Editar Evento #{{id_evento}}{%endblock%}
+{% block css %} 
+<link rel="stylesheet" href="{{url_for('static',filename='temas_externos/select2.min.css')}}">
+{% endblock css %}
 {% block conteudo %}
 <div class="card">
     <div class="card-body">
         <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
             {{form.hidden_tag()}}
+            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('casos.api_casos_buscar_usuario', _external=True)}}">
             <div class="form-group row">
                 {{formutils.form_label(form.data_evento, class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
                  <div class="col-12 col-lg-6 offset-lg-1">
@@ -16,6 +20,12 @@
                {{formutils.form_label(form.tipo, class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
                 <div class="col-12 col-lg-6 offset-lg-1">
                     {{formutils.form_field(form.tipo, class_='form-control')}}
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="usuario-js">Usuário Responsável</label>
+                <div class="col-12 col-lg-6 offset-lg-1">
+                    <select class="form-control" id="usuario-js" name="usuario-js" ></select>
                 </div>
             </div>
             <div class="form-group row">
@@ -44,6 +54,28 @@
 {% endblock %}
 
 {% block scripts %}
+    
     <script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
-    <script src="{{url_for('static',filename='js/novo_caso.js')}}"></script>
+    <script>
+    
+    $(document).ready(function(){
+    
+    $('#usuario-js').select2({
+        ajax: {
+            url: $('#apiCasosBuscarUsuario').val(),
+            dataType: 'json',
+        },
+        delay: 500,
+        placeholder: '{{usuario}}',
+        width: '100%',
+        allowClear: true 
+    })
+
+    $('#usuario-js').on('change', function(){
+        $('#usuario').val($('#usuario-js').val());
+    });
+
+})
+    </script>
+
 {% endblock scripts %}

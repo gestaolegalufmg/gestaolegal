@@ -1,0 +1,57 @@
+<nav class="d-inline-block">
+    <ul class="pagination mb-0">
+      {% for page_num in eventos.iter_pages(left_edge=3, right_edge=3, left_current=2, right_current=2) %}
+      {% if page_num and eventos.page == page_num%}
+      <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+      {% elif page_num %}
+      <li class="page-item"><a class="page-link"
+          href="{{ url_for(rota_paginacao, page=page_num, id_caso=caso_id, opcao_filtro=opcao_filtro) }}">{{ page_num }}</a>
+        {% else %}
+      <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+</nav>
+
+<div class="table-responsive">
+    <table class="table table-striped" style="width:99%">
+      <thead>
+          <tr>
+              <th style="width:10%">Nº</th>
+              <th style="width:30%">Tipo</th>
+              <th style="width:15%">Responsável</th>
+              <th>Criação</th>
+              <th>Lembrete</th>
+              <th>Ações</th>
+          </tr>
+      </thead>
+      <tbody>
+      {% for evento in eventos.items %}
+      <tr>
+        <td>#{{evento.id}}</td>
+        <td>{{formatarTipoDeEvento(evento.tipo)}}</td>
+        <td>{{formatarNomeDoUsuario(evento.id_usuario_responsavel)}}</td>
+        <td>{{evento.data_criacao.strftime('%d/%m/%Y')}}</td></td>
+        <td>{{evento.data_evento.strftime('%d/%m/%Y')}}</td>
+        <td>
+        <div class="row">
+            <button type="submit" class="btn ml-2 mr-2 btn-flat btn-primary btn-sm" name="button">
+                <a href="{{url_for('casos.visualizar_evento', id_evento=evento.id)}}" style="text-decoration: none;color: white;">Visualizar</a>
+            </button>
+            <button type="submit" class="btn mr-1 btn-flat btn-primary btn-sm" name="button">
+                <a href="{{url_for('casos.editar_evento', id_evento=evento.id)}}" style="text-decoration: none;color: white;">Editar</a>
+            </button>
+            <form action="">
+              {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
+                    
+            <a href="{{url_for('casos.excluir_evento', id_evento=evento.id)}}" class="btn ml-1 btn-flat btn-danger" 
+            onclick="return confirm('Você deseja realmente excluir este evento?');"> Excluir</a>
+            {% endif %}
+            </form>
+        </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+</div>

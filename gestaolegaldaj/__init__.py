@@ -6,6 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_mail import Mail, Message
 
+
 login_manager = LoginManager()
 
 app = Flask(__name__)
@@ -139,6 +140,7 @@ app.config['USUARIOS_POR_PAGINA'] = 20
 app.config['ATENDIDOS_POR_PAGINA'] = 20
 app.config['ASSISTENCIA_JURIDICA_POR_PAGINA'] = 20
 app.config['CASOS_POR_PAGINA'] = 20
+app.config['ARQUIVOS_POR_PAGINA'] = 20
 
 ############################################################
 ######################## EMAIL #############################
@@ -169,9 +171,18 @@ def formatarTipoDeEvento(string):
         'encerramento_caso':'Encerramento do Caso',
         'outros':'Outros',
         'redist_caso': 'Redistribuição do Caso'
-    }.get(string, 'outros') 
+    }.get(string, 'outros')
+
+def formatarNomeDoUsuario(id_usuario):
+    if id_usuario:
+        entidade_usuario = Usuario.query.get(int(id_usuario))
+        return entidade_usuario.nome
+    else:
+        return 'Não Há'
+
 
 app.jinja_env.globals.update(formatarTipoDeEvento=formatarTipoDeEvento)
+app.jinja_env.globals.update(formatarNomeDoUsuario=formatarNomeDoUsuario)
 
 
 #############################################################
@@ -213,9 +224,17 @@ from gestaolegaldaj.principal.views import principal
 from gestaolegaldaj.usuario.views import usuario
 from gestaolegaldaj.plantao.views import plantao
 from gestaolegaldaj.casos.views import casos
+from gestaolegaldaj.arquivos.views import arquivos
+from gestaolegaldaj.relatorios.views import relatorios
+from gestaolegaldaj.notificacoes.views import notificacoes
+
 
 app.register_blueprint(principal)
 app.register_blueprint(usuario, url_prefix='/usuario')
 app.register_blueprint(plantao, url_prefix='/plantao')
 app.register_blueprint(casos, url_prefix='/casos')
+app.register_blueprint(arquivos, url_prefix='/arquivos')
+app.register_blueprint(relatorios, url_prefix='/relatorios')
+app.register_blueprint(notificacoes, url_prefix='/notificacoes')
+
 

@@ -1,10 +1,11 @@
+from datetime import date
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 from flask_paginate import Pagination, get_page_args
 
 from gestaolegaldaj import app,db, login_required
 from gestaolegaldaj.usuario.models import Usuario, usuario_urole_roles, Endereco
-from gestaolegaldaj.plantao.models import Atendido, Assistido, AssistidoPessoaJuridica
+from gestaolegaldaj.plantao.models import Atendido, Assistido, AssistidoPessoaJuridica, DiasMarcadosPlantao
 from gestaolegaldaj.plantao.forms import CadastroAtendidoForm, TornarAssistidoForm, EditarAssistidoForm
 
 ##############################################################
@@ -146,3 +147,77 @@ def busca_todos_atendidos_assistidos(busca, page):
               .filter(((Atendido.nome.contains(busca)) | (Atendido.cpf.contains(busca)) | (Atendido.cnpj.contains(busca))) & (Atendido.status == True))
               .order_by(Atendido.nome)
               .paginate(page, app.config['ATENDIDOS_POR_PAGINA'], False))
+
+def numero_plantao_a_marcar(id_usuario: int):
+
+    dias_marcados = DiasMarcadosPlantao.query.filter_by(id_usuario = id_usuario).all()
+    
+    return len(dias_marcados) + 1
+
+def checa_vagas_em_todos_dias(dias_disponiveis: list, urole: str):
+    """
+    Função que retorna verdadeiro caso NÃO exista vagas para um determinado tipo de usuario
+    """
+    if urole == 'orient':
+        orientador_no_dia = []              #essa lista armazena se todos os dias tem ou nao um orientador ja cadastrado num dia, true caso sim e false do contrario
+        for i in range(0,len(dias_disponiveis)):
+            seletor_banco_de_dados = DiasMarcadosPlantao.query.filter_by(data_marcada = dias_disponiveis[i]).all()
+            for data in seletor_banco_de_dados:
+                if data.usuario.urole == 'orient':
+                    orientador_no_dia.append(True)
+                    break
+        
+        if len(orientador_no_dia) < len(dias_disponiveis):
+            return False
+        else:
+            return True
+    else:
+        tres_estagiarios_no_dia = []             #essa lista armazena se todos os dias tem ou nao 3 ou mais estagiarios ja cadastrados num dia, true caso sim e false do contrario
+        for i in range(0, len(dias_disponiveis)):
+            seletor_banco_de_dados = DiasMarcadosPlantao.query.filter_by(data_marcada = dias_disponiveis[i]).all()
+            numero_de_estagiarios_no_dia = 0
+            for data in seletor_banco_de_dados:
+                if data.usuario.urole == 'estag_direito':
+                    numero_de_estagiarios_no_dia += 1
+
+            if numero_de_estagiarios_no_dia >= 3:
+                tres_estagiarios_no_dia.append(True)
+            else:
+                tres_estagiarios_no_dia.append(False)
+        
+        if False in tres_estagiarios_no_dia:
+            return False
+        else:
+            return True
+                
+
+def confirma_disponibilidade_dia(dias_disponiveis: list, data: date):
+    """
+    Função que retorna verdadeiro caso uma data esteja disponível para marcar um plantão.
+    """
+
+    urole_usuario = current_user.urole
+    consulta_data_marcada = DiasMarcadosPlantao.query.filter_by(data_marcada = data).all()
+    numero_orientador = 0
+    numero_estagiario = 0
+
+    for data in consulta_data_marcada:
+        if data.usuario.urole == 'orient':
+            numero_orientador += 1
+        else:
+            numero_estagiario += 1
+
+    if (urole_usuario == 'orient') and (numero_orientador >= 1):
+        if checa_vagas_em_todos_dias(dias_disponiveis, urole_usuario):
+            return True
+        return False
+
+    elif (urole_usuario == 'estag_direito') and (numero_estagiario >= 3):
+        if checa_vagas_em_todos_dias(dias_disponiveis, urole_usuario):
+            return True
+        return False
+    else:
+        return True
+
+def resposta_configura_abertura() -> redirect:
+    return redirect(url_for('plantao.pg_plantao'))

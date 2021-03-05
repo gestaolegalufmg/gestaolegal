@@ -7,8 +7,9 @@ from flask_bcrypt import Bcrypt
 from flask_login import UserMixin
 from sqlalchemy.sql import expression
 from sqlalchemy import null
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
-from gestaolegaldaj import db, login_manager
+from gestaolegaldaj import app, db, login_manager
 from datetime import datetime
 
 ##############################################################
@@ -42,7 +43,7 @@ estado_civilUsuario = {
 
 tipo_bolsaUsuario = {
     'FUMP'  : ('fump','FUMP'),
-    'VALE'  : ('vale','VALE'),
+    'VALE'  : ('vale','Valle Ferreira'),
     'PROEX' : ('proex','Projeto de extensão'),
     'OUTRA' : ('outra', 'Outra')
 }
@@ -83,8 +84,6 @@ class Usuario(db.Model, UserMixin):
     modificadopor       = db.Column(db.Integer)
     bolsista            = db.Column(db.Boolean, nullable=False)
     tipo_bolsa          = db.Column(db.String(50, collation = 'latin1_general_ci'))
-    #TODO: Analisar necessidade de separar dia/horário de atendimento
-    #dia_atendimento     = db.Column(db.String(255, collation = 'latin1_general_ci')) #!!!
     horario_atendimento = db.Column(db.String(30, collation = 'latin1_general_ci')) #!!!
     suplente            = db.Column(db.String(30, collation = 'latin1_general_ci'))
     #TODO: Ver qual é o Input de Ferias se é data ou só um status
@@ -96,6 +95,7 @@ class Usuario(db.Model, UserMixin):
     fim_bolsa           = db.Column(db.DateTime)
     endereco_id         = db.Column(db.Integer, db.ForeignKey("enderecos.id"))
     endereco            = db.relationship("Endereco", lazy="joined")
+    chave_recuperacao   = db.Column(db.Boolean, server_default=expression.false())
 
     def setSenha(self, senha):
         self.senha = self.bcrypt.generate_password_hash(senha).decode('utf-8')
@@ -118,6 +118,18 @@ class Usuario(db.Model, UserMixin):
             self.fim_bolsa    = null()
             self.tipo_bolsa   = null()
 
+    def tokenRecuperacao(self,expires_sec=2200):
+        s = Serializer(app.config['SECRET_KEY'],expires_sec)
+        return s.dumps({'user_id': self.id}).decode("utf-8")
+    
+    @staticmethod
+    def verificaToken(token):
+        s = Serializer(app.config['SECRET_KEY'])
+        try:
+            user_id = s.loads(token)['user_id']
+        except:
+            return None
+        return Usuario.query.get(user_id)
 
 
 class Endereco(db.Model):
@@ -131,26 +143,5 @@ class Endereco(db.Model):
     bairro      = db.Column(db.String(100, collation = "latin1_general_ci"), nullable=False)
     cep         = db.Column(db.String(9, collation = "latin1_general_ci"), nullable=False)
 
-    cidade_id   = db.Column(db.Integer, db.ForeignKey("cidades.id"))
-    cidade      = db.relationship("Cidade", lazy='joined')
-
-
-
-
-class Cidade(db.Model):
-
-    __tablename__ = "cidades"
-
-    id        = db.Column(db.Integer, primary_key=True)
-    cidade    = db.Column(db.String(60, collation = "latin1_general_ci"), nullable=False)
-
-    estado_id = db.Column(db.Integer, db.ForeignKey("estados.id"))
-    estado    = db.relationship("Estado", lazy='joined')
-
-class Estado(db.Model):
-
-    __tablename__ = "estados"
-
-    id        = db.Column(db.Integer, primary_key=True)
-    estado    = db.Column(db.String(45, collation = "latin1_general_ci"), nullable=False)
-    uf        = db.Column(db.String(2, collation = "latin1_general_ci"), nullable=False)
+    cidade      = db.Column(db.String(100, collation = "latin1_general_ci"), nullable=False)
+    estado      = db.Column(db.String(100, collation = "latin1_general_ci"), nullable=False)

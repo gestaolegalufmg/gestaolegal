@@ -1,0 +1,15 @@
+<style>
+    .data_plantao{
+      color: royalblue;
+    }
+</style>
+
+{% if datas_plantao %}
+    {% for data in datas_plantao %}
+        <li class="data_plantao">
+          {{data.data_marcada.strftime("%d/%m/%Y")}}
+        </li>
+      {% endfor %}
+{% else %} 
+    <p>Ainda não escolheu os dias de plantão</p>
+{% endif %}

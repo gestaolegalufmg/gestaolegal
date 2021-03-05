@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import (DateField, SelectField, StringField, SubmitField,
-                     TextAreaField, TimeField, PasswordField)
+                     TextAreaField, TimeField, PasswordField, HiddenField)
 from wtforms.validators import AnyOf, DataRequired, Email, Length, Optional, InputRequired
 from gestaolegaldaj.usuario.models import sexo_usuario, estado_civilUsuario, tipo_bolsaUsuario, usuario_urole_roles
 from gestaolegaldaj.utils.forms import RequiredIf
@@ -29,6 +29,8 @@ max_numero              = 8
 max_complemento         = 100
 max_bairro              = 100
 max_cep                 = 9
+max_cidade              = 100
+max_estado              = 30
 max_horario_atendimento = 30
 
 #####################################################
@@ -36,7 +38,6 @@ max_horario_atendimento = 30
 #####################################################
 
 class EnderecoForm(FlaskForm):
-     #--- Endereço ---#
     logradouro          = StringField('Logradouro',
                                     validators=[
                                         DataRequired(MSG_NaoPodeEstarEmBranco.format('O logradouro')),
@@ -72,11 +73,23 @@ class EnderecoForm(FlaskForm):
                                         ]
                                     )
 
-#     #TODO
-#     cidade              = StringField('Cidade',
-#                             validators=[
-#                                 Optional(),
-#                                 Length(max=60, message="Por favor, use no máximo 60 caracteres para o nome da cidade.")])
+    cidade              = StringField('Cidade',
+                                    validators=[
+                                        DataRequired(MSG_NaoPodeEstarEmBranco.format('A cidade')),
+                                        Length(max=max_cidade, message="Por favor, use no máximo {} caracteres para o nome da cidade.".format(max_cidade))
+                                        ]
+                                    )
+
+    id_cidade           = HiddenField()
+
+    estado              = StringField('Estado',
+                                    validators=[
+                                        DataRequired(MSG_NaoPodeEstarEmBranco.format('A cidade')),
+                                        Length(max=max_estado, message="Por favor, use no máximo {} caracteres para o estado".format(max_estado))
+                                        ]
+                                    )
+    
+    id_estado           = HiddenField()
 
 class EditarUsuarioForm(EnderecoForm):
     nome                = StringField('Nome',
@@ -260,6 +273,10 @@ class EditarUsuarioForm(EnderecoForm):
                                     validators=[Optional()]
                                 )
 
+    senha               = HiddenField()# Não é usado no formulário, criado para o usuario_form.html funcionar
+
+    confirmacao         = HiddenField()# Não é usado no formulário, criado para o usuario_form.html funcionar
+
     submit              = SubmitField('Alterar dados')
 
 
@@ -277,20 +294,8 @@ class CadastrarUsuarioForm(EditarUsuarioForm):
                                         ]
                                     )
 
-#     #TODO
-#     cidade              = StringField('Cidade',
-#                             validators=[
-#                                 Optional(),
-#                                 Length(max=60, message="Por favor, use no máximo 60 caracteres para o nome da cidade.")])
+    id_cidade           = HiddenField()
+    
+    id_estado           = HiddenField()
 
     submit              = SubmitField('Cadastrar')
-
-#Exemplo utilização do form
-# {{ form.cep.label }}
-# {{ form.cep(type='x', id_='abc', class_='abc', onchange='') }}
-#
-
-#Manipular seu form no backend:
-# form.choices = [(),(),()]
-# form.meu_campo.data = 3
-# form.meu_campo.data = 'dados'

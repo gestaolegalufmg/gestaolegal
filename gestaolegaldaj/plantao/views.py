@@ -1,3 +1,5 @@
+from datetime import datetime, date
+
 from flask import Blueprint, flash, redirect, render_template, request, url_for, session, json
 from flask_login import current_user
 from flask_paginate import Pagination, get_page_args
@@ -10,13 +12,17 @@ from gestaolegaldaj.plantao.forms import (CadastroAtendidoForm,
                                           OrientacaoJuridicaForm,
                                           TornarAssistidoForm,
                                           AssistenciaJudiciariaForm,
-                                          CadastroOrientacaoJuridicaForm)
+                                          CadastroOrientacaoJuridicaForm,
+                                          AbrirPlantaoForm,
+                                          SelecionarDuracaoPlantaoForm,
+                                          FecharPlantaoForm)
 from gestaolegaldaj.plantao.forms import assistencia_jud_areas_atendidas
 from gestaolegaldaj.plantao.models import (Assistido,
                                            AssistidoPessoaJuridica, Atendido,
                                            OrientacaoJuridica, AssistenciaJudiciaria,
                                            AssistenciaJudiciaria_xOrientacaoJuridica,
-                                           Atendido_xOrientacaoJuridica) 
+                                           Atendido_xOrientacaoJuridica, DiasMarcadosPlantao,
+                                           DiaPlantao, Plantao) 
 from gestaolegaldaj.plantao.views_util import *
 from gestaolegaldaj.usuario.models import (Endereco, Usuario,
                                            usuario_urole_roles)
@@ -372,6 +378,7 @@ def encaminha_assistencia_judiciaria(id_orientacao):
             aj_oj.id_assistenciaJudiciaria = item 
             db.session.add(aj_oj)
             db.session.commit()
+        flash("Orientação encaminhada.","success")
         return redirect(url_for('plantao.perfil_oj',id = id_orientacao))
             
     return render_template('encaminha_assistencia_judiciaria.html', assistencias_judiciarias = assistencias_judiciarias, id_orientacao = id_orientacao)
@@ -600,7 +607,7 @@ def editar_assistencia_judiciaria(id_assistencia_judiciaria):
 
 # Rota de teste da Visualização da assistência judiciária
 @plantao.route('/assistencias_judiciarias/',methods=['POST','GET'])
-@login_required(role = [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['COLAB_EXTERNO'][0]])
+@login_required()
 def listar_assistencias_judiciarias():
     page = request.args.get('page', 1, type=int)
     _assistencias = AssistenciaJudiciaria.query.filter_by(status = True).order_by('nome').paginate(page, app.config['ATENDIDOS_POR_PAGINA'], False)
@@ -627,10 +634,7 @@ def perfil_oj(id):
                             .order_by(Atendido.nome)
                             .all())
 
-    assistencias_envolvidas = (queryFiltradaStatus(AssistenciaJudiciaria)
-                               .outerjoin(AssistenciaJudiciaria_xOrientacaoJuridica)
-                               .filter(AssistenciaJudiciaria_xOrientacaoJuridica.id_orientacaoJuridica == _orientacao.id)
-                               .all())
+    assistencias_envolvidas = AssistenciaJudiciaria_xOrientacaoJuridica.query.filter_by(id_orientacaoJuridica = _orientacao.id).all()
 
 
     return render_template('perfil_orientacao_juridica.html', orientacao = _orientacao, atendidos = atendidos_envolvidos, assistencias = assistencias_envolvidas)
@@ -739,8 +743,216 @@ def perfil_assistencia_judiciaria(_id):
 
 
 # Página de plantao
-@plantao.route('/pagina_plantao')
+@plantao.route('/pagina_plantao', methods = ['POST', 'GET'])
 @login_required()
 def pg_plantao():
+    dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(id_usuario = current_user.id).all()
 
-    return render_template('pagina_plantao.html')
+    return render_template('pagina_plantao.html', datas_plantao = dias_usuario_atual, numero_plantao = numero_plantao_a_marcar(current_user.id))
+
+@plantao.route('/ajax_obter_escala_plantao', methods = ['GET'])
+@login_required()
+def ajax_obter_escala_plantao():
+    escala = []
+
+    datas_ja_marcadas = DiasMarcadosPlantao.query.all()
+    for registro in datas_ja_marcadas:
+        if registro.usuario.status:
+            escala.append({
+                'nome':registro.usuario.nome,
+                'day':registro.data_marcada.day,
+                'month': registro.data_marcada.month,
+                'year':registro.data_marcada.year
+            })
+    return app.response_class(
+                                response = json.dumps(escala),
+                                status = 200,
+                                mimetype = 'application/json')
+
+
+@plantao.route('/ajax_confirma_data_plantao', methods = ['POST', 'GET'])
+@login_required()
+def ajax_confirma_data_plantao():
+    def cria_json(lista_datas, mensagem, tipo_mensagem: str):
+        return {
+            'lista_datas': lista_datas,
+            'mensagem': mensagem,
+            'tipo_mensagem': tipo_mensagem,
+            'numero_plantao': numero_plantao_a_marcar(current_user.id)
+        }
+
+    dias_abertos_plantao = DiaPlantao.query.filter_by(status = 1).all()
+    lista_dias_abertos = []
+    for dia_aberto in dias_abertos_plantao:
+        lista_dias_abertos.append(dia_aberto.data)
+
+    ano = request.args.get('ano')
+    mes = request.args.get('mes')
+    dia = request.args.get('dia')
+    data_marcada = date(int(ano), int(mes), int(dia))
+    tipo_mensagem = ''
+    mensagem = ''
+    resultado_json = {}
+
+    dias_usuario_marcado = DiasMarcadosPlantao.query.filter_by(id_usuario = current_user.id).all()
+
+    validacao = (data_marcada in lista_dias_abertos) and ((current_user.urole == 'orient') or (current_user.urole == 'estag_direito'))
+    if not validacao:
+        tipo_mensagem = 'warning'
+        mensagem = 'Data selecionada não foi aberta para plantão ou você não é um Orientador/Estagiário.'
+        resultado_json = cria_json(render_template('lista_datas_plantao.html', datas_plantao = dias_usuario_marcado), mensagem, tipo_mensagem)
+        return app.response_class(
+                                    response = json.dumps(resultado_json),
+                                    status = 200,
+                                    mimetype = 'application/json'
+                                )
+    
+    if not confirma_disponibilidade_dia(lista_dias_abertos, data_marcada):
+        tipo_mensagem = 'warning'
+        mensagem = 'Não há vagas disponíveis na data selecionada, tente outro dia.'
+        resultado_json = cria_json(render_template('lista_datas_plantao.html', datas_plantao = dias_usuario_marcado), mensagem, tipo_mensagem)
+        return app.response_class(
+                                    response = json.dumps(resultado_json),
+                                    status = 200,
+                                    mimetype = 'application/json'
+                                ) 
+    
+
+    if len(dias_usuario_marcado) >= 2:
+        tipo_mensagem = 'warning'
+        mensagem = 'Você já tem 2 plantões cadastrados.'
+        resultado_json = cria_json(render_template('lista_datas_plantao.html', datas_plantao = dias_usuario_marcado), mensagem, tipo_mensagem)
+        return app.response_class(
+                                    response = json.dumps(resultado_json),
+                                    status = 200,
+                                    mimetype = 'application/json'
+                                ) 
+
+    
+    dia_marcado = DiasMarcadosPlantao(data_marcada = data_marcada,
+                                      id_usuario = current_user.id)
+    db.session.add(dia_marcado)
+    db.session.commit()
+    mensagem = "Data de plantão cadastrada!"
+    tipo_mensagem = "success"
+    dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(id_usuario = current_user.id).all()
+    resultado_json = cria_json(render_template('lista_datas_plantao.html', datas_plantao = dias_usuario_atual), mensagem, tipo_mensagem)
+    return app.response_class(
+                                response = json.dumps(resultado_json),
+                                status = 200,
+                                mimetype = 'application/json'
+                            )
+
+@plantao.route('/ajax_disponibilidade_de_vagas', methods = ['POST', 'GET'])
+@login_required()
+def ajax_disponibilidade_de_vagas():
+
+    ano = request.args.get('ano')
+    mes = request.args.get('mes')
+    dias_no_mes = request.args.get('dias_deste_mes')
+
+    dias = []
+
+    dias_abertos_plantao = DiaPlantao.query.filter_by(status = 1).all()
+    lista_dias_abertos = []
+    
+    for dia_aberto in dias_abertos_plantao:
+        lista_dias_abertos.append(dia_aberto.data)
+    
+    for dia in range(1,int(dias_no_mes)+1):
+        data_marcada = date(int(ano), int(mes), int(dia))
+        if confirma_disponibilidade_dia(lista_dias_abertos,data_marcada):
+            index = {'Dia' : str(dia), 'Vagas' : True}
+            dias.append(index)
+        else:
+            index = {'Dia' : str(dia), 'Vagas' : False}
+            dias.append(index)
+    
+    response = app.response_class(
+        response = json.dumps(dias),
+        status = 200,
+        mimetype = 'application/json'
+    )
+    return response
+
+# Registro de presença do plantao
+@plantao.route('/registro_presenca')
+@login_required()
+def reg_presenca():
+    return render_template('registro_presenca.html')
+
+
+@plantao.route('/confirmar_presenca')
+@login_required()
+def confirmar_presenca():
+    return render_template('confirmar_presenca.html')
+
+
+@plantao.route('/configurar_abertura', methods=['POST', 'GET'])
+@login_required(role = [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0]])
+def configurar_abertura():
+    form_abrir = AbrirPlantaoForm()
+    form_fechar = FecharPlantaoForm()
+    a = datetime.now()
+    _form = SelecionarDuracaoPlantaoForm()
+
+    # if _form.validate_on_submit():
+    #     dias_escolhidos = _form.hdnDiasEscolhidos.data.split(sep=',')     #quando nenhum dia é selecionado, o split retorna vazio, e o resto da funcção nao sabe trabalhar com isso
+    #     d = DiaPlantao.query.filter(DiaPlantao.data >= datetime(a.year,a.month,1)).all()
+
+    #     #Inativa todos os dias cadastrados no mês, reativando aqueles que foram escolhidos na página
+    #     for dia in d:
+    #         dia.status = False
+
+    #     for dia in dias_escolhidos:
+    #         k = datetime(a.year,a.month,int(dia))   
+    #         if not k in dia: #Se o dia não foi cadastrado ainda, adicionar um registro novo
+    #             x = DiaPlantao(dia = k)
+    #             db.session.add(x)
+    #         else:
+    #             dia.Ativo = True
+        
+    #     db.session.commit()
+    
+    if form_abrir.validate_on_submit():
+        data_de_abertura = Plantao.query.first()
+        data_escolhida = form_abrir.data_abertura.data
+        hora_escolhida = form_abrir.hora_abertura.data
+
+        if not data_de_abertura:
+            data_de_abertura = Plantao(data_abertura = datetime.combine(data_escolhida, hora_escolhida))
+
+            db.session.add(data_de_abertura)
+            db.session.commit()
+
+            app.config['ID_PLANTAO'] = data_de_abertura.id
+            flash('Dia de abertura do plantão definida!', 'success')
+            return resposta_configura_abertura()
+
+        data_de_abertura.data_abertura = datetime.combine(data_escolhida, hora_escolhida)
+        db.session.commit()
+
+        flash('Dia de abertura do plantão definida!', 'success')
+        return resposta_configura_abertura()
+
+
+    return render_template('configurar_abertura.html', form_fechar=form_fechar, form_abrir=form_abrir,periodo = f"{a.month}/{a.year}", form = _form)
+
+@plantao.route('/editar_abertura', methods=['POST','GET'])
+@login_required(role = [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0]])
+def editar_abertura():
+    form_abrir = AbrirPlantaoForm()
+    form_fechar = FecharPlantaoForm()
+
+    if form_abrir.validate_on_submit():
+        data_de_abertura = Plantao.query.first()
+        data_escolhida = form_abrir.data_abertura.data
+        hora_escolhida = form_abrir.hora_abertura.data
+
+        data_de_abertura.data_abertura = datetime.combine(data_escolhida, hora_escolhida)
+        db.session.commit()
+
+        flash('Dia de abertura do plantão definida!', 'success')
+        return resposta_configura_abertura()
+
+    return render_template('editar_abertura.html', form_fechar=form_fechar, form_abrir=form_abrir)

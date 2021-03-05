@@ -6,13 +6,14 @@
 <nav class="d-inline-block">
   <ul class="pagination mb-0">
     {% for page_num in usuarios.iter_pages(left_edge=3, right_edge=3, left_current=2, right_current=2) %}
-      {% if page_num and usuarios.page == page_num%}
-        <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
-      {% elif page_num %}
-        <li class="page-item"><a class="page-link" href="{{ url_for('usuario.listar_usuarios', page=page_num) }}">{{ page_num }}</a>
+    {% if page_num and usuarios.page == page_num%}
+    <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+    {% elif page_num %}
+    <li class="page-item"><a class="page-link"
+        href="{{ url_for('usuario.listar_usuarios', page=page_num) }}">{{ page_num }}</a>
       {% else %}
-        <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
-      {% endif %}
+    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+    {% endif %}
     {% endfor %}
   </ul>
 </nav>
@@ -21,7 +22,6 @@
   <div class="card-body">
     <div class="card-title">
       <div class="d-flex flex-row ">
-        <h3 class="d-flex justify-content-start">Usuários do Gestão Legal</h3>
         {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0]] %}
         <button type="submit" name="button" class="btn btn-primary ml-auto p-2">
           <a style="color: inherit; text-decoration: none;" href="{{url_for('usuario.cadastrar_usuario')}}">Cadastrar
@@ -55,24 +55,20 @@
                 <button type="submit" class="btn ml-2 mr-2 btn-flat btn-primary btn-sm" name="button"><a
                     href="{{url_for('usuario.perfil_usuario', id_user = usuario.id)}}"
                     style="text-decoration: none;color: white;">Visualizar</a></button>
-                {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['PROFESSOR'][0]] %}
-                {% if not usuario.urole == usuario_urole_roles['ADMINISTRADOR'][0] %}
+                {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['PROFESSOR'][0]] and (usuario.id != admin_padrao or current_user.id == admin_padrao)%}
                 <button type="submit" class="btn mr-1 btn-flat btn-primary btn-sm" name="button"><a
                     href="{{url_for('usuario.editar_usuario', id_user = usuario.id)}}"
                     style="text-decoration: none;color: white;">Editar</a></button>
                 {% endif %}
-                {% endif %}
-                {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] %}
-                  {% if not usuario.id == admin_padrao %}
-                    <form action="{{url_for('usuario.inativar_usuario_lista')}}" method="POST">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <div>
-                        <input type="hidden" name="id" value="{{usuario.id}}">
-                      </div>
-                      <button type="submit" class="btn ml-1 btn-flat btn-danger btn-sm"
-                        onclick="return confirm('Você deseja realmente inativar este usuário?');">Inativar</button>
-                    </form>
-                  {% endif %}
+                {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] and usuario.id != admin_padrao %}
+                <form action="{{url_for('usuario.inativar_usuario_lista')}}" method="POST">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div>
+                    <input type="hidden" name="id" value="{{usuario.id}}">
+                  </div>
+                  <button type="submit" class="btn ml-1 btn-flat btn-danger btn-sm"
+                    onclick="return confirm('Você deseja realmente inativar este usuário?');">Excluir</button>
+                </form>
                 {% endif %}
               </div>
             </td>

@@ -11,6 +11,7 @@ from sqlalchemy.sql import expression
 
 from gestaolegaldaj import db
 from gestaolegaldaj.casos.models import associacao_casos_atendidos
+from gestaolegaldaj.usuario.models import Usuario
 
 ##############################################################
 ################## CONSTANTES/ENUMS ##########################
@@ -470,3 +471,29 @@ class AssistenciaJudiciaria_xOrientacaoJuridica(db.Model):
 
     assistenciaJudiciaria    = db.relationship(AssistenciaJudiciaria, backref=db.backref("assistenciasJudiciarias_xOrientacao_juridica"))
     orientacaoJuridica     = db.relationship(OrientacaoJuridica, backref=db.backref("assistenciasJudiciarias_xOrientacao_juridica"))
+
+class DiaPlantao(db.Model):
+    __tablename__= "dias_plantao"
+
+    id                       = db.Column(db.Integer, primary_key=True)
+
+    data                     = db.Column(db.Date)
+    status                   = db.Column(db.Boolean(), nullable=False, default=True)
+
+class Plantao(db.Model):
+    __tablename__ = "plantao"
+
+    id            = db.Column(db.Integer, primary_key=True)
+
+    data_abertura   = db.Column(db.DateTime)
+    data_fechamento = db.Column(db.DateTime)
+
+class DiasMarcadosPlantao(db.Model):
+    __tablename__   = "dias_marcados_plantao"
+
+    id              = db.Column(db.Integer, primary_key=True)
+
+    data_marcada    = db.Column(db.Date)
+
+    id_usuario      = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
+    usuario         = db.relationship(Usuario, backref=db.backref("dias_marcados_plantao"))

@@ -4,26 +4,39 @@
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
-    <title>{%block titulo%}{% endblock %} - Gestão Legal</title>
+    <title id="titulo">{%block titulo%}{% endblock %} - Gestão Legal</title>
     <!-- General CSS Files -->
     <link rel="stylesheet" href="{{url_for('static',filename='app_tema/assets/css/app.min.css')}}">
-    <link rel="stylesheet"
-        href="{{url_for('static',filename='app_tema/assets/bundles/izitoast/css/iziToast.min.css')}}">
+    <link rel="stylesheet" href="{{url_for('static',filename='app_tema/assets/bundles/izitoast/css/iziToast.min.css')}}">
     <!-- Template CSS -->
     <link rel="stylesheet" href="{{url_for('static',filename='app_tema/assets/css/style.css')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='app_tema/assets/css/components.css')}}">
     <!-- Custom style CSS -->
-    <link rel='shortcut icon' type='image/x-icon'
-        href="{{url_for('static',filename='app_tema/assets/img/favicon.ico')}}" />
+    <link rel='shortcut icon' type='image/x-icon' href="{{url_for('static', filename='imgs_daj/gestao_legal_home.png')}}" /> {%block css%}{%endblock%}
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500&display=swap');
 
-    {%block css%}{%endblock%}
-
+        ::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+        color: white;       
+        }
+        ::-moz-placeholder { /* Firefox 19+ */
+        color: white;
+        }
+        :-ms-input-placeholder { /* IE 10+ */
+        color: white;
+        }
+        :-moz-placeholder { /* Firefox 18- */
+        color: white;
+        }
+        </style>
 </head>
 
-<body class="theme-blue blue-sidebar">
+<body class="theme-blue blue-sidebar" style="font-family: 'Montserrat', sans-serif ">
+    {%block modal %}{% endblock %}
     <div class="loader"></div>
     <div id="app">
-        <div class="main-wrapper main-wrapper-1">
+        <div class="main-wrapper main-wrapper-1" >
             <div class="navbar-bg"></div>
             <nav class="navbar navbar-expand-lg main-navbar">
                 <div class="form-inline mr-auto">
@@ -32,13 +45,10 @@
                                     class="fas fa-bars"></i></a></li>
                         <li>
                             <form action="{{url_for('principal.busca_geral')}}" id="form_busca_geral" method="POST">
-                                <div class="search-group">
+                                <div class="search-group" >
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <input type="text" id="busca_geral" name="busca_geral" class="search-control"
-                                        placeholder="usuários, assistidos ou casos" aria-label="search"
-                                        aria-describedby="search" style="width: 170px;">
-                                    <span class="nav-link nav-link-lg" id="search"
-                                        onclick="document.getElementById('form_busca_geral').submit()">
+                                    <input type="text" id="busca_geral" name="busca_geral" class="search-control" placeholder="Usuários, Assistidos ou Casos" aria-label="search" aria-describedby="search" style="width: 210px;">
+                                    <span class="nav-link nav-link-lg" id="search" onclick="document.getElementById('form_busca_geral').submit()">
                                         <i class="fa fa-search" aria-hidden="true"></i>
                                     </span>
 
@@ -48,12 +58,12 @@
                     </ul>
                 </div>
                 <ul class="navbar-nav navbar-right">
-                    <li><a href="#" class="nav-link nav-link-lg fullscreen-btn">
+                    <li>
+                        <a href="#" class="nav-link nav-link-lg fullscreen-btn">
                             <i class="fas fa-expand"></i>
                         </a>
                     </li>
-                    <li class="dropdown dropdown-list-toggle"><a href="#" data-toggle="dropdown"
-                            class="nav-link nav-link-lg"><i class="far fa-envelope"></i></a>
+                    <li class="dropdown dropdown-list-toggle"><a href="#" data-toggle="dropdown" class="nav-link nav-link-lg"><i class="far fa-envelope"></i></a>
                         <div class="dropdown-menu dropdown-list dropdown-menu-right">
                             <div class="dropdown-header">Notificações</div>
                             <div class="dropdown-list-content dropdown-list-message">
@@ -65,8 +75,8 @@
                                     </span>
                                     <span class="dropdown-item-desc">
                                         <span class="message-user">Michael Gardner</span>
-                                        <span class="time messege-text">Analysis Project and Design Flowchart</span>
-                                        <span class="time">2 Min Ago</span>
+                                    <span class="time messege-text">Analysis Project and Design Flowchart</span>
+                                    <span class="time">2 Min Ago</span>
                                     </span>
                                 </a>
                                 <a href="#" class="dropdown-item">
@@ -77,8 +87,8 @@
                                     </span>
                                     <span class="dropdown-item-desc">
                                         <span class="message-user">Nancy Burton</span>
-                                        <span class="time messege-text">Client meeting is cancelled</span>
-                                        <span class="time">5 Hour Ago</span>
+                                    <span class="time messege-text">Client meeting is cancelled</span>
+                                    <span class="time">5 Hour Ago</span>
                                     </span>
                                 </a>
                                 <a href="#" class="dropdown-item">
@@ -89,8 +99,8 @@
                                     </span>
                                     <span class="dropdown-item-desc">
                                         <span class="message-user">Amiah Smith</span>
-                                        <span class="time messege-text">Project Planning</span>
-                                        <span class="time">12 Hour Ago</span>
+                                    <span class="time messege-text">Project Planning</span>
+                                    <span class="time">12 Hour Ago</span>
                                     </span>
                                 </a>
                                 <a href="#" class="dropdown-item">
@@ -101,8 +111,8 @@
                                     </span>
                                     <span class="dropdown-item-desc">
                                         <span class="message-user">John Doe</span>
-                                        <span class="time messege-text">Leave application !!</span>
-                                        <span class="time">1 Days Ago</span>
+                                    <span class="time messege-text">Leave application !!</span>
+                                    <span class="time">1 Days Ago</span>
                                     </span>
                                 </a>
                                 <a href="#" class="dropdown-item">
@@ -113,8 +123,8 @@
                                     </span>
                                     <span class="dropdown-item-desc">
                                         <span class="message-user">Wiltor Stone</span>
-                                        <span class="time messege-text">Discussion about increment!</span>
-                                        <span class="time">2 Days Ago</span>
+                                    <span class="time messege-text">Discussion about increment!</span>
+                                    <span class="time">2 Days Ago</span>
                                     </span>
                                 </a>
                                 <a href="#" class="dropdown-item">
@@ -125,8 +135,8 @@
                                     </span>
                                     <span class="dropdown-item-desc">
                                         <span class="message-user">Nancy Burton</span>
-                                        <span class="time messege-text">Upcoming project meeting</span>
-                                        <span class="time text-primary">3 Days Ago</span>
+                                    <span class="time messege-text">Upcoming project meeting</span>
+                                    <span class="time text-primary">3 Days Ago</span>
                                     </span>
                                 </a>
                             </div>
@@ -137,8 +147,8 @@
                         </div>
                     </li>
 
-                    <li class="dropdown"><a href="#" data-toggle="dropdown"
-                            class="nav-link dropdown-toggle nav-link-lg nav-link-user">
+                    <li class="dropdown">
+                        <a href="#" data-toggle="dropdown" class="nav-link dropdown-toggle nav-link-lg nav-link-user">
                             <i class="far fa-user"></i>
                             <span class="d-sm-none d-lg-inline-block"></span></a>
                         <div class="dropdown-menu dropdown-menu-right">
@@ -164,12 +174,12 @@
                 <aside id="sidebar-wrapper">
                     <div class="sidebar-brand">
                         <a href="{{url_for('principal.index')}}">
-                            <!---  <img alt="image" src="{{url_for('static', filename='imgs_daj/Logo_DAJ_pequeno.png')}}"
-                                class="header-logo" />-->
-                            <span class="logo-name">Gestão Legal</span>
+                             <img alt="image" src="{{url_for('static', filename='imgs_daj/GL_icon.png')}}"
+                                class="header-logo" >
+                            <span class="logo-name" style="font-family: 'Montserrat', sans-serif;">Gestão Legal</span>
                         </a>
                     </div>
-                    <ul class="sidebar-menu">
+                    <ul class="sidebar-menu" style="font-family: 'Montserrat', sans-serif;">
                         <li>
                             <a href="{{url_for('usuario.listar_usuarios')}}" class="nav-link"><i class="fas fa-user"></i><span>Gestão de
                                     Usuários</span></a>
@@ -178,9 +188,43 @@
                             <a href="#" class="nav-link has-dropdown"><i
                                     class="fas fa-globe"></i><span>Plantão</span></a>
                             <ul class="dropdown-menu" style="display: none;">
+                                <li><a href="{{url_for('plantao.pg_plantao')}}">Página do Plantão</a></li>
+                                <li><a href="{{url_for('plantao.reg_presenca')}}">Registro de Presença</a></li>
+                                {% if current_user.urole in [ usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0] ] %}
+                                <li><a href="{{url_for('plantao.confirmar_presenca')}}">Confirmar Presença</a></li>
+                                {% endif %}
+                               
                                 <li><a href="{{url_for('plantao.listar_atendidos')}}">Atendidos e Assistidos</a></li>
-                                {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
-                                <li><a href="{{url_for('plantao.cadastro_orientacao_juridica')}}">Orientações Jurídicas</a></li>
+                                <li><a href="{{url_for('plantao.orientacoes_juridicas')}}">Orientações Jurídicas</a></li>
+                                <li><a href="{{url_for('plantao.listar_assistencias_judiciarias')}}">Assistências Judiciárias</a></li>
+                            </ul>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="nav-link has-dropdown">
+                                <i class="fas fa-briefcase"></i><span>Casos</span></a>
+
+                            <ul class="dropdown-menu" style="display: none;">
+                                <li><a href="{{url_for('casos.novo_caso')}}">Cadastrar Novo Caso</a></li>
+                                <li><a href="{{url_for('casos.meus_casos')}}">Meus Casos</a></li>
+                                <li><a href="{{url_for('casos.index')}}">Gestão de Casos</a></li>
+                                {% if current_user.urole in [ usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0] ] %}
+                                <li><a href="{{url_for('casos.editar_roteiro')}}">Gerenciar Roteiros</a></li>
+                                {% endif %}
+                               
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="{{url_for('notificacoes.index')}}" class="nav-link"><i class="fas fa-bell"></i><span>Notificações</span></a>
+                        </li>
+                        <li>
+                            <a href="{{url_for('relatorios.index')}}" class="nav-link"><i class="fas fa-chart-bar"></i><span>Relatórios</span></a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-link has-dropdown"><i class="fas fa-file-alt"></i><span>Arquivos</span></a>
+                            <ul class="dropdown-menu" style="display: none;">
+                                <li><a href="{{url_for('arquivos.index')}}">Ver Arquivos</a></li>
+                                {% if current_user.urole in [ usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0] ] %}
+                                <li><a href="{{url_for('arquivos.cadastrar_arquivo')}}">Cadastrar Arquivo</a></li>
                                 {% endif %}
                             </ul>
                         </li>
@@ -197,13 +241,9 @@
                         <div class="container-fluid">
                             <!-- Notificações do sistema(flashes) -->
                             <div id="flashes" class="d-none">
-                                {% with messages = get_flashed_messages(with_categories=true) %}
-                                {% if messages %}
-                                {% for category, message in messages %}
+                                {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %} {% for category, message in messages %}
                                 <div data-category="{{category}}" class="flash-message">{{message}}</div>
-                                {% endfor %}
-                                {% endif %}
-                                {% endwith %}
+                                {% endfor %} {% endif %} {% endwith %}
                             </div>
                             {%block conteudo %}{% endblock %}
                         </div>
@@ -212,8 +252,8 @@
             </div>
             <footer class="main-footer">
                 <div class="footer-left">
-                    Copyright &copy; 2020 <div class="bullet"></div> Criado por <a
-                        href="http://www.ijunior.com.br">iJunior</a>
+                    Copyright &copy; 2020
+                    <div class="bullet"></div> Criado por <a href="http://www.ijunior.com.br">iJunior</a>
                 </div>
                 <div class="footer-right">
                 </div>
@@ -229,9 +269,8 @@
     <!-- Template JS File -->
     <script src="{{url_for('static',filename='app_tema/assets/js/scripts.js')}}"></script>
 
-    <!-- Mostrar avisos ao usuário -->
-    {%block scripts%}
-    {% endblock %}
+    <!-- Scripts customizados por página -->
+    {%block scripts%} {% endblock %}
 
 </body>
 

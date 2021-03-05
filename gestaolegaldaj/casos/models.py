@@ -47,6 +47,9 @@ class Caso(db.Model):
     id_estagiario          = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
     estagiario             = db.relationship('Usuario', foreign_keys = [id_estagiario])
 
+    id_colaborador         = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
+    colaborador            = db.relationship('Usuario', foreign_keys = [id_colaborador])
+
     data_criacao           = db.Column(db.DateTime, nullable = False)
     id_criado_por          = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable= False)
     criado_por             = db.relationship('Usuario', foreign_keys = [id_criado_por])
@@ -61,6 +64,8 @@ class Caso(db.Model):
     status                 = db.Column(db.Boolean, default = True, nullable = False)
     descricao              = db.Column(db.Text(collation = 'latin1_general_ci'))
     arquivo                = db.Column(db.String(300, collation = 'latin1_general_ci'))
+
+    numero_ultimo_processo = db.Column(db.Integer, nullable = True)
 
 class Roteiro(db.Model):
     __tablename__ = 'documentos_roteiro'
@@ -100,7 +105,7 @@ class Processo(db.Model):
 
     id                     = db.Column(db.Integer, primary_key = True)
     especie                = db.Column(db.String(25, collation = 'latin1_general_ci'), nullable = False)
-    numero                 = db.Column(db.Integer)
+    numero                 = db.Column(db.Integer,unique = True)
     identificacao          = db.Column(db.Text(collation = 'latin1_general_ci'))
     vara                   = db.Column(db.String(200, collation = 'latin1_general_ci'))
     link                   = db.Column(db.String(1000, collation = 'latin1_general_ci'))
@@ -126,9 +131,13 @@ class Evento(db.Model):
     tipo                   = db.Column(db.String(50,collation = 'latin1_general_ci'), nullable = False)
     descricao              = db.Column(db.String(1000, collation = 'latin1_general_ci'))
     arquivo                = db.Column(db.String(100, collation = 'latin1_general_ci'))
-    data_evento            = db.Column(db.DateTime, nullable = False)
+    data_evento            = db.Column(db.Date, nullable = False)
 
     data_criacao           = db.Column(db.DateTime, nullable = False)
     id_criado_por          = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable= False)
+
+    id_usuario_responsavel = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable = True)
+    usuario_responsavel    = db.relationship('Usuario', foreign_keys = [id_usuario_responsavel])
+
     criado_por             = db.relationship('Usuario', foreign_keys = [id_criado_por])
     status                 = db.Column(db.Boolean, default = True, nullable = False)

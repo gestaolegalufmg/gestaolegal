@@ -32,8 +32,9 @@
                 {% for error in form.data.errors %}
                 <div class="alert alert-danger">{{error}}</div>
                 {% endfor %}
-            </div>
+                <br>
                 {{form.submit(class_='btn btn-flat btn-primary')}}
+            </div>
         </form>
     </div>
     <div class="card-footer">

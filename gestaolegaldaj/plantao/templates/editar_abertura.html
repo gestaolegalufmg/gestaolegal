@@ -1,0 +1,132 @@
+{% extends "base_dashboard.html" %}
+{% block titulo %}Editar Abertura{% endblock titulo %}
+{% block css %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/calendario.css')}}">
+{% endblock css %}
+
+{% block conteudo %}
+
+<div class="row">
+  <div class="col">
+  
+    <div class="card">
+        <div class="card-header d-flex justify-content-center">
+            <h4>Duração do Plantão</h4>
+        </div>
+      <div class="card-body d-flex justify-content-center">
+        <div class="calendar">
+          <div class="year-header">
+              <span class="year" id="label"></span> 
+          </div>
+          <table class="months-table">
+            <tbody>
+              <tr class="months-row">
+                <td class="month" id="month1" >Jan</td>
+                <td class="month" id="month2" >Fev</td>
+                <td class="month" id="month3" >Mar</td>
+                <td class="month" id="month4" >Abr</td>
+                <td class="month" id="month5" >Mai</td>
+                <td class="month" id="month6" >Jun</td>
+                <td class="month" id="month7" >Jul</td>
+                <td class="month" id="month8" >Ago</td>
+                <td class="month" id="month9" >Set</td>
+                <td class="month" id="month10">Out</td>
+                <td class="month" id="month11">Nov</td>
+                <td class="month" id="month12">Dez</td>
+              </tr>
+            </tbody>
+          </table>
+          <table class="days-table">
+            <td class="day">D</td>
+            <td class="day">S</td>
+            <td class="day">T</td>
+            <td class="day">Q</td>
+            <td class="day">Q</td>
+            <td class="day">S</td>
+            <td class="day">S</td>
+          </table>
+          <div class="frame">
+            <table class="dates-table">
+                <tbody class="tbody">
+                </tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-center ">
+            <button class="button" id="escolhe_data" data-toggle="modal" data-target="#confirmacao">Salvar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+  </div>
+
+  <div class="col">
+  
+    <div class="card ">
+      <div class="card-header">
+          <h4>Abertura do Plantão </h4>
+      </div>
+      <div class="card-body">
+        <div class= "form-validation">
+            <form class="form-valide" action="{{url_for('plantao.editar_abertura')}}" method="POST" id="form">
+                {% include "abrir_plantao_form.html" %}
+                <button type="submit" class="btn btn-primary" id="button">Confirmar</button>
+            </form>
+        </div>
+    </div>
+    </div>
+  
+ 
+
+  
+  
+    <div class="card ">
+      <div class="card-header">
+          <h4>Fechamento do Plantão </h4>
+      </div>
+    <div class="card-body">
+      <div class= "form-validation">
+          <form class="form-valide" action="{{url_for('plantao.editar_abertura')}}" method="POST" id="form">
+              {% include "fechar_plantao_form.html" %}
+              <button type="submit" class="btn btn-primary" id="button">Confirmar</button>
+          </form>
+      </div>
+    </div>
+  
+  </div>
+
+</div>
+
+{% endblock conteudo %}
+
+{%block modal %}
+<!-- Modal -->
+<div class="modal fade"bindex="-1" role="dialog" aria-labelledby="confirmacao" aria-hidden="true" >
+  <div class="modal-dialog" id="confirmacao" ta role="document">
+  <div class="modal-content">
+      <div class="modal-header">
+      <h5 class="modal-title" id="exampleModalLabel">Deseja confirmar a duração do plantão?</h5>
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+      </button>
+      </div>
+      <div class="modal-body" id="id_body_modal">
+
+      </div>
+      <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+
+      <form action="" method='POST'>
+       
+        <input type="hidden" id="hdnAjaxDuracao" value="{{url_for('plantao.ajax_obter_escala_plantao')}}">
+        
+      </form>
+      </div>
+  </div>
+  </div>
+</div>
+{% endblock modal %}
+
+{% block scripts %}
+<script src="{{url_for('static',filename='js/selecionar_duracao.js')}}"></script>
+{% endblock scripts %}

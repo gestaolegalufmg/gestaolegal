@@ -14,7 +14,7 @@
   <!-- Custom style CSS -->
 
   <link rel='shortcut icon' type='image/x-icon'
-    href="{{url_for('static', filename='app_tema/assets/img/favicon.ico')}}" />
+    href="{{url_for('static', filename='imgs_daj/gestao_legal_home.png')}}" />
 </head>
 
 <style>
@@ -73,7 +73,7 @@
                     <div class="d-block">
                       <label for="password" class="control-label">Senha</label>
                       <div class="float-right">
-                        <a href="{{url_for('static', filename='app_tema/auth-forgot-password.html')}}"
+                        <a href="{{url_for('usuario.recuperar_senha')}}"
                           class="text-small">
                           Esqueceu sua senha?
                         </a>
@@ -84,12 +84,12 @@
                       Por favor preecha sua senha
                     </div>
                   </div>
-                  <div class="form-group">
+                  <!-- <div class="form-group">
                     <div class="custom-control custom-checkbox">
                       <input type="checkbox" name="remember" class="custom-control-input" tabindex="3" id="remember-me">
                       <label class="custom-control-label" for="remember-me">Manter sessão</label>
                     </div>
-                  </div>
+                  </div> -->
                   <div class="form-group">
                     <button type="submit" class="btn btn-lg btn-block btn-auth-color" tabindex="4">
                       Login

@@ -38,21 +38,42 @@ endblock %} {% block conteudo %} {% if assistencias %}
             /></label>
           </div>
         </div>
+        
+        <div class="d-flex ml-auto">
+          <div class="d-flex flex-row p-2">
+            <select class="form-control" id="filtro" name="filtro">
+              <option value="">Todas</option>
+              <option value="">Administrativo</option>
+              <option value="">Ambiental</option>
+              <option value="">Cível</option>
+              <option value="">Consumidor</option>
+              <option value="">Contratos</option>
+              <option value="">Empresarial</option>
+              <option value="">Família</option>
+              <option value="">Penal</option>
+              <option value="">Previdenciário</option>
+              <option value="">Reais</option>
+              <option value="">Responsabilidade Civil</option>
+              <option value="">Sucessões</option>
+              <option value="">Trabalhista</option>
+              <option value="">Tributário</option>
+            </select>
+          </div>
+        </div>
+        
         {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],
         usuario_urole_roles['COLAB_EXTERNO'][0],
         usuario_urole_roles['COLAB_PROJETO'][0],
         usuario_urole_roles['PROFESSOR'][0]] %}
-        <div class="d-flex ml-auto">
-          <div class="row align-items-center">
+          <div class="d-flex flex-row p-2">
             <a
               href="{{url_for('plantao.nova_assistencia_judiciaria')}}"
               class="btn btn-primary ml-auto p-2 mr-2"
               >Cadastrar Assistência Judiciária</a
             >
           </div>
-        </div>
-
         {% endif %}
+
       </div>
     </div>
     <table class="table table-striped">

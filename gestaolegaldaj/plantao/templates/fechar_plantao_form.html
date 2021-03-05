@@ -1,0 +1,20 @@
+{{ form_fechar.csrf_token }}
+<div class="form-group row">
+    <label class="col-lg-6 col-form-label" for="data_fechamento">
+        {{ form_fechar.data_fechamento.label }} <span class="text-danger">*</span>
+    </label>
+    <div>
+        {{ form_fechar.data_fechamento(type="date", class_="form-control") }}
+    </div>
+</div>
+
+<div class="form-group row">
+    <label class="col-lg-6 col-form-label" for="hora_fechamento">
+        {{ form_fechar.hora_fechamento.label }} <span class="text-danger">*</span>
+    </label>
+    <div>
+        {{ form_fechar.hora_fechamento(type="time", class_="form-control") }}
+    </div>
+</div>
+
+</div>
