@@ -1,0 +1,7 @@
+{% for notificacao in notificacoes.items %}
+    <tr>
+        <td>{{notificacao.acao}}</td>
+        <td>{{notificacao.data.strftime("%d/%m/%Y")}}</td>
+        <td>{{notificacao.executor_acao.nome}}</td>
+    </tr>
+{% endfor %}
