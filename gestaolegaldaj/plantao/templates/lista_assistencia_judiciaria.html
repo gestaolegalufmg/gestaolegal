@@ -1,27 +1,5 @@
 {% extends "base_dashboard.html" %} {% block titulo %}Assistências Judiciárias{%
 endblock %} {% block conteudo %} {% if assistencias %}
-<nav class="d-inline-block">
-  <ul class="pagination mb-0">
-    {% for page_num in assistencias.iter_pages(left_edge=3, right_edge=3,
-    left_current=2, right_current=2) %} {% if page_num and assistencias.page ==
-    page_num%}
-    <li class="page-item active">
-      <a class="page-link" href="#">{{ page_num }}</a>
-    </li>
-    {% elif page_num %}
-    <li class="page-item">
-      <a
-        class="page-link"
-        href="{{ url_for('plantao.listar_assistencias_judiciarias', page=page_num) }}"
-        >{{ page_num }}</a
-      >
-      {% else %}
-    </li>
-
-    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
-    {% endif %} {% endfor %}
-  </ul>
-</nav>
 <div class="card">
   <div class="card-body">
     <div class="card-title">
@@ -42,21 +20,21 @@ endblock %} {% block conteudo %} {% if assistencias %}
         <div class="d-flex ml-auto">
           <div class="d-flex flex-row p-2">
             <select class="form-control" id="filtro" name="filtro">
-              <option value="">Todas</option>
-              <option value="">Administrativo</option>
-              <option value="">Ambiental</option>
-              <option value="">Cível</option>
-              <option value="">Consumidor</option>
-              <option value="">Contratos</option>
-              <option value="">Empresarial</option>
-              <option value="">Família</option>
-              <option value="">Penal</option>
-              <option value="">Previdenciário</option>
-              <option value="">Reais</option>
-              <option value="">Responsabilidade Civil</option>
-              <option value="">Sucessões</option>
-              <option value="">Trabalhista</option>
-              <option value="">Tributário</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['TODAS'][0]}}">{{filtro_busca_assistencia_judiciaria['TODAS'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['ADMINISTRATIVO'][0]}}">{{filtro_busca_assistencia_judiciaria['ADMINISTRATIVO'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['AMBIENTAL'][0]}}">{{filtro_busca_assistencia_judiciaria['AMBIENTAL'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['CIVEL'][0]}}">{{filtro_busca_assistencia_judiciaria['CIVEL'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['CONSUMIDOR'][0]}}">{{filtro_busca_assistencia_judiciaria['CONSUMIDOR'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['CONTRATOS'][0]}}">{{filtro_busca_assistencia_judiciaria['CONTRATOS'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['EMPRESARIAL'][0]}}">{{filtro_busca_assistencia_judiciaria['EMPRESARIAL'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['FAMILIA'][0]}}">{{filtro_busca_assistencia_judiciaria['FAMILIA'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['PENAL'][0]}}">{{filtro_busca_assistencia_judiciaria['PENAL'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['PREVIDENCIARIO'][0]}}">{{filtro_busca_assistencia_judiciaria['PREVIDENCIARIO'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['REAIS'][0]}}">{{filtro_busca_assistencia_judiciaria['REAIS'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['RESPONSABILIDADE_CIVIL'][0]}}">{{filtro_busca_assistencia_judiciaria['RESPONSABILIDADE_CIVIL'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['SUCESSOES'][0]}}">{{filtro_busca_assistencia_judiciaria['SUCESSOES'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['TRABALHISTA'][0]}}">{{filtro_busca_assistencia_judiciaria['TRABALHISTA'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['TRIBUTARIO'][0]}}">{{filtro_busca_assistencia_judiciaria['TRIBUTARIO'][1]}}</option>
             </select>
           </div>
         </div>
@@ -76,83 +54,12 @@ endblock %} {% block conteudo %} {% if assistencias %}
 
       </div>
     </div>
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Região</th>
-          <th>Áreas do Direito</th>
-          <th>Telefone</th>
-          <th>E-mail</th>
-          <th>Ações</th>
-          <th></th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for assistencia in assistencias.items %}
 
-        <tr>
-          <td>{{assistencia.nome}}</td>
-          {% for key in assistencia_jud_regioes %} {% if
-          assistencia_jud_regioes[key][0] == assistencia.regiao %}
-          <td>{{assistencia_jud_regioes[key][1]}}</td>
-          {% endif %} {% endfor %}
-          <td>
-            {% set vars = {'espaco': False} %} {% for key in
-            assistencia_jud_areas_atendidas %} {% if
-            assistencia_jud_areas_atendidas[key][0] in
-            assistencia.areas_atendidas %} {% if not vars.espaco %}
-            <span>{{assistencia_jud_areas_atendidas[key][1]}}</span>
-            {% if vars.update({'espaco': True}) %}{% endif %} {% else %}
-            <br /><span>{{assistencia_jud_areas_atendidas[key][1]}}</span>
-            {% endif %} {% endif %} {% endfor %}
-          </td>
-          <td>{{assistencia.telefone}}</td>
-          <td>{{assistencia.email}}</td>
+    <div id="tbl_assistencias_judiciarias">
+      {% include "busca_assistencia_judiciaria.html" %}
+    </div>
+    
 
-          <td>
-            <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm">
-              <a
-                href="{{url_for('plantao.perfil_assistencia_judiciaria', _id=assistencia.id)}}"
-                style="text-decoration: none; color: aliceblue;"
-                >Visualizar</a
-              >
-            </button>
-          </td>
-          <td>
-            <button
-              type="submit"
-              class="btn mr-2 btn-flat btn-primary btn-sm"
-              name="button"
-            >
-              <a
-                href="{{url_for('plantao.editar_assistencia_judiciaria', id_assistencia_judiciaria = assistencia.id)}}"
-                style="text-decoration: none; color: aliceblue;"
-                >Editar</a
-              >
-            </button>
-          </td>
-
-          {% if current_user.urole == "admin" %}
-          <td>
-            <button
-              type="submit"
-              class="btn mb-1 ml-1 btn-flat btn-danger btn-sm"
-              onclick="return confirm('Tem certeza que deseja excluir esta assistência judiciária?');"
-            >
-              <a
-                href="{{url_for('plantao.excluir_assistencia_judiciaria', _id=assistencia.id)}}"
-                style="text-decoration: none; color: aliceblue;"
-                >Excluir</a
-              >
-            </button>
-          </td>
-          {% endif %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
   </div>
 </div>
 {% else %}
@@ -166,68 +73,30 @@ endblock %} {% block conteudo %} {% if assistencias %}
 </div>
 {% endif %} {% endblock %} {% block scripts %}
 <script>
-  const capitalize = (s) => {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  };
-  let busca = document.getElementById("busca");
-  $("#busca").on({
-    keyup: () => {
-      $.ajax({
+  function ajax_tbl_assistencia_judiciaria(page){
+    $.ajax({
         method: "GET",
-        url: `${window.origin}/plantao/busca_assistencia_judiciaria/${busca.value}`,
+        url: "{{url_for('plantao.busca_assistencia_judiciaria')}}",
+        data: {
+          busca: $('#busca').val(),
+          opcao_filtro: $('#filtro').val(),
+          page: page
+        },
         success: (response) => {
-          $("tbody").html("");
-          $.each(response, (indice, valor) => {
-            let areas = valor.areas_atendidas.split(",");
-            let aux = "";
-            $.each(areas, (index, value) => {
-              aux += `<div>${capitalize(value)}</div>`;
-            });
-            $("tbody").append(`
-                        
-                            <tr>
-                                <td>${valor.nome}</td>
-                                <td>${capitalize(
-                                  valor.regiao.replace("_", " ")
-                                )}</td>
-                                <td>
-                                    ${aux} 
-                                </td>
-                                <td>${valor.telefone}</td>
-                                <td>${valor.email}</td>
-                                <td>
-                                    <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button">
-                                        <a href="${
-                                          window.origin
-                                        }/plantao/perfil_assistencia_judiciaria/${
-              valor.id
-            }" style="text-decoration: none;color: aliceblue;">Visualizar</a>
-                                    </button>
-                                </td>
-                                <td>
-                                    <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button">
-                                        <a href="${
-                                          window.origin
-                                        }/plantao/editar_assistencia_judiciaria/${
-              valor.id
-            }" style="text-decoration: none;color: aliceblue;">Editar</a>
-                                    </button>
-                                </td>
-                                <td>
-                                    <button type="submit" class="btn mb-1 ml-1 btn-flat btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja excluir esta assistência judiciária?');">
-                                        <a href="${
-                                          window.origin
-                                        }/plantao/excluir_assistencia_judiciaria/${
-              valor.id
-            }" style="text-decoration: none;color: aliceblue;">Excluir</a>
-                                    </button>
-                                 </td>
-                            </tr>
-                        `);
-          });
+          document.getElementById('tbl_assistencias_judiciarias').innerHTML = '';
+          $('#tbl_assistencias_judiciarias').append(response);
         },
       });
+  }
+
+  $("#busca").on({
+    keyup: () => {
+      ajax_tbl_assistencia_judiciaria(1)
     },
   });
+
+  $("#filtro").change(function(){
+    $("#busca").keyup()
+  })
 </script>
 {% endblock scripts %}

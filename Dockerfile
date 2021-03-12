@@ -1,6 +1,6 @@
 FROM python:3.8.8-buster
 RUN apt-get update && \
-    apt-get install -y nano && \
+    apt-get install -y nano htop && \
     mkdir /code
 ENV STATIC_URL /static
 ENV STATIC_PATH /code/gestaolegaldaj

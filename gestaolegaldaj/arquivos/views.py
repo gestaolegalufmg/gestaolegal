@@ -50,6 +50,10 @@ def editar_arquivo(id):
         _arquivo.descricao = _form.descricao.data
 
         if arquivo.filename:
+            local_arquivo = os.path.join(current_app.root_path,'static','arquivos', _arquivo.nome)
+            if os.path.exists(local_arquivo):
+                os.remove(local_arquivo)
+            
             _arquivo.nome = arquivo.filename
             arquivo.save(os.path.join(current_app.root_path,'static','arquivos', arquivo.filename))
 
@@ -73,7 +77,14 @@ def visualizar_arquivo(id):
 @login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_PROJETO'][0]])
 def excluir_arquivo(id):
     _arquivo = Arquivo.query.get_or_404(id)
+    local_arquivo = os.path.join(current_app.root_path,'static','arquivos', _arquivo.nome)
+
+    if os.path.exists(local_arquivo):
+        os.remove(local_arquivo)
+    
     db.session.delete(_arquivo)
     db.session.commit()
+
     flash('arquivo excluido.')
+
     return redirect(url_for('arquivos.index'))

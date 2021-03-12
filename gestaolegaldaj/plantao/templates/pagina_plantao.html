@@ -27,16 +27,12 @@
           <div class="col-6">
             <h4>Nome do funcionário: {{ current_user.nome}}</h4>
           </div>
-          
           <div class="col-6">
             <div class="d-flex flex-md-row-reverse flex-column-reverse">
               <div class="card-header-action m-1">
-                <button class="btn btn-primary ml-auto">Editar</button>
+                <button class="btn btn-primary" id="confirmar_editar_plantao" data-toggle="modal" data-target="#confirmacaoEdicao">Editar</button>
               </div>
               {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0]] %}
-                <div class="card-header-action m-1">
-                  <a class="btn btn-primary ml-auto" href="{{url_for('plantao.editar_abertura')}}">Editar Abertura</a>
-                </div>
                 <div class="card-header-action m-1">
                   <a class="btn btn-primary ml-auto" href="{{url_for('plantao.configurar_abertura')}}">Configurar Abertura</a>
                 </div>
@@ -143,14 +139,13 @@
             <input type="checkbox" checked >
           </div>
           <div class="col">
-            <label>Lembre-me no dia anterior por e-mail.</label>
-          </div>        
+            <label>Lembre-me no dia anterior.</label>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
-
 {% endblock conteudo %}
 
 {%block modal %}
@@ -170,6 +165,26 @@
       <div class="modal-footer">
       <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
       <button type="button" class="btn btn-primary" data-dismiss="modal" id="id_botao_confirmar_modal">Confirmar</button>
+      </div>
+  </div>
+  </div>
+</div>
+
+<div class="modal fade" id="confirmacaoEdicao" tabindex="-2" role="dialog" aria-labelledby="confirmacaoEdicao" aria-hidden="true" >
+  <div class="modal-dialog" role="document">
+  <div class="modal-content">
+      <div class="modal-header">
+      <h5 class="modal-title" id="exampleModalLabel">Esta ação irá apagar seu registro de plantão para que ele possa ser feito novamente. Deseja continuar?</h5>
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+      </button>
+      </div>
+      <div class="modal-body" id="id_body_modal_2">
+
+      </div>
+      <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+      <button class="btn btn-primary" id="botao_confirmar_editar_plantao_modal">Confirmar</button>
       </div>
   </div>
   </div>
@@ -248,6 +263,10 @@
     })
   });
 
+  $("#botao_confirmar_editar_plantao_modal").click(function() {
+    window.location.href = "{{url_for('plantao.editar_plantao')}}"
+  });
+
 </script>
 
 <script>
@@ -276,7 +295,9 @@ $(document).ready(function(){
             $(".months-row").children().eq(date.getMonth()).addClass("active-month");
 
             init_calendar(date);
-            show_events(event_data.events, months[date.getMonth()], today);
+            let eventos_dia = check_events(today, date.getMonth()+1, date.getFullYear());
+            show_events(eventos_dia, months[date.getMonth()], today);
+            vagas_disponiveis();
             colore_calendario();
         }
     });
@@ -318,10 +339,7 @@ function init_calendar(date) {
                 curr_date.addClass("active-date");
                 show_events(events, months[month], day);
             }
-            // If this date has any events, style it with .event-date
-            if(events.length!==0) {
-                curr_date.addClass("event-date");
-            }
+
             // Set onClick handler for clicking a date
             curr_date.click({events: events, month: months[month], day:day}, date_click);
             row.append(curr_date);
@@ -347,7 +365,7 @@ function date_click(event) {
     $(".active-date").removeClass("active-date");
     $(this).addClass("active-date");
     show_events(event.data.events, event.data.month, event.data.day);
-    colore_calendario();
+    vagas_disponiveis();
 };
 
 // Event handler for when a month is clicked
@@ -361,6 +379,7 @@ function month_click(event) {
     date.setMonth(new_month);
     init_calendar(date);
     colore_calendario();
+    vagas_disponiveis();
 }
 
 // Event handler for when the year right-button is clicked
@@ -372,6 +391,7 @@ function next_year(event) {
     date.setFullYear(new_year);
     init_calendar(date);
     colore_calendario();
+    vagas_disponiveis();
 }
 
 // Event handler for when the year left-button is clicked
@@ -383,6 +403,7 @@ function prev_year(event) {
     date.setFullYear(new_year);
     init_calendar(date);
     colore_calendario();
+    vagas_disponiveis();
 }
 
 // Event handler for clicking the new event button
@@ -490,11 +511,26 @@ const months = [
     "Dezembro"
 ];
 
-function colore_calendario(){ 
+function vagas_disponiveis(){ 
 
-    var quantidade_de_dias = (document.getElementsByClassName("table-date"))
-    var quantidade_de_dias_nulos = (document.getElementsByClassName("nil"))
-    var dias_no_mes = (quantidade_de_dias.length - quantidade_de_dias_nulos.length)
+    $.ajax({
+        type: "GET",
+        url: "{{url_for('plantao.ajax_vagas_disponiveis')}}",
+        contentType: 'application/json;charset=UTF-8',
+        data: {
+            ano: document.getElementsByClassName("year")[0].innerHTML,
+            mes: document.getElementsByClassName("active-month")[0].id.substring(5),
+            dia: document.getElementsByClassName("active-date")[0].innerHTML             
+        },
+        success: (result) => {
+          $(".events-container p").hide();
+          $(".events-container").append($("<p>Vagas disponíveis: "+result.NumeroVagas+"<p>"));
+        }
+    })
+      
+}
+
+function colore_calendario(){
 
     $.ajax({
         type: "GET",
@@ -502,8 +538,7 @@ function colore_calendario(){
         contentType: 'application/json;charset=UTF-8',
         data: {
             ano: document.getElementsByClassName("year")[0].innerHTML,
-            mes: document.getElementsByClassName("active-month")[0].id.substring(5),
-            dias_deste_mes: dias_no_mes             
+            mes: document.getElementsByClassName("active-month")[0].id.substring(5)             
         },
         success: (result) => {
           
@@ -528,7 +563,6 @@ function colore_calendario(){
             }); 
 
             $(elementosNulos).removeClass("disponivel");
-            $(diasDeEventos).removeClass("disponivel");
           }
     })
       

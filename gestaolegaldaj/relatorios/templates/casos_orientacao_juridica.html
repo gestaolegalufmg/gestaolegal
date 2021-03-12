@@ -1,56 +1,110 @@
+{% extends "base_dashboard.html" %}
 <head>
   <meta charset="UTF-8">
   <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
   <link rel='shortcut icon' type='image/x-icon' href="{{url_for('static', filename='imgs_daj/GL_icon.png')}}" />  
- 
-<style>
-  img {
-    max-height: 100px;
+</head>
+
+{% block conteudo %}
+<body>
+  <div class="table-responsive" style="width:99%">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th colspan="2" class="d-none">
+            <h2>
+              {% block titulo %}Relatório Nº de Casos Orientação Jurídica <a class="btn btn-primary" href="{{url_for('relatorios.index')}}"><i class="fas fa-undo-alt"></i></a>{% endblock titulo %}
+            </h2>
+          </th>
+        </tr>
+        <tr class="table-active">
+          <th colspan="2">
+            <h4>{{datas[0]}} - {{datas[1]}}</h4>
+          </th>
+        </tr>
+        <tr class="table-active">
+          <th scope="col">Orientação Jurídica</th>
+          <th scope="col">Quantidade</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for orientacao_juridica in orientacoes_juridicas %}
+          <tr>
+            {% for key in assistencia_jud_areas_atendidas %}
+              {% if assistencia_jud_areas_atendidas[key][0] == orientacao_juridica[0] %}
+                <td>{{assistencia_jud_areas_atendidas[key][1]}}</td>
+              {% endif %}
+            {% endfor %}
+            <td>{{orientacao_juridica[1]}}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th>
+            <h6>Emitido em: {{data_emissao}}</h6>
+          </th>
+        </tr>
+        <tr>
+          <th>
+            <h6>Emitido por: {{usuario}}</h6>
+          </th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <button class='btn btn-flat btn-primary'>Baixar Relatório</button>
+</body>
+{% endblock conteudo %}
+
+{% block scripts %}
+<script>
+  function download_csv(csv, filename) {
+      var csvFile;
+      var downloadLink;
+
+      // CSV FILE
+      csvFile = new Blob([csv], {type: "text/csv"});
+
+      // Download link
+      downloadLink = document.createElement("a");
+
+      // File name
+      downloadLink.download = filename;
+
+      // We have to create a link to the file
+      downloadLink.href = window.URL.createObjectURL(csvFile);
+
+      // Make sure that the link is not displayed
+      downloadLink.style.display = "none";
+
+      // Add the link to your DOM
+      document.body.appendChild(downloadLink);
+
+      // Lanzamos
+      downloadLink.click();
   }
 
-</style>
-</head>
-<body>
-  <div class="row m-3" >
-    <div>
-      <img src="{{url_for('static', filename='imgs_daj/gestao_legal_teste.png')}}" alt="" >
+  function export_table_to_csv(html, filename) {
+    var csv = [];
+    var rows = document.querySelectorAll("table tr");
     
-    
-      <img src="{{url_for('static', filename='imgs_daj/logo_DAJ_pequeno.png')}}" alt="" >
-    
-  
-      <img src="{{url_for('static', filename='imgs_daj/logo_ufmg.jpg')}}" alt="" >
-    </div>
-  </div>
-  <div >
-    <h2>Relátorio Nº de Casos Orientação Jurídica</h2>
-    <h4>01/01/2020 - 01/02/2020</h4>
-  </div>
-<table >
-    <thead >
-      <tr>
-        <th scope="col">Área do direito</th>
-        <th scope="col">Quantidade</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>civel</td>
-        <td>12</td>
-      </tr>
-      <tr>
-        <td>criminal</td>
-        <td>1</td>
-      </tr>
+      for (var i = 0; i < rows.length; i++) {
+      var row = [], cols = rows[i].querySelectorAll("td, th");
       
-    </tbody>
-  </table>
-  <footer>
-    <div> 
-      <div>
-        <div><h6>Emitido em: 10/10/10</h6></div>
-        <div><h6>Emitido por: Julia</h6></div>
-      </div>
-    </div>
-  </footer>
-</body>
+          for (var j = 0; j < cols.length; j++) 
+              row.push(cols[j].innerText);
+          
+      csv.push(row.join(","));    
+    }
+
+      // Download CSV
+      download_csv(csv.join("\n"), filename);
+  }
+
+  document.querySelector("button").addEventListener("click", function () {
+      var html = document.querySelector("table").outerHTML;
+    export_table_to_csv(html, "table.csv");
+  });
+</script>
+{% endblock scripts %}

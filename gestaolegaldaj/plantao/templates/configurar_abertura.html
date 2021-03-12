@@ -5,7 +5,8 @@
 {% endblock css %}
 
 {% block conteudo %}
-
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<input type="hidden" id="dias_plantao" value="{{dias_front}}">
 <div class="row">
     <div class="col">
     
@@ -15,24 +16,26 @@
           </div>
         <div class="card-body d-flex justify-content-center">
           <div class="calendar">
-            <div class="year-header">
-                <span class="year" id="label"></span> 
-            </div>
+          <div class="year-header"> 
+             <span class="left-button" id="prev"> &lang; </span> 
+              <span class="year" id="label"></span> 
+              <span class="right-button" id="next"> &rang; </span>
+          </div> 
             <table class="months-table">
               <tbody>
                 <tr class="months-row">
-                  <td class="month" id="month1" >Jan</td>
-                  <td class="month" id="month2" >Fev</td>
-                  <td class="month" id="month3" >Mar</td>
-                  <td class="month" id="month4" >Abr</td>
-                  <td class="month" id="month5" >Mai</td>
-                  <td class="month" id="month6" >Jun</td>
-                  <td class="month" id="month7" >Jul</td>
-                  <td class="month" id="month8" >Ago</td>
-                  <td class="month" id="month9" >Set</td>
-                  <td class="month" id="month10">Out</td>
-                  <td class="month" id="month11">Nov</td>
-                  <td class="month" id="month12">Dez</td>
+                  <td class="month" id="month0" >Jan</td>
+                  <td class="month" id="month1" >Fev</td>
+                  <td class="month" id="month2" >Mar</td>
+                  <td class="month" id="month3" >Abr</td>
+                  <td class="month" id="month4" >Mai</td>
+                  <td class="month" id="month5" >Jun</td>
+                  <td class="month" id="month6" >Jul</td>
+                  <td class="month" id="month7" >Ago</td>
+                  <td class="month" id="month8" >Set</td>
+                  <td class="month" id="month9">Out</td>
+                  <td class="month" id="month10">Nov</td>
+                  <td class="month" id="month11">Dez</td>
                 </tr>
               </tbody>
             </table>
@@ -52,7 +55,7 @@
               </table>
             </div>
             <div class="d-flex justify-content-center ">
-              <button class="button" id="escolhe_data" data-toggle="modal" data-target="#confirmacao">Salvar</button>
+              {# <button class="button" id="escolhe_data" data-toggle="modal" data-target="#confirmacao">Salvar</button> #}
             </div>
           </div>
         </div>
@@ -70,11 +73,12 @@
           <div class= "form-validation">
               <form class="form-valide" action="" method="POST" id="form">
                   {% include "abrir_plantao_form.html" %}
-                  <button type="submit" class="btn btn-primary" id="button">Confirmar</button>
+                  
               </form>
           </div>
       </div>
       </div>
+    
     
    
   
@@ -86,15 +90,22 @@
         </div>
       <div class="card-body">
         <div class= "form-validation">
-            <form class="form-valide" action="" method="GET" id="form">
+            <form class="form-valide" action="" method="POST" id="form">
                 {% include "fechar_plantao_form.html" %}
-                <button type="submit" class="btn btn-primary" id="button">Confirmar</button>
             </form>
         </div>
       </div>
     
     </div>
   
+  </div>
+  <div class="row">
+    <div class="col-sm"></div>
+    <div class="col-sm">
+      <button class="button btn-block" id="escolhe_data" data-toggle="modal" data-target="#confirmacao">Salvar</button>
+    </div>
+    <div class="col-sm"></div>
+    
   </div>
 
 {% endblock conteudo %}
@@ -116,11 +127,12 @@
       <div class="modal-footer">
       <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
 
-      <form action="" method='POST'>
+      
         {{form.hidden_tag()}}
-        <input type="hidden" id="hdnAjaxDuracao" value="{{url_for('plantao.ajax_obter_escala_plantao')}}">
-        {{form.submit(class_='btn btn-primary')}}
-      </form>
+        <input type="hidden" id="hdnAjaxDuracao" value="{{url_for('plantao.ajax_obter_duracao_plantao')}}">
+        <input type="hidden" id="hdnAjaxSalvaConfig" value="{{url_for('plantao.ajax_salva_config_plantao')}}">
+        <button type="button" id="salva_configuracoes" class="btn btn-primary" data-dismiss="modal">Confirmar</button>
+      
       </div>
   </div>
   </div>

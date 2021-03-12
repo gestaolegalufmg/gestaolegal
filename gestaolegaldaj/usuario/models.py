@@ -26,6 +26,15 @@ usuario_urole_roles = {
     'PROFESSOR':            ('prof','Professor')
 }
 
+usuario_urole_inverso = {
+    'admin':            'Administrador',
+    'orient':           'Orientador',
+    'colab_proj':       'Colaborador de projeto',
+    'estag_direito':    'Estagiário de Direito',
+    'colab_ext':        'Colaborador externo',
+    'prof':             'Professor'
+}
+
 sexo_usuario = {
     'MASCULINO' : ('M','Masculino'),
     'FEMININO'  : ('F', 'Feminino'),

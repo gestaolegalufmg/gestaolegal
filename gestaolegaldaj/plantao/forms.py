@@ -780,7 +780,7 @@ class AssistenciaJudiciariaForm(EnderecoForm):
                                     ]
                                 )
                                 
-    submit          = SubmitField('cadastrar')
+    submit          = SubmitField('Cadastrar')
 
 
 
@@ -796,6 +796,10 @@ class AbrirPlantaoForm(FlaskForm):
 
 class SelecionarDuracaoPlantaoForm(FlaskForm):
     hdnDiasEscolhidos = HiddenField('Dias escolhidos')
+    hdnDataAbertura = HiddenField('Data de abertura')
+    hdnDataFechamento = HiddenField('Data de fechamento')
+    hdnHoraAbertura = HiddenField('Hora de abertura')
+    hdnHoraFechamento = HiddenField('Hora de fechamento')
     submit = SubmitField('Confirmar')
 
 class FecharPlantaoForm(FlaskForm):

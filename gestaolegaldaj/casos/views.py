@@ -7,6 +7,7 @@ from flask import (Blueprint, abort, current_app, flash, json, redirect,
 from flask_login import current_user
 from flask_paginate import Pagination, get_page_args
 from sqlalchemy import and_, or_, null
+from sqlalchemy.sql.elements import Null
 from sqlalchemy.exc import SQLAlchemyError
 
 from gestaolegaldaj import app, db, login_required
@@ -16,11 +17,12 @@ from gestaolegaldaj.casos.forms import (CasoForm, EditarCasoForm,
 from gestaolegaldaj.casos.models import (Caso, Historico, Lembrete, Roteiro,
                                          situacao_deferimento, Evento, Processo)
 from gestaolegaldaj.casos.views_utils import *
-from gestaolegaldaj.plantao.forms import CadastroAtendidoForm
+from gestaolegaldaj.plantao.forms import CadastroAtendidoForm, assistencia_jud_areas_atendidas
 from gestaolegaldaj.plantao.models import Atendido
 from gestaolegaldaj.plantao.views_util import *
 from gestaolegaldaj.usuario.models import Usuario, usuario_urole_roles
 from gestaolegaldaj.utils.models import queryFiltradaStatus
+from gestaolegaldaj.notificacoes.models import Notificacao, acoes
 
 casos = Blueprint('casos', __name__, template_folder='templates')
 
@@ -77,7 +79,6 @@ def novo_caso():
         _caso = Caso(
             area_direito            = _form.area_direito.data,
             id_usuario_responsavel  = current_user.id,
-            id_orientador           = int(_form.orientador.data) if _form.orientador.data else None,
             data_criacao            = datetime.now(),
             id_criado_por           = current_user.id,
             data_modificacao        = datetime.now(),
@@ -98,6 +99,7 @@ def novo_caso():
             arquivo.save(os.path.join(current_app.root_path,'static','casos', nome_arquivo))
 
         flash('Caso criado com sucesso!','success')
+
         return redirect(url_for('casos.index'))
 
     return render_template('novo_caso.html', form = _form)
@@ -147,26 +149,6 @@ def indeferir_caso(id_caso):
         return redirect(url_for('casos.visualizar_caso', id = _id))
     return render_template('justificativa.html',form=_form)
 
-@casos.route('/associa_caso', methods=['GET','POST'])
-@login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0] ])
-def associa_caso():
-    _form = CasoForm()
-
-    # if _form.validate_on_submit():
-    #     _caso = Caso(
-    #         id_usuario_responsavel  = current_user.id,
-    #         clientes                = _form.clientes.data.split(sep=',')
-    #         id_orientador           = _form.orientador.data
-    #         data_criacao            = datetime.now
-    #         id_criado_por           = current_user.id
-    #         data_modificacao        = datetime.now
-    #         id_modificado_por       = current_user.id
-    #     )
-    #     db.session.add(_caso)
-    #     flash('Caso criado com sucesso!','success')
-    #     return redirect(url_for('casos.index'))
-    return render_template('associa_caso.html', form = _form)
-
 @casos.route('editar_caso/<id_caso>', methods=['GET', 'POST'])
 @login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['ESTAGIARIO_DIREITO'][0],usuario_urole_roles['PROFESSOR'][0],usuario_urole_roles['ORIENTADOR'][0],usuario_urole_roles['COLAB_EXTERNO'][0]])
 def editar_caso(id_caso):
@@ -186,14 +168,17 @@ def editar_caso(id_caso):
             entidade_caso.id_orientador = null()
         else:
             entidade_caso.id_orientador = int(form.orientador.data)
+           
         if form.estagiario.data == '':
             entidade_caso.id_estagiario = null()
         else:
             entidade_caso.id_estagiario = int(form.estagiario.data)
+
         if form.colaborador.data == '':
             entidade_caso.id_colaborador = null()
         else:
             entidade_caso.id_colaborador = int(form.colaborador.data)
+
         entidade_caso.area_direito = form.area_direito.data
         entidade_caso.descricao = form.descricao.data
         entidade_caso.data_modificacao = datetime.now()
@@ -216,10 +201,56 @@ def editar_caso(id_caso):
             return render_template('editar_caso.html', form = form, caso = entidade_caso)
 
         setDadosCaso(form, entidade_caso)
+
+        if type(entidade_caso.id_orientador) != type(Null()):
+            _notificacao = Notificacao(
+                    acao = acoes['CAD_NOVO_CASO'].format(entidade_caso.id),
+                    data = datetime.now(),
+                    id_executor_acao = current_user.id,
+                    id_usu_notificar = int(entidade_caso.id_orientador)
+                )
+            db.session.add(_notificacao)
+            db.session.commit()
+
+        if type(entidade_caso.id_estagiario) != type(Null()):
+            _notificacao = Notificacao(
+                    acao = acoes['CAD_NOVO_CASO'].format(entidade_caso.id),
+                    data = datetime.now(),
+                    id_executor_acao = current_user.id,
+                    id_usu_notificar = int(entidade_caso.id_estagiario)
+                )
+            db.session.add(_notificacao)
+            db.session.commit()
+
+        if type(entidade_caso.id_colaborador) != type(Null()):
+            _notificacao = Notificacao(
+                acao = acoes['CAD_NOVO_CASO'].format(entidade_caso.id),
+                data = datetime.now(),
+                id_executor_acao = current_user.id,
+                id_usu_notificar = int(entidade_caso.id_colaborador)
+            )
+            db.session.add(_notificacao)
+            db.session.commit()
+
         arquivo = request.files.get('arquivo')
-        entidade_caso.arquivo = arquivo.filename if arquivo else None
-        if arquivo:
-            arquivo.save(os.path.join(current_app.root_path,'static','casos', arquivo.filename),)
+
+        if entidade_caso.arquivo == None:
+            entidade_caso.arquivo = (f'{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[-1]}' if arquivo else None)
+            if arquivo:
+                nome_arquivo = f'caso_{entidade_caso.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[-1]}'
+                arquivo.save(os.path.join(current_app.root_path,'static','casos', nome_arquivo))
+
+        else:
+            local_arquivo = os.path.join(current_app.root_path, 'static', 'casos', 'caso_{}_{}'.format(entidade_caso.id, entidade_caso.arquivo))
+            if os.path.exists(local_arquivo):
+                os.remove(local_arquivo)
+
+            entidade_caso.arquivo = (f'{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[-1]}' if arquivo else None)
+
+            if arquivo:
+                nome_arquivo = f'caso_{entidade_caso.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[-1]}'
+                arquivo.save(os.path.join(current_app.root_path,'static','casos', nome_arquivo))
+        
         db.session.commit()
         cadastrar_historico(current_user.id,id_caso) # Cadastra um novo histórico de edição
         flash('Caso editado com sucesso!',"success")
@@ -409,7 +440,7 @@ def editar_roteiro():
         return redirect(url_for('casos.editar_roteiro'))
 
     _roteiros = Roteiro.query.all()
-    return render_template('links_roteiro.html', form=_form, roteiros=_roteiros)
+    return render_template('links_roteiro.html', form=_form, roteiros=_roteiros, assistencia_jud_areas_atendidas=assistencia_jud_areas_atendidas)
 
 # Rota para página de eventos
 @casos.route('/eventos/<id_caso>')
@@ -471,6 +502,16 @@ def cadastrar_lembrete(id_do_caso):
         db.session.add(_lembrete)
         db.session.commit()      
         flash('Lembrete enviado com sucesso!', 'success')
+
+        _notificacao = Notificacao(
+                acao = acoes['LEMBRETE'].format(_lembrete.id),
+                data = datetime.now(),
+                id_executor_acao = current_user.id,
+                id_usu_notificar = _lembrete.id_usuario
+            )
+        db.session.add(_notificacao)
+        db.session.commit()
+
         return redirect(url_for('casos.index'))
 
     return render_template('novo_lembrete.html', form = _form )
@@ -557,7 +598,8 @@ def cadastrar_historico(id_usuario,id_caso):
 # Rota para visualização de um novo histórico
 @casos.route('/historico/<id_caso>')
 def historico(id_caso):
-    historicos = db.session.query(Historico,Caso,Usuario).select_from(Historico).join(Caso).filter((Caso.id == id_caso) & (Usuario.id == Historico.id_usuario)).all()
+    page = request.args.get('page', 1, type=int)
+    historicos = db.session.query(Historico,Caso,Usuario).select_from(Historico).join(Caso).filter((Caso.id == id_caso) & (Usuario.id == Historico.id_usuario)).order_by(Historico.data.desc()).paginate(page, app.config['HISTORICOS_POR_PAGINA'], False)
     return render_template('historico.html', historicos = historicos, caso_id = id_caso)
 
 
@@ -631,6 +673,16 @@ def novo_evento(id_caso):
         db.session.add(_evento)
         db.session.commit()
 
+        if _form.usuario.data:
+            _notificacao = Notificacao(
+                    acao = acoes['EVENTO'].format(_evento.id),
+                    data = datetime.now(),
+                    id_executor_acao = current_user.id,
+                    id_usu_notificar = _form.usuario.data
+                )
+            db.session.add(_notificacao)
+            db.session.commit()
+
         if arquivo:
             nome_arquivo = f'evento_{_evento.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[1]}'
             arquivo.save(os.path.join(current_app.root_path,'static','eventos', nome_arquivo))
@@ -674,10 +726,23 @@ def editar_evento(id_evento):
         arquivo = request.files.get('arquivo')
         nome_arquivo = None
         setDadosEvento(form, entidade_evento)
-        entidade_evento.arquivo = (datetime.now().strftime("%d%m%Y") + '.' + (arquivo.filename.split(".")[1]) if arquivo else None)
-        if arquivo:
-            nome_arquivo = f'evento_{entidade_evento.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[1]}'
-            arquivo.save(os.path.join(current_app.root_path,'static','eventos', nome_arquivo),)
+
+        if entidade_evento.arquivo == None:
+            entidade_evento.arquivo = (datetime.now().strftime("%d%m%Y") + '.' + (arquivo.filename.split(".")[1]) if arquivo else None)
+            if arquivo:
+                nome_arquivo = f'evento_{entidade_evento.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[1]}'
+                arquivo.save(os.path.join(current_app.root_path,'static','eventos', nome_arquivo))
+        
+        else:
+            local_arquivo = os.path.join(current_app.root_path, 'static', 'eventos', 'evento_{}_{}'.format(entidade_evento.id, entidade_evento.arquivo))
+            if os.path.exists(local_arquivo):
+                os.remove(local_arquivo)
+
+            entidade_evento.arquivo = (datetime.now().strftime("%d%m%Y") + '.' + (arquivo.filename.split(".")[1]) if arquivo else None)
+            if arquivo:
+                nome_arquivo = f'evento_{entidade_evento.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[1]}'
+                arquivo.save(os.path.join(current_app.root_path,'static','eventos', nome_arquivo))
+
 
         db.session.commit()
         flash("Evento editado com sucesso!", "success")
@@ -703,6 +768,14 @@ def excluir_evento(id_evento):
     if entidade_usuario.urole != 'admin':
         if entidade_evento.id_criado_por == entidade_usuario.id:
             entidade_evento.status = False
+
+            if entidade_evento.arquivo != None:
+                local_arquivo = os.path.join(current_app.root_path, 'static', 'eventos', 'evento_{}_{}'.format(entidade_evento.id, entidade_evento.arquivo))
+                if os.path.exists(local_arquivo):
+                    os.remove(local_arquivo)
+
+                entidade_evento.arquivo = None
+
             db.session.commit() 
             flash("Evento excluído com sucesso!", 'success')
             return redirect((url_for('casos.eventos', id_caso = entidade_evento.id_caso)))      
@@ -711,6 +784,14 @@ def excluir_evento(id_evento):
             return redirect((url_for('casos.eventos', id_caso = entidade_evento.id_caso)))           
     else:    
         entidade_evento.status = False
+
+        if entidade_evento.arquivo != None:
+            local_arquivo = os.path.join(current_app.root_path, 'static', 'eventos', 'evento_{}_{}'.format(entidade_evento.id, entidade_evento.arquivo))
+            if os.path.exists(local_arquivo):
+                os.remove(local_arquivo)
+
+            entidade_evento.arquivo = None
+        
         db.session.commit() 
         flash("Evento excluído com sucesso!", 'success')
         return redirect((url_for('casos.eventos', id_caso = entidade_evento.id_caso)))
@@ -799,6 +880,13 @@ def excluir_caso(id_caso):
     caso = db.session.query(Caso).get(id_caso)
 
     caso.status = False
+    if caso.arquivo != None:
+        local_arquivo = os.path.join(current_app.root_path, 'static', 'casos', 'caso_{}_{}'.format(caso.id, caso.arquivo))
+        if os.path.exists(local_arquivo):
+            os.remove(local_arquivo)
+        
+        caso.arquivo = None
+
     db.session.commit() 
 
     return redirect(url_for(rota_paginacao))
@@ -883,3 +971,4 @@ def editar_processo(id_processo):
 
     setValoresProcesso(form, entidade_processo)
     return render_template('editar_processo.html', form = form, id_processo = id_processo)
+

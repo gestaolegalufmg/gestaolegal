@@ -78,7 +78,7 @@ class Lembrete(db.Model):
     __tablename__ = 'lembretes'
 
     id                     = db.Column(db.Integer, primary_key = True)
-    id_do_criador          = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable = False, server_default = "1")
+    id_do_criador          = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable = False)
     criador                = db.relationship('Usuario', foreign_keys = [id_do_criador])
     id_caso                = db.Column(db.Integer, db.ForeignKey('casos.id'), nullable = False)
     caso                   = db.relationship('Caso', foreign_keys = [id_caso])
@@ -119,7 +119,7 @@ class Processo(db.Model):
     id_caso                = db.Column(db.Integer, db.ForeignKey("casos.id"), nullable = False)
     caso                   = db.relationship("Caso", lazy="joined")
     status                 = db.Column(db.Boolean, default = True, nullable = False)
-    id_criado_por          = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable= False, server_default = "1")
+    id_criado_por          = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable= False, default = 1)
     criado_por             = db.relationship('Usuario', foreign_keys = [id_criado_por])
 
 class Evento(db.Model):
