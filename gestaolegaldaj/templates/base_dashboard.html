@@ -29,6 +29,10 @@
         :-moz-placeholder { /* Firefox 18- */
         color: white;
         }
+
+        .dropdown-menu li{
+            line-height: 1rem !important;
+        }
         </style>
 </head>
 
@@ -40,15 +44,15 @@
             <div class="navbar-bg"></div>
             <nav class="navbar navbar-expand-lg main-navbar">
                 <div class="form-inline mr-auto">
-                    <ul class="navbar-nav mr-3">
+                    <ul class="navbar-nav mr-3 d-lg-flex align-items-center">
                         <li><a href="#" data-toggle="sidebar" class="nav-link nav-link-lg collapse-btn"><i
                                     class="fas fa-bars"></i></a></li>
                         <li>
                             <form action="{{url_for('principal.busca_geral')}}" id="form_busca_geral" method="POST">
-                                <div class="search-group" >
+                                <div class="search-group">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <input type="text" id="busca_geral" name="busca_geral" class="search-control" placeholder="Usuários, Assistidos ou Casos" aria-label="search" aria-describedby="search" style="width: 210px;">
-                                    <span class="nav-link nav-link-lg" id="search" onclick="document.getElementById('form_busca_geral').submit()">
+                                    <input type="text" id="busca_geral" name="busca_geral" class="form-control rounded" placeholder="Usuários, Assistidos ou Casos" aria-label="search" aria-describedby="search" style="width: 250px;">
+                                    <span class="nav-link nav-link-lg align-self-center" id="search" onclick="document.getElementById('form_busca_geral').submit()">
                                         <i class="fa fa-search" aria-hidden="true"></i>
                                     </span>
 
@@ -63,88 +67,8 @@
                             <i class="fas fa-expand"></i>
                         </a>
                     </li>
-                    <li class="dropdown dropdown-list-toggle"><a href="#" data-toggle="dropdown" class="nav-link nav-link-lg"><i class="far fa-envelope"></i></a>
-                        <div class="dropdown-menu dropdown-list dropdown-menu-right">
-                            <div class="dropdown-header">Notificações</div>
-                            <div class="dropdown-list-content dropdown-list-message">
-                                <a href="#" class="dropdown-item">
-                                    <span class="dropdown-item-avatar text-white">
-                                        <img alt="image"
-                                            src="{{url_for('static', filename='app_tema/assets/img/users/user-1.png')}}"
-                                            class="image-square">
-                                    </span>
-                                    <span class="dropdown-item-desc">
-                                        <span class="message-user">Michael Gardner</span>
-                                    <span class="time messege-text">Analysis Project and Design Flowchart</span>
-                                    <span class="time">2 Min Ago</span>
-                                    </span>
-                                </a>
-                                <a href="#" class="dropdown-item">
-                                    <span class="dropdown-item-avatar text-white">
-                                        <img alt="image"
-                                            src="{{url_for('static', filename='app_tema/assets/img/users/user-2.png')}}"
-                                            class="image-square">
-                                    </span>
-                                    <span class="dropdown-item-desc">
-                                        <span class="message-user">Nancy Burton</span>
-                                    <span class="time messege-text">Client meeting is cancelled</span>
-                                    <span class="time">5 Hour Ago</span>
-                                    </span>
-                                </a>
-                                <a href="#" class="dropdown-item">
-                                    <span class="dropdown-item-avatar text-white">
-                                        <img alt="image"
-                                            src="{{url_for('static', filename='app_tema/assets/img/users/user-5.png')}}"
-                                            class="image-square">
-                                    </span>
-                                    <span class="dropdown-item-desc">
-                                        <span class="message-user">Amiah Smith</span>
-                                    <span class="time messege-text">Project Planning</span>
-                                    <span class="time">12 Hour Ago</span>
-                                    </span>
-                                </a>
-                                <a href="#" class="dropdown-item">
-                                    <span class="dropdown-item-avatar text-white">
-                                        <img alt="image"
-                                            src="{{url_for('static', filename='app_tema/assets/img/users/user-4.png')}}"
-                                            class="image-square">
-                                    </span>
-                                    <span class="dropdown-item-desc">
-                                        <span class="message-user">John Doe</span>
-                                    <span class="time messege-text">Leave application !!</span>
-                                    <span class="time">1 Days Ago</span>
-                                    </span>
-                                </a>
-                                <a href="#" class="dropdown-item">
-                                    <span class="dropdown-item-avatar text-white">
-                                        <img alt="image"
-                                            src="{{url_for('static', filename='app_tema/assets/img/users/user-3.png')}}"
-                                            class="image-square">
-                                    </span>
-                                    <span class="dropdown-item-desc">
-                                        <span class="message-user">Wiltor Stone</span>
-                                    <span class="time messege-text">Discussion about increment!</span>
-                                    <span class="time">2 Days Ago</span>
-                                    </span>
-                                </a>
-                                <a href="#" class="dropdown-item">
-                                    <span class="dropdown-item-avatar text-white">
-                                        <img alt="image"
-                                            src="{{url_for('static', filename='app_tema/assets/img/users/user-2.png')}}"
-                                            class="image-square">
-                                    </span>
-                                    <span class="dropdown-item-desc">
-                                        <span class="message-user">Nancy Burton</span>
-                                    <span class="time messege-text">Upcoming project meeting</span>
-                                    <span class="time text-primary">3 Days Ago</span>
-                                    </span>
-                                </a>
-                            </div>
-                            <div class="dropdown-footer text-center">
-                                <a href="{{url_for('usuario.notificaçoes')}}">View All <i
-                                        class="fas fa-chevron-right"></i></a>
-                            </div>
-                        </div>
+                    <li>
+                        <a href="{{url_for('notificacoes.index')}}" class="nav-link nav-link-lg"><i class="far fa-envelope"></i></a>
                     </li>
 
                     <li class="dropdown">
@@ -219,8 +143,9 @@
                         <li>
                             <a href="{{url_for('relatorios.index')}}" class="nav-link"><i class="fas fa-chart-bar"></i><span>Relatórios</span></a>
                         </li>
-                        <li>
-                            <a href="#" class="nav-link has-dropdown"><i class="fas fa-file-alt"></i><span>Arquivos</span></a>
+                        <li class="dropdown">
+                            <a href="#" class="nav-link has-dropdown">
+                                <i class="fas fa-file-alt"></i><span>Arquivos</span></a>
                             <ul class="dropdown-menu" style="display: none;">
                                 <li><a href="{{url_for('arquivos.index')}}">Ver Arquivos</a></li>
                                 {% if current_user.urole in [ usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0] ] %}
@@ -256,7 +181,9 @@
                     <div class="bullet"></div> Criado por <a href="http://www.ijunior.com.br">iJunior</a>
                 </div>
                 <div class="footer-right">
+                     <a href="{{url_for('principal.termos')}}">Termos de uso</a>
                 </div>
+                
             </footer>
         </div>
     </div>

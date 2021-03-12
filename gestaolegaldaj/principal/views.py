@@ -23,6 +23,11 @@ def error_403(error):
 @app.errorhandler(500)
 def error_500(error):
     return render_template('erros/500.html') , 403
+    
+@principal.route('/termos_de_uso')
+@login_required()
+def termos():
+    return render_template('termos_de_uso.html')
 
 @principal.route('/busca_geral',methods=['GET','POST'])
 @login_required()

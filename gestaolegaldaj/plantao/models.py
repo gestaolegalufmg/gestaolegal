@@ -217,7 +217,20 @@ assistencia_jud_regioes={
     "BETIM"      :('betim','Betim')
 }
 
-
+meses = {
+    "Jan":1,
+    "Fev":2,
+    "Mar":3,
+    "Abr":4,
+    "Mai":5,
+    "Jun":6,
+    "Jul":7,
+    "Ago":8,
+    "Set":9,
+    "Out":10,
+    "Nov":11,
+    "Dez":12
+}
 
 class Atendido(db.Model):
 
@@ -411,6 +424,7 @@ class OrientacaoJuridica(db.Model):
     area_direito        = db.Column(db.String(50, collation = 'latin1_general_ci'), nullable = False)
     sub_area            = db.Column(db.String(50, collation = 'latin1_general_ci'))
     descricao           = db.Column(db.String(1000, collation = 'latin1_general_ci'), nullable = False)
+    data_criacao        = db.Column(db.DateTime)
     status              = db.Column(db.Integer, nullable = False)
 
     assistenciasJudiciarias = db.relationship("AssistenciaJudiciaria", secondary="assistenciasJudiciarias_xOrientacao_juridica", backref='AssistenciaJudiciaria')
@@ -494,6 +508,20 @@ class DiasMarcadosPlantao(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
 
     data_marcada    = db.Column(db.Date)
+    confirmacao     = db.Column(db.String(15, collation = 'latin1_general_ci'), nullable=False, default="aberto")
 
     id_usuario      = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
     usuario         = db.relationship(Usuario, backref=db.backref("dias_marcados_plantao"))
+    
+
+class RegistroEntrada(db.Model):
+    __tablename__   = "registro_entrada"
+
+    id              = db.Column(db.Integer, primary_key=True)
+
+    data_entrada    = db.Column(db.DateTime, nullable=False)
+    data_saida      = db.Column(db.DateTime, nullable=False)
+    status          = db.Column(db.Boolean(), nullable=False, default=True)
+    confirmacao     = db.Column(db.String(15, collation = 'latin1_general_ci'), nullable=False, default="aberto")
+    id_usuario      = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
+    usuario         = db.relationship(Usuario, backref=db.backref("registro_entrada"))

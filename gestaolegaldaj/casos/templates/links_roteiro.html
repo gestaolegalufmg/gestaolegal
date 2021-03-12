@@ -5,8 +5,8 @@
     <div class="card-body">
         <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
             {{form.csrf_token()}}
-            <div class="form-group row">
-                <h3>Adicionar/Editar links de roteiro</h3>
+            <div class="form-group row m-2">
+                <h5>Adicionar/Editar links de roteiro</h5>
             </div>
 
             <div class="form-group row">
@@ -29,11 +29,13 @@
                 {% endfor %}
             </div>
             <div class="form-group row">
-                {{form.submit(class_='btn btn-primary')}}
+                <div class="col-12 col-lg-6 offset-lg-1">
+                    {{form.submit(class_='btn btn-primary')}}
+                </div>
             </div>
         </form>
         <div class="form-group row">
-            <div class="table-responsive">
+            <div class="table-responsive mt-4 mx-3">
                 <table class="table table-striped">
                     <thead>
                         <tr>
@@ -44,7 +46,12 @@
                     <tbody>
                         {% for roteiro in roteiros %}
                             <tr>
-                                <td>{{roteiro.area_direito}}</td>
+                                <td>{% for key in assistencia_jud_areas_atendidas %}
+                                        {% if assistencia_jud_areas_atendidas[key][0] in roteiro.area_direito %}
+                                            <span>{{assistencia_jud_areas_atendidas[key][1]}}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
                                 <td><a href="{{roteiro.link}}" target="_blank">{{roteiro.link}}</a></td>
                             </tr>
                         {% endfor %}

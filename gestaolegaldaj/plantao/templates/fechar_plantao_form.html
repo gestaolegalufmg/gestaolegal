@@ -4,8 +4,11 @@
         {{ form_fechar.data_fechamento.label }} <span class="text-danger">*</span>
     </label>
     <div>
-        {{ form_fechar.data_fechamento(type="date", class_="form-control") }}
+        {{ form_fechar.data_fechamento(type="date", class_="form-control", id="data_fechamento") }}
     </div>
+    {% for error in form_fechar.data_fechamento.errors %}
+        <div class="alert alert-danger">{{error}}</div>
+    {% endfor %}
 </div>
 
 <div class="form-group row">
@@ -13,8 +16,11 @@
         {{ form_fechar.hora_fechamento.label }} <span class="text-danger">*</span>
     </label>
     <div>
-        {{ form_fechar.hora_fechamento(type="time", class_="form-control") }}
+        {{ form_fechar.hora_fechamento(type="time", class_="form-control", id="hora_fechamento") }}
     </div>
+    {% for error in form_fechar.hora_fechamento.errors %}
+        <div class="alert alert-danger">{{error}}</div>
+    {% endfor %}
 </div>
 
 </div>

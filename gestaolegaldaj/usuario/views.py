@@ -29,10 +29,6 @@ def plantao():
 def casos_esp():
     return render_template('meus_casos.html')
 
-@usuario.route('/notificações_id', methods=['GET','POST'])
-def notificaçoes():
-    return render_template('notificaçoes.html')
-
 
 @usuario.route('/meu_perfil', methods=['GET'])
 @login_required()
@@ -286,8 +282,7 @@ def cadastrar_usuario():
 @usuario.route('/login', methods = ['POST','GET'])
 def login():
     usuarios = db.session.query(Usuario).all()
-
-    if not usuarios:
+    if usuarios is None:
         criar_usuarios()
     if request.method == 'POST':
         form = request.form
@@ -351,55 +346,78 @@ def inativar_usuario_lista():
         flash("Usuário inativado.","Success")
     return redirect(url_for('principal.index'))
 
-def emailRecuperacao(usuario):
-    usuario.chave_recuperacao = True
-    db.session.commit()
-    titulo = "Recuperação de senha Gestão Legal"
-    token = usuario.tokenRecuperacao() # Gera o token para o usuário em questão
-    msg = Message(titulo,sender="gestaolegaldaj@gmail.com",recipients=[usuario.email]) # Constrói o corpo da mensagem
-    msg.body = f''' Solicitação de recuperação/alteração de senha.
+@usuario.route('/muda_senha_admin', methods=['POST'])
+@login_required(role = usuario_urole_roles['ADMINISTRADOR'][0])
+def muda_senha_admin():
+    id_usuario = request.form['id']
 
-    Se você solicitou este serviço, por favor, clique no link abaixo:
-    {url_for('usuario.nova_senha',_token=token, _external=True)}
+    return render_template('nova_senha.html', id_usuario = id_usuario)
 
-    Caso você não tenha solicitado este serviço, por favor ignore essa mensagem.
-    '''
-    mail.send(msg)
-
-@usuario.route('/recuperar_senha',methods=['POST','GET'])
-def recuperar_senha():
-    if request.method == 'POST':
-        usuario = db.session.query(Usuario).filter((Usuario.email == request.form['email'])).first()
-        if usuario is None:
-            flash("E-mail não cadastrado.","warning")
-            return redirect(url_for('usuario.recuperar_senha'))
-        emailRecuperacao(usuario)
-        flash('E-mail enviado','success')
-        return redirect(url_for('usuario.login'))
-    return render_template('recuperar_senha.html')
-
-@usuario.route('/nova_senha/<_token>', methods=['POST','GET'])
-def nova_senha(_token):
-    usuario = Usuario.verificaToken(_token)
-    if usuario is None:
-        flash('Token inválido.','warning')
-        return redirect(url_for('usuario.login'))
+@usuario.route('/confirma_senha', methods=['POST'])
+@login_required(role = usuario_urole_roles['ADMINISTRADOR'][0])
+def confirma_senha():
     bcrypt = Bcrypt()
-    if usuario.chave_recuperacao:
-        if request.method == 'POST':
-            if request.form['senha'] == request.form['confirmar_senha']:
-                senha = bcrypt.generate_password_hash(request.form['senha'])
-                usuario.senha = senha
-                usuario.chave_recuperacao = False
-                db.session.commit()
-                flash('Sua senha foi alterada com sucesso.','success')
-                return redirect(url_for('usuario.login'))
-            else:
-                flash('As senhas não são iguais','warning')
+    usuario = Usuario.query.get_or_404(int(request.form['id_usuario']))
+    if request.form['senha'] == request.form['confirmar_senha']:
+        senha = bcrypt.generate_password_hash(request.form['senha'])
+        usuario.senha = senha
+        usuario.chave_recuperacao = False
+        db.session.commit()
+        flash('Sua senha foi alterada com sucesso.','success')
+        return redirect(url_for('usuario.listar_usuarios'))
     else:
-        flash('Erro! Por favor refaça a operação','warning')
-        return redirect(url_for('usuario.recuperar_senha'))
-    return render_template('nova_senha.html')
+        flash('As senhas não são iguais','warning')
+        return redirect(url_for('usuario.listar_usuarios'))
+
+# def emailRecuperacao(usuario):
+#     usuario.chave_recuperacao = True
+#     db.session.commit()
+#     titulo = "Recuperação de senha Gestão Legal"
+#     token = usuario.tokenRecuperacao() # Gera o token para o usuário em questão
+#     msg = Message(titulo,sender="gestaolegaldaj@gmail.com",recipients=[usuario.email]) # Constrói o corpo da mensagem
+#     msg.body = f''' Solicitação de recuperação/alteração de senha.
+
+#     Se você solicitou este serviço, por favor, clique no link abaixo:
+#     {url_for('usuario.nova_senha',_token=token, _external=True)}
+
+#     Caso você não tenha solicitado este serviço, por favor ignore essa mensagem.
+#     '''
+#     mail.send(msg)
+
+# @usuario.route('/recuperar_senha',methods=['POST','GET'])
+# def recuperar_senha():
+#     if request.method == 'POST':
+#         usuario = db.session.query(Usuario).filter((Usuario.email == request.form['email'])).first()
+#         if usuario is None:
+#             flash("E-mail não cadastrado.","warning")
+#             return redirect(url_for('usuario.recuperar_senha'))
+#         emailRecuperacao(usuario)
+#         flash('E-mail enviado','success')
+#         return redirect(url_for('usuario.login'))
+#     return render_template('recuperar_senha.html')
+
+# @usuario.route('/nova_senha/<_token>', methods=['POST','GET'])
+# def nova_senha(_token):
+#     usuario = Usuario.verificaToken(_token)
+#     if usuario is None:
+#         flash('Token inválido.','warning')
+#         return redirect(url_for('usuario.login'))
+#     bcrypt = Bcrypt()
+#     if usuario.chave_recuperacao:
+#         if request.method == 'POST':
+#             if request.form['senha'] == request.form['confirmar_senha']:
+#                 senha = bcrypt.generate_password_hash(request.form['senha'])
+#                 usuario.senha = senha
+#                 usuario.chave_recuperacao = False
+#                 db.session.commit()
+#                 flash('Sua senha foi alterada com sucesso.','success')
+#                 return redirect(url_for('usuario.login'))
+#             else:
+#                 flash('As senhas não são iguais','warning')
+#     else:
+#         flash('Erro! Por favor refaça a operação','warning')
+#         return redirect(url_for('usuario.recuperar_senha'))
+#     return render_template('nova_senha.html')
 
 def criar_usuarios():
     # Administrador

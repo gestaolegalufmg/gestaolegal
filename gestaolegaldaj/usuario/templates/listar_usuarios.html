@@ -70,6 +70,16 @@
                     onclick="return confirm('Você deseja realmente inativar este usuário?');">Excluir</button>
                 </form>
                 {% endif %}
+                {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] and usuario.id != admin_padrao %}
+                <form action="{{url_for('usuario.muda_senha_admin')}}" method="POST">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div>
+                    <input type="hidden" name="id" value="{{usuario.id}}">
+                  </div>
+                  <button type="submit" class="btn ml-1 btn-flat btn-warning btn-sm"
+                    onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar Senha</button>
+                </form>
+                {% endif %}
               </div>
             </td>
           </tr>

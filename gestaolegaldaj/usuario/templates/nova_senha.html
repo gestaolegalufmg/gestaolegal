@@ -55,8 +55,9 @@
                     <h4>Escolha uma nova senha</h4>
                   </div>
                   <div class="card-body">
-                    <form method="POST" action="" class="needs-validation" novalidate="">
+                    <form method="POST" action="{{url_for('usuario.confirma_senha')}}" class="needs-validation" novalidate="">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="id_usuario" value="{{id_usuario}}">
                       <div class="form-group">
                         <label for="senha">Nova senha</label>
                         <input id="senha" name="senha" type="password" class="form-control" placeholder="Informe a nova senha" tabindex="1" required autofocus>

@@ -12,7 +12,7 @@ services:
       - type: bind
         source: .
         target: /code
-    command: [ "python", "./app.py"]
+    command: gunicorn --bind 0.0.0.0:5000 --workers=4 --timeout=300 wsgi:app
 
   db_gl:
     image: mysql

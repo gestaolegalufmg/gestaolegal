@@ -7,6 +7,7 @@ from flask import (Blueprint, abort, current_app, flash, json, redirect,
 from flask_login import current_user
 from flask_paginate import Pagination, get_page_args
 from sqlalchemy import and_, or_
+from sqlalchemy import null
 from sqlalchemy.exc import SQLAlchemyError
 
 from gestaolegaldaj import app, db, login_required
@@ -15,11 +16,8 @@ from gestaolegaldaj.casos.forms import (CasoForm, EditarCasoForm,
                                         LembreteForm, RoteiroForm, EventoForm, ProcessoForm)
 from gestaolegaldaj.casos.models import (Caso, Historico, Lembrete, Roteiro,
                                          situacao_deferimento, Evento, Processo)
-from gestaolegaldaj.casos.views_utils import *
-from gestaolegaldaj.plantao.forms import CadastroAtendidoForm
-from gestaolegaldaj.plantao.models import Atendido
-from gestaolegaldaj.plantao.views_util import *
-from gestaolegaldaj.usuario.models import Usuario, usuario_urole_roles
+from gestaolegaldaj.notificacoes.models import Notificacao
+from gestaolegaldaj.usuario.models import usuario_urole_roles
 from gestaolegaldaj.utils.models import queryFiltradaStatus
 
 notificacoes = Blueprint('notificacoes', __name__, template_folder='templates')
@@ -28,4 +26,16 @@ notificacoes = Blueprint('notificacoes', __name__, template_folder='templates')
 @notificacoes.route('/')
 @login_required()
 def index():
-    return render_template('notificacoes.html')
+    page = request.args.get('page', 1, type=int)
+    
+    notificacoes = db.session\
+                     .query(Notificacao)
+
+    if current_user.urole in [usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]]:
+        notificacoes = notificacoes.filter((Notificacao.id_usu_notificar == current_user.id) | (Notificacao.id_usu_notificar == null()))
+    else:
+        notificacoes = notificacoes.filter(Notificacao.id_usu_notificar == current_user.id)
+
+    notificacoes = notificacoes.order_by(Notificacao.data.desc()).paginate(page, app.config['ATENDIDOS_POR_PAGINA'], False)
+
+    return render_template('notificacoes.html', notificacoes = notificacoes)

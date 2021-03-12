@@ -18,8 +18,8 @@
 {{ form.csrf_token }}
 
 <div class="form-group row">
-    {{form_label(form.nome)}}
     <div class="col-12 col-lg-6 offset-lg-1">
+        {{form.nome.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
         {{form.nome(type="text", class_="form-control")}}
     </div>
 </div>
@@ -29,8 +29,8 @@
 {% endfor %}
 
 <div class="form-group row">
-    {{form_label(form.email)}}
     <div class="col-12 col-lg-6 offset-lg-1">
+        {{form.email.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
         {{form.email(type="email", class_="form-control")}}
     </div>
 </div>
@@ -43,16 +43,16 @@
     <div class="row">
         <div class="col-12 col-md-3 offset-lg-1">
             <div class="row form-group">
-                {{form_label(form.senha, offset=False)}}
                 <div class="col">
+                    {{form.senha.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                     {{form.senha(type="password", class_="form-control", placeholder="Digite sua senha...")}}
                 </div>
             </div>
         </div>
         <div class="col-12 col-md-3">
             <div class="row form-group">
-                {{form_label(form.confirmacao, offset=False)}}
                 <div class="col">
+                    {{form.confirmacao.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                     {{form.confirmacao(type="password", class_="form-control", placeholder="Digite novamente para confirmar...")}}
                 </div>
             </div>
@@ -68,8 +68,8 @@
 {% endif %}
 
 <div class="form-group row">
-    {{form_label(form.urole)}}
     <div class="col-12 col-lg-6 offset-lg-1">
+        {{form.urole.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
         {{form.urole(class_="form-control")}}
     </div>
 </div>
@@ -107,8 +107,8 @@
 </div>
 
 <div class="form-group row">
-    {{form_label(form.profissao)}}
     <div class="col-12 col-lg-6 offset-lg-1">
+        {{form.profissao.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
         {{form.profissao(type="text", class_="form-control")}}
     </div>
 </div>
@@ -120,8 +120,8 @@
 <div class="row">
     <div class="col-12 col-md-3 offset-lg-1">
         <div class="row form-group">
-            {{form_label(form.telefone, offset=False)}}
             <div class="col">
+                {{form.telefone.label(class_="font-weight-bold")}}
                 {{form.telefone(type="text", class_="form-control")}}
                 {% for error in form.telefone.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -131,8 +131,8 @@
     </div>
     <div class="col-12 col-md-3">
         <div class="row form-group">
-            {{form_label(form.celular, offset=False)}}
             <div class="col">
+                {{form.celular.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                 {{form.celular(type="text", class_="form-control")}}
                 {% for error in form.celular.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -146,8 +146,8 @@
     <h3>Endereço</h3>
 </div>
 <div class="form-group row">
-    {{form_label(form.logradouro)}}
     <div class="col-12 col-lg-6 offset-lg-1">
+        {{form.logradouro.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
         {{form.logradouro(type="text",class_="form-control")}}
 
     </div>
@@ -159,8 +159,8 @@
 <div class="row">
     <div class="col-12 col-md-3 offset-lg-1">
         <div class="row form-group">
-            {{form_label(form.complemento, offset=False)}}
             <div class="col">
+                {{form.complemento.label(class_="font-weight-bold")}}
                 {{form.complemento(type="text", class_="form-control")}}
                 {% for error in form.complemento.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -170,8 +170,8 @@
     </div>
     <div class="col-12 col-md-3">
         <div class="row form-group">
-            {{form_label(form.numero, offset=False)}}
             <div class="col">
+                {{form.numero.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                 {{form.numero(type="text", class_="form-control")}}
                 {% for error in form.numero.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -184,8 +184,8 @@
 <div class="row">
     <div class="col-12 col-md-3 offset-lg-1">
         <div class="row form-group">
-            {{form_label(form.bairro, offset=False)}}
             <div class="col">
+                {{form.bairro.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                 {{form.bairro(type="text", class_="form-control")}}
                 {% for error in form.bairro.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -195,8 +195,8 @@
     </div>
     <div class="col-12 col-md-3">
         <div class="row form-group">
-            {{form_label(form.cep, offset=False)}}
             <div class="col">
+                {{form.cep.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                 {{form.cep(type="text", class_="form-control")}}
                 {% for error in form.cep.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -208,8 +208,8 @@
 <div class="row">
     <div class="col-12 col-md-3 offset-lg-1">
         <div class="row form-group">
-            {{form_label(form.cidade, offset=False)}}
             <div class="col">
+                {{form.cidade.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                 {{form.cidade(class_="form-control")}}
                 {% for error in form.cidade.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -219,8 +219,8 @@
     </div>
     <div class="col-12 col-md-3">
         <div class="row form-group">
-            {{form_label(form.estado, offset=False)}}
             <div class="col">
+                {{form.estado.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                 {{form.estado(class_="form-control")}}
                 {% for error in form.estado.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -236,8 +236,8 @@
 <div class="row">
     <div class="col-12 col-md-3 offset-lg-1">
         <div class="row form-group">
-            {{form_label(form.rg, offset=False)}}
             <div class="col">
+                {{form.rg.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                 {{form.rg(type="text", class_="form-control")}}
                 {% for error in form.rg.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -247,8 +247,8 @@
     </div>
     <div class="col-12 col-md-3">
         <div class="row form-group">
-            {{form_label(form.cpf, offset=False)}}
             <div class="col">
+                {{form.cpf.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                 {{form.cpf(type="text", class_="form-control")}}
                 {% for error in form.cpf.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -272,8 +272,8 @@
 <div class="row">
     <div class="col-12 col-md-3 offset-lg-1">
         <div class="row form-group">
-            {{form_label(form.data_entrada, offset=False)}}
             <div class="col">
+                {{form.data_entrada.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                 {{form.data_entrada(type="date", class_="form-control")}}
                 {% for error in form.data_entrada.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -283,8 +283,8 @@
     </div>
     <div class="col-12 col-md-3">
         <div class="row form-group">
-            {{form_label(form.data_saida, offset=False)}}
             <div class="col">
+                {{form.data_saida.label(class_="font-weight-bold")}}
                 {{form.data_saida(type="date", class_="form-control")}}
                 {% for error in form.data_saida.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -297,8 +297,8 @@
 <div class="row">
     <div class="col-12 col-md-3 offset-lg-1">
         <div class="row form-group">
-            {{form_label(form.bolsista, offset=False)}}
             <div class="col">
+                {{form.bolsista.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                 {{form.bolsista(class_="form-control")}}
                 {% for error in form.bolsista.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -308,8 +308,8 @@
     </div>
     <div class="col-12 col-md-3">
         <div class="row form-group">
-            {{form_label(form.matricula, offset=False)}}
             <div class="col">
+                {{form.matricula.label(class_="font-weight-bold")}}
                 {{form.matricula(type="text", class_="form-control")}}
                 {% for error in form.matricula.errors %}
                 <div class="alert alert-danger">{{error}}</div>
@@ -324,8 +324,8 @@
 {% endfor %}
 
 <div class="form-group row" id="div_tipo_bolsa" hidden="true">
-    {{form.tipo_bolsa.label(text=form.tipo_bolsa.label.text+'<span class="text-danger">*</span>', class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
     <div class="col-12 col-lg-6 offset-lg-1">
+        {{form.tipo_bolsa.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
         {{form.tipo_bolsa(class_="form-control")}}
     </div>
 </div>
@@ -335,8 +335,8 @@
 {% endfor %}
 
 <div class="form-group row" id="div_inicio_bolsa" hidden="true">
-    {{form.inicio_bolsa.label(text=form.inicio_bolsa.label.text+'<span class="text-danger">*</span>', class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
     <div class="col-12 col-lg-6 offset-lg-1">
+        {{form.inicio_bolsa.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
         {{form.inicio_bolsa(type="date",class_="form-control")}}
     </div>
 </div>
@@ -395,8 +395,8 @@
 </div>
 
 <div class="form-group row">
-    {{form_label(form.cert_atuacao_DAJ)}}
     <div class="col-12 col-lg-6 offset-lg-1">
+        {{form.cert_atuacao_DAJ.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
         {{form.cert_atuacao_DAJ(class_="form-control")}}
     </div>
 </div>

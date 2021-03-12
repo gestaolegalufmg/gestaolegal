@@ -1,4 +1,4 @@
-{% extends "base_dashboard.html" %} {%block titulo%}Editar Caso Nº{%endblock%} {% block css %}
+{% extends "base_dashboard.html" %} {%block titulo%}Editar Caso #{{caso.id}}{%endblock%} {% block css %}
 <link rel="stylesheet" href="{{url_for('static',filename='temas_externos/select2.min.css')}}">
 {% endblock css %} {% block conteudo %}
 <div class="card">
@@ -76,14 +76,17 @@
                     <div class="row">
                         <div class="col-6 align-self-end">
                             <label for="arquivo">Upload de arquivo <span class="text-danger">(.pdf)</span></label>
-                            <input type="file" name="arquivo">
+                            <input type="file" name="arquivo" class="form-control-file overflow-hidden">
                         </div>
-
                     </div>
                 </div>
             </div>
             {% endif %}
-            <input class="btn btn-flat btn-primary" type="submit" value="Salvar" style="font-weight: normal;">
+            <div class="row">
+                <div class="col col-lg-6 offset-lg-1">
+                    <input class="btn btn-flat btn-primary" type="submit" value="Salvar" style="font-weight: normal;">
+                </div>
+            </div>
     </div>
     <div class="card-footer">
 

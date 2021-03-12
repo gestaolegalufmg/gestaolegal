@@ -3,6 +3,8 @@
 {% block titulo %}Confirmar Presença{% endblock %}
 
 {% block conteudo %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<input type="hidden" id="hdnAjaxBuscaPresencasData" value="{{url_for('plantao.ajax_busca_presencas_data')}}">
 <nav class="d-inline-block">
   
 </nav>
@@ -11,64 +13,142 @@
       <div class="card">
         <div class="card-body">
             <label>Data: &nbsp;</label>
-            <input type="date">
+            <input type="date" value="{{data_ontem.strftime('%Y-%m-%d')}}" id="dataProcurada">
         </div>
       </div>
   </div>
 </div>
-<div class="card">
-  <div class="card-body">
+
+<div class="text-center">
+  <img src="{{url_for('static', filename='imgs_daj/Rolling-3.3s-331px.svg')}}" style="display: none;" id="loadingGIF">
+</div>
+
+<div class="conteiner" id="conteudoPagina">
+  <h3 id="semPresenca" style="display: none;">Nenhuma presença a ser confirmada!</h3>
+  <div id="conteudoPresenca">
+    <h1>Presença</h1>
     
-    <div class="table-responsive">
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Cargo</th>
-            <th>Entrada</th>
-            <th>Confirmar</th>
-            <th>Saída</th>
-            <th>Confirmar</th>
-          </tr>
-        </thead>
-        <tbody>
-         
-          <tr>
-            <td>Ana</td>
+    <form action="" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-            <td>Estagiario</td>
-           
-            <td>
-                10:00
-            </td>
-         
-            <td>
-              <div class="col-lg-5">
-                <input type="checkbox">
-              </div>
-            </td>
-
-            <td>
-                11:00
-            </td>
-
-            <td>
-              <div class="col-lg-5">
-                <input type="checkbox">
-              </div>
-            </td>
-          </tr>
-         
-        </tbody>
-      </table>
+    <div class="card">
+      <div class="card-body">
+        
+        <div class="table-responsive">
+          <table class="table table-striped" id="tabelaPresenca">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Cargo</th>
+                <th>Entrada</th>
+                <th>Saída</th>
+                <th>Confirmar</th>
+                <th>Divergência</th>
+                <th>Ausência</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for presenca in presencas_registradas %}
+              <tr>
+                <td>{{presenca.usuario.nome}}</td>
+  
+                <td>{{usuario_urole_inverso[presenca.usuario.urole]}}</td>
+              
+                <td>
+                    {{presenca.data_entrada.strftime('%H:%M')}}
+                </td>
+  
+                <td>
+                  {{presenca.data_saida.strftime('%H:%M')}}
+                </td>
+  
+                <td>
+                  <div class="col-lg-6 d-flex justify-content-center">
+                    <input class="confirmacao" type="radio" name="presenca_{{presenca.id}}" value="confirmar">
+                  </div>
+                </td>
+                <td>
+                  <div class="col-lg-6 d-flex justify-content-center" >
+                    <input class="confirmacao" type="radio" name="presenca_{{presenca.id}}" value="divergencia">
+                  </div>
+                </td>
+                <td>
+                  <div class="col-lg-6 d-flex justify-content-center">
+                    <input class="confirmacao" type="radio" name="presenca_{{presenca.id}}" value="ausencia">
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-center">
+        <button class="btn mr-2 btn-flat btn-primary salva">Salvar</button>
+      </div>
     </div>
-    <div class="d-flex justify-content-center">
-    <button type="submit" class="btn mr-2 btn-flat btn-primary " name="button">Salvar</button>
+  </form>
   </div>
 </div>
+
+<h3 id="semPlantao" style="display: none;">Nenhum plantão a ser confirmado!</h3>
+<div id="conteudoPlantao">
+    <h1>Plantão</h1>
+  <form action="" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <div class="card">
+      <div class="card-body">
+        
+        <div class="table-responsive">
+          <table class="table table-striped" id="tabelaPlantao">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Cargo</th>
+                <th>Confirmar</th>
+                <th>Divergência</th>
+                <th>Ausência</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for plantao in plantoes_registradas %}
+              <tr>
+                <td>{{plantao.usuario.nome}}</td>
+  
+                <td>{{usuario_urole_inverso[plantao.usuario.urole]}}</td>
+  
+                <td>
+                  <div class="col-lg-6 d-flex justify-content-center">
+                    <input class="confirmacao" type="radio" name="plantao_{{plantao.id}}" value="confirmar">
+                  </div>
+                </td>
+                <td>
+                  <div class="col-lg-6 d-flex justify-content-center" >
+                    <input class="confirmacao" type="radio" name="plantao_{{plantao.id}}" value="divergencia">
+                  </div>
+                </td>
+                <td>
+                  <div class="col-lg-6 d-flex justify-content-center">
+                    <input class="confirmacao" type="radio" name="plantao_{{plantao.id}}" value="ausencia">
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-center">
+        <button class="btn mr-2 btn-flat btn-primary salva">Salvar</button>
+      </div>
+    </div>
+  <div>
+  </form>
+  </div>
+  </div>
+  
+  
 </div>
 
 {% endblock %}
 {% block scripts %}
-
+  <script src="{{url_for('static', filename='js/confirmar_presenca.js')}}"></script>
 {% endblock %}

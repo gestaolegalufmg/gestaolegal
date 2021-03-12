@@ -17,7 +17,7 @@ app.config['UPLOADS'] = './static/casos'
 ################## BANCO DE DADOS ##########################
 ############################################################
 
-app.config['SQLALCHEMY_DATABASE_URI'] =  "mysql+pymysql://gestaolegal:gestaolegal@db_gl/gestaolegal"
+app.config['SQLALCHEMY_DATABASE_URI'] =  "mysql+pymysql://gestaolegalnew:bd@gestaolegal@gestaolegalnew.mysql.dbaas.com.br/gestaolegalnew"
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_recycle": 10}
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -127,16 +127,11 @@ def insere_tipo_evento():
 app.config['ADMIN_PADRAO'] = 10
 
 ############################################################
-####################### USUARIO PADRAO #####################
-############################################################
-
-app.config['ADMIN_PADRAO'] = 10
-
-############################################################
 ####################### PAGINAÇÃO ##########################
 ############################################################
 
 app.config['USUARIOS_POR_PAGINA'] = 20
+app.config['HISTORICOS_POR_PAGINA'] = 20
 app.config['ATENDIDOS_POR_PAGINA'] = 20
 app.config['ASSISTENCIA_JURIDICA_POR_PAGINA'] = 20
 app.config['CASOS_POR_PAGINA'] = 20
@@ -149,8 +144,8 @@ app.config['ARQUIVOS_POR_PAGINA'] = 20
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USE_SSL']=True
-app.config['MAIL_USERNAME'] = 'gestaolegaldaj@gmail.com'
-app.config['MAIL_PASSWORD'] = 'gestaolegaldaj@12'
+app.config['MAIL_USERNAME'] = 'testedodaj@gmail.com'
+app.config['MAIL_PASSWORD'] = 'testedaj12345'
 
 mail = Mail(app)
 
