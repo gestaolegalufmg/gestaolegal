@@ -1,5 +1,5 @@
 # Gestão Legal UFMG
-##Sistema de Gestão de Assistências Judiciárias e Escritórios de Advocacia Modelo
+## Sistema de Gestão de Assistências Judiciárias e Escritórios de Advocacia Modelo
 
 Sistema desenvolvido pelo projeto de extensão da Faculdade de Direito da UFMG [Gestão Legal](https://gestaolegal.direito.ufmg.br/).
 
