@@ -29,7 +29,7 @@ app.config["UPLOADS"] = "./static/casos"
 
 app.config[
     "SQLALCHEMY_DATABASE_URI"
-] = "mysql+pymysql://gestaolegal:gestaolegal@localhost/gestaolegal"
+] = "mysql+pymysql://gestaolegal:gestaolegal@db_gl/gestaolegal"
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_recycle": 10}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
