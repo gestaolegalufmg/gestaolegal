@@ -8,7 +8,18 @@ from flask_mail import Mail
 
 login_manager = LoginManager()
 
+class ReverseProxied(object):
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        scheme = environ.get('HTTP_X_FORWARDED_PROTO')
+        if scheme:
+            environ['wsgi.url_scheme'] = scheme
+        return self.app(environ, start_response)
+
 app = Flask(__name__)
+app.wsgi_app = ReverseProxied(app.wsgi_app)
 
 app.config["SECRET_KEY"] = "w8oyUPlywjAAN51OXBdfJUZ8icsRCCP7"
 app.config["UPLOADS"] = "./static/casos"
@@ -24,6 +35,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 Migrate(app, db, compare_type=True)
+
+app.config["PREFERRED_URL_SCHEME"] = 'https'
 
 #############################################################
 ########### VARIÁVEIS/FUNÇÕES DO TEMPLATE ###################
