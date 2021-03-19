@@ -1,6 +1,6 @@
-from gestaolegaldaj.casos.models import Caso, situacao_deferimento, tipo_evento, Evento
-from gestaolegaldaj import app
-from gestaolegaldaj.utils.models import queryFiltradaStatus
+from gestaolegal.casos.models import Caso, situacao_deferimento, tipo_evento, Evento
+from gestaolegal import app
+from gestaolegal.utils.models import queryFiltradaStatus
 from sqlalchemy import or_
 
 ROTA_PAGINACAO_CASOS = "casos.index"

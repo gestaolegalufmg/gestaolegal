@@ -10,15 +10,15 @@ from sqlalchemy import and_, or_
 from sqlalchemy import null
 from sqlalchemy.exc import SQLAlchemyError
 
-from gestaolegaldaj import app, db, login_required
-from gestaolegaldaj.casos.forms import (CasoForm, EditarCasoForm,
-                                        JustificativaIndeferimento,
-                                        LembreteForm, RoteiroForm, EventoForm, ProcessoForm)
-from gestaolegaldaj.casos.models import (Caso, Historico, Lembrete, Roteiro,
-                                         situacao_deferimento, Evento, Processo)
-from gestaolegaldaj.notificacoes.models import Notificacao
-from gestaolegaldaj.usuario.models import usuario_urole_roles
-from gestaolegaldaj.utils.models import queryFiltradaStatus
+from gestaolegal import app, db, login_required
+from gestaolegal.casos.forms import (CasoForm, EditarCasoForm,
+                                     JustificativaIndeferimento,
+                                     LembreteForm, RoteiroForm, EventoForm, ProcessoForm)
+from gestaolegal.casos.models import (Caso, Historico, Lembrete, Roteiro,
+                                      situacao_deferimento, Evento, Processo)
+from gestaolegal.notificacoes.models import Notificacao
+from gestaolegal.usuario.models import usuario_urole_roles
+from gestaolegal.utils.models import queryFiltradaStatus
 
 notificacoes = Blueprint('notificacoes', __name__, template_folder='templates')
 

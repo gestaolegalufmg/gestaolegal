@@ -1,9 +1,9 @@
 from flask import render_template, Blueprint, flash, request
-from gestaolegaldaj import app, login_required
+from gestaolegal import app, login_required
 
-from gestaolegaldaj.usuario.models import Usuario
-from gestaolegaldaj.plantao.models import Atendido, Assistido, AssistidoPessoaJuridica
-from gestaolegaldaj.casos.models import Caso
+from gestaolegal.usuario.models import Usuario
+from gestaolegal.plantao.models import Atendido, Assistido, AssistidoPessoaJuridica
+from gestaolegal.casos.models import Caso
 
 principal = Blueprint('principal', __name__, template_folder='templates')
 

@@ -1,6 +1,6 @@
-from gestaolegaldaj import db
+from gestaolegal import db
 from datetime import datetime
-from gestaolegaldaj.usuario.models import Usuario
+from gestaolegal.usuario.models import Usuario
 
 # Relacionamento Casos <--> Atendidos
 associacao_casos_atendidos = db.Table('casos_atendidos', db.metadata,

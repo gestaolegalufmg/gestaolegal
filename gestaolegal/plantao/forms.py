@@ -5,24 +5,24 @@ from wtforms import (DateField, FloatField, IntegerField, SelectField,
 from wtforms.validators import (AnyOf, DataRequired, Email, InputRequired,
                                 Length, NumberRange, Optional, StopValidation)
 
-from gestaolegaldaj.plantao.models import (Assistido, AssistidoPessoaJuridica,
-                                           Atendido, area_atuacao,
-                                           area_do_direito, beneficio,
-                                           como_conheceu_daj,
-                                           contribuicao_inss, enquadramento,
-                                           escolaridade, moradia, orgao_reg,
-                                           participacao_renda,
-                                           qual_pessoa_doente, raca_cor,
-                                           regiao_bh, se_administrativo,
-                                           se_civel,
-                                           assistencia_jud_areas_atendidas,
-                                           assistencia_jud_regioes)
-from gestaolegaldaj.usuario.forms import EnderecoForm
-from gestaolegaldaj.usuario.models import (estado_civilUsuario, sexo_usuario,
-                                           tipo_bolsaUsuario,
-                                           usuario_urole_roles)
-from gestaolegaldaj.utils.forms import (MyFloatField, RequiredIf,
-                                        RequiredIf_InputRequired)
+from gestaolegal.plantao.models import (Assistido, AssistidoPessoaJuridica,
+                                        Atendido, area_atuacao,
+                                        area_do_direito, beneficio,
+                                        como_conheceu_daj,
+                                        contribuicao_inss, enquadramento,
+                                        escolaridade, moradia, orgao_reg,
+                                        participacao_renda,
+                                        qual_pessoa_doente, raca_cor,
+                                        regiao_bh, se_administrativo,
+                                        se_civel,
+                                        assistencia_jud_areas_atendidas,
+                                        assistencia_jud_regioes)
+from gestaolegal.usuario.forms import EnderecoForm
+from gestaolegal.usuario.models import (estado_civilUsuario, sexo_usuario,
+                                        tipo_bolsaUsuario,
+                                        usuario_urole_roles)
+from gestaolegal.utils.forms import (MyFloatField, RequiredIf,
+                                     RequiredIf_InputRequired)
 
 #####################################################
 ##################### CONSTANTES ####################
