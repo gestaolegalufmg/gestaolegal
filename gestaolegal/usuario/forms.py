@@ -2,8 +2,8 @@ from flask_wtf import FlaskForm
 from wtforms import (DateField, SelectField, StringField, SubmitField,
                      TextAreaField, TimeField, PasswordField, HiddenField)
 from wtforms.validators import AnyOf, DataRequired, Email, Length, Optional, InputRequired
-from gestaolegaldaj.usuario.models import sexo_usuario, estado_civilUsuario, tipo_bolsaUsuario, usuario_urole_roles
-from gestaolegaldaj.utils.forms import RequiredIf
+from gestaolegal.usuario.models import sexo_usuario, estado_civilUsuario, tipo_bolsaUsuario, usuario_urole_roles
+from gestaolegal.utils.forms import RequiredIf
 
 #####################################################
 ################## CONSTANTES #######################

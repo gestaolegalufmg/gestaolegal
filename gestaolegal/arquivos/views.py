@@ -4,10 +4,10 @@ from unicodedata import normalize
 
 from flask import (Blueprint, flash, redirect, render_template, request, url_for, current_app)
 from flask_login import current_user
-from gestaolegaldaj import db, login_required, app
-from gestaolegaldaj.arquivos.forms import ArquivoForm
-from gestaolegaldaj.arquivos.models import Arquivo
-from gestaolegaldaj.usuario.models import usuario_urole_roles
+from gestaolegal import db, login_required, app
+from gestaolegal.arquivos.forms import ArquivoForm
+from gestaolegal.arquivos.models import Arquivo
+from gestaolegal.usuario.models import usuario_urole_roles
 
 arquivos = Blueprint('arquivos', __name__, template_folder='templates')
 
