@@ -1,4 +1,4 @@
-from gestaolegaldaj import db
+from gestaolegal import db
 
 class Arquivo(db.Model):
     __tablename__ = 'arquivos'

@@ -9,9 +9,9 @@ from sqlalchemy import null
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import expression
 
-from gestaolegaldaj import db
-from gestaolegaldaj.casos.models import associacao_casos_atendidos
-from gestaolegaldaj.usuario.models import Usuario
+from gestaolegal import db
+from gestaolegal.casos.models import associacao_casos_atendidos
+from gestaolegal.usuario.models import Usuario
 
 ##############################################################
 ################## CONSTANTES/ENUMS ##########################

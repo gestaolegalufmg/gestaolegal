@@ -29,7 +29,7 @@ app.config["UPLOADS"] = "./static/casos"
 
 app.config[
     "SQLALCHEMY_DATABASE_URI"
-] = "mysql+pymysql://gestaolegal:gestaolegal@db_gl/gestaolegal"
+] = "mysql+pymysql://gestaolegal:gestaolegal@localhost/gestaolegal"
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_recycle": 10}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -63,7 +63,7 @@ def processor_formata_float():
     return dict(formata_float=formata_float)
 
 
-from gestaolegaldaj.usuario.models import usuario_urole_roles
+from gestaolegal.usuario.models import usuario_urole_roles
 
 
 @app.context_processor
@@ -71,7 +71,7 @@ def insere_usuario_roles():
     return dict(usuario_urole_roles=usuario_urole_roles)
 
 
-from gestaolegaldaj.usuario.models import tipo_bolsaUsuario
+from gestaolegal.usuario.models import tipo_bolsaUsuario
 
 
 @app.context_processor
@@ -79,7 +79,7 @@ def insere_tipo_bolsaUsuario():
     return dict(tipo_bolsaUsuario=tipo_bolsaUsuario)
 
 
-from gestaolegaldaj.usuario.models import sexo_usuario
+from gestaolegal.usuario.models import sexo_usuario
 
 
 @app.context_processor
@@ -87,7 +87,7 @@ def insere_sexo_usuario():
     return dict(sexo_usuario=sexo_usuario)
 
 
-from gestaolegaldaj.usuario.models import estado_civilUsuario
+from gestaolegal.usuario.models import estado_civilUsuario
 
 
 @app.context_processor
@@ -95,7 +95,7 @@ def insere_estado_civilUsuario():
     return dict(estado_civilUsuario=estado_civilUsuario)
 
 
-from gestaolegaldaj.plantao.models import como_conheceu_daj
+from gestaolegal.plantao.models import como_conheceu_daj
 
 
 @app.context_processor
@@ -103,7 +103,7 @@ def insere_como_conheceu_dajUsuario():
     return dict(como_conheceu_daj=como_conheceu_daj)
 
 
-from gestaolegaldaj.plantao.models import assistencia_jud_areas_atendidas
+from gestaolegal.plantao.models import assistencia_jud_areas_atendidas
 
 
 @app.context_processor
@@ -111,7 +111,7 @@ def insere_assistencia_jud_areas_atendidas():
     return dict(assistencia_jud_areas_atendidas=assistencia_jud_areas_atendidas)
 
 
-from gestaolegaldaj.plantao.models import assistencia_jud_regioes
+from gestaolegal.plantao.models import assistencia_jud_regioes
 
 
 @app.context_processor
@@ -119,7 +119,7 @@ def insere_assistencia_jud_regioes():
     return dict(assistencia_jud_regioes=assistencia_jud_regioes)
 
 
-from gestaolegaldaj.plantao.models import qual_pessoa_doente
+from gestaolegal.plantao.models import qual_pessoa_doente
 
 
 @app.context_processor
@@ -127,7 +127,7 @@ def insere_qual_pessoa_doente():
     return dict(qual_pessoa_doente=qual_pessoa_doente)
 
 
-from gestaolegaldaj.plantao.models import regiao_bh
+from gestaolegal.plantao.models import regiao_bh
 
 
 @app.context_processor
@@ -135,7 +135,7 @@ def insere_regiao_bh():
     return dict(regiao_bh=regiao_bh)
 
 
-from gestaolegaldaj.plantao.models import escolaridade
+from gestaolegal.plantao.models import escolaridade
 
 
 @app.context_processor
@@ -143,7 +143,7 @@ def insere_escolaridade():
     return dict(escolaridade=escolaridade)
 
 
-from gestaolegaldaj.plantao.models import enquadramento
+from gestaolegal.plantao.models import enquadramento
 
 
 @app.context_processor
@@ -151,7 +151,7 @@ def insere_enquadramento():
     return dict(enquadramento=enquadramento)
 
 
-from gestaolegaldaj.plantao.models import area_atuacao
+from gestaolegal.plantao.models import area_atuacao
 
 
 @app.context_processor
@@ -159,7 +159,7 @@ def insere_area_atuacao():
     return dict(area_atuacao=area_atuacao)
 
 
-from gestaolegaldaj.plantao.models import orgao_reg
+from gestaolegal.plantao.models import orgao_reg
 
 
 @app.context_processor
@@ -167,7 +167,7 @@ def insere_orgao_reg():
     return dict(orgao_reg=orgao_reg)
 
 
-from gestaolegaldaj.casos.models import situacao_deferimento
+from gestaolegal.casos.models import situacao_deferimento
 
 
 @app.context_processor
@@ -175,7 +175,7 @@ def insere_situacao_deferimento():
     return dict(situacao_deferimento=situacao_deferimento)
 
 
-from gestaolegaldaj.casos.models import tipo_evento
+from gestaolegal.casos.models import tipo_evento
 
 
 @app.context_processor
@@ -278,19 +278,19 @@ def login_required(role=["ANY"]):
 ####################### MODELS ##############################
 #############################################################
 
-from gestaolegaldaj.usuario.models import Usuario
+from gestaolegal.usuario.models import Usuario
 
 #############################################################
 ####################### BLUEPRINTS ##########################
 #############################################################
 
-from gestaolegaldaj.principal.views import principal
-from gestaolegaldaj.usuario.views import usuario
-from gestaolegaldaj.plantao.views import plantao
-from gestaolegaldaj.casos.views import casos
-from gestaolegaldaj.arquivos.views import arquivos
-from gestaolegaldaj.relatorios.views import relatorios
-from gestaolegaldaj.notificacoes.views import notificacoes
+from gestaolegal.principal.views import principal
+from gestaolegal.usuario.views import usuario
+from gestaolegal.plantao.views import plantao
+from gestaolegal.casos.views import casos
+from gestaolegal.arquivos.views import arquivos
+from gestaolegal.relatorios.views import relatorios
+from gestaolegal.notificacoes.views import notificacoes
 
 
 app.register_blueprint(principal)

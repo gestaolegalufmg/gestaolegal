@@ -1,8 +1,8 @@
 from flask_wtf import FlaskForm
 from wtforms import HiddenField, SubmitField, SelectField, StringField, TextAreaField, DateField, FileField, FloatField
 from wtforms.validators import InputRequired, DataRequired, Optional
-from gestaolegaldaj.plantao.forms import area_do_direito, assistencia_jud_areas_atendidas
-from gestaolegaldaj.casos.models import situacao_deferimento
+from gestaolegal.plantao.forms import area_do_direito, assistencia_jud_areas_atendidas
+from gestaolegal.casos.models import situacao_deferimento
 
 class CasoForm(FlaskForm):
     clientes     = HiddenField(validators=[InputRequired('Por favor, selecione pelo menos um cliente para associar ao caso')])
