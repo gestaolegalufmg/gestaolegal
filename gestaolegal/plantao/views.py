@@ -7,28 +7,28 @@ from flask_paginate import Pagination, get_page_args
 from sqlalchemy import desc, asc, null, delete
 from sqlalchemy.orm import load_only
 
-from gestaolegaldaj import app, db, login_required
-from gestaolegaldaj.plantao.forms import (CadastroAtendidoForm,
-                                          EditarAssistidoForm,
-                                          OrientacaoJuridicaForm,
-                                          TornarAssistidoForm,
-                                          AssistenciaJudiciariaForm,
-                                          CadastroOrientacaoJuridicaForm,
-                                          AbrirPlantaoForm,
-                                          SelecionarDuracaoPlantaoForm,
-                                          FecharPlantaoForm)
-from gestaolegaldaj.plantao.forms import assistencia_jud_areas_atendidas
-from gestaolegaldaj.plantao.models import (Assistido,
-                                           AssistidoPessoaJuridica, Atendido,
-                                           OrientacaoJuridica, AssistenciaJudiciaria,
-                                           AssistenciaJudiciaria_xOrientacaoJuridica,
-                                           Atendido_xOrientacaoJuridica, DiasMarcadosPlantao,
-                                           DiaPlantao, Plantao, meses, RegistroEntrada) 
-from gestaolegaldaj.plantao.views_util import *
-from gestaolegaldaj.usuario.models import (Endereco, Usuario,
-                                           usuario_urole_roles, usuario_urole_inverso)
-from gestaolegaldaj.utils.models import queryFiltradaStatus
-from gestaolegaldaj.notificacoes.models import Notificacao, acoes
+from gestaolegal import app, db, login_required
+from gestaolegal.plantao.forms import (CadastroAtendidoForm,
+                                       EditarAssistidoForm,
+                                       OrientacaoJuridicaForm,
+                                       TornarAssistidoForm,
+                                       AssistenciaJudiciariaForm,
+                                       CadastroOrientacaoJuridicaForm,
+                                       AbrirPlantaoForm,
+                                       SelecionarDuracaoPlantaoForm,
+                                       FecharPlantaoForm)
+from gestaolegal.plantao.forms import assistencia_jud_areas_atendidas
+from gestaolegal.plantao.models import (Assistido,
+                                        AssistidoPessoaJuridica, Atendido,
+                                        OrientacaoJuridica, AssistenciaJudiciaria,
+                                        AssistenciaJudiciaria_xOrientacaoJuridica,
+                                        Atendido_xOrientacaoJuridica, DiasMarcadosPlantao,
+                                        DiaPlantao, Plantao, meses, RegistroEntrada)
+from gestaolegal.plantao.views_util import *
+from gestaolegal.usuario.models import (Endereco, Usuario,
+                                        usuario_urole_roles, usuario_urole_inverso)
+from gestaolegal.utils.models import queryFiltradaStatus
+from gestaolegal.notificacoes.models import Notificacao, acoes
 
 plantao = Blueprint('plantao', __name__, template_folder='templates')
 
@@ -739,7 +739,7 @@ def perfil_assistencia_judiciaria(_id):
 def pg_plantao():
     plantao = Plantao.query.first()
     
-    valida_fim_plantao(plantao)
+    # valida_fim_plantao(plantao)
     if (not (current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0]])) and (plantao.data_abertura == None):
         flash("O plantão não está aberto!")
         return redirect(url_for('principal.index'))

@@ -9,7 +9,7 @@ from sqlalchemy.sql import expression
 from sqlalchemy import null
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
-from gestaolegaldaj import app, db, login_manager
+from gestaolegal import app, db, login_manager
 from datetime import datetime
 
 ##############################################################

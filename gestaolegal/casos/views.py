@@ -10,19 +10,19 @@ from sqlalchemy import and_, or_, null
 from sqlalchemy.sql.elements import Null
 from sqlalchemy.exc import SQLAlchemyError
 
-from gestaolegaldaj import app, db, login_required
-from gestaolegaldaj.casos.forms import (CasoForm, EditarCasoForm,
-                                        JustificativaIndeferimento,
-                                        LembreteForm, RoteiroForm, EventoForm, ProcessoForm)
-from gestaolegaldaj.casos.models import (Caso, Historico, Lembrete, Roteiro,
-                                         situacao_deferimento, Evento, Processo)
-from gestaolegaldaj.casos.views_utils import *
-from gestaolegaldaj.plantao.forms import CadastroAtendidoForm, assistencia_jud_areas_atendidas
-from gestaolegaldaj.plantao.models import Atendido
-from gestaolegaldaj.plantao.views_util import *
-from gestaolegaldaj.usuario.models import Usuario, usuario_urole_roles
-from gestaolegaldaj.utils.models import queryFiltradaStatus
-from gestaolegaldaj.notificacoes.models import Notificacao, acoes
+from gestaolegal import app, db, login_required
+from gestaolegal.casos.forms import (CasoForm, EditarCasoForm,
+                                     JustificativaIndeferimento,
+                                     LembreteForm, RoteiroForm, EventoForm, ProcessoForm)
+from gestaolegal.casos.models import (Caso, Historico, Lembrete, Roteiro,
+                                      situacao_deferimento, Evento, Processo)
+from gestaolegal.casos.views_utils import *
+from gestaolegal.plantao.forms import CadastroAtendidoForm, assistencia_jud_areas_atendidas
+from gestaolegal.plantao.models import Atendido
+from gestaolegal.plantao.views_util import *
+from gestaolegal.usuario.models import Usuario, usuario_urole_roles
+from gestaolegal.utils.models import queryFiltradaStatus
+from gestaolegal.notificacoes.models import Notificacao, acoes
 
 casos = Blueprint('casos', __name__, template_folder='templates')
 

@@ -1,4 +1,4 @@
-from gestaolegaldaj import db
+from gestaolegal import db
 
 #EXEMPLO 1: atendidos = queryFiltradaStatus(Atendido).all()
 

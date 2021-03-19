@@ -3,17 +3,17 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 from flask_paginate import Pagination, get_page_args
 
-from gestaolegaldaj import app,db, login_required
-from gestaolegaldaj.usuario.models import Usuario, usuario_urole_roles, Endereco
-from gestaolegaldaj.plantao.models import (Atendido, 
-                                           Assistido, 
-                                           AssistidoPessoaJuridica, 
-                                           DiasMarcadosPlantao,
-                                           Plantao, 
-                                           AssistenciaJudiciaria,
-                                           assistencia_jud_areas_atendidas,
-                                           DiaPlantao)
-from gestaolegaldaj.plantao.forms import CadastroAtendidoForm, TornarAssistidoForm, EditarAssistidoForm, AbrirPlantaoForm, FecharPlantaoForm
+from gestaolegal import app,db, login_required
+from gestaolegal.usuario.models import Usuario, usuario_urole_roles, Endereco
+from gestaolegal.plantao.models import (Atendido,
+                                        Assistido,
+                                        AssistidoPessoaJuridica,
+                                        DiasMarcadosPlantao,
+                                        Plantao,
+                                        AssistenciaJudiciaria,
+                                        assistencia_jud_areas_atendidas,
+                                        DiaPlantao)
+from gestaolegal.plantao.forms import CadastroAtendidoForm, TornarAssistidoForm, EditarAssistidoForm, AbrirPlantaoForm, FecharPlantaoForm
 from sqlalchemy import null
 
 ##############################################################

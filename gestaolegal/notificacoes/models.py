@@ -1,4 +1,4 @@
-from gestaolegaldaj import db
+from gestaolegal import db
 
 acoes = {
     'CAD_NOVO_CASO': 'Cadastrado no caso {}',

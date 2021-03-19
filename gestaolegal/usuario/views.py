@@ -5,10 +5,10 @@ from datetime import datetime
 from flask_bcrypt import Bcrypt
 from flask_mail import Message
 
-from gestaolegaldaj import db, login_required, app, mail
-from gestaolegaldaj.usuario.forms import EditarUsuarioForm, CadastrarUsuarioForm
-from gestaolegaldaj.usuario.models import Usuario, usuario_urole_roles, Endereco
-from gestaolegaldaj.plantao.models import Atendido
+from gestaolegal import db, login_required, app, mail
+from gestaolegal.usuario.forms import EditarUsuarioForm, CadastrarUsuarioForm
+from gestaolegal.usuario.models import Usuario, usuario_urole_roles, Endereco
+from gestaolegal.plantao.models import Atendido
 from datetime import datetime
 
 usuario = Blueprint('usuario', __name__, template_folder='templates')
