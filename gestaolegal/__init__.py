@@ -1,3 +1,6 @@
+import configparser
+config = configparser.ConfigParser()
+import os
 from functools import wraps
 from flask import Flask, current_app
 from flask_login import LoginManager, current_user
@@ -5,6 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_mail import Mail
 
+flask_env = os.environ.get('FLASK_ENV')
 
 login_manager = LoginManager()
 
@@ -21,22 +25,32 @@ class ReverseProxied(object):
 app = Flask(__name__)
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 
-app.config["SECRET_KEY"] = "w8oyUPlywjAAN51OXBdfJUZ8icsRCCP7"
+config.read('config.ini')
+
+app.config["SECRET_KEY"] = config['SECRET_KEY']['key']
 app.config["UPLOADS"] = "./static/casos"
 ############################################################
 ################## BANCO DE DADOS ##########################
 ############################################################
 
+if flask_env == 'TEST':
+    config.read('config_test.ini')
+elif flask_env == 'PRODUCTION':
+    config.read('config_prod.ini')
+
+db_user = config['MYSQL']['user']
+db_password = config['MYSQL']['password']
+db_host = config['MYSQL']['host']
+db = config['MYSQL']['db']
+
 app.config[
     "SQLALCHEMY_DATABASE_URI"
-] = "mysql+pymysql://gestaolegal:gestaolegal@localhost/gestaolegal"
+] = "mysql+pymysql://{user}:{password}@{host}/{db}".format(user=db_user, password=db_password, host=db_host, db=db)
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_recycle": 10}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 Migrate(app, db, compare_type=True)
-
-app.config["PREFERRED_URL_SCHEME"] = 'https'
 
 #############################################################
 ########### VARIÁVEIS/FUNÇÕES DO TEMPLATE ###################
