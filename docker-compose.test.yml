@@ -1,0 +1,23 @@
+version: '3.7'
+
+services:
+  app_gl_test:
+    build: .
+    container_name: app_gl_test
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=development
+    ports:
+      - "5001:5000"
+    volumes:
+      - type: bind
+        source: .
+        target: /code
+    command: gunicorn --bind 0.0.0.0:5000 --workers=4 --timeout=300 wsgi:app
+    networks:
+      - gestaolegal
+
+networks:
+  gestaolegal:
+    external:
+      name: gestaolegal
