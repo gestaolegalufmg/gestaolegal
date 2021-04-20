@@ -233,7 +233,10 @@ def editar_caso(id_caso):
             db.session.commit()
 
         arquivo = request.files.get('arquivo')
-
+        nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
+        if extensao_do_arquivo != '.pdf':
+            flash("Extensão de arquivo não suportado.", "warning")
+            return redirect(url_for('casos.editar_caso', id_caso=id_caso))
         if entidade_caso.arquivo == None:
             entidade_caso.arquivo = (f'{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[-1]}' if arquivo else None)
             if arquivo:
@@ -504,7 +507,7 @@ def cadastrar_lembrete(id_do_caso):
         flash('Lembrete enviado com sucesso!', 'success')
 
         _notificacao = Notificacao(
-                acao = acoes['LEMBRETE'].format(_lembrete.id),
+                acao = acoes['LEMBRETE'].format(_lembrete.id, id_do_caso),
                 data = datetime.now(),
                 id_executor_acao = current_user.id,
                 id_usu_notificar = _lembrete.id_usuario
@@ -675,7 +678,7 @@ def novo_evento(id_caso):
 
         if _form.usuario.data:
             _notificacao = Notificacao(
-                    acao = acoes['EVENTO'].format(_evento.id),
+                    acao = acoes['EVENTO'].format(_evento.id, id_caso),
                     data = datetime.now(),
                     id_executor_acao = current_user.id,
                     id_usu_notificar = _form.usuario.data
@@ -967,7 +970,7 @@ def editar_processo(id_processo):
         setDadosProcesso(form, entidade_processo)
         db.session.commit()
         flash('Processo editado com sucesso!', "success")
-        return redirect(url_for('casos.processos', id_caso = entidade_processo.id_caso))
+        return redirect(url_for('casos.visualizar_processo',id_processo = id_processo, id_caso = entidade_processo.id_caso))
 
     setValoresProcesso(form, entidade_processo)
     return render_template('editar_processo.html', form = form, id_processo = id_processo)
