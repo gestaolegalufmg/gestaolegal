@@ -75,6 +75,7 @@ class ProcessoForm(FlaskForm):
     data_transito_em_julgado = DateField('Data do trânsito em julgado')
     obs                      = TextAreaField('Observações')
     submit                   = SubmitField('Associar Processo')
+    save_button              = SubmitField('Salvar Alterações')
 
 class EventoForm(FlaskForm):
     usuario   = HiddenField()

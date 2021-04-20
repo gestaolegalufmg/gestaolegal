@@ -3,8 +3,8 @@ from gestaolegal import db
 acoes = {
     'CAD_NOVO_CASO': 'Cadastrado no caso {}',
     'ABERTURA_PLANTAO': 'Abertura do plantão',#notificar orientadores e estagiarios
-    'EVENTO': 'Cadastrado no evento {}',
-    'LEMBRETE': 'Cadastrado no lembrete {}'
+    'EVENTO': 'Cadastrado no evento {} do caso {}',
+    'LEMBRETE': 'Cadastrado no lembrete {} do caso {}'
 }
 
 
