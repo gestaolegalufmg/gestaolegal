@@ -853,7 +853,7 @@ def novo_processo(id_caso):
         db.session.commit()
         flash('Processo associado com sucesso!', "success")
         
-        return redirect(url_for('casos.index'))
+        return redirect(url_for('casos.visualizar_caso', id = id_caso))
 
     return render_template('novo_processo.html', form = form)
 
