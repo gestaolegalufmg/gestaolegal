@@ -51,7 +51,7 @@ class ProcessoForm(FlaskForm):
                                             ],
                                         validators=[DataRequired("Por favor selecione uma opção de espécie da lista")]
                                         )
-    numero                   = FloatField('Número')
+    numero                   = FloatField('Número', validators=[DataRequired("Por favor, informe o número do processo.")])
     identificacao            = StringField('Identificação')
     vara                     = StringField('Vara, unidade jurisdicional, turma e/ou câmara')
     link                     = StringField('Link')
@@ -70,9 +70,9 @@ class ProcessoForm(FlaskForm):
                                         ('interessado','Interessado')
                                     ]
                                 )
-    valor_causa              = FloatField('Valor da Causa')
-    data_distribuicao        = DateField('Data da distribuição')
-    data_transito_em_julgado = DateField('Data do trânsito em julgado')
+    valor_causa              = FloatField('Valor da Causa', validators=[DataRequired("Por favor, informe o valor da causa.")])
+    data_distribuicao        = DateField('Data da distribuição', validators=[DataRequired("Por favor, escolha uma Data de Distribuição.")])
+    data_transito_em_julgado = DateField('Data do trânsito em julgado', validators=[Optional()])
     obs                      = TextAreaField('Observações')
     submit                   = SubmitField('Associar Processo')
     save_button              = SubmitField('Salvar Alterações')
