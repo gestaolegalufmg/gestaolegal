@@ -39,7 +39,9 @@
                 </div>
             </div>
             {% endif %}
+            {% endif %}
 
+            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
             <div class="form-group row">
                 <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="orientador-js">Orientador</span></label>
                 <div class="col-12 col-lg-6 offset-lg-1">
@@ -55,7 +57,7 @@
             </div>
             {% endif %}
 
-            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0]], usuario_urole_roles['COLAB_EXTERNO'][0] %}
+            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0]] %}
             <div class="form-group row">
                 <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="colaborador-js">Colaborador Externo</span></label>
                 <div class="col-12 col-lg-6 offset-lg-1">
