@@ -234,7 +234,7 @@ def editar_caso(id_caso):
 
         arquivo = request.files.get('arquivo')
         nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
-        if extensao_do_arquivo != '.pdf':
+        if extensao_do_arquivo != '.pdf' and arquivo:
             flash("Extensão de arquivo não suportado.", "warning")
             return redirect(url_for('casos.editar_caso', id_caso=id_caso))
         if entidade_caso.arquivo == None:
@@ -515,7 +515,7 @@ def cadastrar_lembrete(id_do_caso):
         db.session.add(_notificacao)
         db.session.commit()
 
-        return redirect(url_for('casos.index'))
+        return redirect(url_for('casos.visualizar_caso', id=id_do_caso))
 
     return render_template('novo_lembrete.html', form = _form )
 
