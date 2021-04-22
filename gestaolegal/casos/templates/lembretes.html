@@ -3,15 +3,16 @@
 {% block conteudo %}
 
     
-    {% if lembretes %}
+    
     <div class="row card ml-1 mr-1 card-primary">
         <div class="card-header">
             <h4>Ações:</h4>
-            <div class="card-header-action"><a href="{{url_for('casos.cadastrar_lembrete', id_do_caso=lembretes[0].id_caso)}}">
+            <div class="card-header-action"><a href="{{url_for('casos.cadastrar_lembrete', id_do_caso=caso_id)}}">
                 <button  class="btn btn-primary mr-1">Criar Lembrete</button></a>
             </div>
         </div>
     </div>
+    {% if lembretes %}
     <div class="row">
         {% for lembrete in lembretes %}
     
