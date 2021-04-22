@@ -60,6 +60,18 @@
             <div class="card-body">
               <p class="clearfix">
                 <span class="float-left">
+                  Área do Direito:
+                </span>
+                <span class="float-right text-muted">
+                  {% for key in assistencia_jud_areas_atendidas %}
+                    {% if assistencia_jud_areas_atendidas[key][0] == caso.area_direito %}
+                      {{assistencia_jud_areas_atendidas[key][1]}}
+                    {% endif %}
+                  {% endfor %}
+                </span>
+              </p>
+              <p class="clearfix">
+                <span class="float-left">
                   Usuário responsável:
                 </span>
                 <span class="float-right text-muted">
