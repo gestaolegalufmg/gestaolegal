@@ -161,7 +161,7 @@
                   <h4 style="font-weight: normal">
                     {% if caso.arquivo %}
                       {% if (caso.arquivo.split('.')|length) > 1 %}
-                        caso_{{caso.id}}_{{caso.arquivo}}
+                        {{caso.arquivo}}
                       {%else%}
                         Nenhum arquivo cadastrado
                       {% endif %}

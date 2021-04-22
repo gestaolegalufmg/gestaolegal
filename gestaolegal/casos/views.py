@@ -83,7 +83,7 @@ def novo_caso():
             id_criado_por           = current_user.id,
             data_modificacao        = datetime.now(),
             id_modificado_por       = current_user.id,
-            arquivo                 = (datetime.now().strftime("%d%m%Y") + '.' + (arquivo.filename.split(".")[1])) if arquivo else None,
+            arquivo                 = arquivo.filename if arquivo else None,
             descricao               = _form.descricao.data,
         )
 
@@ -95,7 +95,7 @@ def novo_caso():
         db.session.commit()
 
         if arquivo:
-            nome_arquivo = f'caso_{_caso.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[1]}'
+            nome_arquivo = f'{arquivo.filename}'
             arquivo.save(os.path.join(current_app.root_path,'static','casos', nome_arquivo))
 
         flash('Caso criado com sucesso!','success')
@@ -238,9 +238,9 @@ def editar_caso(id_caso):
             flash("Extensão de arquivo não suportado.", "warning")
             return redirect(url_for('casos.editar_caso', id_caso=id_caso))
         if entidade_caso.arquivo == None:
-            entidade_caso.arquivo = (f'{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[-1]}' if arquivo else None)
+            entidade_caso.arquivo = arquivo.filename if arquivo else None
             if arquivo:
-                nome_arquivo = f'caso_{entidade_caso.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[-1]}'
+                nome_arquivo = f'{arquivo.filename}'
                 arquivo.save(os.path.join(current_app.root_path,'static','casos', nome_arquivo))
 
         else:
@@ -248,10 +248,10 @@ def editar_caso(id_caso):
             if os.path.exists(local_arquivo):
                 os.remove(local_arquivo)
 
-            entidade_caso.arquivo = (f'{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[-1]}' if arquivo else None)
+            entidade_caso.arquivo = arquivo.filename if arquivo else None
 
             if arquivo:
-                nome_arquivo = f'caso_{entidade_caso.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[-1]}'
+                nome_arquivo = f'{arquivo.filename}'
                 arquivo.save(os.path.join(current_app.root_path,'static','casos', nome_arquivo))
         
         db.session.commit()
