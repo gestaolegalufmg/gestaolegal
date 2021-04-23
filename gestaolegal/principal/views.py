@@ -4,6 +4,7 @@ from gestaolegal import app, login_required
 from gestaolegal.usuario.models import Usuario
 from gestaolegal.plantao.models import Atendido, Assistido, AssistidoPessoaJuridica
 from gestaolegal.casos.models import Caso
+from sqlalchemy import and_, or_
 
 principal = Blueprint('principal', __name__, template_folder='templates')
 
@@ -42,9 +43,23 @@ def busca_geral():
     else:
         busca = request.args.get('busca_atual', '', type=str)
  
-    assistidos = Atendido.query.join(Assistido).filter(Atendido.nome.contains(busca)).order_by('nome').paginate(page_assistido_pfisica, app.config['ATENDIDOS_POR_PAGINA'], False)
-    assistidos_pjuridica = Atendido.query.join(Assistido).join(AssistidoPessoaJuridica).filter(Atendido.nome.contains(busca)).order_by('nome').paginate(page_assistido_pjuridica, app.config['ATENDIDOS_POR_PAGINA'], False)
-    usuarios = Usuario.query.filter(Usuario.nome.contains(busca), Usuario.status != False).order_by('nome').paginate(page_usuario, app.config['USUARIOS_POR_PAGINA'], False)
+    assistidos = (Atendido.query
+                  .join(Assistido)
+                  .filter(or_(Atendido.nome.contains(busca), Atendido.cpf.contains(busca)))
+                  .order_by('nome')
+                  .paginate(page_assistido_pfisica, app.config['ATENDIDOS_POR_PAGINA'], False))
+                  
+    assistidos_pjuridica = (Atendido.query
+                            .join(Assistido)
+                            .join(AssistidoPessoaJuridica)
+                            .filter(or_(Atendido.nome.contains(busca), Atendido.cpf.contains(busca))).order_by('nome')
+                            .paginate(page_assistido_pjuridica, app.config['ATENDIDOS_POR_PAGINA'], False))
+
+    usuarios = (Usuario.query.filter(or_(
+                and_(Usuario.nome.contains(busca), Usuario.status != False), 
+                and_(Usuario.cpf.contains(busca), Usuario.status != False)))
+                .order_by('nome')
+                .paginate(page_usuario, app.config['USUARIOS_POR_PAGINA'], False))
     
     casos = None
     if busca.isdigit():
