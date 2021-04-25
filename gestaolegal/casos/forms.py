@@ -19,12 +19,14 @@ class EditarCasoForm(FlaskForm):
     situacao_deferimento_ativo = SelectField('Status do caso', choices=[
                                                                         ('ativo','Ativo'),
                                                                         ('arquivado','Arquivado'),
-                                                                        ('solucionado', 'Solucionado')
+                                                                        ('solucionado', 'Solucionado'),
+                                                                        ('aguardando_deferimento', 'Aguardando Deferimento')
                                                                     ],
                                                                 validators = [Optional()])
     situacao_deferimento_indeferido = SelectField('Status do caso', choices=[
                                                                              ('indeferido','Indeferido'),
-                                                                             ('ativo','Ativo')
+                                                                             ('ativo','Ativo'),
+                                                                             ('aguardando_deferimento', 'Aguardando Deferimento')
                                                                         ],
                                                                     validators = [Optional()])
 
