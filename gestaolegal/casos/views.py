@@ -812,7 +812,7 @@ def visualizar_evento(id_evento):
     return render_template('visualizar_evento.html', entidade_evento = entidade_evento)
 
 @casos.route('/novo_processo/<id_caso>', methods=['POST', 'GET'])
-@login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles['COLAB_EXTERNO'][0]])
+@login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['PROFESSOR'][0]])
 def novo_processo(id_caso):
 
     entidade_caso = Caso.query.filter_by(id = id_caso, status = True).first()

@@ -179,15 +179,18 @@
             {% endif %}
             
             <a href="{{url_for('casos.visualizar_caso', id=caso.id)}}" class="btn btn-primary mr-2">Visualizar</a>
-            <a href="{{url_for('casos.editar_caso', id_caso = caso.id)}}" class="btn btn-primary mr-2">Editar</a>
+            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['ESTAGIARIO_DIREITO'][0],usuario_urole_roles['PROFESSOR'][0],usuario_urole_roles['ORIENTADOR'][0],usuario_urole_roles['COLAB_EXTERNO'][0]] %}
+                <a href="{{url_for('casos.editar_caso', id_caso = caso.id)}}" class="btn btn-primary mr-2">Editar</a>
+            {% endif %}
+            {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] %}
+                <form action="{{url_for('casos.excluir_caso', id_caso = caso.id, rota_paginacao = rota_paginacao)}}" method="POST">
+                    <input type="hidden" name="csrf_token" id="csrf_token{{caso.id}}" value="{{ csrf_token() }}">
 
-            <form action="{{url_for('casos.excluir_caso', id_caso = caso.id, rota_paginacao = rota_paginacao)}}" method="POST">
-                <input type="hidden" name="csrf_token" id="csrf_token{{caso.id}}" value="{{ csrf_token() }}">
-
-                <button class="btn ml-1 btn-flat btn-danger mr-2" onclick="return confirm('Você deseja excluir este caso?');">
-                    Excluir
-                </button>
-            </form>
+                    <button class="btn ml-1 btn-flat btn-danger mr-2" onclick="return confirm('Você deseja excluir este caso?');">
+                        Excluir
+                    </button>
+                </form>
+            {% endif %}
             
           </div>
         </div>
