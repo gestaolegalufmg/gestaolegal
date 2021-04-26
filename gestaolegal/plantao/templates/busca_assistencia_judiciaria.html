@@ -81,7 +81,7 @@
         </button>
       </td>
 
-      {% if current_user.urole == "admin" %}
+      {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0]] %}
       <td>
         <button
           type="submit"

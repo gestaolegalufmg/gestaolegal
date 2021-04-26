@@ -183,7 +183,7 @@ def excluir_atendido():
 
 ####Editar Atendido
 @plantao.route('/editar_atendido/<id_atendido>', methods=['POST', 'GET'])
-@login_required(role = [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]])
+@login_required(role = [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles['PROFESSOR'][0]])
 def editar_atendido(id_atendido):
 ############################################# IMPLEMENTAÇÃO DA ROTA ##############################################################
 
@@ -256,7 +256,7 @@ def tornar_assistido(id_atendido):
     return render_template('tornar_assistido.html', atendido = entidade_atendido, form = form)
 
 @plantao.route('/editar_assistido/<id_atendido>/', methods=['POST', 'GET'])
-@login_required(role = [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]])
+@login_required(role = [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles['PROFESSOR'][0]])
 def editar_assistido(id_atendido):
     def setValoresFormAssistido(entidade_assistido: Assistido, form: TornarAssistidoForm):
         form.sexo.data                  = entidade_assistido.sexo
@@ -695,7 +695,7 @@ def busca_oj(_busca):
 
 # Excluir assistência judiciária
 @plantao.route('/excluir_assistencia_judiciaria/<_id>')
-@login_required(role = [usuario_urole_roles['ADMINISTRADOR'][0]])
+@login_required(role = [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0]])
 def excluir_assistencia_judiciaria(_id):
     aj = db.session.query(AssistenciaJudiciaria).filter_by(id=_id).first()
     if aj is None:
