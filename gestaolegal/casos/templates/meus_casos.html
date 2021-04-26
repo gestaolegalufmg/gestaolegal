@@ -23,7 +23,7 @@
                 </div>
 
                 <div class="d-flex flex-row">
-                    {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0]] %}
+                    {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
                     <button type="submit" name="button" class="btn btn-primary my-2">
                         <a style="color: inherit; text-decoration: none;" href="{{url_for('casos.novo_caso')}}">Cadastrar Caso</a>
                     </button>

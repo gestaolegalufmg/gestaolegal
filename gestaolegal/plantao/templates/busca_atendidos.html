@@ -24,7 +24,7 @@
                     <td><a href="{{url_for('plantao.perfil_assistido', _id=atendido_assistido[0].id)}}" class="btn mr-2 btn-flat btn-primary btn-sm">Visualizar</a></td>
                 
                     <td>
-                        {% if current_user.urole == "admin" or current_user.urole == "colab_proj" or current_user.urole == "estag_direito" %}
+                        {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
                             {% if atendido_assistido[1] %}
                                 <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
                                       href="{{url_for('plantao.editar_assistido', id_atendido = atendido_assistido[0].id)}}"

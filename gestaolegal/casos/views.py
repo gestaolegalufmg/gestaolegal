@@ -68,7 +68,7 @@ def ajax_filtro_casos():
                             )
 
 @casos.route('/novo_caso', methods=['GET','POST'])
-@login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['ESTAGIARIO_DIREITO'][0],])
+@login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['ESTAGIARIO_DIREITO'][0],usuario_urole_roles['PROFESSOR'][0]])
 def novo_caso():
     _form = CasoForm()
     if _form.validate_on_submit():
