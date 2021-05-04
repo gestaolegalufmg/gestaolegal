@@ -245,14 +245,16 @@ def atualiza_data_fechamento(form: FecharPlantaoForm, plantao: Plantao):
     db.session.commit()
 
 def set_abrir_plantao_form(form: AbrirPlantaoForm, plantao: Plantao):
-    if plantao.data_abertura:
-        form.data_abertura.data = plantao.data_abertura.date()
-        form.hora_abertura.data = plantao.data_abertura.time() 
+    if plantao:
+        if plantao.data_abertura:
+            form.data_abertura.data = plantao.data_abertura.date()
+            form.hora_abertura.data = plantao.data_abertura.time() 
 
 def set_fechar_plantao_form(form: FecharPlantaoForm, plantao: Plantao):
-    if plantao.data_fechamento:
-        form.data_fechamento.data = plantao.data_fechamento.date()
-        form.hora_fechamento.data = plantao.data_fechamento.time()
+    if plantao:
+        if plantao.data_fechamento:
+            form.data_fechamento.data = plantao.data_fechamento.date()
+            form.hora_fechamento.data = plantao.data_fechamento.time()
     
 def vagas_restantes(dias_disponiveis: list, data: date):
   num_max = 0
@@ -287,17 +289,18 @@ def query_filtro_assistencia_judiciaria(query_base, filtro):
             .filter((AssistenciaJudiciaria.areas_atendidas.contains(filtro)) & (AssistenciaJudiciaria.status == True))
 
 def valida_fim_plantao(plantao: Plantao):
-    if plantao.data_fechamento:
-        if plantao.data_fechamento < datetime.now():
-            try:
-                DiaPlantao.query.delete()
-                db.session.flush()
+    if plantao:
+        if plantao.data_fechamento:
+            if plantao.data_fechamento < datetime.now():
+                try:
+                    DiaPlantao.query.delete()
+                    db.session.flush()
 
-                plantao.data_fechamento = null()
-                plantao.data_abertura = null()
-                db.session.commit()
-            except:
-                db.session.rollback()
-                return False
+                    plantao.data_fechamento = null()
+                    plantao.data_abertura = null()
+                    db.session.commit()
+                except:
+                    db.session.rollback()
+                    return False
     
     return True
