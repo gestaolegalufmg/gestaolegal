@@ -2,6 +2,24 @@
 {% block titulo %}Evento #{{entidade_evento.id}}{%endblock %}
 
 {% block conteudo %}
+<div class="row">
+    <div class="col-12">
+        <div class="card card-primary">
+            <div class="card-header">
+                <h4>Ações:</h4>
+                <div class="card-header-action">
+                    <a href="{{url_for('casos.editar_evento', id_evento = entidade_evento.id)}}"><button class="btn btn-primary">Editar</button></a>
+                    <form action="{{url_for('casos.excluir_evento', id_evento = entidade_evento.id)}}" method="POST">
+                        <input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn ml-1 btn-flat btn-danger mr-2" onclick="return confirm('Você deseja excluir este evento?');">
+                            Excluir
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="row my-4">
     <div class="col-md-6 col-xs-12">
         <div class="card">
@@ -70,7 +88,7 @@
                   {% endif %}
                 </h4>
                 <div class="card-header-action">
-                  <a href="{{url_for('static', filename='eventos/evento_{}_{}'.format(entidade_evento.id, entidade_evento.arquivo) )}}" class="btn btn-primary {{'disabled' if not entidade_evento.arquivo else None}}">Download</a>
+                  <a href="{{url_for('static', filename='eventos/evento_{}_{}'.format(entidade_evento.id, entidade_evento.arquivo) )}}" target="_blank" class="btn btn-primary {{'disabled' if not entidade_evento.arquivo else None}}">Download</a>
                 </div>
               </div>
             </div>
