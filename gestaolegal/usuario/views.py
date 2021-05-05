@@ -187,6 +187,8 @@ def editar_senha_usuario():
         form = request.form
         confirmacao = form['confirmacao']
         senha = form['senha']
+        if not validaSenha(senha):
+            return render_template('editar_senha_usuario.html')
 
         if not entidade_usuario:
             flash("Usuário não encontrado.","danger")
@@ -240,6 +242,9 @@ def cadastrar_usuario():
         ferias = form.ferias.data
 
         emailRepetido = Usuario.query.filter_by(email= email).first()
+
+        if not validaSenha(senha):
+            return render_template('cadastro.html', form = form)
 
         if (confirmacao != senha ):
             flash("Confirmação de senha e senha estão diferentes.","warning")
@@ -358,6 +363,8 @@ def muda_senha_admin():
 def confirma_senha():
     bcrypt = Bcrypt()
     usuario = Usuario.query.get_or_404(int(request.form['id_usuario']))
+    if not validaSenha(request.form["senha"]):
+        return render_template('nova_senha.html', id_usuario=usuario.id)
     if request.form['senha'] == request.form['confirmar_senha']:
         senha = bcrypt.generate_password_hash(request.form['senha'])
         usuario.senha = senha
@@ -508,3 +515,21 @@ def criar_usuarios():
     db.session.add_all([admin,orientador,colaborador_proj,estagiario,colaborador_ext,professor])
     db.session.commit()
 
+def validaSenha(senha):
+    caracteresEspeciais = ['.',',',';','@','#']
+    if len(senha) < 6:
+        flash("Sua senha deve conter pelo menos 6 caracteres.", "warning")
+        return False
+    if not any(char.isdigit() for char in senha):
+        flash("Sua senha precisa conter pelo menos um número.", "warning")
+        return False
+    if not any(char.isupper() for char in senha):
+        flash("Sua senha precisa conter pelo menos uma letra maiúscula.", "warning")
+        return False
+    if not any(char in caracteresEspeciais for char in senha):
+        flash("Sua senha precisa conter pelo menos um caractere especial, sendo eles: '.' ',' ';' '@','#' .", "warning")
+        return False
+    if not any(char.isalpha() for char in senha):
+        flash("Sua senha precisa conter pelo menos uma letra do alfabeto.", "warning")
+        return False
+    return True
