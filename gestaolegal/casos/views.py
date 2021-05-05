@@ -892,7 +892,10 @@ def excluir_caso(id_caso):
 
     db.session.commit() 
 
-    return redirect(url_for(rota_paginacao))
+    if rota_paginacao:
+        return redirect(url_for(rota_paginacao))
+    else:
+        return redirect(url_for('casos.index'))
 
 @casos.route('/excluir_processo/<id_processo>', methods=['GET','POST'])
 @login_required(role = [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles['COLAB_EXTERNO'][0]])
