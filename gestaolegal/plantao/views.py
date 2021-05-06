@@ -1,6 +1,6 @@
 from datetime import datetime, date, time, timedelta
 import calendar
-
+import pytz
 from flask import Blueprint, flash, redirect, render_template, request, url_for, session, json
 from flask_login import current_user
 from flask_paginate import Pagination, get_page_args
@@ -942,7 +942,7 @@ def ajax_vagas_disponiveis():
 @plantao.route('/registro_presenca')
 @login_required()
 def reg_presenca():
-    data_hora_atual = datetime.now()
+    data_hora_atual = datetime.now(tz=pytz.timezone('America/Sao_Paulo'))
     status_presenca = "Entrada"
 
     verifica_historico = RegistroEntrada.query.filter(RegistroEntrada.id_usuario == current_user.id, RegistroEntrada.status == True).first()
