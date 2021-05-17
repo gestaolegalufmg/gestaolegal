@@ -194,13 +194,6 @@ class CadastroAtendidoForm(EnderecoForm):
                                     ]
                                 )
 
-    area_juridica   = StringField('Área da demanda',
-                                validators=[
-                                    DataRequired(MSG_NaoPodeEstarEmBranco.format('"Área da demanda"')),
-                                    Length(max=max_areajuridica, message='Por favor, use no máximo {} caracteres para o campo "Área da demanda".'.format(max_areajuridica))
-                                    ]
-                                )
-
     como_conheceu   = SelectField('Como ficou sabendo da DAJ/Direito Vivo?',
                                 choices=[
                                     (como_conheceu_daj['ASSISTIDOS'][0], como_conheceu_daj['ASSISTIDOS'][1]),
