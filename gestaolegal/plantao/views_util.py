@@ -69,7 +69,6 @@ def setValoresFormAtendido(entidade_atendido: Atendido, form: CadastroAtendidoFo
    form.celular.data               = entidade_atendido.celular
    form.email.data                 = entidade_atendido.email
    form.estado_civil.data          = entidade_atendido.estado_civil
-   form.area_juridica.data         = entidade_atendido.area_juridica
    form.como_conheceu.data         = entidade_atendido.como_conheceu
    form.indicacao_orgao.data       = entidade_atendido.indicacao_orgao
    form.procurou_outro_local.data  = False if entidade_atendido.procurou_outro_local == '0' else True

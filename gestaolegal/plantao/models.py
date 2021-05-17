@@ -257,7 +257,6 @@ class Atendido(db.Model):
 
 
     #antiga Área_demanda
-    area_juridica          = db.Column(db.String(80, collation = 'latin1_general_ci'), nullable=False)
     como_conheceu          = db.Column(db.String(80, collation = 'latin1_general_ci'), nullable=False)
     indicacao_orgao        = db.Column(db.String(80, collation = 'latin1_general_ci'))
     procurou_outro_local   = db.Column(db.String(80, collation = 'latin1_general_ci'), nullable=False)

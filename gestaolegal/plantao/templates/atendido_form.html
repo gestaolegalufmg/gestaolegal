@@ -86,18 +86,6 @@
                 {% endfor %}
 
                 <div class="form-group row">
-                    <label class="col-lg-4 col-form-label" for="area_juridica">{{ form.area_juridica.label }} <span class="text-danger">*</span>
-                    </label>
-                    <div class="col-lg-6">
-                        {{ form.area_juridica(type="text", class_="form-control") }}
-                    </div>
-                </div>
-
-                {% for error in form.area_juridica.errors %}
-                    <div class="alert alert-danger">{{error}}</div>
-                {% endfor %}
-
-                <div class="form-group row">
                     <label class="col-lg-4 col-form-label" for="como_conheceu">{{ form.como_conheceu.label }} <span class="text-danger">*</span>
                     </label>
                     <div class="col-lg-6">

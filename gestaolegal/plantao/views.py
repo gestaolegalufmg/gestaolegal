@@ -64,7 +64,6 @@ def cadastro_na():
                                      celular                 = form.celular.data,
                                      email                   = form.email.data,
                                      estado_civil            = form.estado_civil.data,
-                                     area_juridica           = form.area_juridica.data,
                                      como_conheceu           = form.como_conheceu.data,
                                      indicacao_orgao         = form.indicacao_orgao.data,
                                      procurou_outro_local    = form.procurou_outro_local.data,
