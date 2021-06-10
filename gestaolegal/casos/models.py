@@ -63,9 +63,16 @@ class Caso(db.Model):
 
     status                 = db.Column(db.Boolean, default = True, nullable = False)
     descricao              = db.Column(db.Text(collation = 'latin1_general_ci'))
-    arquivo                = db.Column(db.String(300, collation = 'latin1_general_ci'))
 
     numero_ultimo_processo = db.Column(db.Integer, nullable = True)
+
+class ArquivoCaso(db.Model):
+    __tablename__ = 'arquivosCaso'
+
+    id              = db.Column(db.Integer, primary_key=True)
+    link_arquivo    = db.Column(db.String(300, collation = 'latin1_general_ci'))
+
+    id_caso         = db.Column(db.Integer, db.ForeignKey('casos.id', ondelete='CASCADE'))
 
 class Roteiro(db.Model):
     __tablename__ = 'documentos_roteiro'

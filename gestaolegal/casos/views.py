@@ -15,7 +15,7 @@ from gestaolegal.casos.forms import (CasoForm, EditarCasoForm,
                                      JustificativaIndeferimento,
                                      LembreteForm, RoteiroForm, EventoForm, ProcessoForm)
 from gestaolegal.casos.models import (Caso, Historico, Lembrete, Roteiro,
-                                      situacao_deferimento, Evento, Processo)
+                                      situacao_deferimento, Evento, Processo, ArquivoCaso)
 from gestaolegal.casos.views_utils import *
 from gestaolegal.plantao.forms import CadastroAtendidoForm, assistencia_jud_areas_atendidas
 from gestaolegal.plantao.models import Atendido
@@ -76,6 +76,11 @@ def novo_caso():
         arquivo = request.files.get('arquivo')
         nome_arquivo = None
 
+        _, extensao_do_arquivo = os.path.splitext(arquivo.filename)
+        if extensao_do_arquivo != '.pdf' and arquivo:
+            flash("Extensão de arquivo não suportado.", "warning")
+            return render_template('novo_caso.html', form = _form)
+
         _caso = Caso(
             area_direito            = _form.area_direito.data,
             id_usuario_responsavel  = current_user.id,
@@ -83,7 +88,6 @@ def novo_caso():
             id_criado_por           = current_user.id,
             data_modificacao        = datetime.now(),
             id_modificado_por       = current_user.id,
-            arquivo                 = arquivo.filename if arquivo else None,
             descricao               = _form.descricao.data,
         )
 
@@ -92,6 +96,14 @@ def novo_caso():
             _caso.clientes.append(cliente)
         
         db.session.add(_caso)
+        db.session.commit()
+
+        caso_arquivo = ArquivoCaso(
+            link_arquivo    = arquivo.filename if arquivo else None,
+            id_caso         = _caso.id
+        )
+
+        db.session.add(caso_arquivo)
         db.session.commit()
 
         if arquivo:
@@ -109,10 +121,11 @@ def novo_caso():
 @login_required()
 def visualizar_caso(id):
     _caso = Caso.query.filter_by(status = True, id = id).first()
+    arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id).all()
     if not _caso: abort(404)
     processos = Processo.query.filter_by(id_caso = id, status = True).all()
     _lembrete = Lembrete.query.filter_by(status = True, id_caso = id).first()
-    return render_template('visualizar_caso.html', caso = _caso, processos = processos, lembrete=_lembrete)
+    return render_template('visualizar_caso.html', caso = _caso, processos = processos, lembrete=_lembrete, arquivos=arquivos)
 
 @casos.route('/deferir_caso/<int:id_caso>', methods=['POST', 'GET'])
 @login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0]])
@@ -190,6 +203,7 @@ def editar_caso(id_caso):
 ############################## IMPLEMENTAÇÃO DA ROTA ###########################################################3
 
     entidade_caso = Caso.query.filter_by(id = id_caso, status = True).first()
+    arquivos      = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id_caso).all()
 
     if not entidade_caso:
         flash("Não existe um caso com esse ID.", 'warning')
@@ -237,22 +251,16 @@ def editar_caso(id_caso):
         if extensao_do_arquivo != '.pdf' and arquivo:
             flash("Extensão de arquivo não suportado.", "warning")
             return redirect(url_for('casos.editar_caso', id_caso=id_caso))
-        if entidade_caso.arquivo == None:
-            entidade_caso.arquivo = arquivo.filename if arquivo else None
-            if arquivo:
-                nome_arquivo = f'{arquivo.filename}'
-                arquivo.save(os.path.join(current_app.root_path,'static','casos', nome_arquivo))
-
-        else:
-            local_arquivo = os.path.join(current_app.root_path, 'static', 'casos', 'caso_{}_{}'.format(entidade_caso.id, entidade_caso.arquivo))
-            if os.path.exists(local_arquivo):
-                os.remove(local_arquivo)
-
-            entidade_caso.arquivo = arquivo.filename if arquivo else None
-
-            if arquivo:
-                nome_arquivo = f'{arquivo.filename}'
-                arquivo.save(os.path.join(current_app.root_path,'static','casos', nome_arquivo))
+        
+        arquivo_caso = ArquivoCaso(
+                link_arquivo = arquivo.filename if arquivo else None,
+                id_caso      = id_caso
+            )
+        db.session.add(arquivo_caso)
+        if arquivo:
+            nome_arquivo = f'{arquivo.filename}'
+            arquivo.save(os.path.join(current_app.root_path,'static','casos', nome_arquivo))
+            
         
         db.session.commit()
         cadastrar_historico(current_user.id,id_caso) # Cadastra um novo histórico de edição
@@ -261,7 +269,7 @@ def editar_caso(id_caso):
 
     setValoresCaso(form, entidade_caso)
 
-    return render_template('editar_caso.html', form = form, caso = entidade_caso)
+    return render_template('editar_caso.html', form = form, caso = entidade_caso, arquivos=arquivos)
     
 @casos.route('excluir_assistido_caso/<id_caso>/<id_assistido>', methods=['POST','GET'])
 @login_required()
@@ -881,14 +889,16 @@ def excluir_caso(id_caso):
     rota_paginacao = request.args.get('rota_paginacao', ROTA_PAGINACAO_CASOS, type=str)
 
     caso = db.session.query(Caso).get(id_caso)
+    arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id_caso)
 
     caso.status = False
-    if caso.arquivo != None:
-        local_arquivo = os.path.join(current_app.root_path, 'static', 'casos', 'caso_{}_{}'.format(caso.id, caso.arquivo))
-        if os.path.exists(local_arquivo):
-            os.remove(local_arquivo)
+    for arquivo in arquivos:
+        if arquivo != None:
+            local_arquivo = os.path.join(current_app.root_path, 'static', 'casos', arquivo.link_arquivo)
+            if os.path.exists(local_arquivo):
+                os.remove(local_arquivo)
         
-        caso.arquivo = None
+        db.session.delete(arquivo)
 
     db.session.commit() 
 
