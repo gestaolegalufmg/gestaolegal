@@ -114,7 +114,7 @@
                             <ul class="dropdown-menu" style="display: none;">
                                 <li><a href="{{url_for('plantao.pg_plantao')}}">Página do Plantão</a></li>
                                 <li><a href="{{url_for('plantao.reg_presenca')}}">Registro de Presença</a></li>
-                                {% if current_user.urole in [ usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0] ] %}
+                                {% if current_user.urole in [ usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_PROJETO'][0] ] %}
                                 <li><a href="{{url_for('plantao.confirmar_presenca')}}">Confirmar Presença</a></li>
                                 {% endif %}
                                
