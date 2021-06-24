@@ -18,7 +18,11 @@
                                 Área do Direito:
                             </span>
                             <span class="float-right text-muted">
-                                {{orientacao.area_direito}}
+                                {% for key in assistencia_jud_areas_atendidas %}
+                                    {% if orientacao.area_direito == assistencia_jud_areas_atendidas[key][0] %}
+                                        {{assistencia_jud_areas_atendidas[key][1]}}
+                                    {% endif %}
+                                {% endfor %}
                             </span>
                         </p>
                         <p class="clearfix">
@@ -26,7 +30,7 @@
                                 Sub-Área:
                             </span>
                             <span class="float-right text-muted">
-                                {{orientacao.sub_area}}
+                                {{orientacao.sub_area or "--"}}
                             </span>
                         </p>
                         <p class="clearfix">

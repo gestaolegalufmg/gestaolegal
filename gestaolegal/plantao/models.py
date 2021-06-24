@@ -18,7 +18,7 @@ from gestaolegal.usuario.models import Usuario
 ##############################################################
 
 area_do_direito = {
-    'CIVEL'                : ('civel','Cível'),
+    'CIVEL'                : ('civel','Civel'),
     'TRABALHISTA'          : ('trabalhista', 'Trabalhista'),
     'ADMINISTRATIVO'       : ('administrativo', 'Administrativo'),
     'PENAL'                : ('penal', 'Penal'),
