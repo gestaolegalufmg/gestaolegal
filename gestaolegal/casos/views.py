@@ -23,6 +23,7 @@ from gestaolegal.plantao.views_util import *
 from gestaolegal.usuario.models import Usuario, usuario_urole_roles
 from gestaolegal.utils.models import queryFiltradaStatus
 from gestaolegal.notificacoes.models import Notificacao, acoes
+from werkzeug.exceptions import RequestEntityTooLarge
 
 casos = Blueprint('casos', __name__, template_folder='templates')
 
@@ -72,8 +73,11 @@ def ajax_filtro_casos():
 def novo_caso():
     _form = CasoForm()
     if _form.validate_on_submit():
-
-        arquivo = request.files.get('arquivo')
+        try:
+            arquivo = request.files.get('arquivo')
+        except RequestEntityTooLarge as error:
+            flash("Tamanho de arquivo muito longo.")
+            return render_template('novo_caso.html', form = _form)
         nome_arquivo = None
 
         _, extensao_do_arquivo = os.path.splitext(arquivo.filename)
@@ -246,7 +250,11 @@ def editar_caso(id_caso):
             db.session.add(_notificacao)
             db.session.commit()
 
-        arquivo = request.files.get('arquivo')
+        try:
+            arquivo = request.files.get('arquivo')
+        except RequestEntityTooLarge as error:
+            flash("Tamanho de arquivo muito longo.")
+            return render_template('editar_caso.html', form = form, caso = entidade_caso, arquivos=arquivos)
         nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
         if extensao_do_arquivo != '.pdf' and arquivo:
             flash("Extensão de arquivo não suportado.", "warning")
@@ -654,7 +662,11 @@ def novo_evento(id_caso):
     _form = EventoForm()
     if _form.validate_on_submit():
 
-        arquivo = request.files.get('arquivo')
+        try:
+            arquivo = request.files.get('arquivo')
+        except RequestEntityTooLarge as error:
+            flash("Tamanho de arquivo muito longo.")
+            return render_template('novo_evento.html', form = _form, id_caso = id_caso)
         nome_arquivo = None
 
         if _form.usuario.data:
@@ -734,7 +746,11 @@ def editar_evento(id_evento):
         if not form.validate():
             return render_template('editar_evento.html', form = form, id_evento = id_evento)
         
-        arquivo = request.files.get('arquivo')
+        try:
+            arquivo = request.files.get('arquivo')
+        except RequestEntityTooLarge as error:
+            flash("Tamanho de arquivo muito longo.")
+            return render_template('editar_evento.html', form = form, id_evento = id_evento, usuario = entidade_evento.usuario_responsavel.nome)
         nome_arquivo = None
         setDadosEvento(form, entidade_evento)
 

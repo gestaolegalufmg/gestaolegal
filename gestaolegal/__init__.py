@@ -29,6 +29,8 @@ config.read('config.ini')
 
 app.config["SECRET_KEY"] = config['SECRET_KEY']['key']
 app.config["UPLOADS"] = "./static/casos"
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024 # 10 MB limit
+
 ############################################################
 ################## BANCO DE DADOS ##########################
 ############################################################
