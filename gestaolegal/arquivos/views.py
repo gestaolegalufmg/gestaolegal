@@ -25,6 +25,9 @@ def cadastrar_arquivo():
     _form = ArquivoForm()
     if _form.validate_on_submit():
         arquivo = request.files.get(_form.arquivo.name)
+        if not arquivo:
+        	flash('Você precisa adicionar um arquivo.','warning')
+        	return redirect(url_for('arquivos.cadastrar_arquivo'))
         _arquivo = Arquivo(
             titulo = _form.titulo.data,
             descricao = _form.descricao.data,
