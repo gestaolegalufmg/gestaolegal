@@ -252,12 +252,12 @@ def editar_caso(id_caso):
             flash("Extensão de arquivo não suportado.", "warning")
             return redirect(url_for('casos.editar_caso', id_caso=id_caso))
         
-        arquivo_caso = ArquivoCaso(
-                link_arquivo = arquivo.filename if arquivo else None,
-                id_caso      = id_caso
-            )
-        db.session.add(arquivo_caso)
         if arquivo:
+            arquivo_caso = ArquivoCaso(
+                    link_arquivo = arquivo.filename,
+                    id_caso      = id_caso
+                )
+            db.session.add(arquivo_caso)
             nome_arquivo = f'{arquivo.filename}'
             arquivo.save(os.path.join(current_app.root_path,'static','casos', nome_arquivo))
             
