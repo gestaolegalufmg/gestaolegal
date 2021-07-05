@@ -816,10 +816,10 @@ def ajax_confirma_data_plantao():
 
     dias_usuario_marcado = DiasMarcadosPlantao.query.filter_by(id_usuario = current_user.id).all()
 
-    validacao = (data_marcada in lista_dias_abertos) and ((current_user.urole == usuario_urole_roles['ORIENTADOR'][0]) or (current_user.urole == usuario_urole_roles['ESTAGIARIO_DIREITO'][0]))
+    validacao = (data_marcada in lista_dias_abertos)
     if not validacao:
         tipo_mensagem = 'warning'
-        mensagem = 'Data selecionada não foi aberta para plantão ou você não é um Orientador/Estagiário.'
+        mensagem = 'Data selecionada não foi aberta para plantão.'
         resultado_json = cria_json(render_template('lista_datas_plantao.html', datas_plantao = dias_usuario_marcado), mensagem, tipo_mensagem)
         return app.response_class(
                                     response = json.dumps(resultado_json),

@@ -270,7 +270,10 @@ def vagas_restantes(dias_disponiveis: list, data: date):
       if num_max < 3:
         num_max = 3
   vagas_no_dia = db.session.query(DiasMarcadosPlantao, Usuario.urole).select_from(DiasMarcadosPlantao).join(Usuario).filter(Usuario.urole == current_user.urole, DiasMarcadosPlantao.data_marcada == data).all()
-  return (num_max - len(vagas_no_dia))
+  if not current_user.urole in [usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]]:
+      return "Sem limites"
+  else:
+    return (num_max - len(vagas_no_dia))
 
 def query_busca_assistencia_judiciaria(query_base, busca):
     if busca is None:
