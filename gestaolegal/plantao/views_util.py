@@ -41,7 +41,6 @@ def setDadosAtendido(entidade_atendido: Atendido, form):
     entidade_atendido.celular              = form.celular.data
     entidade_atendido.email                = form.email.data
     entidade_atendido.estado_civil         = form.estado_civil.data
-    entidade_atendido.area_juridica        = form.area_juridica.data
     entidade_atendido.como_conheceu        = form.como_conheceu.data
     entidade_atendido.procurou_outro_local = form.procurou_outro_local.data
     entidade_atendido.obs                  = form.obs_atendido.data
