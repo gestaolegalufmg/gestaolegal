@@ -1,36 +1,32 @@
 version: '3.7'
-
 services:
-
   db_gl:
     image: mysql
     container_name: db_gl
-    command: --default-authentication-plugin=mysql_native_password
+    command: '--default-authentication-plugin=mysql_native_password'
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: administrator
       MYSQL_USER: gestaolegal
       MYSQL_PASSWORD: gestaolegal
     ports:
-      - "3306:3306"
+      - '3306:3306'
     expose:
-      - "3306"
+      - '3306'
     volumes:
       - type: bind
         source: /opt/docker_volumes/mysql_data
         target: /var/lib/mysql
     networks:
       - gestaolegal
-
   adminer_gl:
     image: adminer
     container_name: adminer_gl
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - '8080:8080'
     networks:
       - gestaolegal
-
 networks:
   gestaolegal:
     name: gestaolegal
