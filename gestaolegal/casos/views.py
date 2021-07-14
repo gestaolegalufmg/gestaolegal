@@ -240,7 +240,7 @@ def editar_caso(id_caso):
             db.session.add(_notificacao)
             db.session.commit()
 
-        if type(entidade_caso.id_colaborador) != type(Null()):
+        if entidade_caso.id_colaborador:
             _notificacao = Notificacao(
                 acao = acoes['CAD_NOVO_CASO'].format(entidade_caso.id),
                 data = datetime.now(),
