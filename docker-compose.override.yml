@@ -3,6 +3,7 @@ version: '3.7'
 services:
   app_gl:
     build: .
+    image: gestaolegal
     container_name: app_gl
     restart: unless-stopped
     environment:
