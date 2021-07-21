@@ -94,6 +94,7 @@ def novo_caso():
             id_modificado_por       = current_user.id,
             descricao               = _form.descricao.data,
         )
+        _caso.setSubAreas(_form.area_direito.data, _form.sub_area.data, _form.sub_areaAdmin.data)
 
         for id_cliente in _form.clientes.data.split(sep=','):
             cliente = Atendido.query.get(int(id_cliente))
