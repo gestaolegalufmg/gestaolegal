@@ -673,10 +673,10 @@ class TornarAssistidoForm(FlaskForm):
 
     ultimo_balanco_neg      = SelectField('O balanço patrimonial do último ano foi negativo?',
                                     choices=[
-                                        (True,'Sim'),
-                                        (False,'Não')
+                                        ('sim','Sim'),
+                                        ('nao','Não'),
+                                        ('nao_se_aplica','Não se aplica')
                                         ],
-                                    coerce=lambda x: x == 'True', #https://stackoverflow.com/questions/33429510/wtforms-selectfield-not-properly-coercing-for-booleans
                                     validators=[RequiredIf_InputRequired(pj_constituida = True,
                                                                         message = MSG_SelecioneUmaOpcaoLista.format('de "O balanço patrimonial do último ano foi negativo?"'))]
                                 )
