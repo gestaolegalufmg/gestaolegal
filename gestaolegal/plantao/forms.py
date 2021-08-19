@@ -673,8 +673,8 @@ class TornarAssistidoForm(FlaskForm):
 
     ultimo_balanco_neg      = SelectField('O balanço patrimonial do último ano foi negativo?',
                                     choices=[
-                                        ('sim','Sim'),
-                                        ('nao','Não'),
+                                        ('0','Sim'),
+                                        ('1','Não'),
                                         ('nao_se_aplica','Não se aplica')
                                         ],
                                     validators=[RequiredIf_InputRequired(pj_constituida = True,
