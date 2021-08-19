@@ -105,7 +105,8 @@ class OrientacaoJuridicaForm(FlaskForm):
     sub_areaAdmin    = SelectField('Sub-área Administrativo',
                                 choices=[
                                     (se_administrativo['PREVIDENCIARIO'][0],se_administrativo['PREVIDENCIARIO'][1]),
-                                    (se_administrativo['TRIBUTARIO'][0],se_administrativo['TRIBUTARIO'][1])
+                                    (se_administrativo['TRIBUTARIO'][0],se_administrativo['TRIBUTARIO'][1]),
+                                    (se_administrativo['ADMINISTRATIVO'][0], se_administrativo['ADMINISTRATIVO'][1])
                                     ],
                                 validators=[
                                     RequiredIf(area_direito = area_do_direito['ADMINISTRATIVO'][0], message = MSG_SelecioneUmaOpcaoLista.format("da sub-área Administrativo")),

@@ -1,5 +1,9 @@
 {{ form.csrf_token }}
-
+<style>
+    #descricao{
+        height: 100px;
+    }
+</style>
 <div class="form-group row" id="div_area_direito">
     <label class="col-lg-4 col-form-label" for="area_direito">{{form.area_direito.label}} <span class="text-danger">*</span>
     </label>
@@ -41,7 +45,7 @@
     <label class="col-lg-4 col-form-label" for="descricao">{{form.descricao.label}}
     </label>
     <div class="col-lg-6">
-        {{form.descricao(type="textarea",class_="form-control")}}
+        {{form.descricao(type="textarea", class_="form-control", id="descricao")}}
     </div>
 </div>
 
