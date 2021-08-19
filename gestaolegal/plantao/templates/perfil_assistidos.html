@@ -584,9 +584,9 @@
                                 O balanço patrimonial do último ano foi negativo?
                             </span>
                             <span class="float-right text-muted">
-                                {% if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == 'sim' %} 
+                                {% if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == '1' %} 
                                     Sim 
-                                {% elif assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == 'nao' %} 
+                                {% elif assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == '0' %} 
                                     Não
                                 {% else %} 
                                     Não se aplica
