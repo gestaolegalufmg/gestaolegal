@@ -146,13 +146,11 @@
             <div class="card-body">
               {% for atendido in caso.clientes %}
               <div class="card card-primary">
-                <div class="card-header">
-
-                    <h4 style="font-weight: normal">{{atendido.nome or ' ---'}}</h4>
-
-                  <h4 style="font-weight: normal">CPF: {{atendido.cpf or ' ---'}}</h4>
-                  <h4 style="font-weight: normal">CNPJ: {{atendido.cnpj or ' ---'}}</h4>
-                  <div class="card-header-action">
+                <div class="card-body">
+                  <h4 style="font-weight: normal; font-size: 10pt;">{{atendido.nome or ' ---'}}</h4>
+                  <h4 style="font-weight: normal; font-size: 10pt;">CPF: {{atendido.cpf or ' ---'}}</h4>
+                  <h4 style="font-weight: normal; font-size: 10pt;">CNPJ: {{atendido.cnpj or ' ---'}}</h4>
+                  <div class="card-body-action">
                     <a
                       href="{{url_for('plantao.perfil_assistido', _id=atendido.id)}}"
                       class="btn btn-primary"

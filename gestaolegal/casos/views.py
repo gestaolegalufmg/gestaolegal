@@ -94,6 +94,7 @@ def novo_caso():
             id_modificado_por       = current_user.id,
             descricao               = _form.descricao.data,
         )
+        _caso.setSubAreas(_form.area_direito.data, _form.sub_area.data, _form.sub_areaAdmin.data)
 
         for id_cliente in _form.clientes.data.split(sep=','):
             cliente = Atendido.query.get(int(id_cliente))
@@ -240,7 +241,7 @@ def editar_caso(id_caso):
             db.session.add(_notificacao)
             db.session.commit()
 
-        if type(entidade_caso.id_colaborador) != type(Null()):
+        if entidade_caso.id_colaborador:
             _notificacao = Notificacao(
                 acao = acoes['CAD_NOVO_CASO'].format(entidade_caso.id),
                 data = datetime.now(),

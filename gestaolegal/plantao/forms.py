@@ -105,7 +105,8 @@ class OrientacaoJuridicaForm(FlaskForm):
     sub_areaAdmin    = SelectField('Sub-área Administrativo',
                                 choices=[
                                     (se_administrativo['PREVIDENCIARIO'][0],se_administrativo['PREVIDENCIARIO'][1]),
-                                    (se_administrativo['TRIBUTARIO'][0],se_administrativo['TRIBUTARIO'][1])
+                                    (se_administrativo['TRIBUTARIO'][0],se_administrativo['TRIBUTARIO'][1]),
+                                    (se_administrativo['ADMINISTRATIVO'][0], se_administrativo['ADMINISTRATIVO'][1])
                                     ],
                                 validators=[
                                     RequiredIf(area_direito = area_do_direito['ADMINISTRATIVO'][0], message = MSG_SelecioneUmaOpcaoLista.format("da sub-área Administrativo")),
@@ -672,10 +673,10 @@ class TornarAssistidoForm(FlaskForm):
 
     ultimo_balanco_neg      = SelectField('O balanço patrimonial do último ano foi negativo?',
                                     choices=[
-                                        (True,'Sim'),
-                                        (False,'Não')
+                                        ('0','Sim'),
+                                        ('1','Não'),
+                                        ('nao_se_aplica','Não se aplica')
                                         ],
-                                    coerce=lambda x: x == 'True', #https://stackoverflow.com/questions/33429510/wtforms-selectfield-not-properly-coercing-for-booleans
                                     validators=[RequiredIf_InputRequired(pj_constituida = True,
                                                                         message = MSG_SelecioneUmaOpcaoLista.format('de "O balanço patrimonial do último ano foi negativo?"'))]
                                 )

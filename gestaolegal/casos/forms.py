@@ -1,12 +1,39 @@
 from flask_wtf import FlaskForm
 from wtforms import HiddenField, SubmitField, SelectField, StringField, TextAreaField, DateField, FileField, FloatField
-from wtforms.validators import InputRequired, DataRequired, Optional
+from wtforms.validators import InputRequired, DataRequired, Optional, AnyOf
 from gestaolegal.plantao.forms import area_do_direito, assistencia_jud_areas_atendidas
 from gestaolegal.casos.models import situacao_deferimento
+from gestaolegal.plantao.models import se_civel, se_administrativo
+from gestaolegal.utils.forms import RequiredIf
 
 class CasoForm(FlaskForm):
     clientes     = HiddenField(validators=[InputRequired('Por favor, selecione pelo menos um cliente para associar ao caso')])
     area_direito = SelectField('Área do Direito', choices=[(assistencia_jud_areas_atendidas[key][0],assistencia_jud_areas_atendidas[key][1]) for key in assistencia_jud_areas_atendidas])
+    sub_area     = SelectField('Sub-área Cível',
+                                choices=[
+                                    (se_civel['CONSUMIDOR'][0],se_civel['CONSUMIDOR'][1]),
+                                    (se_civel['CONTRATOS'][0],se_civel['CONTRATOS'][1]),
+                                    (se_civel['RESPONSABILIDADE_CIVIL'][0],se_civel['RESPONSABILIDADE_CIVIL'][1]),
+                                    (se_civel['REAIS'][0],se_civel['REAIS'][1]),
+                                    (se_civel['FAMILIA'][0],se_civel['FAMILIA'][1]),
+                                    (se_civel['SUCESSOES'][0],se_civel['SUCESSOES'][1])
+                                    ],
+                                validators=[
+                                    RequiredIf(area_direito = area_do_direito['CIVEL'][0]),
+                                    AnyOf([se_civel[key][0] for key in se_civel])
+                                    ]
+                                )
+
+    sub_areaAdmin= SelectField('Sub-área Administrativo',
+                                choices=[
+                                    (se_administrativo['PREVIDENCIARIO'][0],se_administrativo['PREVIDENCIARIO'][1]),
+                                    (se_administrativo['TRIBUTARIO'][0],se_administrativo['TRIBUTARIO'][1])
+                                    ],
+                                validators=[
+                                    RequiredIf(area_direito = area_do_direito['ADMINISTRATIVO'][0]),
+                                    AnyOf([se_administrativo[key][0] for key in se_administrativo])
+                                    ]
+                                )
     descricao    = TextAreaField('Descrição')
     submit       = SubmitField('Enviar')
 
