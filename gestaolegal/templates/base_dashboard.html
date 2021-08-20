@@ -152,7 +152,7 @@
                                 <i class="fas fa-file-alt"></i><span>Arquivos</span></a>
                             <ul class="dropdown-menu" style="display: none;">
                                 <li><a href="{{url_for('arquivos.index')}}">Ver Arquivos</a></li>
-                                {% if current_user.urole in [ usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0] ] %}
+                                {% if current_user.urole in [ usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['COLAB_PROJETO'][0] ] %}
                                 <li><a href="{{url_for('arquivos.cadastrar_arquivo')}}">Cadastrar Arquivo</a></li>
                                 {% endif %}
                             </ul>
