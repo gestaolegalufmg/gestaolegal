@@ -573,7 +573,12 @@ class TornarAssistidoForm(FlaskForm):
 
                             )
 
-    situacao_receita           = StringField('Situação perante a Receita Federal',
+    situacao_receita           = SelectField('Situação perante a Receita Federal',
+                                choices=[
+                                        ('Ativa', 'Ativa'),
+                                        ('Baixada', 'Baixada'),
+                                        ('Outras', 'Outras')
+                                    ],
                                 validators=[
                                     RequiredIf(pj_constituida = True, message = MSG_NaoPodeEstarEmBranco.format('A situação perante a Receita Federal')),
                                     Length(max=max_sit_receita, message="Por favor, use no máximo {} caracteres para descrever a profissão.".format(max_sit_receita))
