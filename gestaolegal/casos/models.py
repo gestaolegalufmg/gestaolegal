@@ -38,6 +38,7 @@ class Caso(db.Model):
     usuario_responsavel    = db.relationship('Usuario', foreign_keys = [id_usuario_responsavel])
 
     area_direito           = db.Column(db.String(50, collation = 'latin1_general_ci'), nullable = False)
+    sub_area               = db.Column(db.String(50, collation = 'latin1_general_ci'))
 
     clientes               = db.relationship('Atendido', secondary = associacao_casos_atendidos, back_populates='casos')
 
@@ -65,6 +66,14 @@ class Caso(db.Model):
     descricao              = db.Column(db.Text(collation = 'latin1_general_ci'))
 
     numero_ultimo_processo = db.Column(db.Integer, nullable = True)
+
+    def setSubAreas(self, area_direito, sub_area, sub_areaAdmin):
+        if area_direito == 'civel':
+            self.sub_area = sub_area
+        elif area_direito == 'administrativo':
+            self.sub_area = sub_areaAdmin
+        else:
+            self.sub_area = null()
 
 class ArquivoCaso(db.Model):
     __tablename__ = 'arquivosCaso'

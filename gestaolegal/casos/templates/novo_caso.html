@@ -18,6 +18,30 @@
                     {{form.area_direito(id="area_direito-js",class_='form-control')}}
                 </div>
             </div>
+
+            <div class="form-group row" id="div_sub_area" hidden = "true">
+                <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="sub_area">{{form.sub_area.label}} <span class="text-danger">*</span>
+                </label>
+                <div class="col-12 col-lg-6 offset-lg-1">
+                    {{form.sub_area(class_="form-control")}}
+                </div>
+            </div>
+
+            {% for error in form.sub_area.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+
+            <div class="form-group row" id="div_sub_area_admin" hidden = "true">
+                <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="sub_area_admin">{{form.sub_areaAdmin.label}} <span class="text-danger">*</span>
+                </label>
+                <div class="col-12 col-lg-6 offset-lg-1">
+                    {{form.sub_areaAdmin(class_="form-control")}}
+                </div>
+            </div>
+
+{% for error in form.sub_areaAdmin.errors %}
+    <div class="alert alert-danger">{{error}}</div>
+{% endfor %}
             
             <div class="form-group row">
                 <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="clientes-js">Assistidos<span class="text-danger">*</span></label>
@@ -62,4 +86,11 @@
 {% block scripts %}
     <script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
     <script src="{{url_for('static',filename='js/novo_caso.js')}}"></script>
+    <script src="{{url_for('static',filename='js/subarea_caso.js')}}"></script>
+    <script>
+        validarCampoAreaDireito();
+        
+        document.getElementById("area_direito-js").onchange = function() {validarCampoAreaDireito()};
+        document.getElementById('val-sub_area_admin').onchange = function() {validarCampoAreaDireito()};
+    </script>
 {% endblock scripts %}

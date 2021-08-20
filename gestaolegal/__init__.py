@@ -134,6 +134,36 @@ from gestaolegal.plantao.models import assistencia_jud_regioes
 def insere_assistencia_jud_regioes():
     return dict(assistencia_jud_regioes=assistencia_jud_regioes)
 
+from gestaolegal.plantao.models import beneficio
+
+
+@app.context_processor
+def insere_beneficio():
+    return dict(beneficio=beneficio)
+
+
+from gestaolegal.plantao.models import contribuicao_inss
+
+
+@app.context_processor
+def insere_contribuicao_inss():
+    return dict(contribuicao_inss=contribuicao_inss)
+
+
+from gestaolegal.plantao.models import participacao_renda
+
+
+@app.context_processor
+def insere_participacao_renda():
+    return dict(participacao_renda=participacao_renda)
+
+
+from gestaolegal.plantao.models import moradia
+
+
+@app.context_processor
+def insere_moradia():
+    return dict(moradia=moradia)
 
 from gestaolegal.plantao.models import qual_pessoa_doente
 

@@ -37,7 +37,8 @@ se_civel = {
 
 se_administrativo = {
     'PREVIDENCIARIO'                : ('previdenciario','Previdenciário'),
-    'TRIBUTARIO'                    : ('tributario', 'Tributário')
+    'TRIBUTARIO'                    : ('tributario', 'Tributário'),
+    'ADMINISTRATIVO'                : ('administrativo', 'Administrativo')
 }
 
 como_conheceu_daj = {
