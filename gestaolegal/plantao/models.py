@@ -87,7 +87,7 @@ beneficio = {
         "BOLSA_ESCOLA"                      :   ("bolsa_escola","Bolsa escola"),
         "BOLSA_MORADIA"                     :   ("bolsa_moradia","Bolsa moradia"),
         "CESTA_BASICA"                      :   ("cesta_basica","Cesta básica"),
-        "VALEGAS"                           :   ("valegas","Valegás"),
+        "VALEGAS"                           :   ("valegas","Vale Gás"),
         "NAO"                               :   ("nao","Não"),
         "NAO_INFORMOU"                      :   ("outro","Outro"),
         "OUTRO"                             :   ("nao_info","Não informou")
@@ -108,8 +108,7 @@ participacao_renda = {
 
     "PRINCIPAL_RESPONSAVEL"     :      ("principal", "Principal responsável"),
     "CONTRIBUINTE"              :      ("contribuinte", "Contribuinte"),
-    "DEPENDENTE"                :      ("dependente","Dependente"),
-    "NAO_CONTRIBUINTE"          :      ("nao_contribuinte", "Não contribuinte")
+    "DEPENDENTE"                :      ("dependente","Dependente")
 
 }
 
@@ -138,7 +137,6 @@ qual_pessoa_doente = {
     "PAIS"                                  : ("pais","Pais"),
     "AVOS"                                  : ("avos","Avós"),
     "SOGROS"                                : ("sogros","Sogros"),
-    "NAO_SE_APLICA"                         : ("nao_aplica","Não se aplica"),
     "OUTROS"                                : ("outros","Outros")
 }
 
