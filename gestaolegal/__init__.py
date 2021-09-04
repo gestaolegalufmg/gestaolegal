@@ -275,6 +275,7 @@ def formatarTipoDeEvento(string):
         "redist_caso": "Redistribuição do Caso",
         "encerramento_caso": "Encerramento do Caso",
         "outros": "Outros",
+        "documentos": "Documentos",
         "redist_caso": "Redistribuição do Caso",
     }.get(string, "outros")
 

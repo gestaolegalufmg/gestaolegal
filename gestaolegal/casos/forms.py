@@ -119,6 +119,7 @@ class EventoForm(FlaskForm):
                                         ('decisao_judicial','Decisão Judicial'),
                                         ('redist_caso','Redistribuição do Caso'),
                                         ('encerramento_caso','Encerramento do Caso'),
+                                        ('documentos', 'Documentos'),
                                         ('outros','Outros')
                                     ],
                                 validators=[InputRequired('Por favor, selecione pelo menos uma opção')]
