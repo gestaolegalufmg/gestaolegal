@@ -445,9 +445,7 @@ class TornarAssistidoForm(FlaskForm):
                                     choices=[
                                         (participacao_renda['PRINCIPAL_RESPONSAVEL'][0], participacao_renda['PRINCIPAL_RESPONSAVEL'][1]),
                                         (participacao_renda['CONTRIBUINTE'][0], participacao_renda['CONTRIBUINTE'][1]),
-                                        (participacao_renda['DEPENDENTE'][0], participacao_renda['DEPENDENTE'][1]),
-                                        (participacao_renda['NAO_CONTRIBUINTE'][0], participacao_renda['NAO_CONTRIBUINTE'][1]),
-
+                                        (participacao_renda['DEPENDENTE'][0], participacao_renda['DEPENDENTE'][1])
                                 ],
                                 validators=[
                                     DataRequired(MSG_SelecioneUmaOpcaoLista.format('de "Qual a sua posição em relação à renda familiar?"')),
@@ -535,7 +533,6 @@ class TornarAssistidoForm(FlaskForm):
                                 (qual_pessoa_doente['PAIS'][0], qual_pessoa_doente['PAIS'][1]),
                                 (qual_pessoa_doente['AVOS'][0], qual_pessoa_doente['AVOS'][1]),
                                 (qual_pessoa_doente['SOGROS'][0], qual_pessoa_doente['SOGROS'][1]),
-                                (qual_pessoa_doente['NAO_SE_APLICA'][0], qual_pessoa_doente['NAO_SE_APLICA'][1]),
                                 (qual_pessoa_doente['OUTROS'][0], qual_pessoa_doente['OUTROS'][1])
 
                                 ],
