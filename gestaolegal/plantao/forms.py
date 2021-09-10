@@ -414,6 +414,11 @@ class TornarAssistidoForm(FlaskForm):
                             ]
                         )
 
+    qual_beneficio       = StringField('Qual benefício?',
+                                validators = [RequiredIf(beneficio = 'outro', message = MSG_NaoPodeEstarEmBranco.format('"Qual benefício?"'))
+                                ]
+                            )
+
     contribui_inss            = SelectField('Contribui para a previdência social',
                                 choices=[
                                     (contribuicao_inss['SIM'][0], contribuicao_inss['SIM'][1]),
@@ -587,7 +592,7 @@ class TornarAssistidoForm(FlaskForm):
                                 (enquadramento['MICROEMPREENDEDOR_INDIVIDUAL'][0], enquadramento['MICROEMPREENDEDOR_INDIVIDUAL'][1]),
                                 (enquadramento['MICROEMPRESA'][0], enquadramento['MICROEMPRESA'][1]),
                                 (enquadramento['EMPRESA_PEQUENO_PORTE'][0], enquadramento['EMPRESA_PEQUENO_PORTE'][1]),
-                                (enquadramento['NAO_SE_APLICA'][0], enquadramento['NAO_SE_APLICA'][1])
+                                (enquadramento['OUTROS'][0], enquadramento['OUTROS'][1])
 
                                 ],
 
