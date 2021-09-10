@@ -94,3 +94,14 @@ function visibilidadePossui_veiculos(){
     }
 }
 
+function visibilidadeRecebe_beneficio(){
+    var elemento_selecionado = document.getElementById('beneficio');
+    var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
+
+        if (string_selecionada == "Outro"){
+            document.getElementById("div_qual_beneficio").hidden = false;
+        }
+        else{
+            document.getElementById("div_qual_beneficio").hidden =true;
+        }
+}

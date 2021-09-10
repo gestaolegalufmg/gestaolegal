@@ -147,7 +147,7 @@ enquadramento = {
     "MICROEMPREENDEDOR_INDIVIDUAL"  : ("mei","Microempreendedor Individual"),
     "MICROEMPRESA"		            : ("microempresa","Microempresa"),
     "EMPRESA_PEQUENO_PORTE"	        : ("pequeno_porte","Empresa de pequeno porte"),
-    "NAO_SE_APLICA"		            : ("nao_aplica","Não se aplica")
+    "OUTROS"		                : ("outros","Outros")
 
 }
 
@@ -332,6 +332,7 @@ class Assistido(db.Model):
     #Renda e patrimônio
     salario                = db.Column(db.Numeric(10,2), nullable=False)
     beneficio              = db.Column(db.String(30, collation = 'latin1_general_ci'), nullable=False)
+    qual_beneficio         = db.Column(db.String(30, collation = 'latin1_general_ci'))
     contribui_inss         = db.Column(db.String(20, collation = 'latin1_general_ci'),nullable=False)
     qtd_pessoas_moradia    = db.Column(db.Integer, nullable=False)
     renda_familiar         = db.Column(db.Numeric(10,2), nullable=False)

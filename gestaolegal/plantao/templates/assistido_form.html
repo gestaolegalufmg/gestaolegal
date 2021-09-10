@@ -91,6 +91,18 @@
                     <div class="alert alert-danger">{{error}}</div>
                 {% endfor %}
 
+                <div class="form-group row" id="div_qual_beneficio">
+                    <label class="col-lg-4 col-form-label" for="qual_beneficio">{{form.qual_beneficio.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.qual_beneficio(type="text", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.qual_beneficio.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
                 <div class="form-group row" id="div_contribui_inss">
                     <label class="col-lg-4 col-form-label"  for="contribui_inss">{{form.contribui_inss.label}}<span class="text-danger">*</span>
                     </label>
@@ -274,6 +286,18 @@
         <div id="campos_pj_constituida">
 
             <h4 id="h4_dados_juridicos">Dados Jurídicos</h4>
+
+            <div class="form-group row" id="div_enquadramento">
+                <label class="col-lg-4 col-form-label" for="enquadramento">{{form.enquadramento.label}} <span class="text-danger">*</span>
+                </label>
+                <div class="col-lg-6">
+                    {{form.enquadramento(class_="form-control")}}
+                </div>
+            </div>
+
+            {% for error in form.enquadramento.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
             
             <div class="form-group row" id="div_socios">
                 <label class="col-lg-4 col-form-label" aria-placeholder="Nome-CPF-Estado Civil" for="socios">{{form.socios.label}}</label>
@@ -296,18 +320,6 @@
             </div>
 
             {% for error in form.situacao_receita.errors %}
-                <div class="alert alert-danger">{{error}}</div>
-            {% endfor %}
-
-            <div class="form-group row" id="div_enquadramento">
-                <label class="col-lg-4 col-form-label" for="enquadramento">{{form.enquadramento.label}} <span class="text-danger">*</span>
-                </label>
-                <div class="col-lg-6">
-                    {{form.enquadramento(class_="form-control")}}
-                </div>
-            </div>
-
-            {% for error in form.enquadramento.errors %}
                 <div class="alert alert-danger">{{error}}</div>
             {% endfor %}
 
