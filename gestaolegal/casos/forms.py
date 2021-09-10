@@ -80,7 +80,7 @@ class ProcessoForm(FlaskForm):
                                             ],
                                         validators=[DataRequired("Por favor selecione uma opção de espécie da lista")]
                                         )
-    numero                   = FloatField('Número', validators=[DataRequired("Por favor, informe o número do processo.")])
+    numero                   = FloatField('Número', validators=[DataRequired("Por favor, utilize apenas números para preencher o campo.")])
     identificacao            = StringField('Identificação')
     vara                     = StringField('Vara, unidade jurisdicional, turma e/ou câmara')
     link                     = StringField('Link')
