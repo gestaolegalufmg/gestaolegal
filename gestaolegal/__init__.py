@@ -27,7 +27,7 @@ class ReverseProxied(object):
 app = Flask(__name__)
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 
-config.read(os.path.join(os.path.dirname(__file__), 'config.ini'))
+config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.ini'))
 
 app.config["SECRET_KEY"] = config['SECRET_KEY']['key']
 app.config["UPLOADS"] = "./static/casos"
