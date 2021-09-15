@@ -109,6 +109,7 @@ def setDadosGeraisAssistido(entidade_assistido, form: TornarAssistidoForm):
     entidade_assistido.grau_instrucao        = form.grau_instrucao.data
     entidade_assistido.salario               = form.salario.data
     entidade_assistido.beneficio             = form.beneficio.data
+    entidade_assistido.qual_beneficio        = form.qual_beneficio.data
     entidade_assistido.contribui_inss        = form.contribui_inss.data
     entidade_assistido.qtd_pessoas_moradia   = form.qtd_pessoas_moradia.data
     entidade_assistido.renda_familiar        = form.renda_familiar.data

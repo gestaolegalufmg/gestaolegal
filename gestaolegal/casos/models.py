@@ -26,6 +26,7 @@ tipo_evento = {
     'DECISAO_JUDICIAL': ('decisao_judicial','Decisão Judicial'),
     'REDIST_CASO': ('redist_caso','Redistribuição do Caso'),
     'ENCERRAMENTO_CASO': ('encerramento_caso','Encerramento do Caso'),
+    'DOCUMENTOS': ('documentos','Documentos'),
     'OUTROS': ('outros','Outros')
 }
 

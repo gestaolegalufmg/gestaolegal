@@ -42,7 +42,7 @@ def cadastrar_arquivo():
     return render_template('cadastrar_arquivo.html', form = _form)
 
 @arquivos.route('/editar_arquivo/<int:id>', methods = ['GET','POST'])
-@login_required()
+@login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['COLAB_EXTERNO'][0]])
 def editar_arquivo(id):
     _arquivo = Arquivo.query.get_or_404(id)
     _form = ArquivoForm()
