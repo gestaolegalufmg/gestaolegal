@@ -1,16 +1,17 @@
 import configparser
+
 config = configparser.ConfigParser()
 import os
+from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
 from flask import Flask, current_app
 from flask_login import LoginManager, current_user
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_mail import Mail
 
 flask_env = os.environ.get('FLASK_ENV')
-
 login_manager = LoginManager()
+
 
 class ReverseProxied(object):
     def __init__(self, app):
@@ -22,14 +23,15 @@ class ReverseProxied(object):
             environ['wsgi.url_scheme'] = scheme
         return self.app(environ, start_response)
 
+
 app = Flask(__name__)
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 
-config.read('config.ini')
+config.read(os.path.join(os.path.dirname(__file__), 'config.ini'))
 
 app.config["SECRET_KEY"] = config['SECRET_KEY']['key']
 app.config["UPLOADS"] = "./static/casos"
-app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024 # 10 MB limit
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB limit
 
 ############################################################
 ################## BANCO DE DADOS ##########################
@@ -53,6 +55,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 Migrate(app, db, compare_type=True)
+
 
 #############################################################
 ########### VARIÁVEIS/FUNÇÕES DO TEMPLATE ###################
@@ -134,6 +137,7 @@ from gestaolegal.plantao.models import assistencia_jud_regioes
 def insere_assistencia_jud_regioes():
     return dict(assistencia_jud_regioes=assistencia_jud_regioes)
 
+
 from gestaolegal.plantao.models import beneficio
 
 
@@ -164,6 +168,7 @@ from gestaolegal.plantao.models import moradia
 @app.context_processor
 def insere_moradia():
     return dict(moradia=moradia)
+
 
 from gestaolegal.plantao.models import qual_pessoa_doente
 
@@ -258,6 +263,7 @@ app.config["MAIL_PASSWORD"] = "testedaj12345"
 
 mail = Mail(app)
 
+
 #############################################################
 ########## FUNCAO (GLOBAL) PARA FORMATAR TEXTO ##############
 #############################################################
@@ -289,7 +295,6 @@ def formatarNomeDoUsuario(id_usuario):
 
 app.jinja_env.globals.update(formatarTipoDeEvento=formatarTipoDeEvento)
 app.jinja_env.globals.update(formatarNomeDoUsuario=formatarNomeDoUsuario)
-
 
 #############################################################
 ################## CONFIGURA LOGIN ##########################
@@ -337,7 +342,6 @@ from gestaolegal.casos.views import casos
 from gestaolegal.arquivos.views import arquivos
 from gestaolegal.relatorios.views import relatorios
 from gestaolegal.notificacoes.views import notificacoes
-
 
 app.register_blueprint(principal)
 app.register_blueprint(usuario, url_prefix="/usuario")

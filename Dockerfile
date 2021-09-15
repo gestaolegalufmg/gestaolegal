@@ -1,4 +1,4 @@
-FROM python:3.8.8-buster
+FROM python:3.9.5-buster
 RUN apt-get update && \
     apt-get install -y nano htop && \
     mkdir /code
