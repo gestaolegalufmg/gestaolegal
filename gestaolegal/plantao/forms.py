@@ -414,6 +414,11 @@ class TornarAssistidoForm(FlaskForm):
                             ]
                         )
 
+    qual_beneficio       = StringField('Qual benefício?',
+                                validators = [RequiredIf(beneficio = 'outro', message = MSG_NaoPodeEstarEmBranco.format('"Qual benefício?"'))
+                                ]
+                            )
+
     contribui_inss            = SelectField('Contribui para a previdência social',
                                 choices=[
                                     (contribuicao_inss['SIM'][0], contribuicao_inss['SIM'][1]),
@@ -445,9 +450,7 @@ class TornarAssistidoForm(FlaskForm):
                                     choices=[
                                         (participacao_renda['PRINCIPAL_RESPONSAVEL'][0], participacao_renda['PRINCIPAL_RESPONSAVEL'][1]),
                                         (participacao_renda['CONTRIBUINTE'][0], participacao_renda['CONTRIBUINTE'][1]),
-                                        (participacao_renda['DEPENDENTE'][0], participacao_renda['DEPENDENTE'][1]),
-                                        (participacao_renda['NAO_CONTRIBUINTE'][0], participacao_renda['NAO_CONTRIBUINTE'][1]),
-
+                                        (participacao_renda['DEPENDENTE'][0], participacao_renda['DEPENDENTE'][1])
                                 ],
                                 validators=[
                                     DataRequired(MSG_SelecioneUmaOpcaoLista.format('de "Qual a sua posição em relação à renda familiar?"')),
@@ -535,7 +538,6 @@ class TornarAssistidoForm(FlaskForm):
                                 (qual_pessoa_doente['PAIS'][0], qual_pessoa_doente['PAIS'][1]),
                                 (qual_pessoa_doente['AVOS'][0], qual_pessoa_doente['AVOS'][1]),
                                 (qual_pessoa_doente['SOGROS'][0], qual_pessoa_doente['SOGROS'][1]),
-                                (qual_pessoa_doente['NAO_SE_APLICA'][0], qual_pessoa_doente['NAO_SE_APLICA'][1]),
                                 (qual_pessoa_doente['OUTROS'][0], qual_pessoa_doente['OUTROS'][1])
 
                                 ],
@@ -573,7 +575,12 @@ class TornarAssistidoForm(FlaskForm):
 
                             )
 
-    situacao_receita           = StringField('Situação perante a Receita Federal',
+    situacao_receita           = SelectField('Situação perante a Receita Federal',
+                                choices=[
+                                        ('Ativa', 'Ativa'),
+                                        ('Baixada', 'Baixada'),
+                                        ('Outras', 'Outras')
+                                    ],
                                 validators=[
                                     RequiredIf(pj_constituida = True, message = MSG_NaoPodeEstarEmBranco.format('A situação perante a Receita Federal')),
                                     Length(max=max_sit_receita, message="Por favor, use no máximo {} caracteres para descrever a profissão.".format(max_sit_receita))
@@ -585,7 +592,7 @@ class TornarAssistidoForm(FlaskForm):
                                 (enquadramento['MICROEMPREENDEDOR_INDIVIDUAL'][0], enquadramento['MICROEMPREENDEDOR_INDIVIDUAL'][1]),
                                 (enquadramento['MICROEMPRESA'][0], enquadramento['MICROEMPRESA'][1]),
                                 (enquadramento['EMPRESA_PEQUENO_PORTE'][0], enquadramento['EMPRESA_PEQUENO_PORTE'][1]),
-                                (enquadramento['NAO_SE_APLICA'][0], enquadramento['NAO_SE_APLICA'][1])
+                                (enquadramento['OUTROS'][0], enquadramento['OUTROS'][1])
 
                                 ],
 

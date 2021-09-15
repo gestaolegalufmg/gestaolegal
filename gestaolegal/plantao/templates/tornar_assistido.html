@@ -39,6 +39,7 @@
     trataBotaoForm();
     //CHAMO AS FUNCOES DE VISIBILIDADE
     visibilidadePossui_veiculos()
+    visibilidadeRecebe_beneficio()
     visibilidadeDoenca_grave_familia("{{qual_pessoa_doente['OUTROS'][1]}}")
     visibilidadePessoaDoenteOBS("{{qual_pessoa_doente['OUTROS'][1]}}")
     assistido_visibilidadePjConstituida("{{atendido.pj_constituida}}")
@@ -47,6 +48,7 @@
     
     ////LINKO A FUNÇAO DE VISIBILIDADE AO CAMPO QUE ALTERA ESTA FUNCAO
     document.getElementById('possui_veiculos').onchange = function() {visibilidadePossui_veiculos()};
+    document.getElementById('beneficio').onchange = function() {visibilidadeRecebe_beneficio()};
     document.getElementById('doenca_grave_familia').onchange = function() {visibilidadeDoenca_grave_familia("{{qual_pessoa_doente['OUTROS'][1]}}")};
     document.getElementById('pessoa_doente').onchange = function(){visibilidadePessoaDoenteOBS("{{qual_pessoa_doente['OUTROS'][1]}}")};
     document.getElementById('sede_bh').onchange = function() {visibilidadeSede_bh()};

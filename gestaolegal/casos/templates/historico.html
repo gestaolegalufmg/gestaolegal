@@ -40,6 +40,14 @@
                           {{ historico.Historico.data.strftime('%d/%m/%Y') }}
                         </span>
                       </p>
+                      <p class="clearfix">
+                        <span class="float-left">
+                          Horário:
+                        </span>
+                        <span class="float-right text-muted">
+                          {{ historico.Historico.data.strftime('%H:%M') }}
+                        </span>
+                      </p>
                       <hr>
                       {% endfor %}
                 </div>

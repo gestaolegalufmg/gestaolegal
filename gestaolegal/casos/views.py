@@ -895,10 +895,6 @@ def visualizar_processo(id_processo):
 def visualizar_processo_com_numero(numero_processo):
     _processo = Processo.query.filter_by(numero = numero_processo, status = True).first_or_404()
     return render_template('visualizar_processo.html', processo = _processo, id_caso = _processo.id_caso )
-# Cadastrar evento
-@casos.route('/cadastrar_evento')
-def cadastrar_evento():
-    return render_template('novo_evento.html')
 
 @casos.route('/excluir_caso/<id_caso>', methods=['GET','POST'])
 @login_required(role = [usuario_urole_roles['ADMINISTRADOR'][0]])

@@ -87,7 +87,7 @@ beneficio = {
         "BOLSA_ESCOLA"                      :   ("bolsa_escola","Bolsa escola"),
         "BOLSA_MORADIA"                     :   ("bolsa_moradia","Bolsa moradia"),
         "CESTA_BASICA"                      :   ("cesta_basica","Cesta básica"),
-        "VALEGAS"                           :   ("valegas","Valegás"),
+        "VALEGAS"                           :   ("valegas","Vale Gás"),
         "NAO"                               :   ("nao","Não"),
         "NAO_INFORMOU"                      :   ("outro","Outro"),
         "OUTRO"                             :   ("nao_info","Não informou")
@@ -108,8 +108,7 @@ participacao_renda = {
 
     "PRINCIPAL_RESPONSAVEL"     :      ("principal", "Principal responsável"),
     "CONTRIBUINTE"              :      ("contribuinte", "Contribuinte"),
-    "DEPENDENTE"                :      ("dependente","Dependente"),
-    "NAO_CONTRIBUINTE"          :      ("nao_contribuinte", "Não contribuinte")
+    "DEPENDENTE"                :      ("dependente","Dependente")
 
 }
 
@@ -138,7 +137,6 @@ qual_pessoa_doente = {
     "PAIS"                                  : ("pais","Pais"),
     "AVOS"                                  : ("avos","Avós"),
     "SOGROS"                                : ("sogros","Sogros"),
-    "NAO_SE_APLICA"                         : ("nao_aplica","Não se aplica"),
     "OUTROS"                                : ("outros","Outros")
 }
 
@@ -149,7 +147,7 @@ enquadramento = {
     "MICROEMPREENDEDOR_INDIVIDUAL"  : ("mei","Microempreendedor Individual"),
     "MICROEMPRESA"		            : ("microempresa","Microempresa"),
     "EMPRESA_PEQUENO_PORTE"	        : ("pequeno_porte","Empresa de pequeno porte"),
-    "NAO_SE_APLICA"		            : ("nao_aplica","Não se aplica")
+    "OUTROS"		                : ("outros","Outros")
 
 }
 
@@ -334,6 +332,7 @@ class Assistido(db.Model):
     #Renda e patrimônio
     salario                = db.Column(db.Numeric(10,2), nullable=False)
     beneficio              = db.Column(db.String(30, collation = 'latin1_general_ci'), nullable=False)
+    qual_beneficio         = db.Column(db.String(30, collation = 'latin1_general_ci'))
     contribui_inss         = db.Column(db.String(20, collation = 'latin1_general_ci'),nullable=False)
     qtd_pessoas_moradia    = db.Column(db.Integer, nullable=False)
     renda_familiar         = db.Column(db.Numeric(10,2), nullable=False)
