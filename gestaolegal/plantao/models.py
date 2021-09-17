@@ -339,6 +339,7 @@ class Assistido(db.Model):
     participacao_renda     = db.Column(db.String(100, collation = 'latin1_general_ci'), nullable=False)
     tipo_moradia           = db.Column(db.String(100, collation = 'latin1_general_ci'), nullable=False)
     possui_outros_imoveis  = db.Column(db.Boolean, nullable=False)
+    quantos_imoveis        = db.Column(db.Integer)
     possui_veiculos        = db.Column(db.Boolean, nullable=False)
     possui_veiculos_obs    = db.Column(db.String(100, collation = 'latin1_general_ci'))
     quantos_veiculos       = db.Column(db.Integer)

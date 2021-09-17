@@ -105,3 +105,15 @@ function visibilidadeRecebe_beneficio(){
             document.getElementById("div_qual_beneficio").hidden =true;
         }
 }
+
+function visibilidadePossui_imoveis(){
+    var elemento_selecionado = document.getElementById('possui_outros_imoveis');
+    var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
+
+        if (string_selecionada == "Sim"){
+            document.getElementById("div_quantos_imoveis").hidden = false;
+        }
+        else{
+            document.getElementById("div_quantos_imoveis").hidden =true;
+        }
+}
