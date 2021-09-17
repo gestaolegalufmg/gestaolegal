@@ -175,6 +175,18 @@
                     <div class="alert alert-danger">{{error}}</div>
                 {% endfor %}
 
+                <div class="form-group row" id="div_quantos_imoveis">
+                    <label class="col-lg-4 col-form-label" for="quantos_imoveis">{{form.quantos_imoveis.label}}<span class="text-danger">*</span>
+                    </label>
+                    <div class="col-lg-6">
+                        {{form.quantos_imoveis(type="number", class_="form-control")}}
+                    </div>
+                </div>
+
+                {% for error in form.quantos_imoveis.errors %}
+                    <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+
                 <div class="form-group row" id="div_possui_veiculos">
                     <label class="col-lg-4 col-form-label" for="possui_veiculos">{{form.possui_veiculos.label}}<span class="text-danger">*</span>
                     </label>

@@ -116,6 +116,7 @@ def setDadosGeraisAssistido(entidade_assistido, form: TornarAssistidoForm):
     entidade_assistido.participacao_renda    = form.participacao_renda.data
     entidade_assistido.tipo_moradia          = form.tipo_moradia.data
     entidade_assistido.possui_outros_imoveis = form.possui_outros_imoveis.data
+    entidade_assistido.quantos_imoveis       = form.quantos_imoveis
     entidade_assistido.possui_veiculos       = form.possui_veiculos.data
     entidade_assistido.doenca_grave_familia  = form.doenca_grave_familia.data
     entidade_assistido.obs                   = form.obs_assistido.data
