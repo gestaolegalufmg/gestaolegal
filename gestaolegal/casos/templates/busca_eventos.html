@@ -28,7 +28,7 @@
       <tbody>
       {% for evento in eventos.items %}
       <tr>
-        <td>#{{evento.id}}</td>
+        <td>#{{evento.num_evento}}</td>
         <td>{{formatarTipoDeEvento(evento.tipo)}}</td>
         <td>{{formatarNomeDoUsuario(evento.id_usuario_responsavel)}}</td>
         <td>{{evento.data_criacao.strftime('%d/%m/%Y')}}</td></td>

@@ -1,3 +1,4 @@
+from werkzeug.exceptions import default_exceptions
 from gestaolegal import db
 from datetime import datetime
 from gestaolegal.usuario.models import Usuario
@@ -145,6 +146,8 @@ class Evento(db.Model):
     id                     = db.Column(db.Integer, primary_key = True)
     id_caso                = db.Column(db.Integer, db.ForeignKey("casos.id"), nullable = False)
     caso                   = db.relationship("Caso")
+
+    num_evento             = db.Column(db.Integer, default = 0)
     tipo                   = db.Column(db.String(50,collation = 'latin1_general_ci'), nullable = False)
     descricao              = db.Column(db.String(1000, collation = 'latin1_general_ci'))
     arquivo                = db.Column(db.String(100, collation = 'latin1_general_ci'))

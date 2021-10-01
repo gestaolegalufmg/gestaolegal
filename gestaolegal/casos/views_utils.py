@@ -1,7 +1,7 @@
 from gestaolegal.casos.models import Caso, situacao_deferimento, tipo_evento, Evento
-from gestaolegal import app
+from gestaolegal import app, db
 from gestaolegal.utils.models import queryFiltradaStatus
-from sqlalchemy import or_
+from sqlalchemy import or_, desc
 
 ROTA_PAGINACAO_CASOS = "casos.index"
 ROTA_PAGINACAO_EVENTOS = "casos.eventos"
@@ -75,3 +75,12 @@ def params_busca_eventos(eventos, rota_paginacao, caso_id,opcao_filtro = None):
             'rota_paginacao': rota_paginacao,
             'opcao_filtro'  : opcao_filtro,
             'caso_id'       : caso_id}
+
+def get_num_eventos_atual(caso_id):
+    num_eventos_criados = (db.session.query(Evento.num_evento)
+                                     .filter(
+                                            Evento.id_caso == caso_id                                    
+                                            )
+                                     .order_by(desc(Evento.num_evento))
+                                     .first())
+    return num_eventos_criados[0] + 1 if num_eventos_criados else 1
