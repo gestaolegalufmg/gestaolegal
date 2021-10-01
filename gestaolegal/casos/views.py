@@ -674,6 +674,7 @@ def novo_evento(id_caso):
 
             _evento = Evento(
                 id_caso       = id_caso,
+                num_evento    = get_num_eventos_atual(id_caso),
                 tipo          = _form.tipo.data,
                 descricao     = _form.descricao.data,
                 data_evento   = _form.data_evento.data,
@@ -685,6 +686,7 @@ def novo_evento(id_caso):
         else:
             _evento = Evento(
                 id_caso       = id_caso,
+                num_evento    = get_num_eventos_atual(id_caso),
                 tipo          = _form.tipo.data,
                 descricao     = _form.descricao.data,
                 data_evento   = _form.data_evento.data,
