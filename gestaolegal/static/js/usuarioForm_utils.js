@@ -20,3 +20,12 @@ function validarCampoBolsista() {
         document.getElementById("div_fim_bolsa").required = false;
     }
 }
+
+const defineMinimoDataFinalBolsista = () =>{
+    dataInicio = document.getElementById("inicio_bolsa").value
+    document.getElementById("fim_bolsa").min = dataInicio
+}
+const defineMaximoDataInicialBolsista = () =>{
+    dataFinal = document.getElementById("fim_bolsa").value
+    document.getElementById("inicio_bolsa").max = dataFinal
+}
