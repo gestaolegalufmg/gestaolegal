@@ -9,9 +9,6 @@ from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 from flask_mail import Mail
 
-flask_env = os.environ.get('FLASK_ENV')
-login_manager = LoginManager()
-
 
 class ReverseProxied(object):
     def __init__(self, app):
@@ -24,10 +21,14 @@ class ReverseProxied(object):
         return self.app(environ, start_response)
 
 
+flask_env = os.environ.get('FLASK_ENV')
+login_manager = LoginManager()
+config.read('config.ini')
+
 app = Flask(__name__)
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 
-config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.ini'))
+config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config_test.ini'))
 
 app.config["SECRET_KEY"] = config['SECRET_KEY']['key']
 app.config["UPLOADS"] = "./static/casos"
@@ -36,11 +37,6 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB limit
 ############################################################
 ################## BANCO DE DADOS ##########################
 ############################################################
-
-if flask_env == 'TEST':
-    config.read('config_test.ini')
-elif flask_env == 'PRODUCTION':
-    config.read('config_prod.ini')
 
 db_user = config['MYSQL']['user']
 db_password = config['MYSQL']['password']
