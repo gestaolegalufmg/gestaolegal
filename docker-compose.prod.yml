@@ -2,21 +2,7 @@ version: '3.7'
 
 services:
   app_gl:
-    build: .
-    container_name: app_gl
     restart: unless-stopped
     environment:
       - FLASK_ENV=production
-    ports:
-      - "5000:5000"
-    volumes:
-      - type: bind
-        source: .
-        target: /code
     command: gunicorn --bind 0.0.0.0:5000 --workers=4 --timeout=300 wsgi:app
-    networks:
-      - gestaolegal
-
-  db_gl:
-    environment:
-      MYSQL_DATABASE: gestaolegal
