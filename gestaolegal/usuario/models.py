@@ -17,125 +17,133 @@ from datetime import datetime
 ##############################################################
 
 usuario_urole_roles = {
-    'USER': 'user', #DEFAULT PARA NAO DAR ERRO, DEPOIS TIRA
-    'ADMINISTRADOR' :       ('admin','Administrador'),
-    'ORIENTADOR' :          ('orient','Orientador'),
-    'COLAB_PROJETO':        ('colab_proj','Colaborador de projeto'),
-    'ESTAGIARIO_DIREITO':   ('estag_direito','Estagiário de Direito'),
-    'COLAB_EXTERNO':        ('colab_ext','Colaborador externo'),
-    'PROFESSOR':            ('prof','Professor')
+    "USER": "user",  # DEFAULT PARA NAO DAR ERRO, DEPOIS TIRA
+    "ADMINISTRADOR": ("admin", "Administrador"),
+    "ORIENTADOR": ("orient", "Orientador"),
+    "COLAB_PROJETO": ("colab_proj", "Colaborador de projeto"),
+    "ESTAGIARIO_DIREITO": ("estag_direito", "Estagiário de Direito"),
+    "COLAB_EXTERNO": ("colab_ext", "Colaborador externo"),
+    "PROFESSOR": ("prof", "Professor"),
 }
 
 usuario_urole_inverso = {
-    'admin':            'Administrador',
-    'orient':           'Orientador',
-    'colab_proj':       'Colaborador de projeto',
-    'estag_direito':    'Estagiário de Direito',
-    'colab_ext':        'Colaborador externo',
-    'prof':             'Professor'
+    "admin": "Administrador",
+    "orient": "Orientador",
+    "colab_proj": "Colaborador de projeto",
+    "estag_direito": "Estagiário de Direito",
+    "colab_ext": "Colaborador externo",
+    "prof": "Professor",
 }
 
 sexo_usuario = {
-    'MASCULINO' : ('M','Masculino'),
-    'FEMININO'  : ('F', 'Feminino'),
-    'OUTROS'     : ('O', 'Outro')
+    "MASCULINO": ("M", "Masculino"),
+    "FEMININO": ("F", "Feminino"),
+    "OUTROS": ("O", "Outro"),
 }
 
 estado_civilUsuario = {
-    'SOLTEIRO'   : ('solteiro', 'Solteiro'),
-    'CASADO'     : ('casado', 'Casado'),
-    'DIVORCIADO' : ('divorciado', 'Divorciado'),
-    'SEPARADO'   : ('separado', 'Separado'),
-    'UNIAO'      : ('uniao', 'União estável'),
-    'VIUVO'      : ('viuvo', 'Viúvo')
+    "SOLTEIRO": ("solteiro", "Solteiro"),
+    "CASADO": ("casado", "Casado"),
+    "DIVORCIADO": ("divorciado", "Divorciado"),
+    "SEPARADO": ("separado", "Separado"),
+    "UNIAO": ("uniao", "União estável"),
+    "VIUVO": ("viuvo", "Viúvo"),
 }
 
 tipo_bolsaUsuario = {
-    'FUMP'  : ('fump','FUMP'),
-    'VALE'  : ('vale','Valle Ferreira'),
-    'PROEX' : ('proex','Projeto de extensão'),
-    'OUTRA' : ('outra', 'Outra')
+    "FUMP": ("fump", "FUMP"),
+    "VALE": ("vale", "Valle Ferreira"),
+    "PROEX": ("proex", "Projeto de extensão"),
+    "OUTRA": ("outra", "Outra"),
 }
 
 #####################################################
 ################## MODELOS ##########################
 #####################################################
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return Usuario.query.get(user_id)
 
+
 class Usuario(db.Model, UserMixin):
     bcrypt = Bcrypt()
 
-    __tablename__ = 'usuarios'
-    id                  = db.Column(db.Integer, primary_key=True)
-    email               = db.Column(db.String(80, collation = 'latin1_general_ci'), unique=True, nullable=False)
-    senha               = db.Column(db.String(60, collation = 'latin1_general_ci'), nullable=False)
-    urole               = db.Column(db.String(50, collation = 'latin1_general_ci'), nullable=False)
-    nome                = db.Column(db.String(60, collation = 'latin1_general_ci'), nullable=False)
-    sexo                = db.Column(db.String(60, collation = 'latin1_general_ci'), nullable=False)
-    rg                  = db.Column(db.String(18, collation = 'latin1_general_ci'), nullable=False)
-    cpf                 = db.Column(db.String(14, collation = 'latin1_general_ci'), nullable=False)
-    profissao           = db.Column(db.String(45, collation = 'latin1_general_ci'), nullable=False)
-    estado_civil        = db.Column(db.String(45, collation = 'latin1_general_ci'), nullable=False)
-    nascimento          = db.Column(db.Date, nullable=False)
-    telefone            = db.Column(db.String(18, collation = 'latin1_general_ci'))
-    celular             = db.Column(db.String(18, collation = 'latin1_general_ci'), nullable=False)
-    oab                 = db.Column(db.String(30, collation = 'latin1_general_ci'))
-    obs                 = db.Column(db.Text(collation = 'latin1_general_ci'))
-    data_entrada        = db.Column(db.Date, nullable=False)
-    data_saida          = db.Column(db.Date, nullable=True)
-    criado              = db.Column(db.DateTime, nullable=False)
-    modificado          = db.Column(db.DateTime)
-    criadopor           = db.Column(db.Integer, nullable=False)
-    matricula           = db.Column(db.String(45, collation = 'latin1_general_ci'))
-    modificadopor       = db.Column(db.Integer)
-    bolsista            = db.Column(db.Boolean, nullable=False)
-    tipo_bolsa          = db.Column(db.String(50, collation = 'latin1_general_ci'))
-    horario_atendimento = db.Column(db.String(30, collation = 'latin1_general_ci')) #!!!
-    suplente            = db.Column(db.String(30, collation = 'latin1_general_ci'))
-    #TODO: Ver qual é o Input de Ferias se é data ou só um status
-    ferias              = db.Column(db.String(150, collation = 'latin1_general_ci'))
-    status              = db.Column(db.Boolean, nullable=False)
+    __tablename__ = "usuarios"
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(
+        db.String(80, collation="latin1_general_ci"), unique=True, nullable=False
+    )
+    senha = db.Column(db.String(60, collation="latin1_general_ci"), nullable=False)
+    urole = db.Column(db.String(50, collation="latin1_general_ci"), nullable=False)
+    nome = db.Column(db.String(60, collation="latin1_general_ci"), nullable=False)
+    sexo = db.Column(db.String(60, collation="latin1_general_ci"), nullable=False)
+    rg = db.Column(db.String(18, collation="latin1_general_ci"), nullable=False)
+    cpf = db.Column(db.String(14, collation="latin1_general_ci"), nullable=False)
+    profissao = db.Column(db.String(45, collation="latin1_general_ci"), nullable=False)
+    estado_civil = db.Column(
+        db.String(45, collation="latin1_general_ci"), nullable=False
+    )
+    nascimento = db.Column(db.Date, nullable=False)
+    telefone = db.Column(db.String(18, collation="latin1_general_ci"))
+    celular = db.Column(db.String(18, collation="latin1_general_ci"), nullable=False)
+    oab = db.Column(db.String(30, collation="latin1_general_ci"))
+    obs = db.Column(db.Text(collation="latin1_general_ci"))
+    data_entrada = db.Column(db.Date, nullable=False)
+    data_saida = db.Column(db.Date, nullable=True)
+    criado = db.Column(db.DateTime, nullable=False)
+    modificado = db.Column(db.DateTime)
+    criadopor = db.Column(db.Integer, nullable=False)
+    matricula = db.Column(db.String(45, collation="latin1_general_ci"))
+    modificadopor = db.Column(db.Integer)
+    bolsista = db.Column(db.Boolean, nullable=False)
+    tipo_bolsa = db.Column(db.String(50, collation="latin1_general_ci"))
+    horario_atendimento = db.Column(db.String(30, collation="latin1_general_ci"))  #!!!
+    suplente = db.Column(db.String(30, collation="latin1_general_ci"))
+    # TODO: Ver qual é o Input de Ferias se é data ou só um status
+    ferias = db.Column(db.String(150, collation="latin1_general_ci"))
+    status = db.Column(db.Boolean, nullable=False)
 
-    cert_atuacao_DAJ    = db.Column(db.String(3, collation = 'latin1_general_ci'), nullable=False, default="nao")
-    inicio_bolsa        = db.Column(db.DateTime)
-    fim_bolsa           = db.Column(db.DateTime)
-    endereco_id         = db.Column(db.Integer, db.ForeignKey("enderecos.id"))
-    endereco            = db.relationship("Endereco", lazy="joined")
-    chave_recuperacao   = db.Column(db.Boolean, server_default=expression.false())
+    cert_atuacao_DAJ = db.Column(
+        db.String(3, collation="latin1_general_ci"), nullable=False, default="nao"
+    )
+    inicio_bolsa = db.Column(db.DateTime)
+    fim_bolsa = db.Column(db.DateTime)
+    endereco_id = db.Column(db.Integer, db.ForeignKey("enderecos.id"))
+    endereco = db.relationship("Endereco", lazy="joined")
+    chave_recuperacao = db.Column(db.Boolean, server_default=expression.false())
 
     def setSenha(self, senha):
-        self.senha = self.bcrypt.generate_password_hash(senha).decode('utf-8')
+        self.senha = self.bcrypt.generate_password_hash(senha).decode("utf-8")
 
     def checa_senha(self, senha):
-        return self.bcrypt.check_password_hash(self.senha,senha)
+        return self.bcrypt.check_password_hash(self.senha, senha)
 
     def atualizaCamposModificao(self, modificadoPor):
-        self.modificado= datetime.now()
+        self.modificado = datetime.now()
         self.modificadopor = modificadoPor
 
-    def setCamposBolsista(self, bolsista, tipo_bolsa,inicio_bolsa, fim_bolsa):
+    def setCamposBolsista(self, bolsista, tipo_bolsa, inicio_bolsa, fim_bolsa):
         self.bolsista = bolsista
         if self.bolsista == True:
             self.inicio_bolsa = inicio_bolsa
-            self.fim_bolsa    = fim_bolsa
-            self.tipo_bolsa   = tipo_bolsa
+            self.fim_bolsa = fim_bolsa
+            self.tipo_bolsa = tipo_bolsa
         else:
             self.inicio_bolsa = null()
-            self.fim_bolsa    = null()
-            self.tipo_bolsa   = null()
+            self.fim_bolsa = null()
+            self.tipo_bolsa = null()
 
-    def tokenRecuperacao(self,expires_sec=2200):
-        s = Serializer(app.config['SECRET_KEY'],expires_sec)
-        return s.dumps({'user_id': self.id}).decode("utf-8")
-    
+    def tokenRecuperacao(self, expires_sec=2200):
+        s = Serializer(app.config["SECRET_KEY"], expires_sec)
+        return s.dumps({"user_id": self.id}).decode("utf-8")
+
     @staticmethod
     def verificaToken(token):
-        s = Serializer(app.config['SECRET_KEY'])
+        s = Serializer(app.config["SECRET_KEY"])
         try:
-            user_id = s.loads(token)['user_id']
+            user_id = s.loads(token)["user_id"]
         except:
             return None
         return Usuario.query.get(user_id)
@@ -145,12 +153,14 @@ class Endereco(db.Model):
 
     __tablename__ = "enderecos"
 
-    id          = db.Column(db.Integer, primary_key=True)
-    logradouro  = db.Column(db.String(100, collation = "latin1_general_ci"), nullable=False)
-    numero      = db.Column(db.String(8, collation = "latin1_general_ci"), nullable=False)
-    complemento = db.Column(db.String(100, collation = "latin1_general_ci"))
-    bairro      = db.Column(db.String(100, collation = "latin1_general_ci"), nullable=False)
-    cep         = db.Column(db.String(9, collation = "latin1_general_ci"), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    logradouro = db.Column(
+        db.String(100, collation="latin1_general_ci"), nullable=False
+    )
+    numero = db.Column(db.String(8, collation="latin1_general_ci"), nullable=False)
+    complemento = db.Column(db.String(100, collation="latin1_general_ci"))
+    bairro = db.Column(db.String(100, collation="latin1_general_ci"), nullable=False)
+    cep = db.Column(db.String(9, collation="latin1_general_ci"), nullable=False)
 
-    cidade      = db.Column(db.String(100, collation = "latin1_general_ci"), nullable=False)
-    estado      = db.Column(db.String(100, collation = "latin1_general_ci"), nullable=False)
+    cidade = db.Column(db.String(100, collation="latin1_general_ci"), nullable=False)
+    estado = db.Column(db.String(100, collation="latin1_general_ci"), nullable=False)
