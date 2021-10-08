@@ -1,4 +1,7 @@
 import configparser
+from datetime import datetime
+
+import click
 
 config = configparser.ConfigParser()
 import os
@@ -15,37 +18,39 @@ class ReverseProxied(object):
         self.app = app
 
     def __call__(self, environ, start_response):
-        scheme = environ.get('HTTP_X_FORWARDED_PROTO')
+        scheme = environ.get("HTTP_X_FORWARDED_PROTO")
         if scheme:
-            environ['wsgi.url_scheme'] = scheme
+            environ["wsgi.url_scheme"] = scheme
         return self.app(environ, start_response)
 
 
-flask_env = os.environ.get('FLASK_ENV')
+flask_env = os.environ.get("FLASK_ENV")
 login_manager = LoginManager()
-config.read('config.ini')
+config.read("config.ini")
 
 app = Flask(__name__)
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 
-config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config_test.ini'))
+config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_test.ini"))
 
-app.config["SECRET_KEY"] = config['SECRET_KEY']['key']
+app.config["SECRET_KEY"] = config["SECRET_KEY"]["key"]
 app.config["UPLOADS"] = "./static/casos"
-app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB limit
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB limit
 
 ############################################################
 ################## BANCO DE DADOS ##########################
 ############################################################
 
-db_user = config['MYSQL']['user']
-db_password = config['MYSQL']['password']
-db_host = config['MYSQL']['host']
-db = config['MYSQL']['db']
+db_user = config["MYSQL"]["user"]
+db_password = config["MYSQL"]["password"]
+db_host = config["MYSQL"]["host"]
+db = config["MYSQL"]["db"]
 
 app.config[
     "SQLALCHEMY_DATABASE_URI"
-] = "mysql+pymysql://{user}:{password}@{host}/{db}".format(user=db_user, password=db_password, host=db_host, db=db)
+] = "mysql+pymysql://{user}:{password}@{host}/{db}".format(
+    user=db_user, password=db_password, host=db_host, db=db
+)
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_recycle": 10}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -347,3 +352,8 @@ app.register_blueprint(casos, url_prefix="/casos")
 app.register_blueprint(arquivos, url_prefix="/arquivos")
 app.register_blueprint(relatorios, url_prefix="/relatorios")
 app.register_blueprint(notificacoes, url_prefix="/notificacoes")
+
+
+#############################################################
+################# CUSTOM CLI COMMANDS #######################
+#############################################################
