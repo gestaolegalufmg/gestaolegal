@@ -1,7 +1,9 @@
 import enum
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
+import click
 
+from flask import Flask
 from flask import session
 from flask_bcrypt import Bcrypt
 from flask_login import UserMixin
@@ -57,6 +59,7 @@ tipo_bolsaUsuario = {
     "OUTRA": ("outra", "Outra"),
 }
 
+
 #####################################################
 ################## MODELOS ##########################
 #####################################################
@@ -99,7 +102,7 @@ class Usuario(db.Model, UserMixin):
     modificadopor = db.Column(db.Integer)
     bolsista = db.Column(db.Boolean, nullable=False)
     tipo_bolsa = db.Column(db.String(50, collation="latin1_general_ci"))
-    horario_atendimento = db.Column(db.String(30, collation="latin1_general_ci"))  #!!!
+    horario_atendimento = db.Column(db.String(30, collation="latin1_general_ci"))  # !!!
     suplente = db.Column(db.String(30, collation="latin1_general_ci"))
     # TODO: Ver qual é o Input de Ferias se é data ou só um status
     ferias = db.Column(db.String(150, collation="latin1_general_ci"))
@@ -150,7 +153,6 @@ class Usuario(db.Model, UserMixin):
 
 
 class Endereco(db.Model):
-
     __tablename__ = "enderecos"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -164,3 +166,53 @@ class Endereco(db.Model):
 
     cidade = db.Column(db.String(100, collation="latin1_general_ci"), nullable=False)
     estado = db.Column(db.String(100, collation="latin1_general_ci"), nullable=False)
+
+
+# app = Flask(__name__)
+
+
+@app.cli.command("create-admin")
+@click.argument("nome")
+@click.argument("email")
+@click.argument("senha")
+def create_user(nome, email, senha):
+    """
+    Este comando cria um usuário com permissões de administrador.
+    Deve ser usado na primeira instalação para criar o usuário que irá acessar o sistema pelo primeira vez.
+    Os demais usuários devem ser criados a partir da interface web.
+    """
+
+    entidade_endereco = Endereco(
+        logradouro="Administrador",
+        numero="0",
+        complemento="0",
+        bairro="Administrador",
+        cep="000000000",
+        cidade="Administrador",
+        estado="AD",
+    )
+
+    entidade_usuario = Usuario(
+        senha=senha,
+        urole=usuario_urole_roles["ADMINISTRADOR"][0],
+        nome=nome,
+        email=email,
+        sexo="M",
+        rg="123",
+        cpf="12345678901",
+        profissao="admin",
+        estado_civil="solteiro",
+        nascimento=date.today(),
+        data_entrada=date.today(),
+        criado=datetime.now(),
+        celular="123",
+        criadopor=1,
+        bolsista=False,
+        endereco_id=entidade_endereco.id,
+        endereco=entidade_endereco,
+        status=True,
+    )
+    entidade_usuario.setSenha(senha)
+
+    db.session.add(entidade_usuario)
+    db.session.commit()
