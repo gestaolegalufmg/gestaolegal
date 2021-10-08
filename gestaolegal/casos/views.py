@@ -221,7 +221,7 @@ def editar_caso(id_caso):
 
         setDadosCaso(form, entidade_caso)
 
-        if type(entidade_caso.id_orientador) != type(Null()):
+        if entidade_caso.id_orientador:
             _notificacao = Notificacao(
                     acao = acoes['CAD_NOVO_CASO'].format(entidade_caso.id),
                     data = datetime.now(),
@@ -231,7 +231,7 @@ def editar_caso(id_caso):
             db.session.add(_notificacao)
             db.session.commit()
 
-        if type(entidade_caso.id_estagiario) != type(Null()):
+        if entidade_caso.id_estagiario:
             _notificacao = Notificacao(
                     acao = acoes['CAD_NOVO_CASO'].format(entidade_caso.id),
                     data = datetime.now(),
@@ -241,7 +241,7 @@ def editar_caso(id_caso):
             db.session.add(_notificacao)
             db.session.commit()
 
-        if type(entidade_caso.id_colaborador) != type(Null()):
+        if entidade_caso.id_colaborador:
             _notificacao = Notificacao(
                 acao = acoes['CAD_NOVO_CASO'].format(entidade_caso.id),
                 data = datetime.now(),
@@ -256,12 +256,11 @@ def editar_caso(id_caso):
         except RequestEntityTooLarge as error:
             flash("Tamanho de arquivo muito longo.")
             return render_template('editar_caso.html', form = form, caso = entidade_caso, arquivos=arquivos)
-        nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
-        if extensao_do_arquivo != '.pdf' and arquivo:
-            flash("Extensão de arquivo não suportado.", "warning")
-            return redirect(url_for('casos.editar_caso', id_caso=id_caso))
-        
         if arquivo:
+            nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
+            if extensao_do_arquivo != '.pdf' and arquivo:
+                flash("Extensão de arquivo não suportado.", "warning")
+                return redirect(url_for('casos.editar_caso', id_caso=id_caso))
             arquivo_caso = ArquivoCaso(
                     link_arquivo = arquivo.filename,
                     id_caso      = id_caso
