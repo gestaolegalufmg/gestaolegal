@@ -490,7 +490,7 @@ class TornarAssistidoForm(FlaskForm):
 
     quantos_imoveis             = IntegerField('Quantos outros imóveis a família tem?',
                                         validators=[
-                                            RequiredIf(possui_Outros_imoveis = True, message = MSG_NaoPodeEstarEmBranco.format('"Quantos outros imóveis a família tem?"')),
+                                            RequiredIf(possui_outros_imoveis = True, message = MSG_NaoPodeEstarEmBranco.format('"Quantos outros imóveis a família tem?"')),
                                             NumberRange(min = 0 ,max=999999999, message="Por favor, use no máximo {} numeros.".format(999999999))
                                         ]
                                     )
