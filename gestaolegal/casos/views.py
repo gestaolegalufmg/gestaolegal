@@ -46,8 +46,6 @@ def index():
                 ultimo_processo = processos[-1:]
                 caso.numero_ultimo_processo = ultimo_processo[0].numero
 
-        db.session.commit()
-
     page = request.args.get("page", 1, type=int)
     opcao_filtro = request.args.get(
         "opcao_filtro", opcoes_filtro_casos["TODOS"][0], type=str
@@ -98,7 +96,6 @@ def novo_caso():
         except RequestEntityTooLarge as error:
             flash("Tamanho de arquivo muito longo.")
             return render_template("novo_caso.html", form=_form)
-        nome_arquivo = None
 
         _, extensao_do_arquivo = os.path.splitext(arquivo.filename)
         if extensao_do_arquivo != ".pdf" and arquivo:
