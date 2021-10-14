@@ -1233,6 +1233,8 @@ def excluir_caso(id_caso):
 
     db.session.commit()
 
+    flash("Caso excluído com sucesso!", "success")
+
     if rota_paginacao:
         return redirect(url_for(rota_paginacao))
     else:

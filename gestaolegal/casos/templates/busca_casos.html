@@ -158,38 +158,38 @@
 
           </div>
           <div class="card-footer d-inline-flex justify-content-end">
-            {% if caso.situacao_deferimento == 'aguardando_deferimento' %}
-                <input type="hidden" value="{{url_for('casos.deferir_caso', id_caso=caso.id)}}" id="url_deferir_caso{{caso.id}}">
-                <input type="hidden" value="{{url_for('casos.indeferir_caso', id_caso=caso.id)}}" id="url_indeferir_caso{{caso.id}}">
-                
-                <button  class="btn btn-warning mr-2" data-toggle="modal" data-target="indeferir">
-                    <aid_caso="{{caso.id}}" id="a_indeferir"
-                        onclick="indeferir_caso(document.getElementById('url_indeferir_caso{{caso.id}}').value)">
-                        Indeferir
-                    </a>
-                </button>
 
-                <button class="btn btn-success mr-2" data-toggle="modal" data-target="deferir">
-                    <a id_caso="{{caso.id}}" id="a_deferir{{caso.id}}"
-                        onclick="deferir_caso(document.getElementById('url_deferir_caso{{caso.id}}').value)">
-                        Deferir
-                    </a>
-                </button>
-                
+            <input type="hidden" value="{{url_for('casos.excluir_caso', id_caso=caso.id)}}" id="url_excluir_caso{{caso.id}}">
+
+            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['PROFESSOR'][0],usuario_urole_roles['ORIENTADOR'][0],usuario_urole_roles['COLAB_EXTERNO'][0]] %}
+            <a href="{{url_for('casos.editar_caso', id_caso = caso.id)}}" class="btn btn-primary mr-2">Editar</a>
+                {% if caso.situacao_deferimento == 'aguardando_deferimento' %}
+                    <input type="hidden" value="{{url_for('casos.deferir_caso', id_caso=caso.id)}}" id="url_deferir_caso{{caso.id}}">
+                    <input type="hidden" value="{{url_for('casos.indeferir_caso', id_caso=caso.id)}}" id="url_indeferir_caso{{caso.id}}">
+                    <button  class="btn btn-warning mr-2" data-toggle="modal" data-target="indeferir">
+                        <a id_caso="{{caso.id}}" id="a_indeferir"
+                            onclick="indeferir_caso(document.getElementById('url_indeferir_caso{{caso.id}}').value)">
+                            Indeferir
+                        </a>
+                    </button>
+                    <button class="btn btn-success mr-2" data-toggle="modal" data-target="deferir">
+                        <a id_caso="{{caso.id}}" id="a_deferir{{caso.id}}"
+                            onclick="deferir_caso(document.getElementById('url_deferir_caso{{caso.id}}').value)">
+                            Deferir
+                        </a>
+                    </button>
+                {% endif %}
             {% endif %}
             
             <a href="{{url_for('casos.visualizar_caso', id=caso.id)}}" class="btn btn-primary mr-2">Visualizar</a>
-            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['ESTAGIARIO_DIREITO'][0],usuario_urole_roles['PROFESSOR'][0],usuario_urole_roles['ORIENTADOR'][0],usuario_urole_roles['COLAB_EXTERNO'][0]] %}
-                <a href="{{url_for('casos.editar_caso', id_caso = caso.id)}}" class="btn btn-primary mr-2">Editar</a>
-            {% endif %}
-            {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] %}
-                <form action="{{url_for('casos.excluir_caso', id_caso = caso.id, rota_paginacao = rota_paginacao)}}" method="POST">
-                    <input type="hidden" name="csrf_token" id="csrf_token{{caso.id}}" value="{{ csrf_token() }}">
 
-                    <button class="btn ml-1 btn-flat btn-danger mr-2" onclick="return confirm('Você deseja excluir este caso?');">
+            {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] %}
+                <button class="btn ml-1 btn-flat btn-danger mr-2" data-toggle="modal" data-target="excluir">
+                    <a id_caso="{{caso.id}}" id="a_excluir{{caso.id}}"
+                        onclick="excluir_caso(document.getElementById('url_excluir_caso{{caso.id}}').value)">
                         Excluir
-                    </button>
-                </form>
+                    </a>
+                </button>
             {% endif %}
             
           </div>
