@@ -91,17 +91,6 @@ def ajax_filtro_casos():
 def novo_caso():
     _form = CasoForm()
     if _form.validate_on_submit():
-        try:
-            arquivo = request.files.get("arquivo")
-        except RequestEntityTooLarge as error:
-            flash("Tamanho de arquivo muito longo.")
-            return render_template("novo_caso.html", form=_form)
-
-        _, extensao_do_arquivo = os.path.splitext(arquivo.filename)
-        if extensao_do_arquivo != ".pdf" and arquivo:
-            flash("Extensão de arquivo não suportado.", "warning")
-            return render_template("novo_caso.html", form=_form)
-
         _caso = Caso(
             area_direito=_form.area_direito.data,
             id_usuario_responsavel=current_user.id,
@@ -122,18 +111,26 @@ def novo_caso():
         db.session.add(_caso)
         db.session.commit()
 
-        caso_arquivo = ArquivoCaso(
-            link_arquivo=arquivo.filename if arquivo else None, id_caso=_caso.id
-        )
+        try:
+            arquivo = request.files.get("arquivo")
+        except RequestEntityTooLarge as error:
+            flash("Tamanho de arquivo muito longo.")
+            return render_template("novo_caso.html", form=_form)
 
-        db.session.add(caso_arquivo)
-        db.session.commit()
-
-        if arquivo:
+        if arquivo.filename:
+            _, extensao_do_arquivo = os.path.splitext(arquivo.filename)
+            if extensao_do_arquivo != ".pdf" and arquivo:
+                flash("Extensão de arquivo não suportado.", "warning")
+                return render_template("novo_caso.html", form=_form)
             nome_arquivo = f"{arquivo.filename}"
             arquivo.save(
                 os.path.join(current_app.root_path, "static", "casos", nome_arquivo)
             )
+            caso_arquivo = ArquivoCaso(
+                link_arquivo=arquivo.filename if arquivo else None, id_caso=_caso.id
+            )
+            db.session.add(caso_arquivo)
+            db.session.commit()
 
         flash("Caso criado com sucesso!", "success")
 
