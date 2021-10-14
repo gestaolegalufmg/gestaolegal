@@ -103,15 +103,15 @@ class OrientacaoJuridicaForm(FlaskForm):
     area_direito = SelectField(
         "Área do Direito",
         choices=[
-            (area_do_direito["CIVEL"][0], area_do_direito["CIVEL"][1]),
-            (area_do_direito["TRABALHISTA"][0], area_do_direito["TRABALHISTA"][1]),
+            (area_do_direito["AMBIENTAL"][0], area_do_direito["AMBIENTAL"][1]),
             (
                 area_do_direito["ADMINISTRATIVO"][0],
                 area_do_direito["ADMINISTRATIVO"][1],
             ),
-            (area_do_direito["PENAL"][0], area_do_direito["PENAL"][1]),
+            (area_do_direito["CIVEL"][0], area_do_direito["CIVEL"][1]),
             (area_do_direito["EMPRESARIAL"][0], area_do_direito["EMPRESARIAL"][1]),
-            (area_do_direito["AMBIENTAL"][0], area_do_direito["AMBIENTAL"][1]),
+            (area_do_direito["PENAL"][0], area_do_direito["PENAL"][1]),
+            (area_do_direito["TRABALHISTA"][0], area_do_direito["TRABALHISTA"][1]),
         ],
         validators=[
             DataRequired(MSG_SelecioneUmaOpcaoLista.format("da área do direito")),
@@ -127,12 +127,13 @@ class OrientacaoJuridicaForm(FlaskForm):
         choices=[
             (se_civel["CONSUMIDOR"][0], se_civel["CONSUMIDOR"][1]),
             (se_civel["CONTRATOS"][0], se_civel["CONTRATOS"][1]),
+            (se_civel["FAMILIA"][0], se_civel["FAMILIA"][1]),
+            (se_civel["REAIS"][0], se_civel["REAIS"][1]),
             (
                 se_civel["RESPONSABILIDADE_CIVIL"][0],
                 se_civel["RESPONSABILIDADE_CIVIL"][1],
             ),
-            (se_civel["REAIS"][0], se_civel["REAIS"][1]),
-            (se_civel["FAMILIA"][0], se_civel["FAMILIA"][1]),
+
             (se_civel["SUCESSOES"][0], se_civel["SUCESSOES"][1]),
         ],
         validators=[
@@ -151,14 +152,15 @@ class OrientacaoJuridicaForm(FlaskForm):
         "Sub-área Administrativo",
         choices=[
             (
+                se_administrativo["ADMINISTRATIVO"][0],
+                se_administrativo["ADMINISTRATIVO"][1],
+            ),
+            (
                 se_administrativo["PREVIDENCIARIO"][0],
                 se_administrativo["PREVIDENCIARIO"][1],
             ),
             (se_administrativo["TRIBUTARIO"][0], se_administrativo["TRIBUTARIO"][1]),
-            (
-                se_administrativo["ADMINISTRATIVO"][0],
-                se_administrativo["ADMINISTRATIVO"][1],
-            ),
+
         ],
         validators=[
             RequiredIf(
@@ -1189,60 +1191,28 @@ class AssistenciaJudiciariaForm(EnderecoForm):
         "Áreas do Direito",
         choices=[
             (
-                assistencia_jud_areas_atendidas["CIVEL"][0],
-                assistencia_jud_areas_atendidas["CIVEL"][1],
-            ),
-            (
-                assistencia_jud_areas_atendidas["TRABALHISTA"][0],
-                assistencia_jud_areas_atendidas["TRABALHISTA"][1],
+                assistencia_jud_areas_atendidas["AMBIENTAL"][0],
+                assistencia_jud_areas_atendidas["AMBIENTAL"][1],
             ),
             (
                 assistencia_jud_areas_atendidas["ADMINISTRATIVO"][0],
                 assistencia_jud_areas_atendidas["ADMINISTRATIVO"][1],
             ),
             (
-                assistencia_jud_areas_atendidas["PENAL"][0],
-                assistencia_jud_areas_atendidas["PENAL"][1],
+                assistencia_jud_areas_atendidas["CIVEL"][0],
+                assistencia_jud_areas_atendidas["CIVEL"][1],
             ),
             (
                 assistencia_jud_areas_atendidas["EMPRESARIAL"][0],
                 assistencia_jud_areas_atendidas["EMPRESARIAL"][1],
             ),
             (
-                assistencia_jud_areas_atendidas["AMBIENTAL"][0],
-                assistencia_jud_areas_atendidas["AMBIENTAL"][1],
+                assistencia_jud_areas_atendidas["PENAL"][0],
+                assistencia_jud_areas_atendidas["PENAL"][1],
             ),
             (
-                assistencia_jud_areas_atendidas["CONSUMIDOR"][0],
-                assistencia_jud_areas_atendidas["CONSUMIDOR"][1],
-            ),
-            (
-                assistencia_jud_areas_atendidas["CONTRATOS"][0],
-                assistencia_jud_areas_atendidas["CONTRATOS"][1],
-            ),
-            (
-                assistencia_jud_areas_atendidas["RESPONSABILIDADE_CIVIL"][0],
-                assistencia_jud_areas_atendidas["RESPONSABILIDADE_CIVIL"][1],
-            ),
-            (
-                assistencia_jud_areas_atendidas["REAIS"][0],
-                assistencia_jud_areas_atendidas["REAIS"][1],
-            ),
-            (
-                assistencia_jud_areas_atendidas["FAMILIA"][0],
-                assistencia_jud_areas_atendidas["FAMILIA"][1],
-            ),
-            (
-                assistencia_jud_areas_atendidas["SUCESSOES"][0],
-                assistencia_jud_areas_atendidas["SUCESSOES"][1],
-            ),
-            (
-                assistencia_jud_areas_atendidas["PREVIDENCIARIO"][0],
-                assistencia_jud_areas_atendidas["PREVIDENCIARIO"][1],
-            ),
-            (
-                assistencia_jud_areas_atendidas["TRIBUTARIO"][0],
-                assistencia_jud_areas_atendidas["TRIBUTARIO"][1],
+                assistencia_jud_areas_atendidas["TRABALHISTA"][0],
+                assistencia_jud_areas_atendidas["TRABALHISTA"][1],
             ),
         ],
         validators=[
