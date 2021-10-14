@@ -21,7 +21,6 @@ from gestaolegal.plantao.models import Atendido, assistencia_jud_areas_atendidas
 from gestaolegal.plantao.views_util import *
 from gestaolegal.usuario.models import Usuario, usuario_urole_roles
 from gestaolegal.utils.models import queryFiltradaStatus
-from gestaolegal.relatorios.views_utils import *
 
 relatorios = Blueprint('relatorios', __name__, template_folder='templates')
 
