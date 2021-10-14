@@ -271,34 +271,36 @@ def editar_caso(id_caso):
 
         setDadosCaso(form, entidade_caso)
 
-        if entidade_caso.id_orientador:
+        notificacoes = []
+        if isinstance(entidade_caso.id_orientador, int):
             _notificacao = Notificacao(
                 acao=acoes["CAD_NOVO_CASO"].format(entidade_caso.id),
                 data=datetime.now(),
                 id_executor_acao=current_user.id,
                 id_usu_notificar=int(entidade_caso.id_orientador),
             )
-            db.session.add(_notificacao)
-            db.session.commit()
+            notificacoes.append(_notificacao)
 
-        if entidade_caso.id_estagiario:
+        if isinstance(entidade_caso.id_estagiario, int):
             _notificacao = Notificacao(
                 acao=acoes["CAD_NOVO_CASO"].format(entidade_caso.id),
                 data=datetime.now(),
                 id_executor_acao=current_user.id,
                 id_usu_notificar=int(entidade_caso.id_estagiario),
             )
-            db.session.add(_notificacao)
-            db.session.commit()
+            notificacoes.append(_notificacao)
 
-        if entidade_caso.id_colaborador:
+        if isinstance(entidade_caso.id_colaborador, int):
             _notificacao = Notificacao(
                 acao=acoes["CAD_NOVO_CASO"].format(entidade_caso.id),
                 data=datetime.now(),
                 id_executor_acao=current_user.id,
                 id_usu_notificar=int(entidade_caso.id_colaborador),
             )
-            db.session.add(_notificacao)
+            notificacoes.append(_notificacao)
+
+        if notificacoes:
+            db.session.bulk_save_objects(notificacoes)
             db.session.commit()
 
         try:
