@@ -18,27 +18,27 @@ from gestaolegal.usuario.models import Usuario
 ##############################################################
 
 area_do_direito = {
-    "CIVEL": ("civel", "Civel"),
-    "TRABALHISTA": ("trabalhista", "Trabalhista"),
     "ADMINISTRATIVO": ("administrativo", "Administrativo"),
-    "PENAL": ("penal", "Penal"),
-    "EMPRESARIAL": ("empresarial", "Empresarial"),
     "AMBIENTAL": ("ambiental", "Ambiental"),
+    "CIVEL": ("civel", "Civel"),
+    "EMPRESARIAL": ("empresarial", "Empresarial"),
+    "PENAL": ("penal", "Penal"),
+    "TRABALHISTA": ("trabalhista", "Trabalhista"),
 }
 
 se_civel = {
     "CONSUMIDOR": ("Consumidor", "Consumidor"),
     "CONTRATOS": ("contratos", "Contratos"),
-    "RESPONSABILIDADE_CIVIL": ("resp_civil", "Responsabilidade Civil"),
-    "REAIS": ("reais", "Reais"),
     "FAMILIA": ("familia", "Família"),
+    "REAIS": ("reais", "Reais"),
+    "RESPONSABILIDADE_CIVIL": ("resp_civil", "Responsabilidade Civil"),
     "SUCESSOES": ("sucessoes", "Sucessões"),
 }
 
 se_administrativo = {
+    "ADMINISTRATIVO": ("administrativo", "Administrativo"),
     "PREVIDENCIARIO": ("previdenciario", "Previdenciário"),
     "TRIBUTARIO": ("tributario", "Tributário"),
-    "ADMINISTRATIVO": ("administrativo", "Administrativo"),
 }
 
 como_conheceu_daj = {
@@ -187,29 +187,21 @@ orgao_reg = {
 }
 
 assistencia_jud_areas_atendidas = {
-    "CIVEL": (area_do_direito["CIVEL"][0], area_do_direito["CIVEL"][1]),
-    "TRABALHISTA": (
-        area_do_direito["TRABALHISTA"][0],
-        area_do_direito["TRABALHISTA"][1],
-    ),
     "ADMINISTRATIVO": (
         area_do_direito["ADMINISTRATIVO"][0],
         area_do_direito["ADMINISTRATIVO"][1],
     ),
-    "PENAL": (area_do_direito["PENAL"][0], area_do_direito["PENAL"][1]),
+    "AMBIENTAL": (area_do_direito["AMBIENTAL"][0], area_do_direito["AMBIENTAL"][1]),
+    "CIVEL": (area_do_direito["CIVEL"][0], area_do_direito["CIVEL"][1]),
     "EMPRESARIAL": (
         area_do_direito["EMPRESARIAL"][0],
         area_do_direito["EMPRESARIAL"][1],
     ),
-    "AMBIENTAL": (area_do_direito["AMBIENTAL"][0], area_do_direito["AMBIENTAL"][1]),
-    "CONSUMIDOR": ("consumidor", "Consumidor"),
-    "CONTRATOS": ("contratos", "Contratos"),
-    "RESPONSABILIDADE_CIVIL": ("responsabilidade_civil", "Responsabilidade Civil"),
-    "REAIS": ("reais", "Reais"),
-    "FAMILIA": ("familia", "Família"),
-    "SUCESSOES": ("sucessoes", "Sucessões"),
-    "PREVIDENCIARIO": ("previdenciario", "Previdenciário"),
-    "TRIBUTARIO": ("tributario", "Tributário"),
+    "PENAL": (area_do_direito["PENAL"][0], area_do_direito["PENAL"][1]),
+    "TRABALHISTA": (
+        area_do_direito["TRABALHISTA"][0],
+        area_do_direito["TRABALHISTA"][1],
+    ),
 }
 
 assistencia_jud_regioes = {
