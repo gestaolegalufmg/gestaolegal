@@ -41,15 +41,17 @@
                         <h4>Ações:</h4>
                         <div class="card-header-action">
                          <a href="{{url_for('casos.novo_processo', id_caso=caso.id)}}"><button class="btn btn-primary mr-1">Associar Processo</button></a> 
-                          <a href="{{url_for('casos.cadastrar_lembrete', id_do_caso=caso.id)}}"><button  class="btn btn-primary mr-1">Criar Lembrete</button></a>
+                         <a href="{{url_for('casos.cadastrar_lembrete', id_do_caso=caso.id)}}"><button  class="btn btn-primary mr-1">Criar Lembrete</button></a>
                          <a href="{{url_for('casos.novo_evento', id_caso=caso.id)}}"><button  class="btn btn-primary mr-1">Criar Evento</button></a>
-                            <a href="{{url_for('casos.editar_caso',id_caso = caso.id)}}"><button class="btn btn-primary">Editar</button></a>
+                         {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0]] %}
+                         <a href="{{url_for('casos.editar_caso',id_caso = caso.id)}}"><button class="btn btn-primary">Editar</button></a>
                             <form action="{{url_for('casos.excluir_caso', id_caso = caso.id, rota_paginacao = rota_paginacao)}}" method="POST">
                                 <input type="hidden" name="csrf_token" id="csrf_token{{caso.id}}" value="{{ csrf_token() }}">
                                 <button class="btn ml-1 btn-flat btn-danger mr-2" onclick="return confirm('Você deseja excluir este caso?');">
                                     Excluir
                                 </button>
                             </form>
+                         {% endif %}
                         </div>
                     </div>
                 </div>
