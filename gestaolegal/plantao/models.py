@@ -27,7 +27,7 @@ area_do_direito = {
 }
 
 se_civel = {
-    "CONSUMIDOR": ("Consumidor", "Consumidor"),
+    "CONSUMIDOR": ("consumidor", "Consumidor"),
     "CONTRATOS": ("contratos", "Contratos"),
     "FAMILIA": ("familia", "Família"),
     "REAIS": ("reais", "Reais"),

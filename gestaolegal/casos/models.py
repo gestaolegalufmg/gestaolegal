@@ -1,4 +1,5 @@
 from gestaolegal import db
+from sqlalchemy import null
 
 # Relacionamento Casos <--> Atendidos
 associacao_casos_atendidos = db.Table('casos_atendidos', db.metadata,
