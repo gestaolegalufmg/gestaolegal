@@ -63,9 +63,15 @@
                                 </div>
                                 <h4>CPF: {{atendido.cpf or ' ---'}}</h4>
                                 <h4>CNPJ: {{atendido.cnpj or ' ---'}}</h4>
-                                <div class="card-header-action">
-                                        <a href="{{url_for('plantao.perfil_assistido', _id=atendido.id)}}" class="btn btn-primary">Visualizar</a>
+
+                                <div class="card-header-action pr-1">
+                                        <a href="{{url_for('plantao.perfil_assistido', _id=atendido.id)}}" class="btn btn-primary">Visualizar</a>  
                                 </div>
+
+                                <div class="card-header-action">
+                                    <a href="{{url_for('plantao.desassociar_orientacao_juridica',id_orientacao=orientacao.id, id_atendido=atendido.id)}}" class="btn btn-primary">X</a>
+                                </div>
+        
                             </div>
                         </div>
                         {% endfor %}
