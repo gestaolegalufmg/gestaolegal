@@ -213,7 +213,103 @@ def indeferir_caso(id_caso):
     ]
 )
 def editar_caso(id_caso):
-    def setValoresCaso(form: CasoForm, entidade_caso: Caso):
+    entidade_caso = Caso.query.filter_by(id=id_caso, status=True).first()
+
+    if not entidade_caso:
+        flash("Não existe um caso com esse ID.", "warning")
+        return redirect(url_for("casos.index"))
+
+    arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id_caso).all()
+    form = CasoForm()
+
+    if request.method == "POST":
+        if not form.validate():
+            return render_template("caso.html", form=form, caso=entidade_caso)
+        else:
+            if form.orientador.data == "":
+                entidade_caso.id_orientador = null()
+            else:
+                entidade_caso.id_orientador = int(form.orientador.data)
+
+            if form.estagiario.data == "":
+                entidade_caso.id_estagiario = null()
+            else:
+                entidade_caso.id_estagiario = int(form.estagiario.data)
+
+            if form.colaborador.data == "":
+                entidade_caso.id_colaborador = null()
+            else:
+                entidade_caso.id_colaborador = int(form.colaborador.data)
+
+            entidade_caso.area_direito = form.area_direito.data
+            entidade_caso.descricao = form.descricao.data
+            entidade_caso.data_modificacao = datetime.now()
+            if entidade_caso.situacao_deferimento == situacao_deferimento["ATIVO"][0]:
+                entidade_caso.situacao_deferimento = form.situacao_deferimento_ativo.data
+            if entidade_caso.situacao_deferimento == situacao_deferimento["INDEFERIDO"][0]:
+                entidade_caso.situacao_deferimento = (
+                    form.situacao_deferimento_indeferido.data
+                )
+
+            notificacoes = []
+            if isinstance(entidade_caso.id_orientador, int):
+                _notificacao = Notificacao(
+                    acao=acoes["CAD_NOVO_CASO"].format(entidade_caso.id),
+                    data=datetime.now(),
+                    id_executor_acao=current_user.id,
+                    id_usu_notificar=int(entidade_caso.id_orientador),
+                )
+                notificacoes.append(_notificacao)
+
+            if isinstance(entidade_caso.id_estagiario, int):
+                _notificacao = Notificacao(
+                    acao=acoes["CAD_NOVO_CASO"].format(entidade_caso.id),
+                    data=datetime.now(),
+                    id_executor_acao=current_user.id,
+                    id_usu_notificar=int(entidade_caso.id_estagiario),
+                )
+                notificacoes.append(_notificacao)
+
+            if isinstance(entidade_caso.id_colaborador, int):
+                _notificacao = Notificacao(
+                    acao=acoes["CAD_NOVO_CASO"].format(entidade_caso.id),
+                    data=datetime.now(),
+                    id_executor_acao=current_user.id,
+                    id_usu_notificar=int(entidade_caso.id_colaborador),
+                )
+                notificacoes.append(_notificacao)
+
+            if notificacoes:
+                db.session.bulk_save_objects(notificacoes)
+                db.session.commit()
+
+            try:
+                arquivo = request.files.get("arquivo")
+            except RequestEntityTooLarge as error:
+                flash("Tamanho de arquivo muito longo.")
+                return render_template(
+                    "caso.html", form=form, caso=entidade_caso, arquivos=arquivos
+                )
+            if arquivo:
+                nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
+                if extensao_do_arquivo != ".pdf" and arquivo:
+                    flash("Extensão de arquivo não suportado.", "warning")
+                    return redirect(url_for("casos.editar_caso", id_caso=id_caso))
+                arquivo_caso = ArquivoCaso(link_arquivo=arquivo.filename, id_caso=id_caso)
+                db.session.add(arquivo_caso)
+                nome_arquivo = f"{arquivo.filename}"
+                arquivo.save(
+                    os.path.join(current_app.root_path, "static", "casos", nome_arquivo)
+                )
+
+            db.session.commit()
+            cadastrar_historico(
+                current_user.id, id_caso
+            )  # Cadastra um novo histórico de edição
+            flash("Caso editado com sucesso!", "success")
+            return redirect(url_for("casos.index"))
+
+    if request.method == "GET":
         form.orientador.data = entidade_caso.id_orientador
         form.estagiario.data = entidade_caso.id_estagiario
         form.colaborador.data = entidade_caso.id_colaborador
@@ -226,111 +322,9 @@ def editar_caso(id_caso):
                 entidade_caso.situacao_deferimento
             )
 
-    def setDadosCaso(form: CasoForm, entidade_caso: Caso):
-        if form.orientador.data == "":
-            entidade_caso.id_orientador = null()
-        else:
-            entidade_caso.id_orientador = int(form.orientador.data)
-
-        if form.estagiario.data == "":
-            entidade_caso.id_estagiario = null()
-        else:
-            entidade_caso.id_estagiario = int(form.estagiario.data)
-
-        if form.colaborador.data == "":
-            entidade_caso.id_colaborador = null()
-        else:
-            entidade_caso.id_colaborador = int(form.colaborador.data)
-
-        entidade_caso.area_direito = form.area_direito.data
-        entidade_caso.descricao = form.descricao.data
-        entidade_caso.data_modificacao = datetime.now()
-        if entidade_caso.situacao_deferimento == situacao_deferimento["ATIVO"][0]:
-            entidade_caso.situacao_deferimento = form.situacao_deferimento_ativo.data
-        if entidade_caso.situacao_deferimento == situacao_deferimento["INDEFERIDO"][0]:
-            entidade_caso.situacao_deferimento = (
-                form.situacao_deferimento_indeferido.data
-            )
-
-    ############################## IMPLEMENTAÇÃO DA ROTA ###########################################################3
-
-    entidade_caso = Caso.query.filter_by(id=id_caso, status=True).first()
-    arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id_caso).all()
-
-    if not entidade_caso:
-        flash("Não existe um caso com esse ID.", "warning")
-        return redirect(url_for("casos.index"))
-
-    form = CasoForm()
-    if request.method == "POST":
-        if not form.validate():
-            return render_template("caso.html", form=form, caso=entidade_caso)
-
-        setDadosCaso(form, entidade_caso)
-
-        notificacoes = []
-        if isinstance(entidade_caso.id_orientador, int):
-            _notificacao = Notificacao(
-                acao=acoes["CAD_NOVO_CASO"].format(entidade_caso.id),
-                data=datetime.now(),
-                id_executor_acao=current_user.id,
-                id_usu_notificar=int(entidade_caso.id_orientador),
-            )
-            notificacoes.append(_notificacao)
-
-        if isinstance(entidade_caso.id_estagiario, int):
-            _notificacao = Notificacao(
-                acao=acoes["CAD_NOVO_CASO"].format(entidade_caso.id),
-                data=datetime.now(),
-                id_executor_acao=current_user.id,
-                id_usu_notificar=int(entidade_caso.id_estagiario),
-            )
-            notificacoes.append(_notificacao)
-
-        if isinstance(entidade_caso.id_colaborador, int):
-            _notificacao = Notificacao(
-                acao=acoes["CAD_NOVO_CASO"].format(entidade_caso.id),
-                data=datetime.now(),
-                id_executor_acao=current_user.id,
-                id_usu_notificar=int(entidade_caso.id_colaborador),
-            )
-            notificacoes.append(_notificacao)
-
-        if notificacoes:
-            db.session.bulk_save_objects(notificacoes)
-            db.session.commit()
-
-        try:
-            arquivo = request.files.get("arquivo")
-        except RequestEntityTooLarge as error:
-            flash("Tamanho de arquivo muito longo.")
-            return render_template(
-                "caso.html", form=form, caso=entidade_caso, arquivos=arquivos
-            )
-        if arquivo:
-            nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
-            if extensao_do_arquivo != ".pdf" and arquivo:
-                flash("Extensão de arquivo não suportado.", "warning")
-                return redirect(url_for("casos.editar_caso", id_caso=id_caso))
-            arquivo_caso = ArquivoCaso(link_arquivo=arquivo.filename, id_caso=id_caso)
-            db.session.add(arquivo_caso)
-            nome_arquivo = f"{arquivo.filename}"
-            arquivo.save(
-                os.path.join(current_app.root_path, "static", "casos", nome_arquivo)
-            )
-
-        db.session.commit()
-        cadastrar_historico(
-            current_user.id, id_caso
-        )  # Cadastra um novo histórico de edição
-        flash("Caso editado com sucesso!", "success")
-        return redirect(url_for("casos.index"))
-
-    setValoresCaso(form, entidade_caso)
-
-    return render_template(
-        "caso.html", form=form, caso=entidade_caso, arquivos=arquivos
-    )
+        return render_template(
+            "caso.html", form=form, caso=entidade_caso, arquivos=arquivos
+        )
 
 
 @casos.route("excluir_assistido_caso/<id_caso>/<id_assistido>", methods=["POST", "GET"])
