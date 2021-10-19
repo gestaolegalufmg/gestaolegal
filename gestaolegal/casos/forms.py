@@ -8,8 +8,9 @@ from gestaolegal.utils.forms import RequiredIf
 
 
 class CasoForm(FlaskForm):
-    clientes = HiddenField(
-        validators=[InputRequired('Por favor, selecione pelo menos um cliente para associar ao caso')])
+    orientador = HiddenField()
+    estagiario = HiddenField()
+    colaborador = HiddenField()
     area_direito = SelectField('Área do Direito', choices=[
         (assistencia_jud_areas_atendidas[key][0], assistencia_jud_areas_atendidas[key][1]) for key in
         assistencia_jud_areas_atendidas])
@@ -40,17 +41,6 @@ class CasoForm(FlaskForm):
                                 ]
                                 )
     descricao = TextAreaField('Descrição')
-    submit = SubmitField('Enviar')
-
-
-class EditarCasoForm(FlaskForm):
-    orientador = HiddenField()
-    estagiario = HiddenField()
-    colaborador = HiddenField()
-    area_direito = SelectField('Área do Direito', choices=[
-        (assistencia_jud_areas_atendidas[key][0], assistencia_jud_areas_atendidas[key][1]) for key in
-        assistencia_jud_areas_atendidas])
-    descricao = TextAreaField('Descrição')
     situacao_deferimento_ativo = SelectField('Status do caso', choices=[
         ('ativo', 'Ativo'),
         ('arquivado', 'Arquivado'),
@@ -64,6 +54,17 @@ class EditarCasoForm(FlaskForm):
         ('aguardando_deferimento', 'Aguardando Deferimento')
     ],
                                                   validators=[Optional()])
+    submit = SubmitField('Enviar')
+
+
+class NovoCasoForm(CasoForm):
+    '''
+    Este form tem o campo de clientes a mais do que no caso do form. O cliente é informado apenas no momento da criação do
+    caso e não na edição. A alteração de clientes (assistidos) é feita na listagem de casos. Não sei muito bem por que foi
+    feita esta opção. TODO: rever no futuro a possibilidade de editar os clientes (assistidos) na tela de edição.
+    '''
+    clientes = HiddenField(
+        validators=[InputRequired('Por favor, selecione pelo menos um cliente para associar ao caso')])
 
 
 class RoteiroForm(FlaskForm):
