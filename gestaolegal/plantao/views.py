@@ -520,7 +520,9 @@ def encaminha_assistencia_judiciaria(id_orientacao):
             aj_oj.id_orientacaoJuridica = id_orientacao
             aj_oj.id_assistenciaJudiciaria = item
             db.session.add(aj_oj)
-            db.session.commit()
+            db.session.flush()
+
+        db.session.commit()
         flash("Orientação encaminhada.", "success")
         return redirect(url_for("plantao.perfil_oj", id=id_orientacao))
 
