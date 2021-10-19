@@ -11,7 +11,7 @@ from sqlalchemy import null
 from sqlalchemy.exc import SQLAlchemyError
 
 from gestaolegal import app, db, login_required
-from gestaolegal.casos.forms import (CasoForm, EditarCasoForm,
+from gestaolegal.casos.forms import (CasoForm,
                                      JustificativaIndeferimento,
                                      LembreteForm, RoteiroForm, EventoForm, ProcessoForm)
 from gestaolegal.casos.models import (Caso, Historico, Lembrete, Roteiro,

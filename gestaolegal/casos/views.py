@@ -10,7 +10,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 
 from gestaolegal.casos.forms import (
     CasoForm,
-    EditarCasoForm,
+    NovoCasoForm,
     JustificativaIndeferimento,
     LembreteForm,
     RoteiroForm,
@@ -89,7 +89,7 @@ def ajax_filtro_casos():
     ]
 )
 def novo_caso():
-    _form = CasoForm()
+    _form = NovoCasoForm()
     if _form.validate_on_submit():
         _caso = Caso(
             area_direito=_form.area_direito.data,
@@ -115,13 +115,13 @@ def novo_caso():
             arquivo = request.files.get("arquivo")
         except RequestEntityTooLarge as error:
             flash("Tamanho de arquivo muito longo.")
-            return render_template("novo_caso.html", form=_form)
+            return render_template("caso.html", form=_form)
 
         if arquivo.filename:
             _, extensao_do_arquivo = os.path.splitext(arquivo.filename)
             if extensao_do_arquivo != ".pdf" and arquivo:
                 flash("Extensão de arquivo não suportado.", "warning")
-                return render_template("novo_caso.html", form=_form)
+                return render_template("caso.html", form=_form)
             nome_arquivo = f"{arquivo.filename}"
             arquivo.save(
                 os.path.join(current_app.root_path, "static", "casos", nome_arquivo)
@@ -136,7 +136,7 @@ def novo_caso():
 
         return redirect(url_for("casos.index"))
 
-    return render_template("novo_caso.html", form=_form)
+    return render_template("caso.html", form=_form, title="Novo Caso", caso=None)
 
 
 # Visualizar caso
@@ -213,7 +213,7 @@ def indeferir_caso(id_caso):
     ]
 )
 def editar_caso(id_caso):
-    def setValoresCaso(form: EditarCasoForm, entidade_caso: Caso):
+    def setValoresCaso(form: CasoForm, entidade_caso: Caso):
         form.orientador.data = entidade_caso.id_orientador
         form.estagiario.data = entidade_caso.id_estagiario
         form.colaborador.data = entidade_caso.id_colaborador
@@ -226,7 +226,7 @@ def editar_caso(id_caso):
                 entidade_caso.situacao_deferimento
             )
 
-    def setDadosCaso(form: EditarCasoForm, entidade_caso: Caso):
+    def setDadosCaso(form: CasoForm, entidade_caso: Caso):
         if form.orientador.data == "":
             entidade_caso.id_orientador = null()
         else:
@@ -261,10 +261,10 @@ def editar_caso(id_caso):
         flash("Não existe um caso com esse ID.", "warning")
         return redirect(url_for("casos.index"))
 
-    form = EditarCasoForm()
+    form = CasoForm()
     if request.method == "POST":
         if not form.validate():
-            return render_template("editar_caso.html", form=form, caso=entidade_caso)
+            return render_template("caso.html", form=form, caso=entidade_caso)
 
         setDadosCaso(form, entidade_caso)
 
@@ -305,7 +305,7 @@ def editar_caso(id_caso):
         except RequestEntityTooLarge as error:
             flash("Tamanho de arquivo muito longo.")
             return render_template(
-                "editar_caso.html", form=form, caso=entidade_caso, arquivos=arquivos
+                "caso.html", form=form, caso=entidade_caso, arquivos=arquivos
             )
         if arquivo:
             nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
@@ -329,7 +329,7 @@ def editar_caso(id_caso):
     setValoresCaso(form, entidade_caso)
 
     return render_template(
-        "editar_caso.html", form=form, caso=entidade_caso, arquivos=arquivos
+        "caso.html", form=form, caso=entidade_caso, arquivos=arquivos
     )
 
 
