@@ -1199,7 +1199,7 @@ def ajax_confirma_data_plantao():
             response=json.dumps(resultado_json), status=200, mimetype="application/json"
         )
 
-    if len(dias_usuario_marcado) >= 2:
+    if len(dias_usuario_marcado) >= 2 or (len(dias_usuario_marcado) >= 1 and current_user.urole == usuario_urole_roles['ORIENTADOR'][0]):
         tipo_mensagem = "warning"
         mensagem = "Você atingiu o limite de plantões cadastrados."
         resultado_json = cria_json(
