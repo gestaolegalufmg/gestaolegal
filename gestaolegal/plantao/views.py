@@ -520,7 +520,9 @@ def encaminha_assistencia_judiciaria(id_orientacao):
             aj_oj.id_orientacaoJuridica = id_orientacao
             aj_oj.id_assistenciaJudiciaria = item
             db.session.add(aj_oj)
-            db.session.commit()
+            db.session.flush()
+
+        db.session.commit()
         flash("Orientação encaminhada.", "success")
         return redirect(url_for("plantao.perfil_oj", id=id_orientacao))
 
@@ -671,6 +673,25 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
         orientacao_entidade=orientacao_entidade,
         encaminhar_outras_aj=encaminhar_outras_aj,
     )
+@plantao.route(
+    "/desassociar_orientacao_juridica/<int:id_orientacao>/<int:id_atendido>",
+    methods=["POST", "GET"],
+)
+@login_required(
+    role=[
+        usuario_urole_roles["ADMINISTRADOR"][0],
+        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
+        usuario_urole_roles["PROFESSOR"][0],
+    ]
+)
+def desassociar_orientacao_juridica(id_atendido, id_orientacao):
+    entidade_atendido = Atendido.query.filter_by(id=id_atendido).first()
+    orientacao = OrientacaoJuridica.query.filter_by(id=id_orientacao).first()
+
+    entidade_atendido.orientacoesJuridicas.remove(orientacao)
+    db.session.commit()
+
+    return redirect(url_for("plantao.perfil_oj", id=id_orientacao))
 
 
 # Busca dos atendidos para associar a uma orientação jurídica
@@ -1199,7 +1220,7 @@ def ajax_confirma_data_plantao():
             response=json.dumps(resultado_json), status=200, mimetype="application/json"
         )
 
-    if len(dias_usuario_marcado) >= 2:
+    if len(dias_usuario_marcado) >= 2 or (len(dias_usuario_marcado) >= 1 and current_user.urole == usuario_urole_roles['ORIENTADOR'][0]):
         tipo_mensagem = "warning"
         mensagem = "Você atingiu o limite de plantões cadastrados."
         resultado_json = cria_json(
