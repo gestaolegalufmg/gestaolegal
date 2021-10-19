@@ -106,9 +106,11 @@
         <div class="col" >
           <div class="dias col-lg-8" id="numero_plantao_1">1°</div>
         </div>
-        <div class="col" >
-          <div class="dias col-lg-8" id="numero_plantao_2">2°</div>
-        </div>
+        {% if current_user.urole != usuario_urole_roles['ORIENTADOR'][0] %}
+          <div class="col" >
+            <div class="dias col-lg-8" id="numero_plantao_2">2°</div>
+          </div>
+        {% endif %}
       </div>
     </div>
 
