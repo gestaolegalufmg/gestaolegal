@@ -673,6 +673,25 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
         orientacao_entidade=orientacao_entidade,
         encaminhar_outras_aj=encaminhar_outras_aj,
     )
+@plantao.route(
+    "/desassociar_orientacao_juridica/<int:id_orientacao>/<int:id_atendido>",
+    methods=["POST", "GET"],
+)
+@login_required(
+    role=[
+        usuario_urole_roles["ADMINISTRADOR"][0],
+        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
+        usuario_urole_roles["PROFESSOR"][0],
+    ]
+)
+def desassociar_orientacao_juridica(id_atendido, id_orientacao):
+    entidade_atendido = Atendido.query.filter_by(id=id_atendido).first()
+    orientacao = OrientacaoJuridica.query.filter_by(id=id_orientacao).first()
+
+    entidade_atendido.orientacoesJuridicas.remove(orientacao)
+    db.session.commit()
+
+    return redirect(url_for("plantao.perfil_oj", id=id_orientacao))
 
 
 # Busca dos atendidos para associar a uma orientação jurídica
