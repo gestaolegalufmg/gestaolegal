@@ -1091,27 +1091,32 @@ def pg_plantao():
     plantao = Plantao.query.first()
 
     # valida_fim_plantao(plantao)
-    if (
-        not (
-            current_user.urole
-            in [
-                usuario_urole_roles["ADMINISTRADOR"][0],
-                usuario_urole_roles["COLAB_PROJETO"][0],
-            ]
+    try:
+        if (
+            not (
+                current_user.urole
+                in [
+                    usuario_urole_roles["ADMINISTRADOR"][0],
+                    usuario_urole_roles["COLAB_PROJETO"][0],
+                ]
+            )
+        ) and (plantao.data_abertura == None):
+            flash("O plantão não está aberto!")
+            return redirect(url_for("principal.index"))
+
+        dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(
+            id_usuario=current_user.id
+        ).all()
+
+        return render_template(
+            "pagina_plantao.html",
+            datas_plantao=dias_usuario_atual,
+            numero_plantao=numero_plantao_a_marcar(current_user.id),
         )
-    ) and (plantao.data_abertura == None):
+    except AttributeError:
         flash("O plantão não está aberto!")
         return redirect(url_for("principal.index"))
 
-    dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(
-        id_usuario=current_user.id
-    ).all()
-
-    return render_template(
-        "pagina_plantao.html",
-        datas_plantao=dias_usuario_atual,
-        numero_plantao=numero_plantao_a_marcar(current_user.id),
-    )
 
 
 @plantao.route("/ajax_obter_escala_plantao", methods=["GET"])
