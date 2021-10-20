@@ -197,7 +197,7 @@
         <div class="row form-group">
             <div class="col">
                 {{form.cep.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
-                {{form.cep(type="text", class_="form-control")}}
+                {{form.cep(type="text", class_="form-control", id="formcep")}}
                 {% for error in form.cep.errors %}
                 <div class="alert alert-danger">{{error}}</div>
                 {% endfor %}
