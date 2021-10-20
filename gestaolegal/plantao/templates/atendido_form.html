@@ -162,10 +162,10 @@
                     <label class="col-lg-4 col-form-label" for="cnpj">{{ form.cnpj.label }} <span class="text-danger">*</span>
                     </label>
                     <div class="col-lg-6">
-                        {{ form.cnpj(class_="form-control") }}
+                        {{ form.cnpj(type="text", class_="form-control", id="formcnpj") }}
                     </div>
-
                 </div>
+
 
                 {% for error in form.cnpj.errors %}
                     <div class="alert alert-danger">{{error}}</div>
@@ -319,7 +319,7 @@
                 <label class="col-lg-4 col-form-label" for="cep" >{{form.cep.label}} <span class="text-danger">*</span>
                 </label>
                 <div class="col-lg-6">
-                    {{form.cep(type="text",class_="form-control")}}
+                    {{form.cep(type="text",class_="form-control", id="formcep")}}
                 </div>
             </div>
 
