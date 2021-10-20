@@ -162,7 +162,7 @@ class Endereco(db.Model):
     numero = db.Column(db.String(8, collation="latin1_general_ci"), nullable=False)
     complemento = db.Column(db.String(100, collation="latin1_general_ci"))
     bairro = db.Column(db.String(100, collation="latin1_general_ci"), nullable=False)
-    cep = db.Column(db.String(9, collation="latin1_general_ci"), nullable=False)
+    cep = db.Column(db.String(10, collation="latin1_general_ci"), nullable=False)
 
     cidade = db.Column(db.String(100, collation="latin1_general_ci"), nullable=False)
     estado = db.Column(db.String(100, collation="latin1_general_ci"), nullable=False)
