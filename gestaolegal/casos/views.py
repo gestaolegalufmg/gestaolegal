@@ -842,7 +842,7 @@ def meus_casos():
     titulo_total = titulo_total_meus_casos(casos.total)
 
     return render_template(
-        "meus_casos.html",
+        "listar_meus_casos.html",
         opcoes_filtro_meus_casos=opcoes_filtro_meus_casos,
         titulo_total=titulo_total,
         **params_busca_casos(casos, ROTA_PAGINACAO_MEUS_CASOS, opcao_filtro),
