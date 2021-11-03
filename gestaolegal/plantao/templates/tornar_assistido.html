@@ -46,6 +46,7 @@
     assistido_visibilidadePjConstituida("{{atendido.pj_constituida}}")
     visibilidadeSede_bh()
     visibilidadeTem_funcionarios()
+    visibilidadeSocios()
     
     ////LINKO A FUNÇAO DE VISIBILIDADE AO CAMPO QUE ALTERA ESTA FUNCAO
     document.getElementById('possui_veiculos').onchange = function() {visibilidadePossui_veiculos()};
@@ -55,6 +56,7 @@
     document.getElementById('pessoa_doente').onchange = function(){visibilidadePessoaDoenteOBS("{{qual_pessoa_doente['OUTROS'][1]}}")};
     document.getElementById('sede_bh').onchange = function() {visibilidadeSede_bh()};
     document.getElementById('tem_funcionarios').onchange = function() {visibilidadeTem_funcionarios()};
+    document.getElementById('enquadramento').onchange = function(){visibilidadeSocios()};
 
 
 //Função que remove efeitos no tipo Number

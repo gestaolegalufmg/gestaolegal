@@ -117,3 +117,15 @@ function visibilidadePossui_imoveis(){
             document.getElementById("div_quantos_imoveis").hidden =true;
         }
 }
+
+visibilidadeSocios = () =>{
+    const elementoSelecionado = document.getElementById('enquadramento')
+    const stringSelecionada = elementoSelecionado.options[elementoSelecionado.selectedIndex].text
+
+    if(stringSelecionada == "Microempreendedor Individual"){
+        document.getElementById("div_socios").hidden = true
+    }
+    else{
+        document.getElementById("div_socios").hidden = false
+    }
+}
