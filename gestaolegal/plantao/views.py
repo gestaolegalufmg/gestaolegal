@@ -508,7 +508,9 @@ def cadastro_orientacao_juridica():
     ]
 )
 def encaminha_assistencia_judiciaria(id_orientacao):
-    assistencias_judiciarias = db.session.query(AssistenciaJudiciaria).all()
+    assistencias_judiciarias = db.session.query(AssistenciaJudiciaria)
+    orientacao_juridica = OrientacaoJuridica.query.filter(OrientacaoJuridica.id == id_orientacao).first()
+    assistencias_judiciarias = query_filtro_assistencia_judiciaria(assistencias_judiciarias, orientacao_juridica.area_direito).all()
 
     if request.method == "POST":
         list_ids = request.form.getlist(
