@@ -1083,9 +1083,6 @@ def perfil_assistencia_judiciaria(_id):
         return redirect(url_for("plantao.listar_assistencias_judiciarias"))
     return render_template("visualizar_assistencia_judiciaria.html", aj=aj)
 
-    return render_template("edicao_aj.html", form=form)
-
-
 # Página de plantao
 @plantao.route("/pagina_plantao", methods=["POST", "GET"])
 @login_required()
