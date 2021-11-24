@@ -148,7 +148,7 @@ def visualizar_caso(id):
     if not _caso:
         abort(404)
     processos = Processo.query.filter_by(id_caso=id, status=True).all()
-    _lembrete = Lembrete.query.filter_by(status=True, id_caso=id).first()
+    _lembrete = Lembrete.query.filter_by(status=True, id_caso=id).order_by(Lembrete.data_criacao.desc()).first()
     return render_template(
         "visualizar_caso.html",
         caso=_caso,
