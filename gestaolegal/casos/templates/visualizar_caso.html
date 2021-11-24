@@ -180,7 +180,7 @@
                         {{arquivo.link_arquivo}}
                       </h4>
                       <div class="card-header-action">
-                        <a href="{{url_for('static', filename='casos/{}'.format(arquivo.link_arquivo) )}}" class="btn btn-primary {{'disabled' if not arquivo else None}}">Download</a>
+                        <a href="{{url_for('static', filename='casos/{}'.format(arquivo.link_arquivo) )}}" class="btn btn-primary {{'disabled' if not arquivo else None}}" target="_blank">Download</a>
                       </div>
                     </div>
                   {% endfor %}
