@@ -132,7 +132,7 @@
                     Criado em:
                 </span>
                 <span class="float-right text-muted">
-                    {{caso.data_criacao}}
+                    {{caso.data_criacao.strftime("%d/%m/%Y %H:%M:%S")}}
                 </span>
             </p>
             <p class="clearfix">
@@ -140,7 +140,7 @@
                     Última modificação:
                 </span>
                 <span class="float-right text-muted">
-                    {{caso.data_modificacao}}
+                    {{caso.data_modificacao.strftime("%d/%m/%Y %H:%M:%S")}}
                 </span>
             </p>
             <p class="clearfix">
