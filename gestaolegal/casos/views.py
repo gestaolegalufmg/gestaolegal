@@ -1,4 +1,5 @@
 import os
+import pytz
 
 from flask import (
     abort,
@@ -94,9 +95,9 @@ def novo_caso():
         _caso = Caso(
             area_direito=_form.area_direito.data,
             id_usuario_responsavel=current_user.id,
-            data_criacao=datetime.now(),
+            data_criacao=datetime.now(tz=pytz.timezone("America/Sao_Paulo")),
             id_criado_por=current_user.id,
-            data_modificacao=datetime.now(),
+            data_modificacao=datetime.now(tz=pytz.timezone("America/Sao_Paulo")),
             id_modificado_por=current_user.id,
             descricao=_form.descricao.data,
         )
@@ -243,7 +244,7 @@ def editar_caso(id_caso):
 
             entidade_caso.area_direito = form.area_direito.data
             entidade_caso.descricao = form.descricao.data
-            entidade_caso.data_modificacao = datetime.now()
+            entidade_caso.data_modificacao = datetime.now(tz=pytz.timezone("America/Sao_Paulo"))
             if entidade_caso.situacao_deferimento == situacao_deferimento["ATIVO"][0]:
                 entidade_caso.situacao_deferimento = form.situacao_deferimento_ativo.data
             if entidade_caso.situacao_deferimento == situacao_deferimento["INDEFERIDO"][0]:
