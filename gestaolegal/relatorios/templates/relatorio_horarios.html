@@ -25,10 +25,11 @@
                 </tr>
                 <tr class="table-active">
                     <th scope="col">Data</th>
-                    <th scope="col">Nome do Estagiário</th>
+                    <th scope="col">Nome</th>
                     <th scope="col">Horário de Entrada</th>
                     <th scope="col">Horário de Saída</th>
                     <th scope="col">Status</th>
+                    <th scope="col">Plantão</th>
                 </tr>
             </thead>
             <tbody>
@@ -39,6 +40,17 @@
                     <td>{{horario.data_entrada.time()}}</td>
                     <td>{{horario.data_saida.time()}}</td>
                     <td>{{horario.confirmacao}}</td>
+                    <td>Não</td>
+                </tr>
+                {% endfor %}
+                {% for horario in horarios_plantao %}
+                <tr>
+                    <td>{{horario.data_marcada}}</td>
+                    <td>{{horario.usuario.nome}}</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>{{horario.confirmacao}}</td>
+                    <td>Sim</td>
                 </tr>
                 {% endfor %}
             </tbody>

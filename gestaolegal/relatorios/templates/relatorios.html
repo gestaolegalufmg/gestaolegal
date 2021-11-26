@@ -7,7 +7,7 @@
 {% endblock css %}
 
 {% block conteudo %}
-        <input type="hidden" id="apiRelatoriosBuscarEstagiarios" value="{{url_for('relatorios.api_relatorios_buscar_estagiarios', _external=True)}}">
+        <input type="hidden" id="apiRelatoriosBuscarUsuarios" value="{{url_for('relatorios.api_relatorios_buscar_usuarios', _external=True)}}">
         <input type="hidden" id="apiRelatoriosBuscaAreasDireito" value="{{url_for('relatorios.api_relatorios_buscar_area_direito', _external=True)}}">
         <div class="card">
             <div class="card-body">
@@ -20,10 +20,10 @@
                          </div>
                     </div>
                     
-                    <div class="form-group row" id="escolhe_estagiario">
-                        <label class="col-12 col-lg-6 offset-lg-1 col-form-label">Estagiários:</label>
+                    <div class="form-group row" id="escolhe_usuario">
+                        <label class="col-12 col-lg-6 offset-lg-1 col-form-label">Usuários:</label>
                           <div class="col-12 col-lg-6 offset-lg-1">
-                            <select class="js-example-basic-multiple form-control" id="estagiarios-js" style="width:100%" multiple="multiple"></select>
+                            <select class="js-example-basic-multiple form-control" id="usuarios-js" style="width:100%" multiple="multiple"></select>
                             
                           </div>
                     </div>
@@ -69,20 +69,20 @@
 <script>
     function esconde_campos(){
         switch(document.getElementById('tipo_relatorio').value){
-            case "horario_estag":
-                document.getElementById('escolhe_estagiario').hidden = false
+            case "horario_usuarios":
+                document.getElementById('escolhe_usuario').hidden = false
                 document.getElementById('escolhe_area_direito').hidden = true
                 break
             case "casos_orientacao":
-                document.getElementById('escolhe_estagiario').hidden = true
+                document.getElementById('escolhe_usuario').hidden = true
                 document.getElementById('escolhe_area_direito').hidden = false
                 break 
             case "casos_cadastrados":
-                document.getElementById('escolhe_estagiario').hidden = true
+                document.getElementById('escolhe_usuario').hidden = true
                 document.getElementById('escolhe_area_direito').hidden = false
                 break    
             case "casos_arquiv_soluc_ativ":
-                document.getElementById('escolhe_estagiario').hidden = true
+                document.getElementById('escolhe_usuario').hidden = true
                 document.getElementById('escolhe_area_direito').hidden = false
                 break 
         }
@@ -90,18 +90,18 @@
 
     $(document).ready(function(){
 
-        $('#estagiarios-js').select2({
-            placeholder: 'Selecione um estagiário',
+        $('#usuarios-js').select2({
+            placeholder: 'Selecione um usuário',
             ajax: {
-                url:$('#apiRelatoriosBuscarEstagiarios').val(),
+                url:$('#apiRelatoriosBuscarUsuarios').val(),
                 dataType:'json'
             },
             multiple: true,
             width: 'resolve'
         });
 
-        $('#estagiarios-js').on('change', function(){
-            $('#estagiarios').val($('#estagiarios-js').val().join(','));
+        $('#usuarios-js').on('change', function(){
+            $('#usuarios').val($('#usuarios-js').val().join(','));
         })
 
         $('#areaDoDireito').select2({
