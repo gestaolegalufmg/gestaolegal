@@ -36,12 +36,12 @@ def index():                  #vai listar os dados como o select2 entende
             areas = "all"
         else:
             areas = form.area_direito.data
-        if form.estagiarios.data == '':
-            estag = "all"
+        if form.usuarios.data == '':
+            usuarios = "all"
         else:
-            estag = form.estagiarios.data
-        if form.tipo_relatorio.data == "horario_estag":
-            return redirect(url_for('relatorios.relatorio_horarios', inicio=inicio, final=final, estag=estag))
+            usuarios = form.usuarios.data
+        if form.tipo_relatorio.data == "horario_usuarios":
+            return redirect(url_for('relatorios.relatorio_horarios', inicio=inicio, final=final, usuarios=usuarios))
         if form.tipo_relatorio.data == "casos_orientacao":
             return redirect(url_for('relatorios.casos_orientacao_juridica', inicio=inicio, final=final, areas=areas))
         if form.tipo_relatorio.data == "casos_cadastrados":
@@ -84,18 +84,20 @@ def casos_cadastrados(inicio, final, areas):
     usuario = current_user.nome
     return render_template('casos_cadastrados.html', casos = casos, data_emissao = data_emissao, usuario = usuario, datas=datas)        
 
-@relatorios.route('/relatorio_horarios/<inicio>/<final>/<estag>')
+@relatorios.route('/relatorio_horarios/<inicio>/<final>/<usuarios>')
 @login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0]])
-def relatorio_horarios(inicio, final, estag):
+def relatorio_horarios(inicio, final, usuarios):
     datas=[inicio, final]
-    if estag == "all":
-        horarios = RegistroEntrada.query.select_from(RegistroEntrada).join(Usuario).filter(RegistroEntrada.status == False, RegistroEntrada.data_saida >= inicio, RegistroEntrada.data_saida <= final, Usuario.urole == usuario_urole_roles['ESTAGIARIO_DIREITO'][0]).all()
+    if usuarios == "all":
+        horarios = RegistroEntrada.query.select_from(RegistroEntrada).join(Usuario).filter(RegistroEntrada.status == False, RegistroEntrada.data_saida >= inicio, RegistroEntrada.data_saida <= final).all()
     else:
-        estagiarios = estag.split(sep=',')
-        horarios = RegistroEntrada.query.filter(RegistroEntrada.status == False, RegistroEntrada.data_saida >= inicio, RegistroEntrada.data_saida <= final, RegistroEntrada.id_usuario.in_(estagiarios)).all()
+        usuarios = usuarios.split(sep=',')
+        horarios = RegistroEntrada.query.filter(RegistroEntrada.status == False, RegistroEntrada.data_saida >= inicio, RegistroEntrada.data_saida <= final, RegistroEntrada.id_usuario.in_(usuarios)).all()
+        horarios_plantao = DiasMarcadosPlantao.query.filter(DiasMarcadosPlantao.data_marcada >= inicio, DiasMarcadosPlantao.data_marcada <= final, DiasMarcadosPlantao.id_usuario.in_(usuarios)).all()
+
     data_emissao = datetime.now().date().strftime("%d/%m/%Y")
     usuario = current_user.nome
-    return render_template('relatorio_horarios.html', data_emissao = data_emissao, usuario = usuario, horarios = horarios, datas=datas)
+    return render_template('relatorio_horarios.html', data_emissao = data_emissao, usuario = usuario, horarios = horarios, datas=datas, horarios_plantao=horarios_plantao)
 
 @relatorios.route('/casos_arq_sol_ativ/<inicio>/<final>/<areas>')
 @login_required(role=[usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0]])
@@ -130,21 +132,22 @@ def casos_arq_sol_ativ(inicio, final, areas):
     usuario = current_user.nome
     return render_template('casos_arq_sol_ativ.html', casos=casos_por_area, data_emissao=data_emissao, usuario=usuario, datas=datas)
 
-@relatorios.route('/api/buscar_estagiarios',methods=['GET'])
+@relatorios.route('/api/buscar_usuarios',methods=['GET'])
 @login_required()
-def api_relatorios_buscar_estagiarios():
+def api_relatorios_buscar_usuarios():
     termo = request.args.get('q', type=str)
 
     #Se nada for digitado, retornar os 5 assistidos mais recentes
     if termo:
-        estagiarios = Usuario.query.filter(Usuario.status and Usuario.urole == usuario_urole_roles['ESTAGIARIO_DIREITO'][0]).filter(Usuario.nome.like(termo+'%')).order_by(Usuario.nome).all()
+        usuarios = Usuario.query.filter(Usuario.status).filter(Usuario.nome.like(termo+'%')).order_by(Usuario.nome).all()
     else:
-        estagiarios = Usuario.query.filter(Usuario.status and Usuario.urole == usuario_urole_roles['ESTAGIARIO_DIREITO'][0]).order_by(Usuario.nome).limit(5).all()
+        usuarios = Usuario.query.filter(Usuario.status).order_by(Usuario.nome).all()
 
     # Dados formatados para o select2
-    estagiarios_clean = [{'id':estagiario.id, 'text':estagiario.nome} for estagiario in estagiarios]
+    usuarios_clean = [{'id':usuario.id, 'text':usuario.nome} for usuario in usuarios]
+    
     response = app.response_class(
-        response = json.dumps({'results':estagiarios_clean}),
+        response = json.dumps({'results':usuarios_clean}),
         status = 200,
         mimetype = 'application/json'
     )
