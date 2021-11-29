@@ -46,6 +46,13 @@
                 <div class="col">
                     {{form.senha.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
                     {{form.senha(type="password", class_="form-control", placeholder="Digite sua senha...")}}
+                    <p style="font-size: 8pt; color: rgb(180, 180, 180); line-height: 15px;">A sua senha deve:</br>
+                    -Ter mais que 6 caracteres.</br>
+                    -Conter pelo menos 1 número.</br>
+                    -Conter pelo menos 1 letra maiúscula.</br>
+                    -Conter pelo menos 1 letra do alfabeto.</br>
+                    -Conter um dos seguintes caracteres especiais:</br>
+                    . , ; @ # .</p>
                 </div>
             </div>
         </div>
