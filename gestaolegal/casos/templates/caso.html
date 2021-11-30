@@ -5,14 +5,14 @@
 
 {% block css %}
     <link rel="stylesheet" href="{{url_for('static',filename='temas_externos/select2.min.css')}}">
-{#    <style>#}
-{#    .select2-search--inline {#}
-{#        display: contents; /*this will make the container disappear, making the child the one who sets the width of the element*/#}
-{#    }#}
-{#    .select2-search__field:placeholder-shown {#}
-{#        width: 100% !important; /*makes the placeholder to be 100% of the width while there are no options selected*/#}
-{#    }#}
-{#    </style>#}
+    <style>
+    .select2-search--inline {
+       display: contents; /*this will make the container disappear, making the child the one who sets the width of the element*/
+    }
+    .select2-search__field:placeholder-shown {
+        width: 100% !important; /*makes the placeholder to be 100% of the width while there are no options selected*/
+    }
+    </style>
 
 {% endblock css %}
 
@@ -46,7 +46,7 @@
                 {% endfor %}
             {% endif %}
 
-            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
+            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles["COLAB_EXTERNO"][0]] %}
                 <div class="form-group row" id="div_area">
                     {{form.area_direito.label(class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
                     <div class="col-12 col-lg-6 offset-lg-1">
@@ -80,7 +80,7 @@
             {% endif %}
 
             {% if caso %}
-                {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0]] and caso.situacao_deferimento == 'indeferido'%}
+                {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles["COLAB_EXTERNO"][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] and caso.situacao_deferimento == 'indeferido'%}
                     <div class="form-group row">
                         {{form.situacao_deferimento_indeferido.label(class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
                         <div class="col-12 col-lg-6 offset-lg-1">
@@ -89,7 +89,7 @@
                     </div>
                 {% endif %}
 
-                {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0]] %}
+                {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles["COLAB_EXTERNO"][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
                     {% if caso.situacao_deferimento == 'ativo' %}
                         <div class="form-group row">
                             {{form.situacao_deferimento_ativo.label(class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
@@ -101,7 +101,7 @@
                 {% endif %}
             {% endif %}
 
-        {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0]] %}
+        {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles["COLAB_EXTERNO"][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
                 <div class="form-group row">
                     <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="orientador-js">Orientador</label>
                     <div class="col-12 col-lg-6 offset-lg-1">
@@ -124,7 +124,7 @@
                 </div>
             {% endif %}
 
-            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] and not caso %}
+            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles["COLAB_EXTERNO"][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] and not caso %}
 
                 <div class="form-group row">
                     <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="clientes-js">Assistidos<span class="text-danger">*</span></label>
@@ -134,7 +134,7 @@
                 </div>
             {% endif %}
 
-            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
+            {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles["COLAB_EXTERNO"][0]] %}
                 <div class="form-group row">
                     <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="descricao">Descrição<span class="text-danger">*</span></label>
                     <div class="col-12 col-lg-6 offset-lg-1">
@@ -142,7 +142,41 @@
                     </div>
                 </div>
             {% endif %}
-
+            {% if arquivos %}
+            <div class="card">
+                <div class="card-body">
+                  <div class="card-title">
+                    <div class="d-flex ml-auto">
+                      <h4>Arquivos</h4>
+                    </div>
+                  </div>
+                  <div class="container table-responsive">
+                      <table class="table table-striped">
+                          <thead>
+                              <tr>
+                                  <th style="width:60%">Título do Arquivo</th>
+                                  <th>Ações</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                          {% for arquivo in arquivos %}
+                          <tr>
+                              <td>{{arquivo.link_arquivo}}</td>
+                              <td>
+                                  <div class="row">
+                                      {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['PROFESSOR'][0]] %}
+                                      <a href="{{url_for('casos.excluir_arquivo_caso', id_arquivo=arquivo.id, id_caso=caso.id)}}" class="btn mr-1 btn-flat btn-danger">Excluir</a>
+                                      {% endif %}
+                                  </div>
+                              </td>
+                          </tr>
+                          {% endfor %}
+                          </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
                  <div class="row mb-5">
                     <div class="col col-lg-6 offset-lg-1">
                         <div class="row">
