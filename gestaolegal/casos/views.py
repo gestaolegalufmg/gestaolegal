@@ -29,6 +29,7 @@ from gestaolegal.casos.views_utils import *
 from gestaolegal.notificacoes.models import Notificacao, acoes
 from gestaolegal.plantao.views_util import *
 from gestaolegal.usuario.models import Usuario, usuario_urole_roles
+from gestaolegal.usuario.views import arquivo
 from gestaolegal.utils.models import queryFiltradaStatus
 
 casos = Blueprint("casos", __name__, template_folder="templates")
@@ -139,6 +140,21 @@ def novo_caso():
 
     return render_template("caso.html", form=_form, title="Novo Caso", caso=None)
 
+@casos.route("/excluir_arquivo/<id_arquivo>/<id_caso>", methods=["GET", "POST"])
+@login_required(
+    role=[
+        usuario_urole_roles["ADMINISTRADOR"][0],
+        usuario_urole_roles["ORIENTADOR"][0],
+        usuario_urole_roles["PROFESSOR"][0],
+    ]
+)
+def excluir_arquivo_caso(id_arquivo, id_caso):
+    arquivo = ArquivoCaso.query.get_or_404(id_arquivo)
+    
+    db.session.delete(arquivo)
+    db.session.commit()
+
+    return redirect(url_for('casos.editar_caso', id_caso = id_caso))
 
 # Visualizar caso
 @casos.route("/visualizar/<int:id>", methods=["GET"])
