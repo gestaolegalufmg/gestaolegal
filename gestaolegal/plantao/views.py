@@ -643,7 +643,7 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
             entidade_atendido.orientacoesJuridicas.append(orientacao)
             db.session.add(entidade_atendido)
             db.session.commit()
-            flash("Orientação Jurídica associada com sucesso!", "success")
+            flash(f"{entidade_atendido.nome} associado à Orientação Jurídica com sucesso!", "success")
 
             if lista_aj:
                 associa_ajs_a_oj(lista_aj, id_orientacao)
@@ -692,6 +692,7 @@ def desassociar_orientacao_juridica(id_atendido, id_orientacao):
 
     entidade_atendido.orientacoesJuridicas.remove(orientacao)
     db.session.commit()
+    flash(f"{entidade_atendido.nome} removido da Orientação Jurídica com sucesso.", "success")
 
     return redirect(url_for("plantao.perfil_oj", id=id_orientacao))
 
