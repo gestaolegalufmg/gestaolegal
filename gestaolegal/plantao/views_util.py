@@ -410,3 +410,18 @@ def valida_fim_plantao(plantao: Plantao):
                     return False
 
     return True
+
+def apaga_dias_marcados(plantao: Plantao, dias_marcados_plantao):
+    if plantao:
+        if plantao.data_fechamento:
+            if plantao.data_fechamento < datetime.now():
+                try:
+                    for dia in dias_marcados_plantao:
+                        dia.status = False
+
+                    db.session.commit()
+                except:
+                    db.session.rollback()
+                    return False
+
+    return True

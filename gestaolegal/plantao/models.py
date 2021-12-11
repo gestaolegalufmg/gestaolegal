@@ -595,6 +595,7 @@ class DiasMarcadosPlantao(db.Model):
     confirmacao = db.Column(
         db.String(15, collation="latin1_general_ci"), nullable=False, default="aberto"
     )
+    status = db.Column(db.Boolean(), nullable=False, default=False)
 
     id_usuario = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
     usuario = db.relationship(Usuario, backref=db.backref("dias_marcados_plantao"))
