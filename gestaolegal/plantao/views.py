@@ -1088,9 +1088,12 @@ def perfil_assistencia_judiciaria(_id):
 @plantao.route("/pagina_plantao", methods=["POST", "GET"])
 @login_required()
 def pg_plantao():
+    dias_usuario_marcado = DiasMarcadosPlantao.query.filter_by(
+        id_usuario=current_user.id, status = True
+    ).all()
     plantao = Plantao.query.first()
 
-    # valida_fim_plantao(plantao)
+    apaga_dias_marcados(plantao, dias_usuario_marcado)
     try:
         if (
             not (
@@ -1105,7 +1108,7 @@ def pg_plantao():
             return redirect(url_for("principal.index"))
 
         dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(
-            id_usuario=current_user.id
+            id_usuario=current_user.id, status = True
         ).all()
 
         return render_template(
@@ -1124,7 +1127,7 @@ def pg_plantao():
 def ajax_obter_escala_plantao():
     escala = []
 
-    datas_ja_marcadas = DiasMarcadosPlantao.query.all()
+    datas_ja_marcadas = DiasMarcadosPlantao.query.filter(DiasMarcadosPlantao.status == True).all()
     for registro in datas_ja_marcadas:
         if registro.usuario.status:
             escala.append(
@@ -1193,7 +1196,7 @@ def ajax_confirma_data_plantao():
     resultado_json = {}
 
     dias_usuario_marcado = DiasMarcadosPlantao.query.filter_by(
-        id_usuario=current_user.id
+        id_usuario=current_user.id, status = True
     ).all()
 
     validacao = data_marcada in lista_dias_abertos
@@ -1254,14 +1257,14 @@ def ajax_confirma_data_plantao():
         )
 
     dia_marcado = DiasMarcadosPlantao(
-        data_marcada=data_marcada, id_usuario=current_user.id
+        data_marcada=data_marcada, id_usuario=current_user.id, status=True
     )
     db.session.add(dia_marcado)
     db.session.commit()
     mensagem = "Data de plantão cadastrada!"
     tipo_mensagem = "success"
     dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(
-        id_usuario=current_user.id
+        id_usuario=current_user.id, status=True
     ).all()
     resultado_json = cria_json(
         render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_atual),
@@ -1277,8 +1280,11 @@ def ajax_confirma_data_plantao():
 @login_required()
 def editar_plantao():
     dias_marcados_plantao = DiasMarcadosPlantao.query.filter_by(
-        id_usuario=current_user.id
-    ).delete()
+        id_usuario=current_user.id, status=True
+    ).all()
+    for dia in dias_marcados_plantao:
+        dia.status = False
+
     db.session.commit()
     flash(
         "Registro apagado. Por favor, selecione novamente os dias para o seu plantão",
