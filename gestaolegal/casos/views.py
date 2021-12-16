@@ -166,12 +166,14 @@ def visualizar_caso(id):
         abort(404)
     processos = Processo.query.filter_by(id_caso=id, status=True).all()
     _lembrete = Lembrete.query.filter_by(status=True, id_caso=id).order_by(Lembrete.data_criacao.desc()).first()
+    evento = Evento.query.filter_by(status=True, id_caso=id).order_by(Evento.data_criacao.desc()).first()
     return render_template(
         "visualizar_caso.html",
         caso=_caso,
         processos=processos,
         lembrete=_lembrete,
         arquivos=arquivos,
+        evento=evento
     )
 
 
