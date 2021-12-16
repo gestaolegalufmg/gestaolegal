@@ -242,6 +242,52 @@
           </div>
           {% endif %}
         </div>
+        <div class="col-12 col-lg-6">
+          {% if evento %}
+          <div class="card">
+            <div class="card-header">
+              <h4>Último Evento:</h4>
+            </div>
+            <div class="card-body">
+              <p class="clearfix">
+                <span class="float-left">
+                Descrição:
+                </span>
+                <div class="descricao text-muted text-right ">{{evento.descricao}}</div>
+              </p>
+              <p class="clearfix">
+                <span class="float-left">
+                Tipo:
+                </span>
+                <span class="float-right text-muted">
+                {{formatarTipoDeEvento(evento.tipo)}}
+                </span>
+              </p>
+              <p class="clearfix">
+                <span class="float-left">
+                Data de criação:
+                </span>
+                <span class="float-right text-muted">
+                {{evento.data_criacao.strftime('%d/%m/%Y')}}
+                </span>
+              </p>
+              <p class="clearfix">
+                  <span class="float-left">
+                  Data do evento:
+                  </span>
+                  <span class="float-right text-muted">
+                  {{evento.data_evento.strftime('%d/%m/%Y')}}
+                  </span>
+              </p>
+              <p class="clearfix">
+                <span class="float-left">
+                  <a class="" href="{{url_for('casos.eventos', id_caso=caso.id)}}">Ver todos os eventos</a>
+                </span>
+              </p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
         {% if caso.situacao_deferimento == situacao_deferimento['INDEFERIDO'][0] %}
         <div class="col-12 col-lg-6">
           <div class="card">
