@@ -154,7 +154,7 @@ class Evento(db.Model):
 
     num_evento = db.Column(db.Integer, default=0)
     tipo = db.Column(db.String(50, collation='latin1_general_ci'), nullable=False)
-    descricao = db.Column(db.String(1000, collation='latin1_general_ci'))
+    descricao = db.Column(db.String(20000, collation='latin1_general_ci'))
     arquivo = db.Column(db.String(100, collation='latin1_general_ci'))
     data_evento = db.Column(db.Date, nullable=False)
 
