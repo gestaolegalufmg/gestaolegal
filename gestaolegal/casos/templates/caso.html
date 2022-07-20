@@ -164,6 +164,11 @@
                               <td>{{arquivo.link_arquivo}}</td>
                               <td>
                                   <div class="row">
+                                    <a href="{{url_for('arquivos.visualizar_arquivo', id=arquivo.id)}}" class="btn ml-2 mr-2 btn-flat btn-primary">Visualizar</a>
+                                    {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['PROFESSOR'][0]] %}
+                                    <a href="{{url_for('arquivos.editar_arquivo_caso', id=arquivo.id, id_caso=caso.id)}}" class="btn mr-1 btn-flat btn-primary">Editar</a>
+                                    {% endif %}
+                            
                                       {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['PROFESSOR'][0]] %}
                                       <a href="{{url_for('casos.excluir_arquivo_caso', id_arquivo=arquivo.id, id_caso=caso.id)}}" class="btn mr-1 btn-flat btn-danger">Excluir</a>
                                       {% endif %}
