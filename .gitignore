@@ -141,3 +141,6 @@ cython_debug/
 .idea/
 /config_prod.ini
 /config_test.ini
+
+
+.vscode

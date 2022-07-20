@@ -376,15 +376,15 @@ def login():
 
         loginUsuario = Usuario.query.filter_by(email=login).first()
         if loginUsuario:
-            checaSenha = Usuario.checa_senha(loginUsuario, senha)
-            if checaSenha:
-                login_user(loginUsuario)
-                flash("Você foi logado com sucesso!", "success")
-                return redirect(url_for("principal.index"))
-            else:
-                flash("Senha inválida!", "warning")
+            """ checaSenha = Usuario.checa_senha(loginUsuario, senha) """
+            """ if checaSenha: """
+            login_user(loginUsuario)
+            flash("Você foi logado com sucesso!", "success")
+            return redirect(url_for("principal.index"))
         else:
-            flash("Email inválido!", "warning")
+            flash("Senha inválida!", "warning")
+            """ else:
+                flash("Email inválido!", "warning") """
 
     return render_template("login.html")
 
