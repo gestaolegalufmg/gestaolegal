@@ -179,7 +179,7 @@ def visualizar_caso(id):
 
 @casos.route("/deferir_caso/<int:id_caso>", methods=["POST", "GET"])
 @login_required(
-    role=[usuario_urole_roles["ADMINISTRADOR"][0], usuario_urole_roles["PROFESSOR"][0]]
+    role=[usuario_urole_roles["PROFESSOR"][0]]
 )
 def deferir_caso(id_caso):
     entidade_caso = Caso.query.filter_by(id=id_caso).first()
@@ -225,10 +225,8 @@ def indeferir_caso(id_caso):
 @login_required(
     role=[
         usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
         usuario_urole_roles["PROFESSOR"][0],
         usuario_urole_roles["ORIENTADOR"][0],
-        usuario_urole_roles["COLAB_EXTERNO"][0],
     ]
 )
 def editar_caso(id_caso):

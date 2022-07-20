@@ -163,13 +163,14 @@
 
             {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['PROFESSOR'][0],usuario_urole_roles['ORIENTADOR'][0],usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
             <a href="{{url_for('casos.editar_caso', id_caso = caso.id)}}" class="btn btn-primary mr-2">Editar</a>
-            {% elif current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['PROFESSOR'][0],usuario_urole_roles['ORIENTADOR'][0],usuario_urole_roles['COLAB_EXTERNO'][0]] %}
+            {% endif %}
+            {% if current_user.urole in [usuario_urole_roles['PROFESSOR'][0]] %}
                 {% if caso.situacao_deferimento == 'aguardando_deferimento' %}
                     <input type="hidden" value="{{url_for('casos.deferir_caso', id_caso=caso.id)}}" id="url_deferir_caso{{caso.id}}">
                     <input type="hidden" value="{{url_for('casos.indeferir_caso', id_caso=caso.id)}}" id="url_indeferir_caso{{caso.id}}">
                     <button  class="btn btn-warning mr-2" data-toggle="modal" data-target="indeferir">
                         <a id_caso="{{caso.id}}" id="a_indeferir"
-                            onclick="indeferir_caso(document.getElementById('url_indeferir_caso{{caso.id}}').value)">
+                            onclick="indeferir_caso(document.getElementById('{{caso.id}}').value)">
                             Indeferir
                         </a>
                     </button>
