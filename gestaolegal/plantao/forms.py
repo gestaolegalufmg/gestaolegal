@@ -249,9 +249,7 @@ class CadastroAtendidoForm(EnderecoForm):
     cnpj = StringField(
         "CNPJ",
         validators=[
-            RequiredIf(
-                pj_constituida=True, message=MSG_NaoPodeEstarEmBranco.format("O cnpj")
-            ),
+            Optional(),
             Length(
                 max=max_cnpj,
                 message="Por favor, use no máximo {} caracteres para o CPF.".format(
