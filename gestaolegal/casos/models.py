@@ -67,7 +67,7 @@ class Caso(db.Model):
     status = db.Column(db.Boolean, default=True, nullable=False)
     descricao = db.Column(db.Text(collation='latin1_general_ci'))
 
-    numero_ultimo_processo = db.Column(db.Integer, nullable=True)
+    numero_ultimo_processo = db.Column(db.BigInteger, nullable=True)
 
     def setSubAreas(self, area_direito, sub_area, sub_areaAdmin):
         if area_direito == 'civel':
@@ -127,7 +127,7 @@ class Processo(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     especie = db.Column(db.String(25, collation='latin1_general_ci'), nullable=False)
-    numero = db.Column(db.Integer, unique=True)
+    numero = db.Column(db.BigInteger, unique=True)
     identificacao = db.Column(db.Text(collation='latin1_general_ci'))
     vara = db.Column(db.String(200, collation='latin1_general_ci'))
     link = db.Column(db.String(1000, collation='latin1_general_ci'))
