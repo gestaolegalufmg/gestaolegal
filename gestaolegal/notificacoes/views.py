@@ -39,3 +39,11 @@ def index():
     notificacoes = notificacoes.order_by(Notificacao.data.desc()).paginate(page, app.config['ATENDIDOS_POR_PAGINA'], False)
 
     return render_template('notificacoes.html', notificacoes = notificacoes)
+
+@notificacoes.route('/teste')
+@login_required()
+def teste():
+    _id = 1
+    """ return redirect(url_for("casos.visualizar_caso", id=_id)) 
+    return redirect(url_for("plantao.pg_plantao"))  """
+    return redirect(url_for("casos.visualizar_evento",id_evento=_id))
