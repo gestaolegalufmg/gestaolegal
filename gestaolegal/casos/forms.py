@@ -147,3 +147,7 @@ class EventoForm(FlaskForm):
                               validators=[InputRequired('Por favor, selecione pelo menos uma opção')])
     arquivo = FileField('Anexar arquivo')
     submit = SubmitField('Enviar')
+
+class ArquivoCasoForm(FlaskForm):
+    arquivo = FileField('Arquivo')
+    submit = SubmitField('Enviar')
