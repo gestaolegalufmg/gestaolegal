@@ -308,9 +308,7 @@ def editar_caso(id_caso):
                 arquivo = request.files.get("arquivo")
             except RequestEntityTooLarge as error:
                 flash("Tamanho de arquivo muito longo.")
-                return render_template(
-                    "caso.html", form=form, caso=entidade_caso, arquivos=arquivos
-                )
+                return redirect(url_for("casos.editar_caso", id_caso=id_caso))
             if arquivo:
                 nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
                 if extensao_do_arquivo != ".pdf" and arquivo:
@@ -1381,7 +1379,7 @@ def editar_arquivo_caso(id_arquivo, id_caso):
         nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
         if extensao_do_arquivo != ".pdf" and arquivo:
             flash("Extensão de arquivo não suportado.", "warning")
-            return redirect(url_for("casos.editar_caso", id_caso=id_caso))
+            return render_template('editar_arquivo_caso.html', form = _form, id_arquivo = id_arquivo, id_caso = id_caso)
         _arquivo.link_arquivo = arquivo.filename
         nome_arquivo = f"{arquivo.filename}"
         arquivo.save(
@@ -1389,7 +1387,7 @@ def editar_arquivo_caso(id_arquivo, id_caso):
         )
        
         db.session.commit()
-        flash('Arquivo editado','success')
+        flash('Arquivo editado com sucesso','success')
         return redirect(url_for('casos.editar_caso', id_caso = id_caso))
 
 
