@@ -9,6 +9,7 @@ from flask import (
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import RequestEntityTooLarge
 
+
 from gestaolegal.casos.forms import (
     CasoForm,
     NovoCasoForm,
@@ -17,6 +18,7 @@ from gestaolegal.casos.forms import (
     RoteiroForm,
     EventoForm,
     ProcessoForm,
+    ArquivoCasoForm,
 )
 from gestaolegal.casos.models import (
     Historico,
@@ -31,6 +33,8 @@ from gestaolegal.plantao.views_util import *
 from gestaolegal.usuario.models import Usuario, usuario_urole_roles
 from gestaolegal.usuario.views import arquivo
 from gestaolegal.utils.models import queryFiltradaStatus
+
+from gestaolegal.arquivos.forms import ArquivoForm
 
 casos = Blueprint("casos", __name__, template_folder="templates")
 
@@ -1354,3 +1358,42 @@ def editar_processo(id_processo):
 
     setValoresProcesso(form, entidade_processo)
     return render_template("editar_processo.html", form=form, id_processo=id_processo)
+
+@casos.route('/editar_arquivo_caso/<id_arquivo>/<id_caso>', methods = ['GET','POST'])
+@login_required(
+    role=[
+            usuario_urole_roles['ADMINISTRADOR'][0],
+            usuario_urole_roles['PROFESSOR'][0], 
+            usuario_urole_roles['COLAB_PROJETO'][0], 
+            usuario_urole_roles['COLAB_EXTERNO'][0]
+        ])
+
+def editar_arquivo_caso(id_arquivo, id_caso):
+    _form = ArquivoCasoForm()
+    _arquivo = ArquivoCaso.query.get_or_404(id_arquivo)
+
+    try:
+        arquivo = request.files.get("arquivo")
+    except RequestEntityTooLarge as error:
+        flash("Tamanho de arquivo muito longo.")
+        return render_template('editar_arquivo_caso.html', form = _form, id_arquivo = id_arquivo, id_caso = id_caso)
+    if arquivo:
+        nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
+        if extensao_do_arquivo != ".pdf" and arquivo:
+            flash("Extensão de arquivo não suportado.", "warning")
+            return redirect(url_for("casos.editar_caso", id_caso=id_caso))
+        _arquivo.link_arquivo = arquivo.filename
+        nome_arquivo = f"{arquivo.filename}"
+        arquivo.save(
+            os.path.join(current_app.root_path, "static", "casos", nome_arquivo)
+        )
+       
+        db.session.commit()
+        flash('Arquivo editado','success')
+        return redirect(url_for('casos.editar_caso', id_caso = id_caso))
+
+
+    return render_template('editar_arquivo_caso.html', form = _form)
+
+
+

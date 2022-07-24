@@ -165,9 +165,9 @@
                               <td>
                                   <div class="row">
                                
-                                  <a href="{{url_for('arquivos.visualizar_arquivo', id=arquivo.id)}}" class="btn ml-2 mr-2 btn-flat btn-primary">Visualizar</a>
+                                  <a href="{{url_for('arquivos.visualizar_arquivo', id=arquivo.id)}}" class="btn ml-2 mr-2 btn-flat btn-info">Visualizar</a>
                                     {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['PROFESSOR'][0]] %}
-                                    <a type="file" href="{{url_for('arquivos.editar_arquivo', id=arquivo.id, id_caso=caso.id)}}" class="btn mr-1 btn-flat btn-info">Editar</a>
+                                    <a href="{{url_for('casos.editar_arquivo_caso',id_arquivo=arquivo.id, id_caso=caso.id)}}" class="btn mr-1 btn-flat btn-primary">Editar</a>
                                     {% endif %}
                             
                                       {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['PROFESSOR'][0]] %}
@@ -185,6 +185,7 @@
               {% endif %}
                  <div class="row mb-5">
                     <div class="col col-lg-6 offset-lg-1">
+                        <h5>Adicionar novo arquivo</h5>
                         <div class="row">
                             <div class="col-6 align-self-end">
                                 <label for="arquivo">Upload de arquivo <span class="text-danger">(.pdf)(Máx: 10MB)</span></label>
