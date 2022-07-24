@@ -309,7 +309,7 @@ def upgrade():
                existing_nullable=False)
     op.alter_column('lembretes', 'descricao',
                existing_type=mysql.VARCHAR(charset='latin1', collation='latin1_general_ci', length=1000),
-               type_=sa.String(length=1000, collation='latin1_general_ci'),
+               type_=sa.String(length=1001, collation='latin1_general_ci'),
                existing_nullable=False)
     op.alter_column('notificacao', 'acao',
                existing_type=mysql.VARCHAR(charset='latin1', collation='latin1_general_ci', length=200),
@@ -321,7 +321,7 @@ def upgrade():
                existing_nullable=False)
     op.alter_column('orientacao_juridica', 'descricao',
                existing_type=mysql.VARCHAR(charset='latin1', collation='latin1_general_ci', length=1000),
-               type_=sa.String(length=1000, collation='latin1_general_ci'),
+               type_=sa.String(length=1001, collation='latin1_general_ci'),
                existing_nullable=False)
     op.alter_column('orientacao_juridica', 'sub_area',
                existing_type=mysql.VARCHAR(charset='latin1', collation='latin1_general_ci', length=50),
@@ -553,7 +553,7 @@ def downgrade():
                type_=mysql.VARCHAR(charset='latin1', collation='latin1_general_ci', length=50),
                existing_nullable=True)
     op.alter_column('orientacao_juridica', 'descricao',
-               existing_type=sa.String(length=1000, collation='latin1_general_ci'),
+               existing_type=sa.String(length=1001, collation='latin1_general_ci'),
                type_=mysql.VARCHAR(charset='latin1', collation='latin1_general_ci', length=1000),
                existing_nullable=False)
     op.alter_column('orientacao_juridica', 'area_direito',
@@ -565,7 +565,7 @@ def downgrade():
                type_=mysql.VARCHAR(charset='latin1', collation='latin1_general_ci', length=200),
                existing_nullable=False)
     op.alter_column('lembretes', 'descricao',
-               existing_type=sa.String(length=1000, collation='latin1_general_ci'),
+               existing_type=sa.String(length=1001, collation='latin1_general_ci'),
                type_=mysql.VARCHAR(charset='latin1', collation='latin1_general_ci', length=1000),
                existing_nullable=False)
     op.alter_column('eventos', 'tipo',

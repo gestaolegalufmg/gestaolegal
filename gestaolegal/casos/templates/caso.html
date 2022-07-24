@@ -164,10 +164,10 @@
                               <td>{{arquivo.link_arquivo}}</td>
                               <td>
                                   <div class="row">
-                               <!--  ver se vai ser implementado : -->
-                                  <!--   <a href="{{url_for('arquivos.visualizar_arquivo', id=arquivo.id)}}" class="btn ml-2 mr-2 btn-flat btn-primary">Visualizar</a>
+                               
+                                  <a href="{{url_for('arquivos.visualizar_arquivo', id=arquivo.id)}}" class="btn ml-2 mr-2 btn-flat btn-primary">Visualizar</a>
                                     {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['PROFESSOR'][0]] %}
-                                    <a href="{{url_for('arquivos.editar_arquivo', id=arquivo.id, id_caso=caso.id)}}" class="btn mr-1 btn-flat btn-primary">Editar</a> -->
+                                    <a type="file" href="{{url_for('arquivos.editar_arquivo', id=arquivo.id, id_caso=caso.id)}}" class="btn mr-1 btn-flat btn-info">Editar</a>
                                     {% endif %}
                             
                                       {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['PROFESSOR'][0]] %}

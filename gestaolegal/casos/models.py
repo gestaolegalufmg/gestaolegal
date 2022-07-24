@@ -107,7 +107,7 @@ class Lembrete(db.Model):
     usuario = db.relationship('Usuario', foreign_keys=[id_usuario])
     data_criacao = db.Column(db.DateTime, nullable=False)
     data_lembrete = db.Column(db.DateTime, nullable=False)
-    descricao = db.Column(db.String(1000, collation='latin1_general_ci'), nullable=False)
+    descricao = db.Column(db.String(1001, collation='latin1_general_ci'), nullable=False)
     status = db.Column(db.Boolean, default=True, nullable=False)
 
 
