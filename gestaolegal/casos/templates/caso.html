@@ -165,7 +165,7 @@
                               <td>
                                   <div class="row">
                                
-                                  <a href="{{url_for('arquivos.visualizar_arquivo', id=arquivo.id)}}" class="btn ml-2 mr-2 btn-flat btn-info">Visualizar</a>
+                                    <a class="btn mr-1 btn-flat btn-info" href="{{url_for('static', filename='casos/'+arquivo.link_arquivo)}}">Vizualizar</a>
                                     {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['PROFESSOR'][0]] %}
                                     <a href="{{url_for('casos.editar_arquivo_caso',id_arquivo=arquivo.id, id_caso=caso.id)}}" class="btn mr-1 btn-flat btn-primary">Editar</a>
                                     {% endif %}
