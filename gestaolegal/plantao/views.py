@@ -469,6 +469,11 @@ def cadastro_orientacao_juridica():
             data_criacao=datetime.now(),
             status=True,
         )
+
+        if len(entidade_orientacao.descricao) > 2000 :
+            flash("A descrição da orientacao juridica não pode ter mais de 2000 caracteres", "warning")
+            return redirect(url_for("casos.cadastro_orientacao_juridica"))
+
         entidade_orientacao.setSubAreas(
             form.area_direito.data, form.sub_area.data, form.sub_areaAdmin.data
         )
