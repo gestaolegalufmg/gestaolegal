@@ -93,7 +93,7 @@ max_ano_veiculo = 5
 max_sit_receita = 100
 max_sede_outros = 100
 max_qts_func = 7
-max_descricao = 1001
+max_descricao = 2000
 
 
 #####################################################
