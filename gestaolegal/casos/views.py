@@ -110,6 +110,10 @@ def novo_caso():
             _form.area_direito.data, _form.sub_area.data, _form.sub_areaAdmin.data
         )
 
+        if len(_caso.descricao) > 2000 :
+            flash("A descrição do caso não pode ter mais de 2000 caracteres", "warning")
+            return redirect(url_for("casos.novo_caso"))
+
         for id_cliente in _form.clientes.data.split(sep=","):
             cliente = Atendido.query.get(int(id_cliente))
             _caso.clientes.append(cliente)
@@ -705,6 +709,10 @@ def cadastrar_lembrete(id_do_caso):
             data_lembrete=_form.data.data,
             descricao=_form.lembrete.data,
         )
+
+        if len(_lembrete.descricao) > 2000 :
+            flash("A descrição do lembrete não pode ter mais de 2000 caracteres", "warning")
+            return redirect(url_for("casos.cadastrar_lembrete", id_do_caso=id_do_caso))
 
         _lembrete.id_do_criador = current_user.id
         _lembrete.data_criacao = datetime.now()
