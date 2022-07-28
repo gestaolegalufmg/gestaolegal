@@ -682,13 +682,23 @@ def ajax_filtro_eventos(id_caso):
 @casos.route("/lembretes/<id_caso>")
 @login_required()
 def lembretes(id_caso):
+    num_lembrete = request.args.get('num_lembrete', None)
+
     _lembretes = (
         Lembrete.query.filter_by(status=True, id_caso=id_caso)
             .order_by(Lembrete.data_criacao.desc())
             .all()
     )
-    return render_template("lembretes.html", caso_id=id_caso, lembretes=_lembretes)
 
+    _lembrete = Lembrete.query.filter(
+        Lembrete.id_caso == id_caso,
+        Lembrete.num_lembrete == num_lembrete
+    ).first()
+
+    if num_lembrete is not None and _lembrete is None:
+            flash("Lembrete inexistente!", "warning")
+
+    return render_template("lembretes.html", caso_id=id_caso, lembretes=_lembretes)
 
 @casos.route("/cadastrar_lembrete/<int:id_do_caso>", methods=["GET", "POST"])
 @login_required(
@@ -705,6 +715,7 @@ def cadastrar_lembrete(id_do_caso):
     if _form.validate_on_submit():
         _lembrete = Lembrete(
             id_caso=id_do_caso,
+            num_lembrete = get_num_lembretes_atual(id_do_caso),
             id_usuario=int(_form.usuarios.data),
             data_lembrete=_form.data.data,
             descricao=_form.lembrete.data,
@@ -722,7 +733,7 @@ def cadastrar_lembrete(id_do_caso):
         flash("Lembrete enviado com sucesso!", "success")
 
         _notificacao = Notificacao(
-            acao=acoes["LEMBRETE"].format(_lembrete.id, id_do_caso),
+            acao=acoes["LEMBRETE"].format(_lembrete.num_lembrete, id_do_caso),
             data=datetime.now(),
             id_executor_acao=current_user.id,
             id_usu_notificar=_lembrete.id_usuario,
@@ -796,14 +807,15 @@ def editar_lembrete(id_lembrete):
 def excluir_lembrete(id_lembrete):
     entidade_usuario = Usuario.query.filter_by(id=current_user.id, status=True).first()
     entidade_lembrete = db.session.query(Lembrete).get(id_lembrete)
-
+    caso = entidade_lembrete.id_caso
     if entidade_usuario.urole != "admin":
         if entidade_lembrete.id_do_criador == entidade_usuario.id:
             entidade_lembrete.status = False
+            Lembrete.query.filter_by(id=id_lembrete).delete()
             db.session.commit()
             flash("Lembrete excluído com sucesso!", "success")
             return redirect(
-                (url_for("casos.lembretes", id_caso=entidade_lembrete.id_caso))
+                (url_for("casos.lembretes", id_caso=caso))
             )
         else:
             flash("Você não possui autorização!", "warning")
@@ -812,9 +824,10 @@ def excluir_lembrete(id_lembrete):
             )
     else:
         entidade_lembrete.status = False
+        Lembrete.query.filter_by(id=id_lembrete).delete()
         db.session.commit()
         flash("Lembrete excluído com sucesso!", "success")
-        return redirect((url_for("casos.lembretes", id_caso=entidade_lembrete.id_caso)))
+        return redirect((url_for("casos.lembretes", id_caso=caso)))
 
 
 # Função de cadastrar um novo histórico
@@ -960,7 +973,7 @@ def novo_evento(id_caso):
 
         if _form.usuario.data:
             _notificacao = Notificacao(
-                acao=acoes["EVENTO"].format(_evento.id, id_caso),
+                acao=acoes["EVENTO"].format(_evento.num_evento, id_caso),
                 data=datetime.now(),
                 id_executor_acao=current_user.id,
                 id_usu_notificar=_form.usuario.data,
@@ -1017,7 +1030,7 @@ def editar_evento(id_evento):
     form = EventoForm()
     if request.method == "POST":
         if not form.validate():
-            return render_template("editar_evento.html", form=form, id_evento=id_evento)
+            return render_template("editar_evento.html", form=form, entidade_evento=entidade_evento)
 
         try:
             arquivo = request.files.get("arquivo")
@@ -1026,7 +1039,7 @@ def editar_evento(id_evento):
             return render_template(
                 "editar_evento.html",
                 form=form,
-                id_evento=id_evento,
+                entidade_evento=entidade_evento,
                 usuario=entidade_evento.usuario_responsavel.nome,
             )
         nome_arquivo = None
@@ -1086,7 +1099,7 @@ def editar_evento(id_evento):
         nome_usuario = "Não Há"
 
     return render_template(
-        "editar_evento.html", form=form, id_evento=id_evento, usuario=nome_usuario
+        "editar_evento.html", form=form, entidade_evento=entidade_evento, usuario=nome_usuario
     )
 
 
@@ -1119,6 +1132,7 @@ def excluir_evento(id_evento):
 
                 entidade_evento.arquivo = None
 
+            db.session.delete(entidade_evento)
             db.session.commit()
             flash("Evento excluído com sucesso!", "success")
             return redirect((url_for("casos.eventos", id_caso=entidade_evento.id_caso)))
@@ -1140,20 +1154,25 @@ def excluir_evento(id_evento):
 
             entidade_evento.arquivo = None
 
+        db.session.delete(entidade_evento)
         db.session.commit()
         flash("Evento excluído com sucesso!", "success")
         return redirect((url_for("casos.eventos", id_caso=entidade_evento.id_caso)))
 
 
 # Rota para a página de visualizar eventos
-@casos.route("/visualizar_evento/<id_evento>")
+@casos.route("/visualizar_evento/<num_evento>")
 @login_required()
-def visualizar_evento(id_evento):
-    entidade_evento = Evento.query.filter_by(id=id_evento, status=True).first()
+def visualizar_evento(num_evento):
+    id_caso = request.args.get('id_caso', None)
+    entidade_evento = Evento.query.filter(
+            Evento.num_evento == num_evento,
+            Evento.id_caso == id_caso
+        ).first()
     if not entidade_evento:
         flash("Evento inexistente!", "warning")
         return redirect(url_for("casos.index"))
-
+    
     return render_template("visualizar_evento.html", entidade_evento=entidade_evento)
 
 
@@ -1242,6 +1261,7 @@ def excluir_caso(id_caso):
     arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id_caso)
 
     caso.status = False
+    db.session.delete(caso)
     for arquivo in arquivos:
         if arquivo != None:
             local_arquivo = os.path.join(
@@ -1297,6 +1317,7 @@ def excluir_processo(id_processo):
 
     if validaExclusao(processo):
         processo.status = False
+        db.session.delete(processo)
         db.session.commit()
         atualizarUltimoProcesso(id_caso)
         flash("Processo excluído!", "success")
