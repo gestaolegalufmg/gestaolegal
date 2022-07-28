@@ -40,10 +40,17 @@ def index():
 
     return render_template('notificacoes.html', notificacoes = notificacoes)
 
-@notificacoes.route('/teste')
+@notificacoes.route('/teste/<notificacao_acao>')
 @login_required()
-def teste():
-    _id = 1
+def teste(notificacao_acao):
     """ return redirect(url_for("casos.visualizar_caso", id=_id)) 
     return redirect(url_for("plantao.pg_plantao"))  """
-    return redirect(url_for("casos.visualizar_evento",id_evento=_id))
+    splitted = notificacao_acao.split(" ")
+    if(splitted[2] == 'evento'):
+        evento = Evento.query.filter(
+            Evento.num_evento == int(splitted[3]),
+            Evento.id_caso == int(splitted[6])
+        ).first()
+        return redirect(url_for("casos.visualizar_evento", num_evento=int(splitted[3]), id_caso=int(splitted[6])))
+    return redirect(url_for("casos.lembretes", id_caso=int(splitted[6]), num_lembrete=int(splitted[3])))
+    
