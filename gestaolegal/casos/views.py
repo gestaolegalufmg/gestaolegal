@@ -695,6 +695,11 @@ def lembretes(id_caso):
         Lembrete.num_lembrete == num_lembrete
     ).first()
 
+    caso = Caso.query.get(id_caso)
+    if (caso == None) or (caso.status == False):
+        flash("Caso inexistente!", "warning")
+        return redirect(url_for("casos.index", id_caso=id_caso))
+
     if (num_lembrete is not None) and (_lembrete.status==False):
             flash("Lembrete inexistente!", "warning")
 
@@ -1165,6 +1170,11 @@ def visualizar_evento(num_evento):
             Evento.num_evento == num_evento,
             Evento.id_caso == id_caso
         ).first()
+    caso = Caso.query.get(id_caso)
+    if (caso == None) or (caso.status == False):
+        flash("Caso inexistente!", "warning")
+        return redirect(url_for("casos.index", id_caso=id_caso))
+
     if (not entidade_evento) or (entidade_evento.status==False):
         flash("Evento inexistente!", "warning")
         return redirect(url_for("casos.eventos", id_caso=id_caso))
