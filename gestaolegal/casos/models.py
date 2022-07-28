@@ -99,6 +99,7 @@ class Lembrete(db.Model):
     __tablename__ = 'lembretes'
 
     id = db.Column(db.Integer, primary_key=True)
+    num_lembrete = db.Column(db.Integer, default=0)
     id_do_criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     criador = db.relationship('Usuario', foreign_keys=[id_do_criador])
     id_caso = db.Column(db.Integer, db.ForeignKey('casos.id'), nullable=False)
