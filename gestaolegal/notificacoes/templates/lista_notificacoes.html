@@ -4,7 +4,7 @@
        
         <td>{{notificacao.data.strftime("%d/%m/%Y")}}</td>
         <td>{{notificacao.executor_acao.nome}}</td>
-        <td class="d-flex align-items-center justify-content-center"> <a  href="{{url_for('notificacoes.teste', page=page_num) }}" class="btn mr-1 btn-flat btn-info">Ir à pagina</a></td>
+        <td class="d-flex align-items-center justify-content-center"> <a  href="{{url_for('notificacoes.teste', page=page_num, notificacao_acao=notificacao.acao) }}" class="btn mr-1 btn-flat btn-info">Ir à pagina</a></td>
     
     </tr>
 {% endfor %}
