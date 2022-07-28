@@ -695,7 +695,7 @@ def lembretes(id_caso):
         Lembrete.num_lembrete == num_lembrete
     ).first()
 
-    if num_lembrete is not None and _lembrete is None:
+    if (num_lembrete is not None) and (_lembrete.status==False):
             flash("Lembrete inexistente!", "warning")
 
     return render_template("lembretes.html", caso_id=id_caso, lembretes=_lembretes)
@@ -811,7 +811,6 @@ def excluir_lembrete(id_lembrete):
     if entidade_usuario.urole != "admin":
         if entidade_lembrete.id_do_criador == entidade_usuario.id:
             entidade_lembrete.status = False
-            Lembrete.query.filter_by(id=id_lembrete).delete()
             db.session.commit()
             flash("Lembrete excluído com sucesso!", "success")
             return redirect(
@@ -824,7 +823,6 @@ def excluir_lembrete(id_lembrete):
             )
     else:
         entidade_lembrete.status = False
-        Lembrete.query.filter_by(id=id_lembrete).delete()
         db.session.commit()
         flash("Lembrete excluído com sucesso!", "success")
         return redirect((url_for("casos.lembretes", id_caso=caso)))
@@ -1132,7 +1130,6 @@ def excluir_evento(id_evento):
 
                 entidade_evento.arquivo = None
 
-            db.session.delete(entidade_evento)
             db.session.commit()
             flash("Evento excluído com sucesso!", "success")
             return redirect((url_for("casos.eventos", id_caso=entidade_evento.id_caso)))
@@ -1154,7 +1151,6 @@ def excluir_evento(id_evento):
 
             entidade_evento.arquivo = None
 
-        db.session.delete(entidade_evento)
         db.session.commit()
         flash("Evento excluído com sucesso!", "success")
         return redirect((url_for("casos.eventos", id_caso=entidade_evento.id_caso)))
@@ -1169,9 +1165,9 @@ def visualizar_evento(num_evento):
             Evento.num_evento == num_evento,
             Evento.id_caso == id_caso
         ).first()
-    if not entidade_evento:
+    if (not entidade_evento) or (entidade_evento.status==False):
         flash("Evento inexistente!", "warning")
-        return redirect(url_for("casos.index"))
+        return redirect(url_for("casos.eventos", id_caso=id_caso))
     
     return render_template("visualizar_evento.html", entidade_evento=entidade_evento)
 
@@ -1261,7 +1257,7 @@ def excluir_caso(id_caso):
     arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id_caso)
 
     caso.status = False
-    db.session.delete(caso)
+
     for arquivo in arquivos:
         if arquivo != None:
             local_arquivo = os.path.join(
@@ -1317,7 +1313,6 @@ def excluir_processo(id_processo):
 
     if validaExclusao(processo):
         processo.status = False
-        db.session.delete(processo)
         db.session.commit()
         atualizarUltimoProcesso(id_caso)
         flash("Processo excluído!", "success")
