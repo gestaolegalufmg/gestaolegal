@@ -1094,10 +1094,10 @@ def perfil_assistencia_judiciaria(_id):
 @login_required()
 def pg_plantao():
     dias_usuario_marcado = DiasMarcadosPlantao.query.filter_by(
-        id_usuario=current_user.id, status = True
+        id_usuario=current_user.id, status = True, 
     ).all()
-    plantao = Plantao.query.first()
 
+    plantao = Plantao.query.first()
     apaga_dias_marcados(plantao, dias_usuario_marcado)
     try:
         if (
@@ -1113,7 +1113,7 @@ def pg_plantao():
             return redirect(url_for("principal.index"))
 
         dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(
-            id_usuario=current_user.id, status = True
+            id_usuario=current_user.id, status = True,
         ).all()
 
         return render_template(
@@ -1200,9 +1200,11 @@ def ajax_confirma_data_plantao():
     mensagem = ""
     resultado_json = {}
 
+    data_atual = datetime.now().date()
+
     dias_usuario_marcado = DiasMarcadosPlantao.query.filter_by(
         id_usuario=current_user.id, status = True
-    ).all()
+    ).filter(DiasMarcadosPlantao.data_marcada >= data_atual).all()
 
     validacao = data_marcada in lista_dias_abertos
     if not validacao:
@@ -1210,7 +1212,7 @@ def ajax_confirma_data_plantao():
         mensagem = "Data selecionada não foi aberta para plantão."
         resultado_json = cria_json(
             render_template(
-                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado
+                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado, data_atual=data_atual,
             ),
             mensagem,
             tipo_mensagem,
@@ -1224,7 +1226,7 @@ def ajax_confirma_data_plantao():
         mensagem = "Não há vagas disponíveis na data selecionada, tente outro dia."
         resultado_json = cria_json(
             render_template(
-                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado
+                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado, data_atual=data_atual
             ),
             mensagem,
             tipo_mensagem,
@@ -1238,7 +1240,7 @@ def ajax_confirma_data_plantao():
         mensagem = "Você atingiu o limite de plantões cadastrados."
         resultado_json = cria_json(
             render_template(
-                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado
+                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado, data_atual=data_atual
             ),
             mensagem,
             tipo_mensagem,
@@ -1252,7 +1254,7 @@ def ajax_confirma_data_plantao():
         mensagem = "Você já marcou plantão neste dia!"
         resultado_json = cria_json(
             render_template(
-                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado
+                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado, data_atual=data_atual
             ),
             mensagem,
             tipo_mensagem,
@@ -1270,9 +1272,9 @@ def ajax_confirma_data_plantao():
     tipo_mensagem = "success"
     dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(
         id_usuario=current_user.id, status=True
-    ).all()
+    ).filter(DiasMarcadosPlantao.data_marcada >= data_atual).all()
     resultado_json = cria_json(
-        render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_atual),
+        render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_atual, data_atual=data_atual),
         mensagem,
         tipo_mensagem,
     )
