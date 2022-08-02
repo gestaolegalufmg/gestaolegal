@@ -105,6 +105,9 @@ def novo_caso():
             data_modificacao=datetime.now(tz=pytz.timezone("America/Sao_Paulo")),
             id_modificado_por=current_user.id,
             descricao=_form.descricao.data,
+            id_orientador = _form.orientador.data,
+            id_estagiario = _form.estagiario.data,
+            id_colaborador = _form.colaborador.data,
         )
         _caso.setSubAreas(
             _form.area_direito.data, _form.sub_area.data, _form.sub_areaAdmin.data
