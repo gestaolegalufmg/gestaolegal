@@ -1251,7 +1251,6 @@ def novo_processo(id_caso):
             flash("Processo associado com sucesso!", "success")
         except SQLAlchemyError as error:
             db.session.rollback()
-            print(error.args[0])
             error_message = error.args[0]
             if "Out of range value for column 'numero_ultimo_processo' at row 1" in error_message:
                 flash("O número deste processo excede o valor máximo permitido", "warning")
