@@ -228,7 +228,7 @@ def indeferir_caso(id_caso):
         db.session.add(_caso)
         db.session.commit()
         flash("Indeferimento realizado.", "success")
-        return redirect(url_for("casos.visualizar_caso", id=_id))
+        return redirect(url_for("casos.index"))
     return render_template("justificativa.html", form=_form)
 
 

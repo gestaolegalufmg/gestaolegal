@@ -170,7 +170,7 @@
                     <input type="hidden" value="{{url_for('casos.indeferir_caso', id_caso=caso.id)}}" id="url_indeferir_caso{{caso.id}}">
                     <button  class="btn btn-warning mr-2" data-toggle="modal" data-target="indeferir">
                         <a id_caso="{{caso.id}}" id="a_indeferir"
-                            onclick="indeferir_caso(document.getElementById('{{caso.id}}').value)">
+                            onclick="indeferir_caso(document.getElementById('url_indeferir_caso{{caso.id}}').value)">
                             Indeferir
                         </a>
                     </button>
