@@ -1245,9 +1245,19 @@ def novo_processo(id_caso):
         caso = Caso.query.filter_by(id=entidade_processo.id_caso).first()
         caso.numero_ultimo_processo = entidade_processo.numero
 
-        db.session.add(entidade_processo)
-        db.session.commit()
-        flash("Processo associado com sucesso!", "success")
+        try:
+            db.session.add(entidade_processo)
+            db.session.commit()
+            flash("Processo associado com sucesso!", "success")
+        except SQLAlchemyError as error:
+            db.session.rollback()
+            print(error.args[0])
+            error_message = error.args[0]
+            if "Out of range value for column 'numero_ultimo_processo' at row 1" in error_message:
+                flash("O número deste processo excede o valor máximo permitido", "warning")
+                return render_template("novo_processo.html", form=form)
+            else:
+                return error.args[0]
 
         return redirect(url_for("casos.visualizar_caso", id=id_caso))
 
