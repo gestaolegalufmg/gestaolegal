@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import HiddenField, SubmitField, SelectField, StringField, TextAreaField, DateField, FileField, FloatField
+from wtforms import HiddenField, SubmitField, SelectField, StringField, TextAreaField, DateField, FileField, FloatField, IntegerField
 from wtforms.validators import InputRequired, DataRequired, Optional, AnyOf
 
 from gestaolegal.plantao.forms import area_do_direito, assistencia_jud_areas_atendidas
@@ -95,7 +95,7 @@ class ProcessoForm(FlaskForm):
                           ],
                           validators=[DataRequired("Por favor selecione uma opção de espécie da lista")]
                           )
-    numero = FloatField('Número',
+    numero = IntegerField('Número',
                         validators=[DataRequired("Por favor, utilize apenas números para preencher o campo.")])
     identificacao = StringField('Identificação')
     vara = StringField('Vara, unidade jurisdicional, turma e/ou câmara')
