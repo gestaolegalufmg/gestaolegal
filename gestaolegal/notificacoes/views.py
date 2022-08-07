@@ -40,12 +40,13 @@ def index():
 
     return render_template('notificacoes.html', notificacoes = notificacoes)
 
-@notificacoes.route('/pagina/<notificacao_acao>')
+@notificacoes.route('/teste/<notificacao_acao>')
 @login_required()
 def teste(notificacao_acao):
     splitted = notificacao_acao.split(" ")
+
     if(splitted[2] == 'ABERTURA_PLANTAO'):
-        return redirect(url_for("plantao.pg_plantao"))
+        return redirect(url_for("principal.index"))
     
     elif(splitted[2] == 'CAD_NOVO_CASO'):
         caso = Caso.query.filter(
