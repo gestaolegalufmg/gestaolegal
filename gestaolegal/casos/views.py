@@ -145,6 +145,15 @@ def novo_caso():
             db.session.add(caso_arquivo)
             db.session.commit()
 
+        _notificacao = Notificacao(
+            acao=acoes["CAD_NOVO_CASO"].format(_caso.id),
+            data=datetime.now(),
+            id_executor_acao=current_user.id,
+            id_usu_notificar=_caso.id_usuario_responsavel,
+        )
+        db.session.add(_notificacao)
+        db.session.commit()
+
         flash("Caso criado com sucesso!", "success")
 
         return redirect(url_for("casos.index"))
@@ -171,7 +180,13 @@ def excluir_arquivo_caso(id_arquivo, id_caso):
 @casos.route("/visualizar/<int:id>", methods=["GET"])
 @login_required()
 def visualizar_caso(id):
+
     _caso = Caso.query.filter_by(status=True, id=id).first()
+
+    if(_caso == None):
+        flash("Caso inexistente!", "warning")
+        return redirect(url_for("casos.index"))
+
     arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id).all()
     if not _caso:
         abort(404)

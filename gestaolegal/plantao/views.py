@@ -1610,6 +1610,15 @@ def configurar_abertura():
     set_abrir_plantao_form(form_abrir, plantao)
     set_fechar_plantao_form(form_fechar, plantao)
 
+    _notificacao = Notificacao(
+            acao=acoes["ABERTURA_PLANTAO"].format(),
+            data=datetime.now(),
+            id_executor_acao=current_user.id,
+            id_usu_notificar=current_user.id,
+        )
+    db.session.add(_notificacao)
+    db.session.commit()
+
     return render_template(
         "configurar_abertura.html",
         form_fechar=form_fechar,
