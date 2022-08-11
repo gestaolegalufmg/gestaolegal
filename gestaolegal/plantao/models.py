@@ -474,7 +474,7 @@ class OrientacaoJuridica(db.Model):
     )
     sub_area = db.Column(db.String(50, collation="latin1_general_ci"))
     descricao = db.Column(
-        db.String(1000, collation="latin1_general_ci"), nullable=False
+        db.Text(collation="latin1_general_ci"), nullable=False
     )
     data_criacao = db.Column(db.DateTime)
     status = db.Column(db.Integer, nullable=False)

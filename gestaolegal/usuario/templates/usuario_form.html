@@ -255,8 +255,8 @@
     <div class="col-12 col-md-3">
         <div class="row form-group">
             <div class="col">
-                {{form.cpf.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
-                {{form.cpf(type="text", class_="form-control", id="formcpf")}}
+                {{form.cpf.label(class_="font-weight-bold")}}
+                {{form.cpf(type="text", class_="form-control", id="formcpf") }}
                 {% for error in form.cpf.errors %}
                 <div class="alert alert-danger">{{error}}</div>
                 {% endfor %}

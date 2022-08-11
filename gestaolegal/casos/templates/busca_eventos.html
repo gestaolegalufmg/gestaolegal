@@ -36,7 +36,7 @@
         <td>
         <div class="row">
             <button type="submit" class="btn ml-2 mr-2 btn-flat btn-primary btn-sm" name="button">
-                <a href="{{url_for('casos.visualizar_evento', id_evento=evento.id)}}" style="text-decoration: none;color: white;">Visualizar</a>
+                <a href="{{url_for('casos.visualizar_evento', num_evento=evento.num_evento, id_caso=evento.id_caso)}}" style="text-decoration: none;color: white;">Visualizar</a>
             </button>
             <button type="submit" class="btn mr-1 btn-flat btn-primary btn-sm" name="button">
                 <a href="{{url_for('casos.editar_evento', id_evento=evento.id)}}" style="text-decoration: none;color: white;">Editar</a>

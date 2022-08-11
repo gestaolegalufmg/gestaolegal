@@ -9,6 +9,7 @@ from flask import (
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import RequestEntityTooLarge
 
+
 from gestaolegal.casos.forms import (
     CasoForm,
     NovoCasoForm,
@@ -17,6 +18,7 @@ from gestaolegal.casos.forms import (
     RoteiroForm,
     EventoForm,
     ProcessoForm,
+    ArquivoCasoForm,
 )
 from gestaolegal.casos.models import (
     Historico,
@@ -31,6 +33,8 @@ from gestaolegal.plantao.views_util import *
 from gestaolegal.usuario.models import Usuario, usuario_urole_roles
 from gestaolegal.usuario.views import arquivo
 from gestaolegal.utils.models import queryFiltradaStatus
+
+from gestaolegal.arquivos.forms import ArquivoForm
 
 casos = Blueprint("casos", __name__, template_folder="templates")
 
@@ -101,10 +105,17 @@ def novo_caso():
             data_modificacao=datetime.now(tz=pytz.timezone("America/Sao_Paulo")),
             id_modificado_por=current_user.id,
             descricao=_form.descricao.data,
+            id_orientador = _form.orientador.data,
+            id_estagiario = _form.estagiario.data,
+            id_colaborador = _form.colaborador.data,
         )
         _caso.setSubAreas(
             _form.area_direito.data, _form.sub_area.data, _form.sub_areaAdmin.data
         )
+
+        if len(_caso.descricao) > 2000 :
+            flash("A descrição do caso não pode ter mais de 2000 caracteres", "warning")
+            return redirect(url_for("casos.novo_caso"))
 
         for id_cliente in _form.clientes.data.split(sep=","):
             cliente = Atendido.query.get(int(id_cliente))
@@ -134,6 +145,15 @@ def novo_caso():
             db.session.add(caso_arquivo)
             db.session.commit()
 
+        _notificacao = Notificacao(
+            acao=acoes["CAD_NOVO_CASO"].format(_caso.id),
+            data=datetime.now(),
+            id_executor_acao=current_user.id,
+            id_usu_notificar=_caso.id_usuario_responsavel,
+        )
+        db.session.add(_notificacao)
+        db.session.commit()
+
         flash("Caso criado com sucesso!", "success")
 
         return redirect(url_for("casos.index"))
@@ -160,7 +180,13 @@ def excluir_arquivo_caso(id_arquivo, id_caso):
 @casos.route("/visualizar/<int:id>", methods=["GET"])
 @login_required()
 def visualizar_caso(id):
+
     _caso = Caso.query.filter_by(status=True, id=id).first()
+
+    if(_caso == None):
+        flash("Caso inexistente!", "warning")
+        return redirect(url_for("casos.index"))
+
     arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id).all()
     if not _caso:
         abort(404)
@@ -179,7 +205,7 @@ def visualizar_caso(id):
 
 @casos.route("/deferir_caso/<int:id_caso>", methods=["POST", "GET"])
 @login_required(
-    role=[usuario_urole_roles["ADMINISTRADOR"][0], usuario_urole_roles["PROFESSOR"][0]]
+    role=[usuario_urole_roles["PROFESSOR"][0]]
 )
 def deferir_caso(id_caso):
     entidade_caso = Caso.query.filter_by(id=id_caso).first()
@@ -217,7 +243,7 @@ def indeferir_caso(id_caso):
         db.session.add(_caso)
         db.session.commit()
         flash("Indeferimento realizado.", "success")
-        return redirect(url_for("casos.visualizar_caso", id=_id))
+        return redirect(url_for("casos.index"))
     return render_template("justificativa.html", form=_form)
 
 
@@ -225,10 +251,8 @@ def indeferir_caso(id_caso):
 @login_required(
     role=[
         usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
         usuario_urole_roles["PROFESSOR"][0],
         usuario_urole_roles["ORIENTADOR"][0],
-        usuario_urole_roles["COLAB_EXTERNO"][0],
     ]
 )
 def editar_caso(id_caso):
@@ -306,9 +330,7 @@ def editar_caso(id_caso):
                 arquivo = request.files.get("arquivo")
             except RequestEntityTooLarge as error:
                 flash("Tamanho de arquivo muito longo.")
-                return render_template(
-                    "caso.html", form=form, caso=entidade_caso, arquivos=arquivos
-                )
+                return redirect(url_for("casos.editar_caso", id_caso=id_caso))
             if arquivo:
                 nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
                 if extensao_do_arquivo != ".pdf" and arquivo:
@@ -678,13 +700,28 @@ def ajax_filtro_eventos(id_caso):
 @casos.route("/lembretes/<id_caso>")
 @login_required()
 def lembretes(id_caso):
+    num_lembrete = request.args.get('num_lembrete', None)
+
     _lembretes = (
         Lembrete.query.filter_by(status=True, id_caso=id_caso)
             .order_by(Lembrete.data_criacao.desc())
             .all()
     )
-    return render_template("lembretes.html", caso_id=id_caso, lembretes=_lembretes)
 
+    _lembrete = Lembrete.query.filter(
+        Lembrete.id_caso == id_caso,
+        Lembrete.num_lembrete == num_lembrete
+    ).first()
+
+    caso = Caso.query.get(id_caso)
+    if (caso == None) or (caso.status == False):
+        flash("Caso inexistente!", "warning")
+        return redirect(url_for("casos.index", id_caso=id_caso))
+
+    if (num_lembrete is not None) and (_lembrete.status==False):
+            flash("Lembrete inexistente!", "warning")
+
+    return render_template("lembretes.html", caso_id=id_caso, lembretes=_lembretes)
 
 @casos.route("/cadastrar_lembrete/<int:id_do_caso>", methods=["GET", "POST"])
 @login_required(
@@ -701,10 +738,15 @@ def cadastrar_lembrete(id_do_caso):
     if _form.validate_on_submit():
         _lembrete = Lembrete(
             id_caso=id_do_caso,
+            num_lembrete = get_num_lembretes_atual(id_do_caso),
             id_usuario=int(_form.usuarios.data),
             data_lembrete=_form.data.data,
             descricao=_form.lembrete.data,
         )
+
+        if len(_lembrete.descricao) > 2000 :
+            flash("A descrição do lembrete não pode ter mais de 2000 caracteres", "warning")
+            return redirect(url_for("casos.cadastrar_lembrete", id_do_caso=id_do_caso))
 
         _lembrete.id_do_criador = current_user.id
         _lembrete.data_criacao = datetime.now()
@@ -714,7 +756,7 @@ def cadastrar_lembrete(id_do_caso):
         flash("Lembrete enviado com sucesso!", "success")
 
         _notificacao = Notificacao(
-            acao=acoes["LEMBRETE"].format(_lembrete.id, id_do_caso),
+            acao=acoes["LEMBRETE"].format(_lembrete.num_lembrete, id_do_caso),
             data=datetime.now(),
             id_executor_acao=current_user.id,
             id_usu_notificar=_lembrete.id_usuario,
@@ -788,14 +830,14 @@ def editar_lembrete(id_lembrete):
 def excluir_lembrete(id_lembrete):
     entidade_usuario = Usuario.query.filter_by(id=current_user.id, status=True).first()
     entidade_lembrete = db.session.query(Lembrete).get(id_lembrete)
-
+    caso = entidade_lembrete.id_caso
     if entidade_usuario.urole != "admin":
         if entidade_lembrete.id_do_criador == entidade_usuario.id:
             entidade_lembrete.status = False
             db.session.commit()
             flash("Lembrete excluído com sucesso!", "success")
             return redirect(
-                (url_for("casos.lembretes", id_caso=entidade_lembrete.id_caso))
+                (url_for("casos.lembretes", id_caso=caso))
             )
         else:
             flash("Você não possui autorização!", "warning")
@@ -806,7 +848,7 @@ def excluir_lembrete(id_lembrete):
         entidade_lembrete.status = False
         db.session.commit()
         flash("Lembrete excluído com sucesso!", "success")
-        return redirect((url_for("casos.lembretes", id_caso=entidade_lembrete.id_caso)))
+        return redirect((url_for("casos.lembretes", id_caso=caso)))
 
 
 # Função de cadastrar um novo histórico
@@ -952,7 +994,7 @@ def novo_evento(id_caso):
 
         if _form.usuario.data:
             _notificacao = Notificacao(
-                acao=acoes["EVENTO"].format(_evento.id, id_caso),
+                acao=acoes["EVENTO"].format(_evento.num_evento, id_caso),
                 data=datetime.now(),
                 id_executor_acao=current_user.id,
                 id_usu_notificar=_form.usuario.data,
@@ -1009,7 +1051,7 @@ def editar_evento(id_evento):
     form = EventoForm()
     if request.method == "POST":
         if not form.validate():
-            return render_template("editar_evento.html", form=form, id_evento=id_evento)
+            return render_template("editar_evento.html", form=form, entidade_evento=entidade_evento)
 
         try:
             arquivo = request.files.get("arquivo")
@@ -1018,7 +1060,7 @@ def editar_evento(id_evento):
             return render_template(
                 "editar_evento.html",
                 form=form,
-                id_evento=id_evento,
+                entidade_evento=entidade_evento,
                 usuario=entidade_evento.usuario_responsavel.nome,
             )
         nome_arquivo = None
@@ -1078,7 +1120,7 @@ def editar_evento(id_evento):
         nome_usuario = "Não Há"
 
     return render_template(
-        "editar_evento.html", form=form, id_evento=id_evento, usuario=nome_usuario
+        "editar_evento.html", form=form, entidade_evento=entidade_evento, usuario=nome_usuario
     )
 
 
@@ -1138,14 +1180,23 @@ def excluir_evento(id_evento):
 
 
 # Rota para a página de visualizar eventos
-@casos.route("/visualizar_evento/<id_evento>")
+@casos.route("/visualizar_evento/<num_evento>")
 @login_required()
-def visualizar_evento(id_evento):
-    entidade_evento = Evento.query.filter_by(id=id_evento, status=True).first()
-    if not entidade_evento:
-        flash("Evento inexistente!", "warning")
-        return redirect(url_for("casos.index"))
+def visualizar_evento(num_evento):
+    id_caso = request.args.get('id_caso', None)
+    entidade_evento = Evento.query.filter(
+            Evento.num_evento == num_evento,
+            Evento.id_caso == id_caso
+        ).first()
+    caso = Caso.query.get(id_caso)
+    if (caso == None) or (caso.status == False):
+        flash("Caso inexistente!", "warning")
+        return redirect(url_for("casos.index", id_caso=id_caso))
 
+    if (not entidade_evento) or (entidade_evento.status==False):
+        flash("Evento inexistente!", "warning")
+        return redirect(url_for("casos.eventos", id_caso=id_caso))
+    
     return render_template("visualizar_evento.html", entidade_evento=entidade_evento)
 
 
@@ -1194,9 +1245,18 @@ def novo_processo(id_caso):
         caso = Caso.query.filter_by(id=entidade_processo.id_caso).first()
         caso.numero_ultimo_processo = entidade_processo.numero
 
-        db.session.add(entidade_processo)
-        db.session.commit()
-        flash("Processo associado com sucesso!", "success")
+        try:
+            db.session.add(entidade_processo)
+            db.session.commit()
+            flash("Processo associado com sucesso!", "success")
+        except SQLAlchemyError as error:
+            db.session.rollback()
+            error_message = error.args[0]
+            if "Out of range value for column 'numero_ultimo_processo' at row 1" in error_message:
+                flash("O número deste processo excede o valor máximo permitido", "warning")
+                return render_template("novo_processo.html", form=form)
+            else:
+                return error.args[0]
 
         return redirect(url_for("casos.visualizar_caso", id=id_caso))
 
@@ -1234,6 +1294,7 @@ def excluir_caso(id_caso):
     arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id_caso)
 
     caso.status = False
+
     for arquivo in arquivos:
         if arquivo != None:
             local_arquivo = os.path.join(
@@ -1356,3 +1417,42 @@ def editar_processo(id_processo):
 
     setValoresProcesso(form, entidade_processo)
     return render_template("editar_processo.html", form=form, id_processo=id_processo)
+
+@casos.route('/editar_arquivo_caso/<id_arquivo>/<id_caso>', methods = ['GET','POST'])
+@login_required(
+    role=[
+            usuario_urole_roles['ADMINISTRADOR'][0],
+            usuario_urole_roles['PROFESSOR'][0], 
+            usuario_urole_roles['COLAB_PROJETO'][0], 
+            usuario_urole_roles['COLAB_EXTERNO'][0]
+        ])
+
+def editar_arquivo_caso(id_arquivo, id_caso):
+    _form = ArquivoCasoForm()
+    _arquivo = ArquivoCaso.query.get_or_404(id_arquivo)
+
+    try:
+        arquivo = request.files.get("arquivo")
+    except RequestEntityTooLarge as error:
+        flash("Tamanho de arquivo muito longo.")
+        return render_template('editar_arquivo_caso.html', form = _form, id_arquivo = id_arquivo, id_caso = id_caso)
+    if arquivo:
+        nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
+        if extensao_do_arquivo != ".pdf" and arquivo:
+            flash("Extensão de arquivo não suportado.", "warning")
+            return render_template('editar_arquivo_caso.html', form = _form, id_arquivo = id_arquivo, id_caso = id_caso)
+        _arquivo.link_arquivo = arquivo.filename
+        nome_arquivo = f"{arquivo.filename}"
+        arquivo.save(
+            os.path.join(current_app.root_path, "static", "casos", nome_arquivo)
+        )
+       
+        db.session.commit()
+        flash('Arquivo editado com sucesso','success')
+        return redirect(url_for('casos.editar_caso', id_caso = id_caso))
+
+
+    return render_template('editar_arquivo_caso.html', form = _form)
+
+
+

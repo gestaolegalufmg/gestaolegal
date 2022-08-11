@@ -1,6 +1,6 @@
 {% extends "base_dashboard.html" %}
 {% import "base_form_evento.html" as formutils %}
-{%block titulo%}Editar Evento #{{id_evento}}{%endblock%}
+{%block titulo%}Editar Evento #{{entidade_evento.num_evento}}{%endblock%}
 {% block css %} 
 <link rel="stylesheet" href="{{url_for('static',filename='temas_externos/select2.min.css')}}">
 {% endblock css %}
