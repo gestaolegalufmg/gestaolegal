@@ -39,3 +39,19 @@ def index():
     notificacoes = notificacoes.order_by(Notificacao.data.desc()).paginate(page, app.config['ATENDIDOS_POR_PAGINA'], False)
 
     return render_template('notificacoes.html', notificacoes = notificacoes)
+
+@notificacoes.route('/pagina/<notificacao_acao>')
+@login_required()
+def pagina(notificacao_acao):
+    splitted = notificacao_acao.split(" ")
+
+    if(splitted[2] == 'plantão'):
+        return redirect(url_for("plantao.pg_plantao"))
+    
+    elif(splitted[2] == 'caso'):
+        return redirect(url_for("casos.visualizar_caso", id = int(splitted[3]))) 
+
+    elif(splitted[2] == 'evento'):
+        return redirect(url_for("casos.visualizar_evento", num_evento=int(splitted[3]), id_caso=int(splitted[6])))
+    return redirect(url_for("casos.lembretes", id_caso=int(splitted[6]), num_lembrete=int(splitted[3])))
+    

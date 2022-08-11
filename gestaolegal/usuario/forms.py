@@ -142,7 +142,7 @@ class EditarUsuarioForm(EnderecoForm):
 
     cpf                 = StringField('CPF',
                                     validators=[
-                                        DataRequired(MSG_NaoPodeEstarEmBranco.format('O CPF')),
+                                        Optional(),
                                         Length(max=max_cpf, message="Por favor, use no máximo {} caracteres para o CPF.".format(max_cpf))
                                         ]
                                     )

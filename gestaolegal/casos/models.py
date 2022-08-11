@@ -67,7 +67,7 @@ class Caso(db.Model):
     status = db.Column(db.Boolean, default=True, nullable=False)
     descricao = db.Column(db.Text(collation='latin1_general_ci'))
 
-    numero_ultimo_processo = db.Column(db.Integer, nullable=True)
+    numero_ultimo_processo = db.Column(db.BigInteger, nullable=True)
 
     def setSubAreas(self, area_direito, sub_area, sub_areaAdmin):
         if area_direito == 'civel':
@@ -99,6 +99,7 @@ class Lembrete(db.Model):
     __tablename__ = 'lembretes'
 
     id = db.Column(db.Integer, primary_key=True)
+    num_lembrete = db.Column(db.Integer, default=0)
     id_do_criador = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     criador = db.relationship('Usuario', foreign_keys=[id_do_criador])
     id_caso = db.Column(db.Integer, db.ForeignKey('casos.id'), nullable=False)
@@ -107,7 +108,7 @@ class Lembrete(db.Model):
     usuario = db.relationship('Usuario', foreign_keys=[id_usuario])
     data_criacao = db.Column(db.DateTime, nullable=False)
     data_lembrete = db.Column(db.DateTime, nullable=False)
-    descricao = db.Column(db.String(1000, collation='latin1_general_ci'), nullable=False)
+    descricao = db.Column(db.Text(collation='latin1_general_ci'), nullable=False)
     status = db.Column(db.Boolean, default=True, nullable=False)
 
 
@@ -127,7 +128,7 @@ class Processo(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     especie = db.Column(db.String(25, collation='latin1_general_ci'), nullable=False)
-    numero = db.Column(db.Integer, unique=True)
+    numero = db.Column(db.BigInteger, unique=True)
     identificacao = db.Column(db.Text(collation='latin1_general_ci'))
     vara = db.Column(db.String(200, collation='latin1_general_ci'))
     link = db.Column(db.String(1000, collation='latin1_general_ci'))
@@ -154,7 +155,7 @@ class Evento(db.Model):
 
     num_evento = db.Column(db.Integer, default=0)
     tipo = db.Column(db.String(50, collation='latin1_general_ci'), nullable=False)
-    descricao = db.Column(db.String(20000, collation='latin1_general_ci'))
+    descricao = db.Column(db.Text(collation='latin1_general_ci'))
     arquivo = db.Column(db.String(100, collation='latin1_general_ci'))
     data_evento = db.Column(db.Date, nullable=False)
 

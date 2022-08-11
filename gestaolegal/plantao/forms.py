@@ -93,7 +93,7 @@ max_ano_veiculo = 5
 max_sit_receita = 100
 max_sede_outros = 100
 max_qts_func = 7
-max_descricao = 1000
+max_descricao = 2000
 
 
 #####################################################
@@ -237,7 +237,6 @@ class CadastroAtendidoForm(EnderecoForm):
     cpf = StringField(
         "CPF",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O CPF")),
             Length(
                 max=max_cpf,
                 message="Por favor, use no máximo {} caracteres para o CPF.".format(
@@ -250,9 +249,7 @@ class CadastroAtendidoForm(EnderecoForm):
     cnpj = StringField(
         "CNPJ",
         validators=[
-            RequiredIf(
-                pj_constituida=True, message=MSG_NaoPodeEstarEmBranco.format("O cnpj")
-            ),
+            Optional(),
             Length(
                 max=max_cnpj,
                 message="Por favor, use no máximo {} caracteres para o CPF.".format(

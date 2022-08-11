@@ -55,6 +55,8 @@ from gestaolegal.notificacoes.models import Notificacao, acoes
 
 plantao = Blueprint("plantao", __name__, template_folder="templates")
 
+data_atual = datetime.now().date()
+
 ####Cadastrar Atendido
 @plantao.route("/novo_atendimento", methods=["GET", "POST"])
 @login_required(
@@ -469,6 +471,11 @@ def cadastro_orientacao_juridica():
             data_criacao=datetime.now(),
             status=True,
         )
+
+        if len(entidade_orientacao.descricao) > 2000 :
+            flash("A descrição da orientacao juridica não pode ter mais de 2000 caracteres", "warning")
+            return redirect(url_for("casos.cadastro_orientacao_juridica"))
+
         entidade_orientacao.setSubAreas(
             form.area_direito.data, form.sub_area.data, form.sub_areaAdmin.data
         )
@@ -1089,10 +1096,10 @@ def perfil_assistencia_judiciaria(_id):
 @login_required()
 def pg_plantao():
     dias_usuario_marcado = DiasMarcadosPlantao.query.filter_by(
-        id_usuario=current_user.id, status = True
+        id_usuario=current_user.id, status = True, 
     ).all()
-    plantao = Plantao.query.first()
 
+    plantao = Plantao.query.first()
     apaga_dias_marcados(plantao, dias_usuario_marcado)
     try:
         if (
@@ -1108,13 +1115,14 @@ def pg_plantao():
             return redirect(url_for("principal.index"))
 
         dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(
-            id_usuario=current_user.id, status = True
+            id_usuario=current_user.id, status = True,
         ).all()
 
         return render_template(
             "pagina_plantao.html",
             datas_plantao=dias_usuario_atual,
             numero_plantao=numero_plantao_a_marcar(current_user.id),
+            data_atual=data_atual,
         )
     except AttributeError:
         flash("O plantão não está aberto!")
@@ -1204,9 +1212,7 @@ def ajax_confirma_data_plantao():
         tipo_mensagem = "warning"
         mensagem = "Data selecionada não foi aberta para plantão."
         resultado_json = cria_json(
-            render_template(
-                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado
-            ),
+            render_template("lista_datas_plantao.html", data_atual=data_atual, datas_plantao=dias_usuario_marcado),
             mensagem,
             tipo_mensagem,
         )
@@ -1218,9 +1224,7 @@ def ajax_confirma_data_plantao():
         tipo_mensagem = "warning"
         mensagem = "Não há vagas disponíveis na data selecionada, tente outro dia."
         resultado_json = cria_json(
-            render_template(
-                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado
-            ),
+            render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_marcado, data_atual=data_atual),
             mensagem,
             tipo_mensagem,
         )
@@ -1232,9 +1236,7 @@ def ajax_confirma_data_plantao():
         tipo_mensagem = "warning"
         mensagem = "Você atingiu o limite de plantões cadastrados."
         resultado_json = cria_json(
-            render_template(
-                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado
-            ),
+            render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_marcado, data_atual=data_atual),
             mensagem,
             tipo_mensagem,
         )
@@ -1246,9 +1248,7 @@ def ajax_confirma_data_plantao():
         tipo_mensagem = "warning"
         mensagem = "Você já marcou plantão neste dia!"
         resultado_json = cria_json(
-            render_template(
-                "lista_datas_plantao.html", datas_plantao=dias_usuario_marcado
-            ),
+            render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_marcado, data_atual=data_atual),
             mensagem,
             tipo_mensagem,
         )
@@ -1267,7 +1267,7 @@ def ajax_confirma_data_plantao():
         id_usuario=current_user.id, status=True
     ).all()
     resultado_json = cria_json(
-        render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_atual),
+        render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_atual, data_atual=data_atual),
         mensagem,
         tipo_mensagem,
     )
@@ -1609,6 +1609,15 @@ def configurar_abertura():
 
     set_abrir_plantao_form(form_abrir, plantao)
     set_fechar_plantao_form(form_fechar, plantao)
+
+    _notificacao = Notificacao(
+            acao=acoes["ABERTURA_PLANTAO"].format(),
+            data=datetime.now(),
+            id_executor_acao=current_user.id,
+            id_usu_notificar=current_user.id,
+        )
+    db.session.add(_notificacao)
+    db.session.commit()
 
     return render_template(
         "configurar_abertura.html",

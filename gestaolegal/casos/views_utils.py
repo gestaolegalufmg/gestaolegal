@@ -1,7 +1,7 @@
 from sqlalchemy import or_, desc
 
 from gestaolegal import db
-from gestaolegal.casos.models import Caso, situacao_deferimento, tipo_evento, Evento
+from gestaolegal.casos.models import Caso, Lembrete, situacao_deferimento, tipo_evento, Evento
 from gestaolegal.utils.models import queryFiltradaStatus
 
 ROTA_PAGINACAO_CASOS = "casos.index"
@@ -18,6 +18,10 @@ opcoes_filtro_meus_casos = {
 }
 opcoes_filtro_meus_casos['ATIVO'] = situacao_deferimento['ATIVO']
 opcoes_filtro_meus_casos['ARQUIVADO'] = situacao_deferimento['ARQUIVADO']
+opcoes_filtro_meus_casos['AGUARDANDO_DEFERIMENTO'] = situacao_deferimento['AGUARDANDO_DEFERIMENTO']
+opcoes_filtro_meus_casos['INDEFERIDO'] = situacao_deferimento['INDEFERIDO']
+
+
 
 opcoes_filtro_eventos = tipo_evento
 opcoes_filtro_eventos['TODOS'] = ('todos', 'Todos')
@@ -91,3 +95,12 @@ def get_num_eventos_atual(caso_id):
                            .order_by(desc(Evento.num_evento))
                            .first())
     return num_eventos_criados[0] + 1 if num_eventos_criados else 1
+
+def get_num_lembretes_atual(caso_id):
+    num_lembretes_criados = (db.session.query(Lembrete.num_lembrete)
+                           .filter(
+        Lembrete.id_caso == caso_id
+    )
+                           .order_by(desc(Lembrete.num_lembrete))
+                           .first())
+    return num_lembretes_criados[0] + 1 if num_lembretes_criados else 1

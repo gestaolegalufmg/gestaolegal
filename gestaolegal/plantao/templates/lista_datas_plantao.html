@@ -4,12 +4,14 @@
     }
 </style>
 
-{% if datas_plantao %}
+{% if datas_plantao and data_atual %}
     {% for data in datas_plantao %}
+      {% if data.data_marcada >= data_atual %}
         <li class="data_plantao">
           {{data.data_marcada.strftime("%d/%m/%Y")}}
         </li>
-      {% endfor %}
+      {% endif %}
+    {% endfor %}
 {% else %} 
     <p>Ainda não escolheu os dias de plantão</p>
 {% endif %}
