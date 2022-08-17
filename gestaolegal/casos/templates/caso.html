@@ -152,7 +152,16 @@
                   </div>
                   <div class="container table-responsive">
                       <table class="table table-striped">
+                        <style>
+                            th {
+                                text-align: center;
+                            }
+                            td{
+                                text-align: center;
+                            }
+                        </style>
                           <thead>
+                            
                               <tr>
                                   <th style="width:60%">Título do Arquivo</th>
                                   <th>Ações</th>
@@ -162,8 +171,8 @@
                           {% for arquivo in arquivos %}
                           <tr>
                               <td>{{arquivo.link_arquivo}}</td>
-                              <td>
-                                  <div class="row">
+                              <td >
+                                  <div class="row" style="justify-content: center;">
                                
                                     <a class="btn mr-1 btn-flat btn-info" href="{{url_for('static', filename='casos/'+arquivo.link_arquivo)}}">Vizualizar</a>
                                     {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['PROFESSOR'][0]] %}
