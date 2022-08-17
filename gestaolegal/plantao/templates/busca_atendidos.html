@@ -2,6 +2,15 @@
 
     <div class="table-responsive">
         <table class="table table-striped">
+        <style>
+            th{
+                text-align: center;
+                padding: 0% 0% !important;
+            }
+            tr{
+                text-align: center;
+            }
+        </style>
         <thead>
             <tr>
                 <th>Nome</th>
@@ -20,7 +29,7 @@
                     <td>{{atendido_assistido[0].nome}}</td>
                     <td>{{atendido_assistido[0].cpf or '--'}}</td>
                     <td>{{atendido_assistido[0].cnpj or '--'}}</td>
-                    <td>{{atendido_assistido[0].telefone}}</td>
+                    <td>{{atendido_assistido[0].telefone or '--'}}</td>
                     <td><a href="{{url_for('plantao.perfil_assistido', _id=atendido_assistido[0].id)}}" class="btn mr-2 btn-flat btn-primary btn-sm">Visualizar</a></td>
                 
                     <td>
