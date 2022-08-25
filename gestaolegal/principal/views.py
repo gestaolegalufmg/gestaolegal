@@ -1,10 +1,12 @@
-from flask import render_template, Blueprint, flash, request
+from flask import render_template, Blueprint, flash, request,redirect
 from gestaolegal import app, login_required
 
 from gestaolegal.usuario.models import Usuario
 from gestaolegal.plantao.models import Atendido, Assistido, AssistidoPessoaJuridica
 from gestaolegal.casos.models import Caso
 from sqlalchemy import and_, or_
+
+
 
 principal = Blueprint('principal', __name__, template_folder='templates')
 
@@ -16,6 +18,11 @@ def index():
 @app.errorhandler(404)
 def error_404(error):
     return render_template('erros/404.html') , 404
+
+@app.errorhandler(413)
+def error_413(error):
+    flash('Arquivo muito grande. O tamanho máximo permitido é de 10MB.')
+    return redirect(request.url, code=302)
 
 @app.errorhandler(403)
 def error_403(error):
