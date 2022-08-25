@@ -356,12 +356,11 @@
     {{form_label(form.fim_bolsa)}}
     <div class="col-12 col-lg-6 offset-lg-1">
         {{form.fim_bolsa(type="date",class_="form-control", id="fim_bolsa")}}
+        {% for error in form.fim_bolsa.errors %}
+        <div class="alert alert-danger">{{error}}</div>
+        {% endfor %}
     </div>
 </div>
-
-{% for error in form.fim_bolsa.errors %}
-<div class="alert alert-danger">{{error}}</div>
-{% endfor %}
 
 <div class="form-group row">
     {{form_label(form.horario_atendimento)}}
