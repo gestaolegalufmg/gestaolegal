@@ -150,7 +150,8 @@ def cadastro_na():
         db.session.commit()
 
         flash("Atendido cadastrado!", "success")
-        return redirect(url_for("plantao.listar_atendidos"))
+        _id = Atendido.query.filter_by(email=form.email.data).first().id
+        return redirect(url_for("plantao.perfil_assistido", _id=_id))
 
     return render_template("cadastro_novo_atendido.html", form=form)
 
