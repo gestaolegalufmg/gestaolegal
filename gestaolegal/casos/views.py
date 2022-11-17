@@ -253,10 +253,21 @@ def indeferir_caso(id_caso):
         usuario_urole_roles["ADMINISTRADOR"][0],
         usuario_urole_roles["PROFESSOR"][0],
         usuario_urole_roles["ORIENTADOR"][0],
+        usuario_urole_roles["COLAB_EXTERNO"][0],
+        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
     ]
 )
 def editar_caso(id_caso):
     entidade_caso = Caso.query.filter_by(id=id_caso, status=True).first()
+    usuario = Usuario.query.filter_by(id=current_user.id).first()
+
+    if usuario.urole == usuario_urole_roles["COLAB_EXTERNO"][0] and entidade_caso.id_colaborador != usuario.id:
+        flash("Você não tem permissão para editar esse caso.", "warning")
+        return redirect(url_for("casos.index"))
+
+    if usuario.urole == usuario_urole_roles["ESTAGIARIO_DIREITO"][0] and entidade_caso.id_estagiario != usuario.id:
+        flash("Você não tem permissão para editar esse caso.", "warning")
+        return redirect(url_for("casos.index"))
 
     if not entidade_caso:
         flash("Não existe um caso com esse ID.", "warning")
@@ -1424,7 +1435,8 @@ def editar_processo(id_processo):
             usuario_urole_roles['ADMINISTRADOR'][0],
             usuario_urole_roles['PROFESSOR'][0], 
             usuario_urole_roles['COLAB_PROJETO'][0], 
-            usuario_urole_roles['COLAB_EXTERNO'][0]
+            usuario_urole_roles['COLAB_EXTERNO'][0],
+            usuario_urole_roles['ORIENTADOR'][0],
         ])
 
 def editar_arquivo_caso(id_arquivo, id_caso):
