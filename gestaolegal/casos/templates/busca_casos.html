@@ -157,14 +157,14 @@
             </p>
 
           </div>
-          <div class="card-footer d-inline-flex justify-content-end">
+          <div class="card-footer d-inline-flex justify-content-center">
 
             <input type="hidden" value="{{url_for('casos.excluir_caso', id_caso=caso.id)}}" id="url_excluir_caso{{caso.id}}">
 
             {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['PROFESSOR'][0],usuario_urole_roles['ORIENTADOR'][0],usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
             <a href="{{url_for('casos.editar_caso', id_caso = caso.id)}}" class="btn btn-primary mr-2">Editar</a>
             {% endif %}
-            {% if current_user.urole in [usuario_urole_roles['PROFESSOR'][0]] %}
+            {% if current_user.urole in [usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ADMINISTRADOR'][0]] %}
                 {% if caso.situacao_deferimento == 'aguardando_deferimento' %}
                     <input type="hidden" value="{{url_for('casos.deferir_caso', id_caso=caso.id)}}" id="url_deferir_caso{{caso.id}}">
                     <input type="hidden" value="{{url_for('casos.indeferir_caso', id_caso=caso.id)}}" id="url_indeferir_caso{{caso.id}}">
