@@ -622,7 +622,7 @@ class TornarAssistidoForm(FlaskForm):
                 beneficio["BENEFICIO_PRESTACAO_CONT"][0],
                 beneficio["BENEFICIO_PRESTACAO_CONT"][1],
             ),
-            (beneficio["BOLSA_FAMILIA"][0], beneficio["BOLSA_FAMILIA"][1]),
+            (beneficio["RENDA_BASICA"][0], beneficio["RENDA_BASICA"][1]),
             (beneficio["BOLSA_ESCOLA"][0], beneficio["BOLSA_ESCOLA"][1]),
             (beneficio["BOLSA_MORADIA"][0], beneficio["BOLSA_MORADIA"][1]),
             (beneficio["CESTA_BASICA"][0], beneficio["CESTA_BASICA"][1]),

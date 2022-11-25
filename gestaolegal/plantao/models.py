@@ -98,7 +98,7 @@ beneficio = {
         "ben_prestacao_continuada",
         "Benefício de prestação continuada",
     ),
-    "BOLSA_FAMILIA": ("bolsa_familia", "Bolsa família"),
+    "RENDA_BASICA": ("renda_basica", "Renda Básica"),
     "BOLSA_ESCOLA": ("bolsa_escola", "Bolsa escola"),
     "BOLSA_MORADIA": ("bolsa_moradia", "Bolsa moradia"),
     "CESTA_BASICA": ("cesta_basica", "Cesta básica"),
