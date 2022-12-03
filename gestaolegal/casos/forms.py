@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import HiddenField, SubmitField, SelectField, StringField, TextAreaField, DateField, FileField, FloatField, IntegerField
+from wtforms import HiddenField, SubmitField, SelectField, StringField, TextAreaField, DateField, FileField, FloatField, IntegerField, MultipleFileField
 from wtforms.validators import InputRequired, DataRequired, Optional, AnyOf
 
 from gestaolegal.plantao.forms import area_do_direito, assistencia_jud_areas_atendidas
@@ -145,9 +145,17 @@ class EventoForm(FlaskForm):
     data_evento = DateField('Data do Ocorrido', validators=[InputRequired('Por favor, selecione uma data')])
     descricao = TextAreaField('Descrição do Evento',
                               validators=[InputRequired('Por favor, selecione pelo menos uma opção')])
-    arquivo = FileField('Anexar arquivo')
     submit = SubmitField('Enviar')
 
 class ArquivoCasoForm(FlaskForm):
+    arquivo = FileField('Arquivo')
+    submit = SubmitField('Enviar')
+
+class ArquivosEventoForm(FlaskForm):
+
+    arquivos = MultipleFileField('Arquivos')
+    submit = SubmitField('Enviar')
+
+class EditarArquivoDeEventoForm(FlaskForm):
     arquivo = FileField('Arquivo')
     submit = SubmitField('Enviar')
