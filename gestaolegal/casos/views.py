@@ -19,6 +19,8 @@ from gestaolegal.casos.forms import (
     EventoForm,
     ProcessoForm,
     ArquivoCasoForm,
+    ArquivosEventoForm,
+    EditarArquivoDeEventoForm
 )
 from gestaolegal.casos.models import (
     Historico,
@@ -26,6 +28,7 @@ from gestaolegal.casos.models import (
     Roteiro,
     Processo,
     ArquivoCaso,
+    ArquivosEvento,
 )
 from gestaolegal.casos.views_utils import *
 from gestaolegal.notificacoes.models import Notificacao, acoes
@@ -958,13 +961,6 @@ def novo_evento(id_caso):
     _form = EventoForm()
     if _form.validate_on_submit():
 
-        try:
-            arquivo = request.files.get("arquivo")
-        except RequestEntityTooLarge as error:
-            flash("Tamanho de arquivo muito longo.")
-            return render_template("novo_evento.html", form=_form, id_caso=id_caso)
-        nome_arquivo = None
-
         if _form.usuario.data:
 
             _evento = Evento(
@@ -973,13 +969,6 @@ def novo_evento(id_caso):
                 tipo=_form.tipo.data,
                 descricao=_form.descricao.data,
                 data_evento=_form.data_evento.data,
-                arquivo=(
-                    datetime.now().strftime("%d%m%Y")
-                    + "."
-                    + (arquivo.filename.split(".")[1])
-                    if arquivo
-                    else None
-                ),
                 data_criacao=datetime.now(),
                 id_criado_por=current_user.id,
                 id_usuario_responsavel=_form.usuario.data,
@@ -991,13 +980,6 @@ def novo_evento(id_caso):
                 tipo=_form.tipo.data,
                 descricao=_form.descricao.data,
                 data_evento=_form.data_evento.data,
-                arquivo=(
-                    datetime.now().strftime("%d%m%Y")
-                    + "."
-                    + (arquivo.filename.split(".")[1])
-                    if arquivo
-                    else None
-                ),
                 data_criacao=datetime.now(),
                 id_criado_por=current_user.id,
                 id_usuario_responsavel=None,
@@ -1016,11 +998,29 @@ def novo_evento(id_caso):
             db.session.add(_notificacao)
             db.session.commit()
 
-        if arquivo:
-            nome_arquivo = f'evento_{_evento.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[1]}'
-            arquivo.save(
-                os.path.join(current_app.root_path, "static", "eventos", nome_arquivo)
-            )
+        if(request.files.get("arquivos")):
+
+            arquivos = request.files.getlist("arquivos")
+            
+            for arq in arquivos:
+                if arq.filename:
+                    try:
+                        _, extensao_do_arq = os.path.splitext(arq.filename)
+                        if extensao_do_arq != ".pdf" and arq:
+                            flash("Extensão de arq não suportado.", "warning")
+                            return render_template("novo_evento.html", form=_form, id_caso=id_caso)
+                        nome_arq = f"{arq.filename}"
+                        arq.save(
+                            os.path.join(current_app.root_path, "static", "casos", nome_arq)
+                        )
+                        caso_arq = ArquivosEvento(
+                            link_arquivo=arq.filename if arq else None, id_caso=_evento.id_caso, id_evento=_evento.id
+                        )
+                    except RequestEntityTooLarge as error:
+                        flash("Tamanho de arquivo muito longo.")
+                        return render_template("novo_evento.html", form=_form, id_caso=id_caso)
+                db.session.add(caso_arq)
+                db.session.commit()
 
         flash("Evento criado com sucesso!", "success")
         return redirect(url_for("casos.visualizar_caso", id=id_caso))
@@ -1062,64 +1062,54 @@ def editar_evento(id_evento):
         flash("Esse evento não existe!", "warning")
         return redirect(url_for("casos.index"))
 
+    arquivos_evento = ArquivosEvento.query.filter(ArquivosEvento.id_evento==id_evento).all()
+
     form = EventoForm()
     if request.method == "POST":
         if not form.validate():
             return render_template("editar_evento.html", form=form, entidade_evento=entidade_evento)
 
-        try:
-            arquivo = request.files.get("arquivo")
-        except RequestEntityTooLarge as error:
-            flash("Tamanho de arquivo muito longo.")
-            return render_template(
-                "editar_evento.html",
-                form=form,
-                entidade_evento=entidade_evento,
-                usuario=entidade_evento.usuario_responsavel.nome,
-            )
-        nome_arquivo = None
+
+        if(request.files.get("arquivos")):
+
+            arquivos = request.files.getlist("arquivos")
+            
+            for arq in arquivos:
+                if arq.filename:
+                    try:
+                        _, extensao_do_arq = os.path.splitext(arq.filename)
+                        if extensao_do_arq != ".pdf" and arq:
+                            flash("Extensão de arq não suportado.", "warning")
+                            return render_template("editar_evento.html", form=form, entidade_evento=entidade_evento)
+                        nome_arq = f"{arq.filename}"
+                        arq.save(
+                            os.path.join(current_app.root_path, "static", "casos", nome_arq)
+                        )
+                        caso_arq = ArquivosEvento(
+                            link_arquivo=arq.filename if arq else None, id_caso=entidade_evento.id_caso, id_evento=id_evento
+                        )
+                    except RequestEntityTooLarge as error:
+                        flash("Tamanho de arquivo muito longo.")
+                        if entidade_evento.usuario_responsavel:
+                            return render_template(
+                                "editar_evento.html",
+                                form=form,
+                                entidade_evento=entidade_evento,
+                                usuario=entidade_evento.usuario_responsavel.nome,
+                                arquivos=arquivos_evento
+                            )
+                        else:
+                            return render_template(
+                                    "editar_evento.html",
+                                    form=form,
+                                    entidade_evento=entidade_evento,
+                                    usuario=None,
+                                    arquivos=arquivos_evento
+                                )
+                db.session.add(caso_arq)
+                db.session.commit() 
+
         setDadosEvento(form, entidade_evento)
-
-        if entidade_evento.arquivo == None:
-            entidade_evento.arquivo = (
-                datetime.now().strftime("%d%m%Y")
-                + "."
-                + (arquivo.filename.split(".")[1])
-                if arquivo
-                else None
-            )
-            if arquivo:
-                nome_arquivo = f'evento_{entidade_evento.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[1]}'
-                arquivo.save(
-                    os.path.join(
-                        current_app.root_path, "static", "eventos", nome_arquivo
-                    )
-                )
-
-        else:
-            local_arquivo = os.path.join(
-                current_app.root_path,
-                "static",
-                "eventos",
-                "evento_{}_{}".format(entidade_evento.id, entidade_evento.arquivo),
-            )
-            if os.path.exists(local_arquivo):
-                os.remove(local_arquivo)
-
-            entidade_evento.arquivo = (
-                datetime.now().strftime("%d%m%Y")
-                + "."
-                + (arquivo.filename.split(".")[1])
-                if arquivo
-                else None
-            )
-            if arquivo:
-                nome_arquivo = f'evento_{entidade_evento.id}_{datetime.now().strftime("%d%m%Y")}.{arquivo.filename.split(".")[1]}'
-                arquivo.save(
-                    os.path.join(
-                        current_app.root_path, "static", "eventos", nome_arquivo
-                    )
-                )
 
         db.session.commit()
         flash("Evento editado com sucesso!", "success")
@@ -1134,7 +1124,7 @@ def editar_evento(id_evento):
         nome_usuario = "Não Há"
 
     return render_template(
-        "editar_evento.html", form=form, entidade_evento=entidade_evento, usuario=nome_usuario
+        "editar_evento.html", form=form, entidade_evento=entidade_evento, usuario=nome_usuario, arquivos=arquivos_evento
     )
 
 
@@ -1211,7 +1201,9 @@ def visualizar_evento(num_evento):
         flash("Evento inexistente!", "warning")
         return redirect(url_for("casos.eventos", id_caso=id_caso))
     
-    return render_template("visualizar_evento.html", entidade_evento=entidade_evento)
+    arquivos = ArquivosEvento.query.filter(ArquivosEvento.id_evento==entidade_evento.id).all()
+
+    return render_template("visualizar_evento.html", entidade_evento=entidade_evento, arquivos=arquivos)
 
 
 @casos.route("/novo_processo/<id_caso>", methods=["POST", "GET"])
@@ -1469,5 +1461,55 @@ def editar_arquivo_caso(id_arquivo, id_caso):
 
     return render_template('editar_arquivo_caso.html', form = _form)
 
+@casos.route("/editar_arquivo_evento/<id_arquivo>/<id_evento>", methods = ["GET","POST"])
+@login_required(
+    role=[
+            usuario_urole_roles['ADMINISTRADOR'][0],
+            usuario_urole_roles['PROFESSOR'][0], 
+            usuario_urole_roles['COLAB_PROJETO'][0], 
+            usuario_urole_roles['COLAB_EXTERNO'][0],
+            usuario_urole_roles['ORIENTADOR'][0],
+        ])
+
+def editar_arquivo_evento(id_arquivo, id_evento):
+    _form = EditarArquivoDeEventoForm()
+    _arquivo = ArquivosEvento.query.get_or_404(id_arquivo)
+
+    try:
+        arquivo = request.files.get("arquivo")
+    except RequestEntityTooLarge as error:
+        flash("Tamanho de arquivo muito longo.")
+        return render_template('editar_arquivo_evento.html', form = _form, id_arquivo = id_arquivo, id_evento = id_evento)
+    if arquivo:
+        nome_do_arquivo, extensao_do_arquivo = os.path.splitext(arquivo.filename)
+        if extensao_do_arquivo != ".pdf" and arquivo:
+            flash("Extensão de arquivo não suportado.", "warning")
+            return render_template('editar_arquivo_evento.html', form = _form, id_arquivo = id_arquivo, id_evento=id_evento)
+        _arquivo.link_arquivo = arquivo.filename
+        nome_arquivo = f"{arquivo.filename}"
+        arquivo.save(
+            os.path.join(current_app.root_path, "static", "casos", nome_arquivo)
+        )
+       
+        db.session.commit()
+        flash('Arquivo editado com sucesso','success')
+        return redirect(url_for('casos.editar_evento', id_evento = id_evento))
 
 
+    return render_template('editar_arquivo_evento.html', form = _form)
+
+@casos.route("/excluir_arquivo_evento/<id_arquivo>/<id_evento>", methods=["GET", "POST"])
+@login_required(
+    role=[
+        usuario_urole_roles["ADMINISTRADOR"][0],
+        usuario_urole_roles["ORIENTADOR"][0],
+        usuario_urole_roles["PROFESSOR"][0],
+    ]
+)
+def excluir_arquivo_evento(id_arquivo, id_evento):
+    arquivo = ArquivosEvento.query.get_or_404(id_arquivo)
+    
+    db.session.delete(arquivo)
+    db.session.commit()
+
+    return redirect(url_for('casos.editar_evento', id_evento = id_evento))
