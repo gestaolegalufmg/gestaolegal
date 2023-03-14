@@ -15,14 +15,23 @@
 
 <div class="table-responsive">
     <table class="table table-striped" style="width:99%">
+      <style>
+        th{
+          text-align: center;
+          padding: 0% 0% !important;
+        }
+        td{
+          text-align: center;
+        }
+      </style>
       <thead>
           <tr>
-              <th style="width:10%">Nº</th>
-              <th style="width:30%">Tipo</th>
-              <th style="width:15%">Responsável</th>
+              <th >Nº</th>
+              <th >Tipo</th>
+              <th >Responsável</th>
               <th>Criação</th>
-              <th>Lembrete</th>
-              <th>Ações</th>
+              <th>Data do ocorrido</th>
+              <th >Ações </th>
           </tr>
       </thead>
       <tbody>
@@ -30,11 +39,12 @@
       <tr>
         <td>#{{evento.num_evento}}</td>
         <td>{{formatarTipoDeEvento(evento.tipo)}}</td>
-        <td>{{formatarNomeDoUsuario(evento.id_usuario_responsavel)}}</td>
+        <td><center>{{formatarNomeDoUsuario(evento.id_usuario_responsavel)}}</center></td>
         <td>{{evento.data_criacao.strftime('%d/%m/%Y')}}</td></td>
         <td>{{evento.data_evento.strftime('%d/%m/%Y')}}</td>
         <td>
-        <div class="row">
+        <div class="row" style="justify-content: center; ">
+            
             <button type="submit" class="btn ml-2 mr-2 btn-flat btn-primary btn-sm" name="button">
                 <a href="{{url_for('casos.visualizar_evento', num_evento=evento.num_evento, id_caso=evento.id_caso)}}" style="text-decoration: none;color: white;">Visualizar</a>
             </button>
@@ -48,6 +58,7 @@
             onclick="return confirm('Você deseja realmente excluir este evento?');"> Excluir</a>
             {% endif %}
             </form>
+           
         </div>
         </td>
       </tr>

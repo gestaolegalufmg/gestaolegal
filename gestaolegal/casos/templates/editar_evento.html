@@ -34,12 +34,68 @@
                      {{formutils.form_field(form.descricao, class='w-100', rows='10')}}
                  </div>
             </div>
-            <div class="form-group row">
-                {{formutils.form_label(form.arquivo, class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
-                 <div class="col-12 col-lg-6 offset-lg-1">
-                     {{formutils.form_field(form.arquivo)}}
-                 </div>
-             </div>
+            {% if arquivos %}
+            <div class="card">
+                <div class="card-body">
+                  <div class="card-title">
+                    <div class="d-flex ml-auto">
+                      <h4>Arquivos</h4>
+                    </div>
+                  </div>
+                  <div class="container table-responsive">
+                      <table class="table table-striped">
+                        <style>
+                            th {
+                                text-align: center;
+                            }
+                            td{
+                                text-align: center;
+                            }
+                        </style>
+                          <thead>
+                            
+                              <tr>
+                                  <th style="width:60%">Título do Arquivo</th>
+                                  <th>Ações</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                          {% for arquivo in arquivos %}
+                          <tr>
+                              <td>{{arquivo.link_arquivo}}</td>
+                              <td >
+                                  <div class="row" style="justify-content: center;">
+                               
+                                    <a class="btn mr-1 btn-flat btn-info" href="{{url_for('static', filename='casos/'+arquivo.link_arquivo)}}">Vizualizar</a>
+                                    {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ORIENTADOR'][0]]%}
+                                    <a href="{{url_for('casos.editar_arquivo_evento',id_arquivo=arquivo.id, id_evento=entidade_evento.id)}}" class="btn mr-1 btn-flat btn-primary">Editar</a>
+                                    {% endif %}
+                            
+                                      {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['PROFESSOR'][0]] %}
+                                      <a href="{{url_for('casos.excluir_arquivo_evento', id_arquivo=arquivo.id, id_evento=entidade_evento.id)}}" class="btn mr-1 btn-flat btn-danger">Excluir</a>
+                                      {% endif %}
+                                  </div>
+                              </td>
+                          </tr>
+                          {% endfor %}
+                          </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              <div class="row mb-5">
+                <div class="col col-lg-6 offset-lg-1">
+                    <h5>Adicionar arquivos</h5>
+                    <div class="row">
+                        <div class="col-6 align-self-end">
+                            <p>Adicione um ou mais arquivos</p>
+                            <label for="arquivos">Upload de arquivos<span class="text-danger">(.pdf)(Máx: 10MB)</span></label>
+                            <input type="file" name="arquivos" multiple="multiple" class="form-control-file overflow-hidden">
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="form-group row">
                 <div class="col-12 col-lg-6 offset-lg-1">
                 {{form.submit(class='btn btn-primary')}}

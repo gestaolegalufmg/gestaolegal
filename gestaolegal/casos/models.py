@@ -167,3 +167,11 @@ class Evento(db.Model):
 
     criado_por = db.relationship('Usuario', foreign_keys=[id_criado_por])
     status = db.Column(db.Boolean, default=True, nullable=False)
+
+class ArquivosEvento(db.Model):
+    __tablename__ = 'arquivosEvento'
+
+    id = db.Column(db.Integer, primary_key=True)
+    id_evento = db.Column(db.Integer, db.ForeignKey('eventos.id', ondelete='CASCADE'))
+    id_caso = db.Column(db.Integer, db.ForeignKey('casos.id', ondelete='CASCADE'))
+    link_arquivo = db.Column(db.String(300, collation='latin1_general_ci'))
