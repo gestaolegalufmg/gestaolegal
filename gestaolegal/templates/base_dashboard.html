@@ -128,7 +128,7 @@
                                 <i class="fas fa-briefcase"></i><span>Casos</span></a>
 
                             <ul class="dropdown-menu" style="display: none;">
-                                {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
+                                {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles['ORIENTADOR'][0]] %}
                                     <li><a href="{{url_for('casos.novo_caso')}}">Cadastrar Novo Caso</a></li>
                                     <li><a href="{{url_for('casos.meus_casos')}}">Meus Casos</a></li>
                                 {% endif %}

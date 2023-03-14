@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
+from flask import flash
 from wtforms import (DateField, SelectField, StringField, SubmitField,
                      TextAreaField, TimeField, PasswordField, HiddenField)
-from wtforms.validators import AnyOf, DataRequired, Email, Length, Optional, InputRequired
+from wtforms.validators import AnyOf, DataRequired, Email, Length, Optional, InputRequired, ValidationError
 from gestaolegal.usuario.models import sexo_usuario, estado_civilUsuario, tipo_bolsaUsuario, usuario_urole_roles
 from gestaolegal.utils.forms import RequiredIf
 
@@ -92,6 +93,17 @@ class EnderecoForm(FlaskForm):
     id_estado           = HiddenField()
 
 class EditarUsuarioForm(EnderecoForm):
+
+    def validaData(form, field):
+        if field.data <= form.data_entrada.data:
+            flash("A data de saída deve ser posterior à data de entrada.", "warning")
+            raise ValidationError("A data de saída deve ser posterior à data de entrada.")
+
+    def validaDatadaBolsa(form, field):
+        if field.data <= form.inicio_bolsa.data:
+            flash("A data de fim da bolsa deve ser posterior à data de início.", "warning")
+            raise ValidationError("A data de fim da bolsa deve ser posterior à data de início.")
+
     nome                = StringField('Nome',
                                     validators=[
                                         DataRequired(MSG_NaoPodeEstarEmBranco.format('O nome')),
@@ -205,7 +217,7 @@ class EditarUsuarioForm(EnderecoForm):
                                     validators=[DataRequired(MSG_EscolhaUmaData.format('de entrada'))]
                                     )
     data_saida          = DateField('Data de saída',
-                                    validators=[Optional()]
+                                    validators=[Optional(), validaData]
                                     )
 
     matricula           = StringField('Matrícula',
@@ -270,7 +282,7 @@ class EditarUsuarioForm(EnderecoForm):
                                     validators=[RequiredIf(bolsista=True, message=MSG_EscolhaUmaData.format('de início da bolsa'))]
                                 )
     fim_bolsa           = DateField('Data de fim da bolsa',
-                                    validators=[Optional()]
+                                    validators=[Optional(), validaDatadaBolsa]
                                 )
 
     senha               = HiddenField()# Não é usado no formulário, criado para o usuario_form.html funcionar

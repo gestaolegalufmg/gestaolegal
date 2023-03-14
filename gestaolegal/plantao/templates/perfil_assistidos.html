@@ -480,24 +480,6 @@
                     <div class="py-2">
                         <p class="clearfix">
                             <span class="float-left">
-                                Sócios da Pessoa Jurídica:
-                            </span>
-                            <span class="float-right text-muted">
-                                {{ assistido.AssistidoPessoaJuridica.socios or "--" }}
-                            </span>
-                        </p>
-
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Situação perante a Receita Federal:
-                            </span>
-                            <span class="float-right text-muted">
-                                {{ assistido.AssistidoPessoaJuridica.situacao_receita }}
-                            </span>
-                        </p>
-
-                        <p class="clearfix">
-                            <span class="float-left">
                                 Enquadramento:
                             </span>
                             <span class="float-right text-muted">
@@ -506,6 +488,24 @@
                                         {{enquadramento[key][1]}}
                                     {% endif %}
                                 {% endfor %}
+                            </span>
+                        </p>
+
+                        <p class="clearfix">
+                                <span class="float-left">
+                                    Sócios da Pessoa Jurídica:
+                                </span>
+                                <span class="float-right text-muted">
+                                    {{ assistido.AssistidoPessoaJuridica.socios or "--" }}
+                                </span>
+                        </p>
+
+                        <p class="clearfix">
+                            <span class="float-left">
+                                Situação perante a Receita Federal:
+                            </span>
+                            <span class="float-right text-muted">
+                                {{ assistido.AssistidoPessoaJuridica.situacao_receita }}
                             </span>
                         </p>
 

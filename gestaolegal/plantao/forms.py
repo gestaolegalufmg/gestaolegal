@@ -606,7 +606,7 @@ class TornarAssistidoForm(FlaskForm):
     salario = MyFloatField(
         "Salário",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O salário")),
+            InputRequired(MSG_NaoPodeEstarEmBranco.format("O salário")),
             NumberRange(
                 min=0,
                 max=9999999999,
@@ -622,7 +622,7 @@ class TornarAssistidoForm(FlaskForm):
                 beneficio["BENEFICIO_PRESTACAO_CONT"][0],
                 beneficio["BENEFICIO_PRESTACAO_CONT"][1],
             ),
-            (beneficio["BOLSA_FAMILIA"][0], beneficio["BOLSA_FAMILIA"][1]),
+            (beneficio["RENDA_BASICA"][0], beneficio["RENDA_BASICA"][1]),
             (beneficio["BOLSA_ESCOLA"][0], beneficio["BOLSA_ESCOLA"][1]),
             (beneficio["BOLSA_MORADIA"][0], beneficio["BOLSA_MORADIA"][1]),
             (beneficio["CESTA_BASICA"][0], beneficio["CESTA_BASICA"][1]),
@@ -679,7 +679,7 @@ class TornarAssistidoForm(FlaskForm):
     qtd_pessoas_moradia = IntegerField(
         "Quantas pessoas moram com você?",
         validators=[
-            DataRequired(
+            InputRequired(
                 MSG_NaoPodeEstarEmBranco.format("Quantas pessoas moram com você")
             ),
             NumberRange(
@@ -693,7 +693,7 @@ class TornarAssistidoForm(FlaskForm):
     renda_familiar = MyFloatField(
         "Qual o valor da renda familiar?",
         validators=[
-            DataRequired(
+            InputRequired(
                 MSG_NaoPodeEstarEmBranco.format('"Qual o valor da renda familiar?"')
             ),
             NumberRange(
@@ -900,7 +900,7 @@ class TornarAssistidoForm(FlaskForm):
     gastos_medicacao = MyFloatField(
         "Valores gastos com medicação",
         validators=[
-            RequiredIf(
+            RequiredIf_InputRequired(
                 doenca_grave_familia="sim",
                 message=MSG_NaoPodeEstarEmBranco.format(
                     '"Valores gastos com medicação"'
@@ -1097,14 +1097,14 @@ class TornarAssistidoForm(FlaskForm):
     faturamento_anual = MyFloatField(
         "Faturamento anual",
         validators=[
-            RequiredIf(
+            RequiredIf_InputRequired(
                 pj_constituida=True,
                 message=MSG_NaoPodeEstarEmBranco.format("Faturamento anual"),
             ),
             NumberRange(
                 min=0,
                 max=999999999,
-                message="Por favor, use no máximo {} numeros.".format(999999999),
+                message="Por favor, insira um valor entre 0 e {}.".format(999999999),
             ),
         ],
     )

@@ -34,8 +34,6 @@
             </form>
         </div>
     </div>
-        </div>
-    </div>
 </div>
 {% endblock %}
 
@@ -46,20 +44,21 @@
 <script src="{{url_for('static',filename='js/atendidoForm_utils.js')}}"></script>
 <script>
     trataBotaoForm();
-
     //CHAMO AS FUNCOES DE VISIBILIDADE
     validarPjConstituida();
     validarCampoComo_conheceu("{{como_conheceu_daj['ORGAOSPUBLICOS'][1]}}");
     validarCampoProcurou_outro_local();
     validarRepresLegal();
-
-    visibilidadePossui_veiculos()
-    visibilidadeDoenca_grave_familia("{{qual_pessoa_doente['OUTROS'][1]}}")
-    visibilidadePessoaDoenteOBS("{{qual_pessoa_doente['OUTROS'][1]}}")
-    var pj_constituida = document.getElementById('pj_constituida')
+    visibilidadePossui_veiculos();
+    visibilidadePossui_imoveis();
+    visibilidadeRecebe_beneficio();
+    visibilidadeDoenca_grave_familia("{{qual_pessoa_doente['OUTROS'][1]}}");
+    visibilidadePessoaDoenteOBS("{{qual_pessoa_doente['OUTROS'][1]}}");
+    var pj_constituida = document.getElementById('pj_constituida');
     assistido_visibilidadePjConstituida(pj_constituida.options[pj_constituida.selectedIndex].text)
-    visibilidadeSede_bh()
-    visibilidadeTem_funcionarios()
+    visibilidadeSede_bh();
+    visibilidadeTem_funcionarios();
+    visibilidadeSocios();
 
     ////LINKO A FUNÇAO DE VISIBILIDADE AO CAMPO QUE ALTERA ESTA FUNCAO
     document.getElementById('repres_legal').onchange = function(){validarRepresLegal()};
@@ -75,6 +74,7 @@
     document.getElementById('pessoa_doente').onchange = function(){visibilidadePessoaDoenteOBS("{{qual_pessoa_doente['OUTROS'][1]}}")};
     document.getElementById('sede_bh').onchange = function() {visibilidadeSede_bh()};
     document.getElementById('tem_funcionarios').onchange = function() {visibilidadeTem_funcionarios()};
+    document.getElementById('enquadramento').onchange = function(){visibilidadeSocios()};
 
     //Função que remove efeitos no tipo Number
     document.addEventListener("wheel", function (event) {
