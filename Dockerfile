@@ -1,6 +1,6 @@
-FROM python:3.9.5-buster
+FROM python:3.11.3-buster
 RUN apt-get update && \
-    apt-get install -y nano htop && \
+    apt-get install -y nano htop build-essential libssl-dev libffi-dev python-dev && \
     mkdir /code
 ENV STATIC_URL /static
 ENV STATIC_PATH /code/gestaolegal
