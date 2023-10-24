@@ -30,6 +30,7 @@ services:
     volumes:
       - type: bind
         source: /opt/docker_volumes/mysql_data
+        # source: ./mysql_data
         target: /var/lib/mysql
     networks:
       - gestaolegal

@@ -403,7 +403,7 @@ def logout():
 @login_required()
 def listar_usuarios():
     page = request.args.get("page", 1, type=int)
-    usuarios = Usuario.query.filter(Usuario.status != False).paginate(
+    usuarios = Usuario.query.filter(Usuario.status != False).order_by(Usuario.nome).paginate(
         page, app.config["USUARIOS_POR_PAGINA"], False
     )
     if not usuarios:
