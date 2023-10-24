@@ -1,8 +1,8 @@
-"""Initial migration
+"""empty message
 
-Revision ID: e184e0eb7d30
+Revision ID: ed1b0a0a61a6
 Revises: 
-Create Date: 2021-10-05 12:38:03.757721
+Create Date: 2023-10-02 20:27:45.597002
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'e184e0eb7d30'
+revision = 'ed1b0a0a61a6'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,7 +21,7 @@ def upgrade():
     op.create_table('arquivos',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('titulo', sa.String(length=150, collation='latin1_general_ci'), nullable=False),
-    sa.Column('descricao', sa.String(length=8000, collation='latin1_general_ci'), nullable=True),
+    sa.Column('descricao', sa.Text(collation='latin1_general_ci'), nullable=True),
     sa.Column('nome', sa.Text(collation='latin1_general_ci'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
@@ -52,7 +52,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('area_direito', sa.String(length=50, collation='latin1_general_ci'), nullable=False),
     sa.Column('sub_area', sa.String(length=50, collation='latin1_general_ci'), nullable=True),
-    sa.Column('descricao', sa.String(length=2000, collation='latin1_general_ci'), nullable=False),
+    sa.Column('descricao', sa.Text(collation='latin1_general_ci'), nullable=False),
     sa.Column('data_criacao', sa.DateTime(), nullable=True),
     sa.Column('status', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('id')
@@ -205,7 +205,7 @@ def upgrade():
     sa.Column('justif_indeferimento', sa.String(length=280, collation='latin1_general_ci'), nullable=True),
     sa.Column('status', sa.Boolean(), nullable=False),
     sa.Column('descricao', sa.Text(collation='latin1_general_ci'), nullable=True),
-    sa.Column('numero_ultimo_processo', sa.Integer(), nullable=True),
+    sa.Column('numero_ultimo_processo', sa.BigInteger(), nullable=True),
     sa.ForeignKeyConstraint(['id_colaborador'], ['usuarios.id'], ),
     sa.ForeignKeyConstraint(['id_criado_por'], ['usuarios.id'], ),
     sa.ForeignKeyConstraint(['id_estagiario'], ['usuarios.id'], ),
@@ -218,6 +218,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('data_marcada', sa.Date(), nullable=True),
     sa.Column('confirmacao', sa.String(length=15, collation='latin1_general_ci'), nullable=False),
+    sa.Column('status', sa.Boolean(), nullable=False),
     sa.Column('id_usuario', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['id_usuario'], ['usuarios.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -280,7 +281,7 @@ def upgrade():
     sa.Column('id_caso', sa.Integer(), nullable=False),
     sa.Column('num_evento', sa.Integer(), nullable=True),
     sa.Column('tipo', sa.String(length=50, collation='latin1_general_ci'), nullable=False),
-    sa.Column('descricao', sa.String(length=2000, collation='latin1_general_ci'), nullable=True),
+    sa.Column('descricao', sa.Text(collation='latin1_general_ci'), nullable=True),
     sa.Column('arquivo', sa.String(length=100, collation='latin1_general_ci'), nullable=True),
     sa.Column('data_evento', sa.Date(), nullable=False),
     sa.Column('data_criacao', sa.DateTime(), nullable=False),
@@ -303,12 +304,13 @@ def upgrade():
     )
     op.create_table('lembretes',
     sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('num_lembrete', sa.Integer(), nullable=True),
     sa.Column('id_do_criador', sa.Integer(), nullable=False),
     sa.Column('id_caso', sa.Integer(), nullable=False),
     sa.Column('id_usuario', sa.Integer(), nullable=False),
     sa.Column('data_criacao', sa.DateTime(), nullable=False),
     sa.Column('data_lembrete', sa.DateTime(), nullable=False),
-    sa.Column('descricao', sa.String(length=2000, collation='latin1_general_ci'), nullable=False),
+    sa.Column('descricao', sa.Text(collation='latin1_general_ci'), nullable=False),
     sa.Column('status', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['id_caso'], ['casos.id'], ),
     sa.ForeignKeyConstraint(['id_do_criador'], ['usuarios.id'], ),
@@ -318,7 +320,7 @@ def upgrade():
     op.create_table('processos',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('especie', sa.String(length=25, collation='latin1_general_ci'), nullable=False),
-    sa.Column('numero', sa.Integer(), nullable=True),
+    sa.Column('numero', sa.BigInteger(), nullable=True),
     sa.Column('identificacao', sa.Text(collation='latin1_general_ci'), nullable=True),
     sa.Column('vara', sa.String(length=200, collation='latin1_general_ci'), nullable=True),
     sa.Column('link', sa.String(length=1000, collation='latin1_general_ci'), nullable=True),
@@ -337,11 +339,21 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('numero')
     )
+    op.create_table('arquivosEvento',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('id_evento', sa.Integer(), nullable=True),
+    sa.Column('id_caso', sa.Integer(), nullable=True),
+    sa.Column('link_arquivo', sa.String(length=300, collation='latin1_general_ci'), nullable=True),
+    sa.ForeignKeyConstraint(['id_caso'], ['casos.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['id_evento'], ['eventos.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('arquivosEvento')
     op.drop_table('processos')
     op.drop_table('lembretes')
     op.drop_table('historicos')

@@ -425,3 +425,14 @@ def apaga_dias_marcados(plantao: Plantao, dias_marcados_plantao):
                     return False
 
     return True
+
+# Funcionalidades Setter
+def busca_atendidos_modal():
+    # atendidos = serializar()
+    atendidos = db.session.query(Atendido)
+    
+    return serializar(atendidos)
+    
+def busca_assistencias_judiciarias_modal():
+    assistencias_judiciarias = db.session.query(AssistenciaJudiciaria)
+    return serializar(assistencias_judiciarias)
