@@ -463,12 +463,13 @@ def editar_assistido(id_atendido):
     ]
 )
 def cadastro_orientacao_juridica():
-    def CriaOrientacao(form: CadastroOrientacaoJuridicaForm):
+    def CriaOrientacao(form: CadastroOrientacaoJuridicaForm, id_usuario):
         entidade_orientacao = OrientacaoJuridica(
             area_direito=form.area_direito.data,
             descricao=form.descricao.data,
             data_criacao=datetime.now(),
             status=True,
+            id_usuario=id_usuario
         )
 
         if len(entidade_orientacao.descricao) > 2000 :
@@ -485,7 +486,7 @@ def cadastro_orientacao_juridica():
     if request.method == "POST":
         if not form.validate():
             return render_template("cadastro_orientacao_juridica.html", form=form)
-        entidade_orientacao = CriaOrientacao(form)
+        entidade_orientacao = CriaOrientacao(form, current_user.id)
         db.session.add(entidade_orientacao)
         db.session.commit()
         if request.form.get("listaAtendidos"):
@@ -965,7 +966,10 @@ def perfil_oj(id):
         .order_by(Atendido.nome)
         .all()
     )
-
+    if _orientacao.id_usuario:
+        usuario = Usuario.query.filter(Usuario.id == _orientacao.id_usuario).first()
+    else:
+        usuario = {"nome": "--"}
     assistencias_envolvidas = AssistenciaJudiciaria_xOrientacaoJuridica.query.filter_by(
         id_orientacaoJuridica=_orientacao.id
     ).all()
@@ -975,6 +979,7 @@ def perfil_oj(id):
         orientacao=_orientacao,
         atendidos=atendidos_envolvidos,
         assistencias=assistencias_envolvidas,
+        usuario=usuario
     )
 
 
