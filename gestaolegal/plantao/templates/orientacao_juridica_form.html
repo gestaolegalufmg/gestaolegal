@@ -1,23 +1,157 @@
 {{ form.csrf_token }}
 <style>
-    #descricao{
+    #descricao {
         height: 100px;
     }
+
+    .s-container-modal,
+    .a-container-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        z-index: 1;
+    }
+
+    .s-container-modal.modal-active,
+    .a-container-modal.modal-active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .s-modal,
+    .a-modal {
+        width: 60%;
+        max-height: 80%;
+        background-color: #fff;
+        padding: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        margin-left: 15%;
+    }
+
+    .a-modal {
+        max-width: 424px;
+        width: 100%;
+        text-align: center;
+    }
+
+    .s-modal .close,
+    .a-modal .close {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background-color: #F2F5F7;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 10px;
+        cursor: pointer;
+    }
+
+    .a-modal h5{
+        font-size: 18px;
+        line-height: 26px;
+    }
+
+    .a-modal .close {
+        top: -2rem;
+        right: -2rem;
+    }
+
+    .s-modal>div {
+        background-color: #fff;
+    }
+
+    .s-modal-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .s-modal-body .search>div {
+        padding: 6px 12px;
+        display: flex;
+        gap: 0.5rem;
+        border: 1px solid #666;
+    }
+
+    .s-modal-body .search input {
+        border: 0;
+        width: 100%;
+        outline: none;
+    }
+
+    .s-modal-body tbody input {
+        width: 20px;
+        height: 20px;
+    }
+
+    #checkall {
+        width: 20px;
+        height: 20px;
+    }
+
+    .s-modal-body tbody tr.row-active {
+        background-color: #DBF2FF !important;
+    }
+
+    #atendidos p {
+        font-weight: 600;
+        color: #34395e;
+        font-size: 14px;
+        letter-spacing: .5px;
+    }
+    #lista-assistencias-judiciarias{
+        position: relative;
+        display: none;
+    }
+    #lista-assistencias-judiciarias ul{
+        list-style: none;
+        width: 100%;
+        max-height: 200px;
+        background-color: #fff;
+        padding: 0;
+        text-align: left;
+        font-size: 14px;
+        line-height: 19px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-top: 0;
+        position: absolute;
+        z-index: 1;
+
+    }
+    #lista-assistencias-judiciarias li{
+        padding: 10px 20px;
+        cursor: pointer;
+    }
+    .search-aj{ display: none;}
 </style>
+<input type="hidden" id="assistencia_judiciaria" name="assistencia_judiciaria" value="">
 <div class="form-group row" id="div_area_direito">
-    <label class="col-lg-4 col-form-label" for="area_direito">{{form.area_direito.label}} <span class="text-danger">*</span>
+    <label class="col-lg-4 col-form-label" for="area_direito">{{form.area_direito.label}} <span
+            class="text-danger">*</span>
     </label>
-    <div class="col-lg-6">
+    <div class="col-lg-4">
         {{form.area_direito(class_="form-control")}}
     </div>
 </div>
 
 {% for error in form.area_direito.errors %}
-    <div class="alert alert-danger">{{error}}</div>
+<div class="alert alert-danger">{{error}}</div>
 {% endfor %}
 
 
-<div class="form-group row" id="div_sub_area" hidden = "true">
+<div class="form-group row" id="div_sub_area" hidden="true">
     <label class="col-lg-4 col-form-label" for="sub_area">{{form.sub_area.label}} <span class="text-danger">*</span>
     </label>
     <div class="col-lg-6">
@@ -26,43 +160,296 @@
 </div>
 
 {% for error in form.sub_area.errors %}
-    <div class="alert alert-danger">{{error}}</div>
+<div class="alert alert-danger">{{error}}</div>
 {% endfor %}
 
-<div class="form-group row" id="div_sub_area_admin" hidden = "true">
-    <label class="col-lg-4 col-form-label" for="sub_area_admin">{{form.sub_areaAdmin.label}} <span class="text-danger">*</span>
+<div class="form-group row" id="div_sub_area_admin" hidden="true">
+    <label class="col-lg-4 col-form-label" for="sub_area_admin">{{form.sub_areaAdmin.label}} <span
+            class="text-danger">*</span>
     </label>
-    <div class="col-lg-6">
+    <div class="col-lg-4">
         {{form.sub_areaAdmin(class_="form-control")}}
     </div>
 </div>
 
 {% for error in form.sub_areaAdmin.errors %}
-    <div class="alert alert-danger">{{error}}</div>
+<div class="alert alert-danger">{{error}}</div>
 {% endfor %}
 
 <div class="form-group row" id="div_descricao">
     <label class="col-lg-4 col-form-label" for="descricao">{{form.descricao.label}}
     </label>
-    <div class="col-lg-6">
+    <div class="col-lg-4">
         {{form.descricao(type="textarea", class_="form-control", id="descricao")}}
     </div>
 </div>
 
 {% for error in form.descricao.errors %}
-    <div class="alert alert-danger">{{error}}</div>
+<div class="alert alert-danger">{{error}}</div>
 {% endfor %}
 
-{% if tipo_classe(form, "CadastroOrientacaoJuridicaForm") %}
-    <div class="form-group row" id="div_encaminhar_outras_aj">
-        <label class="col-lg-4 col-form-label" for="encaminhar_outras_aj">{{form.encaminhar_outras_aj.label}}
-        </label>
-        <div class="col-lg-6">
-            {{form.encaminhar_outras_aj(type="text",class_="form-control")}}
+<div class="form-group row" id="atendidos">
+    <div class="col">
+        <p>Atendidos</p>
+        <div>
+            <button type="button"
+                class="btn btn-outline-primary btn-lg d-flex justify-content-center align-items-center"
+                style="gap: 0.5rem" id="openModal">
+                <span class="align-middle">Associar atendidos</span>
+                <i class="fas fa-plus"></i>
+            </button>
         </div>
     </div>
+</div>
 
-    {% for error in form.encaminhar_outras_aj.errors %}
-        <div class="alert alert-danger">{{error}}</div>
-    {% endfor %}
-{% endif %}
+<!-- Modal -->
+<div class="s-container-modal">
+    <div class="s-modal">
+        <div class="s-modal-header position-relative">
+            <h5>Associar atendidos</h5>
+            <p>Selecione as pessoas para associar à Orientação Júridica</p>
+            <span class="close">
+                <i class="fas fa-times"></i>
+            </span>
+        </div>
+        <div class="s-modal-body">
+            <div class="d-flex justify-content-between">
+                <div class="col-5 px-0 search">
+                    <div class="border d-flex align-items-center border rounded-lg">
+                        <label for="search" class="m-0"><i class="fas fa-search"></i></label>
+                        <input type="text" name="search" id="search" class="p-0">
+                    </div>
+                </div>
+                <div class="col-5 d-flex justify-content-end align-items-center result">
+                    <div class="d-flex">
+                        <p class="mb-0">Total de atendidos</p>
+                        <div class="d-flex align-items-center ml-2">
+                            <span class="badge-atendidos badge badge-pill bg-primary text-light">000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="lista-atendidos">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="checkall"></th>
+                            <th>Nome</th>
+                            <th>CPF</th>
+                            <th>Celular</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="s-modal-footer d-flex justify-content-end">
+            <button type="button" class="btn btn-lg btn-primary" id="associados-checked" disabled>Associar
+                Selecionados</button>
+        </div>
+    </div>
+</div>
+<div class="a-container-modal">
+    <div class="a-modal">
+        <div class="s-modal-header position-relative">
+            <h5>Deseja encaminhar essa orientação para outra <span class="text-primary">Assistência Jurídica?</span>
+            </h5>
+            <p>Selecione uma opção</p>
+            <span class="close">
+                <i class="fas fa-times"></i>
+            </span>
+        </div>
+        <div class="s-modal-body text-center">
+            {% if tipo_classe(form, "CadastroOrientacaoJuridicaForm") %}
+            <div class="form-group row" id="div_encaminhar_outras_aj">
+                <!-- <label class="col-lg-4 col-form-label" for="encaminhar_outras_aj">{{form.encaminhar_outras_aj.label}}</label> -->
+                <div class="col">
+                    {{form.encaminhar_outras_aj(type="text",class_="form-control")}}
+                </div>
+            </div>
+            {% for error in form.encaminhar_outras_aj.errors %}
+            <div class="alert alert-danger">{{error}}</div>
+            {% endfor %}
+            {% endif %}
+            <div class="col px-0 search-aj">
+                <div class="border d-flex align-items-center border rounded-lg" style="padding:10px 12px;">
+                    <label for="search-aj" class="m-0"><i class="fas fa-search"></i></label>
+                    <input type="text" name="search" id="search-aj" class="border-0 col" style="outline: 0;" placeholder="Encontrar assistência">
+
+                </div>
+                <div id="lista-assistencias-judiciarias">
+                    <ul></ul>
+                </div>
+            </div>
+        </div>
+        <div class="s-modal-footer d-flex justify-content-end">
+            <button type="submit" class="btn btn-lg btn-primary" id="button">Encaminhar e cadastrar</button>
+        </div>
+    </div>
+</div>
+
+<script defer>
+    const lista = {}
+    const atendidos = async () => {
+        let data = await fetch("{{url_for('plantao.pega_atendidos')}}", {
+            method: "GET",
+            headers: {
+                'X-CSRF-Token': "{{ csrf_token() }}"
+            },
+        });
+        let res = await data.json();
+        lista.atendidos = res;
+        return res;
+    }
+    const assistencia_judiciarias = async () => {
+        let data = await fetch("{{url_for('plantao.pega_assistencias_judiciarias')}}", {
+            method: "GET",
+            headers: {
+                'X-CSRF-Token': "{{ csrf_token() }}"
+            },
+        });
+        let res = await data.json();
+        res.map(item => {
+            document.querySelector("#lista-assistencias-judiciarias ul").insertAdjacentHTML("beforeend", `
+                <li data-id="${item.id}">${item.nome}</li>
+            `)
+        })
+        Array.from(document.querySelectorAll("#lista-assistencias-judiciarias li")).map( li => {
+                li.onclick = () => {
+                    document.querySelector("#search-aj").value = li.textContent;
+                    document.querySelector("#assistencia_judiciaria").value = li.dataset.id;
+                    document.querySelector("#lista-assistencias-judiciarias").style.display = "none";
+                }
+        })
+        // return res;
+    }
+    const atendidosSelecionados = () => {
+        Array.from(document.querySelectorAll(".s-modal tbody input")).map(input => {
+            input.addEventListener("click", () => {
+                let tr = input.parentElement.parentElement;
+                tr.classList.toggle("row-active")
+                let checked = document.querySelectorAll("tbody input:checked").length;
+                let btn = document.querySelector("#associados-checked");
+                btn.disabled = checked > 0 ? false : true;
+                btn.textContent = checked > 0 ? `Associar selecionados (${checked})` : "Associar selecionados";
+            })
+        })
+    }
+    document.querySelector("#openModal").addEventListener("click", async () => {
+        let modal = document.querySelector(".s-container-modal");
+        modal.classList.toggle("modal-active");
+
+        if (modal.classList.value.includes("modal-active")) {
+            let data = await atendidos();
+            document.querySelector(".badge-atendidos").textContent = data.length;
+            data.map((atendido, index) => {
+                document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
+                    <tr data-list="${index}">
+                        <td>
+                            <input type="checkbox" name="atendidos[]">
+                        </td>
+                        <td>${atendido.nome}</td>
+                        <td>${atendido.cpf}</td>
+                        <td>${atendido.celular}</td>
+                    </tr>
+                `)
+            })
+            atendidosSelecionados()
+        }
+
+        if (lista.selected) {
+            let tableRow = document.querySelectorAll(".lista-atendidos > table > tbody > tr")
+            lista.selected.map(item => {
+                tableRow.forEach((row) => {
+                    console.log(row.children[1].textContent === item.cpf && row.children[0].children[0])
+                    row.children[2].textContent === item.cpf ? row.children[0].children[0].click() : ""
+                })
+            })
+        }
+    });
+
+    document.querySelector(".s-modal .close").addEventListener("click", () => {
+        document.querySelector(".s-container-modal").classList.remove("modal-active");
+        document.querySelector(".lista-atendidos > table > tbody").innerHTML = "";
+    })
+    document.querySelector(".a-modal .close").addEventListener("click", () => {
+        document.querySelector(".a-container-modal").classList.remove("modal-active");
+    })
+
+    document.querySelector(".s-modal .search").addEventListener("input", (e) => {
+        let search = lista.atendidos;
+        search.map((item, index) => {
+            if (e.target.value !== "") {
+                !item.nome.toLowerCase().includes(e.target.value.toLowerCase()) ? document.querySelector(`tr[data-list='${index}']`).style.display = "none" : "";
+            }
+        })
+        atendidosSelecionados()
+    });
+
+
+    document.querySelector("#checkall").addEventListener("click", (e) => {
+        let checkall = e.target;
+        Array.from(document.querySelectorAll("tbody input")).map(item => item.checked !== checkall.checked ? item.click() : "");
+    })
+
+    document.querySelector("#encaminhar_outras_aj").addEventListener("change", (e) => {
+        document.querySelector(".search-aj").style.display = e.target.value === "True" ? "block" : "none";
+        if(e.target.value !== "True") document.querySelector("#assistencia_judiciaria").value = "";
+    })
+
+    document.querySelector("#associados-checked").addEventListener("click", () => {
+        let itemsSelected = document.querySelectorAll("tbody input:checked");
+        let arrayList = [];
+        Array.from(itemsSelected).map((item, index) => {
+            let element = item.parentElement.parentElement;
+            element.classList.value.includes("row-active") ? arrayList.push(lista.atendidos[element.dataset.list]) : "";
+        })
+        lista.selected = arrayList;
+
+        if (lista.selected.length > 0) {
+            const listaAtendidos = document.querySelector("#lista-atendidos");
+            const containerAtendidos = document.querySelector("#atendidos > div > p");
+            if (listaAtendidos) {
+                listaAtendidos.remove();
+            }
+            containerAtendidos.insertAdjacentHTML("afterend", `
+                <div id="lista-atendidos">
+                    <table class="table table-striped">
+                        <tbody></tbody>
+                    </table>
+                </div>
+            `)
+        }
+        const tableListaAtendidos = document.querySelector("#lista-atendidos .table tbody");
+        lista.selected.map(row => {
+            tableListaAtendidos.insertAdjacentHTML("beforeend", `
+                <tr>
+                    <td>${row.nome}</td>
+                    <td>${row.cpf}</td>
+                    <td>${row.celular}</td>
+                    <td><button type="button" class="btn btn-sm btn-info">visualizar</button></td>
+                </tr>
+            `);
+        })
+        document.querySelector(".s-modal .close").click();
+        let obj = { id: [] };
+        lista.selected.map(item => obj.id.push(item.id))
+        document.querySelector('#form').insertAdjacentHTML("afterbegin", `
+            <input id="listaAtendidos" type="hidden" name="listaAtendidos" value=${JSON.stringify(obj)} />
+        `)
+    })
+    document.querySelector("#search-aj").addEventListener("input", (e) => {
+        let value = e.target.value
+        if(value !== ""){
+            document.querySelector("#lista-assistencias-judiciarias").style.display="block";
+            let listaAJ = document.querySelectorAll("#lista-assistencias-judiciarias li");
+            Array.from(listaAJ).map( li => {
+                li.style.display = !li.textContent.includes(value) ? "none" : "block";
+            })
+        }
+        else{
+            document.querySelector("#lista-assistencias-judiciarias").style.display="none";
+        }
+    })
+    assistencia_judiciarias()
+</script>

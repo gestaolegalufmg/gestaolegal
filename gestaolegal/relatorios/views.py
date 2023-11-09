@@ -89,7 +89,12 @@ def casos_cadastrados(inicio, final, areas):
 def relatorio_horarios(inicio, final, usuarios):
     datas=[inicio, final]
     if usuarios == "all":
+        usuarios = db.session.query(Usuario).all()
+        lista_usuarios = []
         horarios = RegistroEntrada.query.select_from(RegistroEntrada).join(Usuario).filter(RegistroEntrada.status == False, RegistroEntrada.data_saida >= inicio, RegistroEntrada.data_saida <= final).all()
+        for usuario in usuarios:
+            lista_usuarios.append(usuario.id)
+        horarios_plantao = DiasMarcadosPlantao.query.filter(DiasMarcadosPlantao.data_marcada >= inicio, DiasMarcadosPlantao.data_marcada <= final, DiasMarcadosPlantao.id_usuario.in_(lista_usuarios)).all()
     else:
         usuarios = usuarios.split(sep=',')
         horarios = RegistroEntrada.query.filter(RegistroEntrada.status == False, RegistroEntrada.data_saida >= inicio, RegistroEntrada.data_saida <= final, RegistroEntrada.id_usuario.in_(usuarios)).all()
