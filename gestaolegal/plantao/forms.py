@@ -221,12 +221,12 @@ class CadastroAtendidoForm(EnderecoForm):
 
     email = StringField(
         "Endereço de e-mail",
-        validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O e-mail")),
-            Email(
-                "Formato de email inválido! Certifique-se de que ele foi digitado corretamente."
-            ),
-        ],
+        # validators=[
+        #     DataRequired(MSG_NaoPodeEstarEmBranco.format("O e-mail")),
+        #     Email(
+        #         "Formato de email inválido! Certifique-se de que ele foi digitado corretamente."
+        #     ),
+        # ],
     )
 
     data_nascimento = DateField(

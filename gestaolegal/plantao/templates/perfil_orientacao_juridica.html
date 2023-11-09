@@ -8,11 +8,29 @@
     <div class="row">
         <div class="col-md-6 col-xs-12">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header justify-content-between">
                     <h4>Dados de Atendimento</h4>
+                    <div class="d-flex align-items-center" style="gap:1rem">
+                        <div class="date-container">
+                            <i class="fas fa-calendar-day"></i>
+                            <span>{{orientacao.data_criacao.strftime("%d/%m/%Y")}}</span>
+                        </div>
+                        <div class="hour-container">
+                            <i class="fas fa-clock"></i>
+                            <span>{{orientacao.data_criacao.strftime("%H:%M")}}</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="py-2">
+                        <p class="clearfix">
+                            <span class="float-left">
+                                Criado por:
+                            </span>
+                            <span class="float-right text-muted">
+                                {{usuario.nome}}
+                            </span>
+                        </p>
                         <p class="clearfix">
                             <span class="float-left">
                                 Área do Direito:

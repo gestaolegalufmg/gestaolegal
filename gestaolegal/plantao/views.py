@@ -10,6 +10,7 @@ from flask import (
     url_for,
     session,
     json,
+    jsonify
 )
 from flask_login import current_user
 from flask_paginate import Pagination, get_page_args
@@ -52,6 +53,7 @@ from gestaolegal.usuario.models import (
 )
 from gestaolegal.utils.models import queryFiltradaStatus
 from gestaolegal.notificacoes.models import Notificacao, acoes
+
 
 plantao = Blueprint("plantao", __name__, template_folder="templates")
 
@@ -204,10 +206,6 @@ def busca_atendidos_assistidos():
         atendidos_assistidos=atendidos_assistidos,
         tipos_busca_atendidos=tipos_busca_atendidos,
     )
-
-
-### Retorna lista de atendidos
-
 
 @plantao.route("/atendidos_assistidos", methods=["GET", "POST"])
 @login_required()
@@ -465,12 +463,13 @@ def editar_assistido(id_atendido):
     ]
 )
 def cadastro_orientacao_juridica():
-    def CriaOrientacao(form: CadastroOrientacaoJuridicaForm):
+    def CriaOrientacao(form: CadastroOrientacaoJuridicaForm, id_usuario):
         entidade_orientacao = OrientacaoJuridica(
             area_direito=form.area_direito.data,
             descricao=form.descricao.data,
             data_criacao=datetime.now(),
             status=True,
+            id_usuario=id_usuario
         )
 
         if len(entidade_orientacao.descricao) > 2000 :
@@ -485,22 +484,50 @@ def cadastro_orientacao_juridica():
     page = request.args.get("page", 1, type=int)
     form = CadastroOrientacaoJuridicaForm()
     if request.method == "POST":
-
         if not form.validate():
             return render_template("cadastro_orientacao_juridica.html", form=form)
-
-        entidade_orientacao = CriaOrientacao(form)
+        entidade_orientacao = CriaOrientacao(form, current_user.id)
         db.session.add(entidade_orientacao)
         db.session.commit()
+        if request.form.get("listaAtendidos"):
+            listaAtendidos = json.loads(request.form.get("listaAtendidos"))
+        
+            if len(listaAtendidos['id']) > 0:
+                # Inserção de atendidos
+                for id_atendido in listaAtendidos['id']:
+                    entidade_atendido = Atendido.query.filter_by(id=int(id_atendido)).first()
+                    # orientacao = OrientacaoJuridica.query.filter_by(id=id_orientacao).first()
+                    entidade_atendido.orientacoesJuridicas.append(entidade_orientacao)
+                    db.session.add(entidade_atendido)
+                    db.session.commit()
+
+        if request.form.get("encaminhar_outras_aj") == "True":
+            aj_oj = AssistenciaJudiciaria_xOrientacaoJuridica()
+            aj_oj.id_orientacaoJuridica = entidade_orientacao.id
+            aj_oj.id_assistenciaJudiciaria = int(request.form.get("assistencia_judiciaria"))
+            db.session.add(aj_oj)
+            db.session.commit()
 
         flash("Orientação jurídica cadastrada!", "success")
         return redirect(
             url_for(
-                "plantao.associacao_orientacao_juridica",
-                id_orientacao=entidade_orientacao.id,
-                encaminhar_outras_aj=form.encaminhar_outras_aj.data,
+                "plantao.perfil_oj",
+                id=entidade_orientacao.id
             )
         )
+            
+
+        # return request.form.get("listaAtendidos")
+        
+
+            
+        # return redirect(
+        #     url_for(
+        #         "plantao.associacao_orientacao_juridica",
+        #         id_orientacao=entidade_orientacao.id,
+        #         encaminhar_outras_aj=form.encaminhar_outras_aj.data,
+        #     )
+        # )
 
     return render_template("cadastro_orientacao_juridica.html", form=form)
 
@@ -939,7 +966,10 @@ def perfil_oj(id):
         .order_by(Atendido.nome)
         .all()
     )
-
+    if _orientacao.id_usuario:
+        usuario = Usuario.query.filter(Usuario.id == _orientacao.id_usuario).first()
+    else:
+        usuario = {"nome": "--"}
     assistencias_envolvidas = AssistenciaJudiciaria_xOrientacaoJuridica.query.filter_by(
         id_orientacaoJuridica=_orientacao.id
     ).all()
@@ -949,6 +979,7 @@ def perfil_oj(id):
         orientacao=_orientacao,
         atendidos=atendidos_envolvidos,
         assistencias=assistencias_envolvidas,
+        usuario=usuario
     )
 
 
@@ -1773,3 +1804,18 @@ def ajax_salva_config_plantao():
     return app.response_class(
         response=json.dumps(resposta), status=200, mimetype="application/json"
     )
+
+# ENDPOINTS DE MELHORIA
+### Retorna lista de atendidos
+@plantao.route("/todos-atendidos", methods=["GET", "POST"])
+@login_required()
+def pega_atendidos():
+    atendidos = busca_atendidos_modal()
+    return json.dumps(atendidos)
+
+### Retorna lista de assistencia judiciaria
+@plantao.route("/todas-assistencias-judiciarias", methods=["GET", "POST"])
+@login_required()
+def pega_assistencias_judiciarias():
+    assistencias_judiciarias = busca_assistencias_judiciarias_modal()
+    return json.dumps(assistencias_judiciarias)

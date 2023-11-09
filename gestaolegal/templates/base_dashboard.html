@@ -177,15 +177,19 @@
                     </div>
                 </section>
             </div>
-            <footer class="main-footer">
-                <div class="footer-left">
-                    Copyright &copy; 2020
-                    <div class="bullet"></div> Criado por <a href="http://www.ijunior.com.br">iJunior</a>
+            <footer class="main-footer d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="footer-leftt">
+                        Copyright &copy; 2020
+                        <div class="bullet"></div> Criado por <a href="http://www.ijunior.com.br">iJunior</a>
+                    </div>
+                    <div class="footer-rightt">
+                         <a href="{{url_for('principal.termos')}}">Termos de uso</a>
+                    </div>
                 </div>
-                <div class="footer-right">
-                     <a href="{{url_for('principal.termos')}}">Termos de uso</a>
-                </div>
-                
+                <div>
+                    <img src="{{url_for('static', filename='imgs_daj/logos.png')}}" alt="Logos" width="298">
+                </div>   
             </footer>
         </div>
     </div>

@@ -479,6 +479,8 @@ class OrientacaoJuridica(db.Model):
     data_criacao = db.Column(db.DateTime)
     status = db.Column(db.Integer, nullable=False)
 
+    id_usuario = db.Column(db.Integer, nullable=True)
+
     assistenciasJudiciarias = db.relationship(
         "AssistenciaJudiciaria",
         secondary="assistenciasJudiciarias_xOrientacao_juridica",

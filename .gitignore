@@ -144,3 +144,7 @@ cython_debug/
 
 
 .vscode
+
+
+#Localhost config
+mysql_data

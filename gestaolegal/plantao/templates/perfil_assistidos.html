@@ -1,5 +1,5 @@
 {% extends 'base_dashboard.html' %}
-{% block titulo %} Perfil {{assistido.Atendido.nome.capitalize()}} {% endblock titulo %}
+{% block titulo %} Perfil {{assistido.Atendido.nome}} {% endblock titulo %}
 
 {% block conteudo %}
 
@@ -61,7 +61,7 @@
                             E-mail:
                         </span>
                         <span class="float-right text-muted">
-                            {{assistido.Atendido.email}}
+                            {{assistido.Atendido.email or '--'}}
                         </span>
                     </p>
 
