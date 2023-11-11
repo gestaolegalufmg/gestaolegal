@@ -4,7 +4,7 @@ services:
   app_gl_test:
     build: .
     image: gestao_legal_app
-    container_name: app_gl
+    container_name: app_gl_test
     ports:
       - "5001:5000"
     volumes:
