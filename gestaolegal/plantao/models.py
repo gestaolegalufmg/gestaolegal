@@ -479,7 +479,7 @@ class OrientacaoJuridica(db.Model):
     data_criacao = db.Column(db.DateTime)
     status = db.Column(db.Integer, nullable=False)
 
-    id_usuario = db.Column(db.Integer, nullable=True)
+    # id_usuario = db.Column(db.Integer, nullable=True)
 
     assistenciasJudiciarias = db.relationship(
         "AssistenciaJudiciaria",
@@ -487,6 +487,8 @@ class OrientacaoJuridica(db.Model):
         backref="AssistenciaJudiciaria",
     )
     atendidos = db.relationship("Atendido", secondary="atendido_xOrientacaoJuridica")
+    id_usuario = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+    usuario = db.relationship(Usuario, backref='usuarios')
 
     def setSubAreas(self, area_direito, sub_area, sub_areaAdmin):
         if area_direito == area_do_direito["CIVEL"][0]:
