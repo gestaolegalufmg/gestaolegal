@@ -39,3 +39,13 @@ services:
         target: /var/lib/mysql
     networks:
       - gestaolegal
+
+services:
+  adminer_gl:
+    image: adminer
+    container_name: adminer_gl
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    networks:
+      - gestaolegal
