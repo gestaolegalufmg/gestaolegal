@@ -334,4 +334,23 @@
     }
 })
     </script>
+    <script defer>
+        window.onload = () => {
+            const orientacao = JSON.parse(localStorage.getItem("case"));
+            console.log("LISTA", $('#clientes-js'))
+            if(orientacao !== null){
+                newOption = new Option(orientacao.nome_atendido, orientacao.id_atendido, false, false);
+                $('#clientes-js').append(newOption).trigger('change');
+                // $('#clientes-js').trigger("change");
+                const form = document.querySelector("#form");
+                const evt = document.createEvent("HTMLEvents");
+                evt.initEvent("change", false, true);
+                form.area_direito.value = orientacao['area_direito-js'];
+                form.descricao.value = orientacao['descricao'];
+                form['sub_area_admin-js'].value = orientacao['sub_area_admin-js'];
+                form.area_direito.dispatchEvent(evt);
+            }
+            localStorage.removeItem("case");
+        }
+    </script>
 {% endblock scripts %}

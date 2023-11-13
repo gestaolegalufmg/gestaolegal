@@ -14,7 +14,7 @@ from flask import (
 )
 from flask_login import current_user
 from flask_paginate import Pagination, get_page_args
-from sqlalchemy import desc, asc, null, delete
+from sqlalchemy import desc, asc, null, delete, select
 from sqlalchemy.orm import load_only
 
 from gestaolegal import app, db, login_required
@@ -319,7 +319,7 @@ def tornar_assistido(id_atendido):
         False if entidade_atendido.pj_constituida == "0" else True
     )
 
-    if request.method == "POST":
+    if request.method == "POST": 
         if not form.validate():
             return render_template(
                 "tornar_assistido.html", atendido=entidade_atendido, form=form
@@ -800,7 +800,8 @@ def perfil_assistido(_id):
         )
         .first()
     )
-    return render_template("perfil_assistidos.html", assistido=assistido)
+    print(assistido.Atendido.orientacoesJuridicas)
+    return render_template("perfil_assistidos.html", assistido=assistido, count=len(assistido.Atendido.orientacoesJuridicas))
 
 
 ############################################# ASSISTÊNCIA JUDICIÁRIA ##############################################################
@@ -1819,3 +1820,68 @@ def pega_atendidos():
 def pega_assistencias_judiciarias():
     assistencias_judiciarias = busca_assistencias_judiciarias_modal()
     return json.dumps(assistencias_judiciarias)
+
+@plantao.route("/tornar_assistido_modal/", methods=["GET", "POST"])
+@login_required(
+    role=[
+        usuario_urole_roles["ADMINISTRADOR"][0],
+        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
+    ]
+)
+def tornar_assistido_modal():
+    if request.method == "GET":
+        return json.dumps({"hello": "world"})
+    data = request.get_json(silent=True, force=True)
+    if data['action'] == 'modal':
+        entidade_assistido = Assistido()
+        entidade_assistido.id_atendido = data['id_atendido']
+        entidade_assistido.sexo = data['sexo']
+        entidade_assistido.raca = data['raca']
+        entidade_assistido.profissao = data['profissao']
+        entidade_assistido.rg = data['rg']
+        entidade_assistido.grau_instrucao = data['grau_instrucao']
+        entidade_assistido.salario = data['salario']
+        entidade_assistido.beneficio = data['beneficio']
+        entidade_assistido.qual_beneficio = data['qual_beneficio']
+        entidade_assistido.contribui_inss = data['contribui_inss']
+        entidade_assistido.qtd_pessoas_moradia = data['qtd_pessoas_moradia']
+        entidade_assistido.renda_familiar = data['renda_familiar']
+        entidade_assistido.participacao_renda = data['participacao_renda']
+        entidade_assistido.tipo_moradia = data['tipo_moradia']
+        entidade_assistido.possui_outros_imoveis = True if data['possui_outros_imoveis'] == 'Não' else False
+        entidade_assistido.quantos_imoveis = 0 if data['quantos_imoveis'] == "" else data['quantos_imoveis']
+        entidade_assistido.possui_veiculos = True if data['possui_veiculos'] == 'Não' else False
+        entidade_assistido.doenca_grave_familia = data['doenca_grave_familia']
+        entidade_assistido.obs = data['obs_assistido']
+
+        entidade_assistido.setCamposVeiculo(
+            entidade_assistido.possui_veiculos,
+            data['possui_veiculos_obs'],
+            0 if data['quantos_veiculos'] == '' else data['quantos_veiculos'],
+            data['ano_veiculo'],
+        )
+        entidade_assistido.setCamposDoenca(
+            entidade_assistido.doenca_grave_familia,
+            data['pessoa_doente'],
+            data['pessoa_doente_obs'],
+            0 if data['gastos_medicacao'] == '' else data['gastos_medicacao'],
+        )
+        db.session.add(entidade_assistido)
+        db.session.commit()
+
+        return json.dumps({"status": "success", "message": "Assistido cadastrado com sucesso!", 'id': data['id_atendido']})
+    else:
+        return json.dumps({"status": "error", "message": "Campo de ação não encontrado"})
+    
+@plantao.route("/verifica_assistido/<_id>", methods=[ "GET", "POST" ])
+@login_required(
+    role=[
+        usuario_urole_roles["ADMINISTRADOR"][0],
+        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
+    ]
+)
+def verifica_assistdo(_id):
+    if request.method == "POST":
+        return json.dumps({"hello": "world"})
+    verificado = Assistido.query.filter(Assistido.id_atendido == _id).first()
+    return json.dumps({"assistido": True if verificado else False})

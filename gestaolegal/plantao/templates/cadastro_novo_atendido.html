@@ -43,6 +43,32 @@
         $("#formcel").mask('(00) 00000-0000');
         $("#formtel").mask('(00) 0000-0000');
         $("#formcep").mask('00000-000');
+        $("#formcep").on("focusout", async(e) => {
+            let res = await fetch(`https://viacep.com.br/ws/${e.target.value.replace("-", "")}/json/`)
+            let data = await res.json();
+            // console.log(data);
+            if(data.erro){
+                form.logradouro.value = "";
+                form.bairro.value = "";
+                form.cidade.value = "";
+                form.estado.value = "";
+                return;
+            }
+            form.logradouro.value = data.logradouro
+            form.bairro.value = data.bairro
+            form.cidade.value = data.localidade
+            form.estado.value = data.uf
+        });
+        form.sem_numero.onclick = () => {
+            if(form.sem_numero.checked){
+                form.numero.setAttribute("readonly", true);
+                form.numero.value = "S/N";
+            }
+            else{
+                form.numero.removeAttribute("readonly");
+                form.numero.value = "";
+            }
+        }
     })
 </script>
 {%endblock%}
