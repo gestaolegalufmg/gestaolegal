@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for, json
 from flask_login import current_user, login_user, logout_user
 from flask_paginate import Pagination, get_page_args
 from datetime import datetime
@@ -403,7 +403,8 @@ def logout():
 @login_required()
 def listar_usuarios():
     page = request.args.get("page", 1, type=int)
-    usuarios = Usuario.query.filter(Usuario.status != False).order_by(Usuario.nome).paginate(
+    # usuarios = Usuario.query.filter(Usuario.status != False).order_by(Usuario.nome).paginate(
+    usuarios = Usuario.query.order_by(Usuario.nome).paginate(
         page, app.config["USUARIOS_POR_PAGINA"], False
     )
     if not usuarios:
@@ -780,3 +781,72 @@ def validaSenha(senha):
         flash("Sua senha precisa conter pelo menos uma letra do alfabeto.", "warning")
         return False
     return True
+
+
+# Melhorias Setter
+
+@usuario.route("/listar_usuarios_ajax/", methods=["GET"])
+@login_required()
+def lista_usuario_ajax():
+    def serializar(lista):
+        return [x.as_dict() for x in lista]
+    if(request.args.get("funcao") and request.args.get("status")):
+        if(request.args.get("funcao") != "all"):
+            usuarios = db.session.query(Usuario).filter(Usuario.urole == request.args.get("funcao"), Usuario.status == request.args.get("status"))
+        else:
+            usuarios = db.session.query(Usuario).filter(Usuario.status == request.args.get("status"))
+        pass
+    else:
+        usuarios = db.session.query(Usuario).filter(Usuario.status == 1).all()
+    # if urole == "all":
+    #     # usuarios = db.session.query(Usuario).filter(Usuario.status != False).all()
+    # # elif urole == "desativado":
+    # #     usuarios = db.session.query(Usuario).filter(Usuario.status == False).all()
+    # else:
+    #     usuarios = db.session.query(Usuario).filter(Usuario.urole == urole).all()
+    return json.dumps({"users": serializar(usuarios)})
+
+@usuario.route("/esqueci-a-senha", methods=["GET", "POST"])
+def esqueci_senha():
+    if request.method == "POST":
+        data = request.get_json(silent=True, force=True)
+        usuario = db.session.query(Usuario).filter(Usuario.email == data['email']).first()
+        if not usuario:
+            return json.dumps({"status": "error", "message": "E-mail não existe"})
+        else:
+            usuario.chave_recuperacao = True
+            db.session.commit()
+            titulo = "Recuperação de senha Gestão Legal"
+            token = usuario.tokenRecuperacao() # Gera o token para o usuário em questão
+            msg = Message(titulo,sender=app.config['MAIL_USERNAME'],recipients=[usuario.email]) # Constrói o corpo da mensagem
+            msg.body = f''' Solicitação de recuperação/alteração de senha.
+
+            Se você solicitou este serviço, por favor, clique no link abaixo:
+            {url_for('usuario.resetar_senha',token=token, _external=True)}
+
+            Caso você não tenha solicitado este serviço, por favor ignore essa mensagem.
+            '''
+            mail.send(msg)
+            return json.dumps({"status": "success", "user": {"nome": usuario.nome, "email": usuario.email}})
+
+    return render_template("esqueci-a-senha.html")
+@usuario.route("/resetar-a-senha/<token>", methods=["GET", "POST"])
+def resetar_senha(token):
+    usuario = Usuario.verificaToken(token)
+    if usuario is None:
+        flash('Token inválido.','warning')
+        return redirect(url_for('usuario.login'))
+    bcrypt = Bcrypt()
+    if usuario.chave_recuperacao:
+        if request.method == 'POST':
+            data = request.get_json(silent=True, force=True)
+            senha = bcrypt.generate_password_hash(data['password'])
+            usuario.senha = senha
+            usuario.chave_recuperacao = False
+            db.session.commit()
+            return json.dumps({"status": "success"})
+    else:
+        flash('Erro! Por favor refaça a operação','warning')
+        return redirect(url_for('usuario.login'))
+    return render_template('recuperar_senha.html')
+    

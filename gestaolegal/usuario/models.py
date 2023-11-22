@@ -141,6 +141,9 @@ class Usuario(db.Model, UserMixin):
     def tokenRecuperacao(self, expires_sec=2200):
         s = Serializer(app.config["SECRET_KEY"], expires_sec)
         return s.dumps({"user_id": self.id}).decode("utf-8")
+    
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
     @staticmethod
     def verificaToken(token):

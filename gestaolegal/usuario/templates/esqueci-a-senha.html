@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 
 <head>
   <meta charset="UTF-8">
@@ -12,9 +12,11 @@
   <link rel="stylesheet" href="{{url_for('static', filename='app_tema/assets/css/style.css')}}">
   <link rel="stylesheet" href="{{url_for('static', filename='app_tema/assets/css/components.css')}}">
   <!-- Custom style CSS -->
+
   <link rel='shortcut icon' type='image/x-icon'
     href="{{url_for('static', filename='imgs_daj/gestao_legal_home.png')}}" />
 </head>
+
 <style>
   .card .card-header-auth {
     background: linear-gradient(135deg, #38B5FD, 100%, #583a63 100%) !important;
@@ -29,15 +31,81 @@
     color: #ffffff !important;
   }
 
-  p.obs-pass {
+  #backHome {
+    background-color: #FFF;
+    color: #38B4FD !important;
+    border: 1px solid;
+  }
+
+  #backHome:hover {
+    color: #FFF !important;
+    background-color: #38B4FD;
+  }
+
+  .container-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.3);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+  }
+
+  .message-modal {
+    background-color: #fff;
+    max-width: 400px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .bg-icons {
+    display: inline-flex;
+    margin: auto;
+    background-color: #DBFFE1;
+    border-radius: 50%;
+    box-sizing: border-box;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .bg-icons i {
+    font-size: 2rem;
+    padding: 1.5rem;
+    color: #28A745;
+  }
+
+  .message-body>div {
+    gap: 1.5rem;
+  }
+
+  .message-body .title {
+    font-size: 18px;
+    line-height: 25px;
+    font-weight: 600;
+    color: #142129;
+    text-align: center;
+  }
+
+  .message-body p:not(.title) {
     color: #6F818C;
-    font-size: 12px;
-    line-height: 16px;
+    font-size: 14px;
+    line-height: 19px;
+    font-weight: 400;
+    text-align: center;
   }
 </style>
 
 <body>
   <div class="loader"></div>
+  <!-- Notificações do sistema(flashes) -->
   <div id="flashes" class="d-none">
     <div id="flashes" class="d-none">
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -49,23 +117,27 @@
       {% endwith %}
     </div>
   </div>
-  <div class="fixed-top p-3">
-    <div id="liveToast" class="toast ml-auto" role="alert" aria-live="assertive" aria-atomic="true" data-delay="2000">
-      <div class="toast-header">
-        <span>
-          <i class="fas fa-check-square text-success mr-2"></i>
-        </span>
-        <strong class="mr-auto">Senha alterada com sucesso</strong>
-        <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="toast-body">
-        Sua nova senha foi salva e agora é só fazer login normalmente.
+  <div id="app">
+    <div class="container-modal d-none">
+      <div class="message-modal">
+        <div class="message-body">
+          <div class="d-flex flex-column">
+            <div class="col-12 text-center">
+              <span class="bg-icons">
+                <i class="fas fa-envelope"></i>
+              </span>
+            </div>
+            <div class="col-12">
+              <p class="title">Enviamos para o seu e-mail o link para você recuperar sua senha</p>
+              <p>Verifique sua caixa da entrada, spam e lixeira</p>
+            </div>
+          </div>
+        </div>
+        <div class="message-footer">
+          <a class="btn btn-lg btn-block btn-auth-color" href="{{url_for('usuario.login')}}">Entendi</a>
+        </div>
       </div>
     </div>
-  </div>
-  <div id="app">
     <section class="section">
       <div class="container mt-5">
         <div class="row">
@@ -79,22 +151,19 @@
                 <h4>Recuperação de senha</h4>
               </div>
               <div class="card-body">
-                <form method="POST">
+                <form>
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <div class="form-group">
-                    <label for="password">Informe uma senha <small>(No mínimo 8 caracteres)</small></label>
-                    <input id="password" name="password" type="password" class="form-control" tabindex="1" required
-                      autofocus>
-                  </div>
-                  <div class="form-group">
-                    <label for="confirmPassword">Repita sua senha</label>
-                    <input id="confirmPassword" name="confirmPassword" type="password" class="form-control" tabindex="1"
-                      required>
+                    <label for="email">Informe seu e-mail</label>
+                    <input id="email" name="email" type="email" class="form-control" tabindex="1" required autofocus>
                   </div>
                   <div class="form-group">
                     <button id="submit" type="submit" class="btn btn-lg btn-block btn-auth-color" tabindex="4">
-                      Salvar
+                      Receber Link de Recuperação
                     </button>
+                    <a id="backHome" href="{{url_for('usuario.login')}}" class="btn btn-lg btn-block btn-outline-auth">
+                      Voltar para o Login
+                    </a>
                   </div>
                 </form>
 
@@ -106,7 +175,6 @@
       </div>
     </section>
   </div>
-
   <!-- General JS Scripts -->
   <script src="{{url_for('static', filename='app_tema/assets/js/app.min.js')}}"></script>
   <!-- JS Libraies -->
@@ -115,22 +183,15 @@
   <script src="{{url_for('static',filename='js/base-utils.js')}}"></script>
   <!-- Template JS File -->
   <script src="{{url_for('static', filename='app_tema/assets/js/scripts.js')}}"></script>
-  <script defer>
+
+  <script>
     const form = document.querySelector("form");
-    const clearMessage = () => {
-      const messages = document.querySelectorAll(".alert-danger");
-      if (messages.length > 0) {
-        for (message of messages) {
-          message.remove();
-        }
-      }
-    }
     const loading = () => {
       let btnSubmit = document.querySelector("#submit");
       if (btnSubmit.classList.value.includes("active")) {
         btnSubmit.disabled = false;
         btnSubmit.innerHTML = "";
-        btnSubmit.textContent = "Salvar";
+        btnSubmit.textContent = "Receber Link de Recuperação";
       }
       else {
         btnSubmit.disabled = true;
@@ -146,42 +207,29 @@
     }
     form.onsubmit = async (e) => {
       e.preventDefault();
-      clearMessage();
-      loading()
-      if (form.password.value.length < 8) {
-        form.password.parentElement.insertAdjacentHTML("beforeend", `<p class="alert alert-danger mt-2 py-1">A senha precisa ter 8 caracteres</p>`)
-        loading();
-        return;
+      loading();
+      if (document.querySelector(".alert-danger")) {
+        document.querySelector(".alert-danger").remove();
       }
-      if (form.confirmPassword.value.length < 8) {
-        form.confirmPassword.parentElement.insertAdjacentHTML("beforeend", `<p class="alert alert-danger mt-2 py-1">A senha precisa ter 8 caracteres</p>`)
-        loading();
-        return;
-      }
-      if (form.password.value !== form.confirmPassword.value) {
-        form.confirmPassword.parentElement.insertAdjacentHTML("beforeend", `<p class="alert alert-danger mt-2 py-1">As senhas não coincidem</p>`)
-        loading();
-        return;
-      }
-
-      let res = await fetch(window.location.href, {
+      let res = await fetch("{{url_for('usuario.esqueci_senha')}}", {
         method: "POST",
         headers: {
           'X-CSRF-Token': "{{ csrf_token() }}",
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ password: form.password.value, confirmPassword: form.confirmPassword.value })
-      })
-      let data = await res.json()
-      if(data.status === "success"){
-        $("#liveToast").toast('show')
-        setTimeout(() => {
-          window.location.href= "{{url_for('usuario.login')}}"
-        }, 2000)
+        body: JSON.stringify({ email: form.email.value })
+      });
+      let data = await res.json();
+      if (data.status === "error") {
+        form.email.parentElement.insertAdjacentHTML("afterend", `<p class="alert alert-danger">Usuário incorreto ou inexistente</p>`)
+      }
+      else {
+        document.querySelector(".container-modal").classList.remove("d-none")
       }
       loading();
     }
   </script>
+
 </body>
 
 </html>
