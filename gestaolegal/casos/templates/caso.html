@@ -12,6 +12,15 @@
     .select2-search__field:placeholder-shown {
         width: 100% !important; /*makes the placeholder to be 100% of the width while there are no options selected*/
     }
+    #clientes-js + span  .select2-selection__rendered{
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    #clientes-js + span .select2-selection__choice{
+        float: none !important;
+        margin: 0;
+    }
     </style>
 
 {% endblock css %}
@@ -337,18 +346,18 @@
     <script defer>
         window.onload = () => {
             const orientacao = JSON.parse(localStorage.getItem("case"));
-            console.log("LISTA", $('#clientes-js'))
             if(orientacao !== null){
+                // document.querySelector(".select2-search__field").click()
                 newOption = new Option(orientacao.nome_atendido, orientacao.id_atendido, false, false);
                 $('#clientes-js').append(newOption).trigger('change');
-                // $('#clientes-js').trigger("change");
                 const form = document.querySelector("#form");
                 const evt = document.createEvent("HTMLEvents");
-                evt.initEvent("change", false, true);
+                evt.initEvent("change", true, true);
                 form.area_direito.value = orientacao['area_direito-js'];
                 form.descricao.value = orientacao['descricao'];
                 form['sub_area_admin-js'].value = orientacao['sub_area_admin-js'];
                 form.area_direito.dispatchEvent(evt);
+                form.clientes.value = orientacao.id_atendido;
             }
             localStorage.removeItem("case");
         }

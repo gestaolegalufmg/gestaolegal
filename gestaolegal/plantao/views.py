@@ -75,9 +75,9 @@ def cadastro_na():
 
         if not form.validate():
             return False
-        if emailRepetido:
-            flash("Este email já está em uso.", "warning")
-            return False
+        # if emailRepetido:
+        #     flash("Este email já está em uso.", "warning")
+        #     return False
         return True
 
     def CriaAtendido(form: CadastroAtendidoForm):
@@ -468,7 +468,7 @@ def cadastro_orientacao_juridica():
         entidade_orientacao = OrientacaoJuridica(
             area_direito=form.area_direito.data,
             descricao=form.descricao.data,
-            data_criacao=datetime.now(),
+            data_criacao=datetime.now(tz=pytz.timezone("America/Sao_Paulo")),
             status=True,
             id_usuario=id_usuario
         )

@@ -795,9 +795,11 @@ def lista_usuario_ajax():
             usuarios = db.session.query(Usuario).filter(Usuario.urole == request.args.get("funcao"), Usuario.status == request.args.get("status"))
         else:
             usuarios = db.session.query(Usuario).filter(Usuario.status == request.args.get("status"))
-        pass
     else:
-        usuarios = db.session.query(Usuario).filter(Usuario.status == 1).all()
+        if(request.args.get('status')):
+            usuarios = db.session.query(Usuario).filter(Usuario.status == request.args.get('status')).all()
+        else:
+            usuarios = db.session.query(Usuario).filter(Usuario.status == 1).all()
     # if urole == "all":
     #     # usuarios = db.session.query(Usuario).filter(Usuario.status != False).all()
     # # elif urole == "desativado":

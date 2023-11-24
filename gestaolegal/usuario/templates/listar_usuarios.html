@@ -72,14 +72,14 @@
             {% endfor %}
             <td>
               <div class="row">
-                <button type="submit" class="btn ml-2 mr-2 btn-flat btn-outline-primary btn-sm" name="button"><a
+                <button type="submit" class="btn mx-0 btn-flat btn-outline-primary btn-sm" name="button"><a
                     href="{{url_for('usuario.perfil_usuario', id_user = usuario.id)}}"
-                    style="text-decoration: none; color: inherit;">Visualizar <i
+                    style="text-decoration: none; color: inherit;">Visualizar!! <i
                       class="fas fa-external-link-alt"></i></a></button>
                 {% if current_user.urole in
                 [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['PROFESSOR'][0]] and (usuario.id !=
                 admin_padrao or current_user.id == admin_padrao)%}
-                <button type="submit" class="btn mr-1 btn-flat btn-primary btn-sm" name="button"><a
+                <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a
                     href="{{url_for('usuario.editar_usuario', id_user = usuario.id)}}"
                     style="text-decoration: none;color: white;">Editar</a></button>
                 {% endif %}
@@ -89,7 +89,7 @@
                   <div>
                     <input type="hidden" name="id" value="{{usuario.id}}">
                   </div>
-                  <button type="submit" class="btn ml-1 btn-flat btn-warning btn-sm"
+                  <button type="submit" class="btn mx-0 btn-flat btn-warning btn-sm"
                     onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
                     Senha</button>
                 </form>
@@ -100,7 +100,7 @@
                   <div>
                     <input type="hidden" name="id" value="{{usuario.id}}">
                   </div>
-                  <button type="submit" class="btn ml-1 btn-flat btn-outline-danger btn-sm"
+                  <button type="submit" class="btn mx-0 btn-flat btn-outline-danger btn-sm"
                     onclick="return confirm('Você deseja realmente inativar este usuário?');"><i
                       class="fas fa-trash"></i></button>
                 </form>
@@ -148,10 +148,10 @@
               <td>${item.email}</td>
               <td><span>${roles[item.urole]}</span></td>
               <td>
-                <div class="row">
+                <div class="row justify-content-end" style="gap: 0.2rem;">
                   <button type="submit" class="btn ml-2 mr-2 btn-flat btn-outline-primary btn-sm" name="button"><a href="/usuario/perfil/${item.id}" style="text-decoration: none; color: inherit;">Visualizar <i class="fas fa-external-link-alt"></i></a></button>
                   
-                  <button type="submit" class="btn mr-1 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${item.id}" style="text-decoration: none;color: white;">Editar</a></button>
+                  <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${item.id}" style="text-decoration: none;color: white;">Editar</a></button>
                   
                   
                   <form action="/usuario/muda_senha_admin" method="POST">
@@ -196,14 +196,16 @@
     const res = await fetch(`/usuario/listar_usuarios_ajax?funcao=${funcao}&status=${status}`)
     const data = await res.json();
     users.length = 0;
+    console.log("USERS", users)
     data.users.map(item => users.push(item))
+    console.log("USERS", users)
 
-    let totalPage = Math.ceil(data.users.length / 2);
+    let totalPage = Math.ceil(data.users.length / 20);
 
     let pagination = document.querySelector(".pagination");
     pagination.innerHTML = "";
     sessionStorage.setItem("page-active", 1);
-    document.querySelector(".count-users").textContent = data.users.length;
+    document.querySelector(".count-users").textContent = users.length;
     let active = sessionStorage.getItem("page-active");
     for (let i = 1; i <= totalPage; i++) {
       pagination.insertAdjacentHTML('beforeend', `<li class="page-item ${active == i ? "active" : ""}"><a class="page-link" href="#">${i}</a></li>`);
@@ -211,8 +213,7 @@
     }
     let tbody = document.querySelector(".table tbody");
     tbody.innerHTML = "";
-    let usersTable = paginator(data.users, active, 20);
-
+    let usersTable = paginator(users, active, 20);
     usersTable.map(item => {
       tbody.insertAdjacentHTML("beforeend", `
       <tr>
@@ -220,10 +221,10 @@
         <td>${item.email}</td>
         <td><span>${roles[item.urole]}</span></td>
         <td>
-          <div class="row">
-            <button type="submit" class="btn ml-2 mr-2 btn-flat btn-outline-primary btn-sm" name="button"><a href="/usuario/perfil/${item.id}" style="text-decoration: none; color: inherit;">Visualizar <i class="fas fa-external-link-alt"></i></a></button>
+          <div class="row justify-content-end" style="gap: 0.2rem">
+            <button type="submit" class="btn mx-0 btn-flat btn-outline-primary btn-sm" name="button"><a href="/usuario/perfil/${item.id}" style="text-decoration: none; color: inherit;">Visualizar <i class="fas fa-external-link-alt"></i></a></button>
             
-            <button type="submit" class="btn mr-1 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${item.id}" style="text-decoration: none;color: white;">Editar</a></button>
+            <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${item.id}" style="text-decoration: none;color: white;">Editar</a></button>
             
             
             <form action="/usuario/muda_senha_admin" method="POST">
@@ -231,7 +232,7 @@
               <div>
                 <input type="hidden" name="id" value="${item.id}">
               </div>
-              <button type="submit" class="btn ml-1 btn-flat btn-warning btn-sm" onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
+              <button type="submit" class="btn mx-0 btn-flat btn-warning btn-sm" onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
                 Senha</button>
             </form>
             
@@ -241,7 +242,7 @@
               <div>
                 <input type="hidden" name="id" value="${item.id}">
               </div>
-              <button type="submit" class="btn ml-1 btn-flat btn-outline-danger btn-sm" onclick="return confirm('Você deseja realmente inativar este usuário?');"><i class="fas fa-trash"></i></button>
+              <button type="submit" class="btn mx-0 btn-flat btn-outline-danger btn-sm" onclick="return confirm('Você deseja realmente inativar este usuário?');"><i class="fas fa-trash"></i></button>
             </form>                
           </div>
         </td>
@@ -289,10 +290,10 @@
         <td>${item.email}</td>
         <td><span>${roles[item.urole]}</span></td>
         <td>
-          <div class="row">
-            <button type="submit" class="btn ml-2 mr-2 btn-flat btn-outline-primary btn-sm" name="button"><a href="/usuario/perfil/${item.id}" style="text-decoration: none; color: inherit;">Visualizar <i class="fas fa-external-link-alt"></i></a></button>
+          <div class="row justify-content-end" style="gap: 0.2rem">
+            <button type="submit" class="btn mx-0 btn-flat btn-outline-primary btn-sm" name="button"><a href="/usuario/perfil/${item.id}" style="text-decoration: none; color: inherit;">Visualizar <i class="fas fa-external-link-alt"></i></a></button>
             
-            <button type="submit" class="btn mr-1 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${item.id}" style="text-decoration: none;color: white;">Editar</a></button>
+            <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${item.id}" style="text-decoration: none;color: white;">Editar</a></button>
             
             
             <form action="/usuario/muda_senha_admin" method="POST">
@@ -300,7 +301,7 @@
               <div>
                 <input type="hidden" name="id" value="${item.id}">
               </div>
-              <button type="submit" class="btn ml-1 btn-flat btn-warning btn-sm" onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
+              <button type="submit" class="btn mx-0 btn-flat btn-warning btn-sm" onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
                 Senha</button>
             </form>
             
@@ -310,7 +311,7 @@
               <div>
                 <input type="hidden" name="id" value="${item.id}">
               </div>
-              <button type="submit" class="btn ml-1 btn-flat btn-outline-danger btn-sm" onclick="return confirm('Você deseja realmente inativar este usuário?');"><i class="fas fa-trash"></i></button>
+              <button type="submit" class="btn mx-0 btn-flat btn-outline-danger btn-sm" onclick="return confirm('Você deseja realmente inativar este usuário?');"><i class="fas fa-trash"></i></button>
             </form>                
           </div>
         </td>

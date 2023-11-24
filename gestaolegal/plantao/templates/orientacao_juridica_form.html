@@ -194,40 +194,48 @@
         gap: 28px;
     }
 
-    .c-modal h2{
+    .c-modal h2 {
         color: #3F5059;
         font-size: 1.5rem;
         line-height: 29px;
         letter-spacing: -0.24px;
     }
 
-    .c-modal header h2{
+    .c-modal header h2 {
         color: #142129;
     }
+
     .c-modal .atendido+div>section:not(:last-child) {
         margin-bottom: 28px;
     }
-    .c-modal .atendido > p, .c-modal .atendido > span i{
+
+    .c-modal .atendido>p,
+    .c-modal .atendido>span i {
         color: #283A45;
         font-size: 20px;
         font-weight: 600;
         line-height: 28px;
         letter-spacing: -0.02px;
     }
-    .c-modal .row-buttons{
+
+    .c-modal .row-buttons {
         gap: 12px;
     }
-    
-    .alert-modal, .confirm-modal{
+
+    .alert-modal,
+    .confirm-modal {
         max-width: 400px;
         width: 100%;
         padding: 2rem;
         background-color: #FFF;
     }
-    .modal-icons{
+
+    .modal-icons {
         gap: 1rem;
     }
-    .modal-icons .user, .modal-icons .file{
+
+    .modal-icons .user,
+    .modal-icons .file {
         padding: 1.5rem;
         border-radius: 50%;
         background-color: #F2F5F7;
@@ -238,57 +246,69 @@
         height: 80px;
     }
 
-    .modal-icons .file{
+    .modal-icons .file {
         background-color: #DBF2FF;
     }
-    .modal-icons .user i{
+
+    .modal-icons .user i {
         color: #6F818C;
     }
-    .modal-icons .file i{
+
+    .modal-icons .file i {
         color: #38B4FD;
     }
 
-    .modal-icons .user i, 
+    .modal-icons .user i,
     .modal-icons .file i,
-    .modal-icons .arrow i{
+    .modal-icons .arrow i {
         font-size: 2rem;
     }
 
-    .flow-atendido{
+    .flow-atendido {
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
         text-align: center;
     }
-    .alert-modal-text .title, .confirm-modal-text .title{
+
+    .alert-modal-text .title,
+    .confirm-modal-text .title {
         font-size: 18px;
         font-weight: 600;
         line-height: 25px;
         color: #142129;
     }
-    .alert-modal-text .context{
+
+    .alert-modal-text .context {
         font-size: 14px;
         line-height: 20px;
         color: #3F5059;
         font-weight: 400;
     }
-    .alert-modal-text .context span{
+
+    .alert-modal-text .context span {
         color: #0062B8;
         font-weight: 600;
     }
 
-    .row-buttons{
+    .row-buttons {
         display: flex;
         justify-content: flex-end;
         align-items: center;
         gap: 12px;
         align-self: stretch;
     }
-    .row-buttons .btn{
+
+    .row-buttons .btn {
         padding: 12px 20px;
     }
-    .row-buttons > .btn:first-child{
+
+    .row-buttons>.btn:first-child {
         flex-grow: 1;
+    }
+
+    .lista-atendidos {
+        overflow: hidden auto;
     }
 </style>
 <input type="hidden" id="assistencia_judiciaria" name="assistencia_judiciaria" value="">
@@ -359,10 +379,10 @@
 
 <!-- Modal -->
 <div class="s-container-modal ">
-    <div class="s-modal">
+    <div class="s-modal" style="overflow: hidden auto;">
         <div class="s-modal-header position-relative">
             <h5>Associar atendidos</h5>
-            <p>Selecione as pessoas para associar à Orientação Júridica</p>
+            <p>Selecione as pessoas para associar à Orientação Jurídica</p>
             <span class="close">
                 <i class="fas fa-times"></i>
             </span>
@@ -499,18 +519,34 @@
         if (modal.classList.value.includes("modal-active")) {
             let data = await atendidos();
             document.querySelector(".badge-atendidos").textContent = data.length;
-            data.map((atendido, index) => {
-                document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
-                    <tr data-list="${index}">
-                        <td>
-                            <input type="checkbox" name="atendidos[]">
-                        </td>
-                        <td>${atendido.nome}</td>
-                        <td>${atendido.cpf}</td>
-                        <td>${atendido.celular}</td>
-                    </tr>
-                `)
-            })
+            if (data.length > 50) {
+                for (let i = 0; i < 50; i++) {
+                    document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
+                        <tr data-list="${i}">
+                            <td>
+                                <input type="checkbox" name="atendidos[]">
+                            </td>
+                            <td>${data[i].nome}</td>
+                            <td>${data[i].cpf}</td>
+                            <td>${data[i].celular}</td>
+                        </tr>
+                    `)
+                }
+            }
+            else {
+                data.map((atendido, index) => {
+                    document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
+                        <tr data-list="${index}">
+                            <td>
+                                <input type="checkbox" name="atendidos[]">
+                            </td>
+                            <td>${atendido.nome}</td>
+                            <td>${atendido.cpf}</td>
+                            <td>${atendido.celular}</td>
+                        </tr>
+                    `)
+                })
+            }
             atendidosSelecionados()
         }
 
@@ -535,11 +571,42 @@
 
     document.querySelector(".s-modal .search").addEventListener("input", (e) => {
         let search = lista.atendidos;
-        search.map((item, index) => {
-            if (e.target.value !== "") {
-                !item.nome.toLowerCase().includes(e.target.value.toLowerCase()) ? document.querySelector(`tr[data-list='${index}']`).style.display = "none" : "";
+        // search.map((item, index) => {
+        //     if (e.target.value !== "") {
+        //         !item.nome.toLowerCase().includes(e.target.value.toLowerCase()) ? document.querySelector(`tr[data-list='${index}']`).style.display = "none" : "";
+        //     }
+        // })
+        if (e.target.value !== "") {
+            document.querySelector(".lista-atendidos tbody").innerHTML = "";
+            search.map((item, index) => {
+                if (item.nome.toLowerCase().includes(e.target.value.toLowerCase())) {
+                    document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
+                        <tr data-list="${index}">
+                            <td>
+                                <input type="checkbox" name="atendidos[]">
+                            </td>
+                            <td>${item.nome}</td>
+                            <td>${item.cpf}</td>
+                            <td>${item.celular}</td>
+                        </tr>
+                    `)
+                }
+            })
+        }
+        else {
+            for (let i = 0; i < 50; i++) {
+                document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
+                        <tr data-list="${i}">
+                            <td>
+                                <input type="checkbox" name="atendidos[]">
+                            </td>
+                            <td>${data[i].nome}</td>
+                            <td>${data[i].cpf}</td>
+                            <td>${data[i].celular}</td>
+                        </tr>
+                    `)
             }
-        })
+        }
         atendidosSelecionados()
     });
 
