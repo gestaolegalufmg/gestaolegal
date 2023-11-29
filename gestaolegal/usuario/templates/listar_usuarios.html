@@ -4,24 +4,44 @@
 
 {% block conteudo %}
 <nav class="d-inline-block">
-  <ul class="pagination mb-0">
-    {% for page_num in usuarios.iter_pages(left_edge=3, right_edge=3, left_current=2, right_current=2) %}
-    {% if page_num and usuarios.page == page_num%}
-    <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
-    {% elif page_num %}
-    <li class="page-item"><a class="page-link"
-        href="{{ url_for('usuario.listar_usuarios', page=page_num) }}">{{ page_num }}</a>
-      {% else %}
-    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
-    {% endif %}
-    {% endfor %}
-  </ul>
+  <ul class="pagination mb-0"></ul>
 </nav>
 
 <div class="card">
   <div class="card-body">
     <div class="card-title">
-      <div class="d-flex flex-row ">
+      <div class="d-flex flex-row d-flex">
+        <div class="col d-flex justify-content-end align-items-center">
+          <!-- <div class="search border p-1 rounded">
+            <i class="fas fa-search"></i>
+            <input type="text" class="border-0" style="outline: 0;" id="searchUser" placeholder="" />
+          </div> -->
+          <div class="row-filters col d-flex" style="gap: 20px;">
+            <div class="col d-flex justify-content-end align-items-center">
+              <span class="col-5 text-right">Filtrar por função:</span>
+              <select class="col-5 form-control" id="urole" name="urole">
+                <option value="all" selected>Todos</option>
+                <option value="admin">Administrador</option>
+                <option value="orient">Orientador</option>
+                <option value="colab_proj">Colaborador de projeto</option>
+                <option value="estag_direito">Estagiário de Direito</option>
+                <option value="colab_ext">Colaborador externo</option>
+                <option value="prof">Professor</option>
+              </select>
+            </div>
+            <div class="d-flex justify-content-between align-items-center" style="gap: 1rem;">
+              <label for="desativados" class="mb-0">Status</label>
+              <select id="desativados" class="form-control">
+                <option selected value="ativos">Ativos</option>
+                <option value="inativos">Inativos</option>
+              </select>
+            </div>
+            <div class="d-flex justify-content-between align-items-center" style="gap: 1rem;">
+              <span>Total:</span>
+              <span class="badge badge-primary count-users">0</span>
+            </div>
+          </div>
+        </div>
         {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0]] %}
         <button type="submit" name="button" class="btn btn-primary ml-auto p-2">
           <a style="color: inherit; text-decoration: none;" href="{{url_for('usuario.cadastrar_usuario')}}">Cadastrar
@@ -34,10 +54,10 @@
       <table class="table table-striped">
         <thead>
           <tr>
-            <th>Nome</th>
-            <th>E-mail</th>
-            <th>Função</th>
-            <th>Ações</th>
+            <th class="bg-white">Nome</th>
+            <th class="bg-white">E-mail</th>
+            <th class="bg-white">Função</th>
+            <th class="bg-white">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -52,23 +72,16 @@
             {% endfor %}
             <td>
               <div class="row">
-                <button type="submit" class="btn ml-2 mr-2 btn-flat btn-primary btn-sm" name="button"><a
+                <button type="submit" class="btn mx-0 btn-flat btn-outline-primary btn-sm" name="button"><a
                     href="{{url_for('usuario.perfil_usuario', id_user = usuario.id)}}"
-                    style="text-decoration: none;color: white;">Visualizar</a></button>
-                {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['PROFESSOR'][0]] and (usuario.id != admin_padrao or current_user.id == admin_padrao)%}
-                <button type="submit" class="btn mr-1 btn-flat btn-primary btn-sm" name="button"><a
+                    style="text-decoration: none; color: inherit;">Visualizar!! <i
+                      class="fas fa-external-link-alt"></i></a></button>
+                {% if current_user.urole in
+                [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['PROFESSOR'][0]] and (usuario.id !=
+                admin_padrao or current_user.id == admin_padrao)%}
+                <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a
                     href="{{url_for('usuario.editar_usuario', id_user = usuario.id)}}"
                     style="text-decoration: none;color: white;">Editar</a></button>
-                {% endif %}
-                {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] and usuario.id != admin_padrao %}
-                <form action="{{url_for('usuario.inativar_usuario_lista')}}" method="POST">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <div>
-                    <input type="hidden" name="id" value="{{usuario.id}}">
-                  </div>
-                  <button type="submit" class="btn ml-1 btn-flat btn-danger btn-sm"
-                    onclick="return confirm('Você deseja realmente inativar este usuário?');">Excluir</button>
-                </form>
                 {% endif %}
                 {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] and usuario.id != admin_padrao %}
                 <form action="{{url_for('usuario.muda_senha_admin')}}" method="POST">
@@ -76,17 +89,257 @@
                   <div>
                     <input type="hidden" name="id" value="{{usuario.id}}">
                   </div>
-                  <button type="submit" class="btn ml-1 btn-flat btn-warning btn-sm"
-                    onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar Senha</button>
+                  <button type="submit" class="btn mx-0 btn-flat btn-warning btn-sm"
+                    onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
+                    Senha</button>
                 </form>
                 {% endif %}
+                {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] and usuario.id != admin_padrao %}
+                <form action="{{url_for('usuario.inativar_usuario_lista')}}" method="POST">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div>
+                    <input type="hidden" name="id" value="{{usuario.id}}">
+                  </div>
+                  <button type="submit" class="btn mx-0 btn-flat btn-outline-danger btn-sm"
+                    onclick="return confirm('Você deseja realmente inativar este usuário?');"><i
+                      class="fas fa-trash"></i></button>
+                </form>
+                {% endif %}
+
               </div>
             </td>
           </tr>
+
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+{% endblock %}
+
+
+{% block scripts %}
+<script defer>
+  /* Carrega todos os usuarios */
+  const users = [];
+  const roles = {
+    admin: "Administrador",
+    orient: "Orientador",
+    colab_proj: "Colaborador de projeto",
+    estag_direito: "Estagiário de Direito",
+    colab_ext: "Colaborador externo",
+    prof: "Professor",
+  }
+  function actPagination() {
+    document.querySelectorAll(".pagination li").forEach(item => {
+      item.addEventListener("click", () => {
+        document.querySelector(".pagination .active").classList.remove('active');
+        sessionStorage.setItem("page-active", item.textContent)
+        item.classList.add("active");
+        let tbody = document.querySelector(".table tbody");
+        tbody.innerHTML = "";
+        let usersTable = paginator(users, item.textContent, 20);
+
+        usersTable.map(item => {
+          tbody.insertAdjacentHTML("beforeend", `
+            <tr>
+              <td>${item.nome}</td>
+              <td>${item.email}</td>
+              <td><span>${roles[item.urole]}</span></td>
+              <td>
+                <div class="row justify-content-end" style="gap: 0.2rem;">
+                  <button type="submit" class="btn ml-2 mr-2 btn-flat btn-outline-primary btn-sm" name="button"><a href="/usuario/perfil/${item.id}" style="text-decoration: none; color: inherit;">Visualizar <i class="fas fa-external-link-alt"></i></a></button>
+                  
+                  <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${item.id}" style="text-decoration: none;color: white;">Editar</a></button>
+                  
+                  
+                  <form action="/usuario/muda_senha_admin" method="POST">
+                    <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+                    <div>
+                      <input type="hidden" name="id" value="${item.id}">
+                    </div>
+                    <button type="submit" class="btn ml-1 btn-flat btn-warning btn-sm" onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
+                      Senha</button>
+                  </form>
+                  
+                  
+                  <form action="/usuario/inativar_usuario_lista/" method="POST">
+                    <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+                    <div>
+                      <input type="hidden" name="id" value="${item.id}">
+                    </div>
+                    <button type="submit" class="btn ml-1 btn-flat btn-outline-danger btn-sm" onclick="return confirm('Você deseja realmente inativar este usuário?');"><i class="fas fa-trash"></i></button>
+                  </form>                
+                </div>
+              </td>
+            </tr>`
+          )
+        })
+      })
+    })
+  }
+  async function getUsers() {
+    const data = await fetch(`/usuario/listar_usuarios_ajax`, {
+      method: "GET",
+      headers: {
+        'X-CSRF-Token': "{{ csrf_token() }}"
+      }
+    })
+    let res = await data.json();
+    res.users.map(item => users.push(item));
+    return res;
+  }
+  async function getUsersByFilter(){
+    const funcao = document.querySelector("#urole").value;
+    const status = document.querySelector("#desativados").value === "ativos" ? 1 : 0;
+    const res = await fetch(`/usuario/listar_usuarios_ajax?funcao=${funcao}&status=${status}`)
+    const data = await res.json();
+    users.length = 0;
+    console.log("USERS", users)
+    data.users.map(item => users.push(item))
+    console.log("USERS", users)
+
+    let totalPage = Math.ceil(data.users.length / 20);
+
+    let pagination = document.querySelector(".pagination");
+    pagination.innerHTML = "";
+    sessionStorage.setItem("page-active", 1);
+    document.querySelector(".count-users").textContent = users.length;
+    let active = sessionStorage.getItem("page-active");
+    for (let i = 1; i <= totalPage; i++) {
+      pagination.insertAdjacentHTML('beforeend', `<li class="page-item ${active == i ? "active" : ""}"><a class="page-link" href="#">${i}</a></li>`);
+      actPagination();
+    }
+    let tbody = document.querySelector(".table tbody");
+    tbody.innerHTML = "";
+    let usersTable = paginator(users, active, 20);
+    usersTable.map(item => {
+      tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>${item.nome}</td>
+        <td>${item.email}</td>
+        <td><span>${roles[item.urole]}</span></td>
+        <td>
+          <div class="row justify-content-end" style="gap: 0.2rem">
+            <button type="submit" class="btn mx-0 btn-flat btn-outline-primary btn-sm" name="button"><a href="/usuario/perfil/${item.id}" style="text-decoration: none; color: inherit;">Visualizar <i class="fas fa-external-link-alt"></i></a></button>
+            
+            <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${item.id}" style="text-decoration: none;color: white;">Editar</a></button>
+            
+            
+            <form action="/usuario/muda_senha_admin" method="POST">
+              <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+              <div>
+                <input type="hidden" name="id" value="${item.id}">
+              </div>
+              <button type="submit" class="btn mx-0 btn-flat btn-warning btn-sm" onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
+                Senha</button>
+            </form>
+            
+            
+            <form action="/usuario/inativar_usuario_lista/" method="POST">
+              <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+              <div>
+                <input type="hidden" name="id" value="${item.id}">
+              </div>
+              <button type="submit" class="btn mx-0 btn-flat btn-outline-danger btn-sm" onclick="return confirm('Você deseja realmente inativar este usuário?');"><i class="fas fa-trash"></i></button>
+            </form>                
+          </div>
+        </td>
+      </tr>`
+      )
+    })
+  }
+  const paginator = (items, pageActual, limitItems) => {
+    let result = [];
+    let totalPage = Math.ceil(items.length / limitItems);
+    let count = (pageActual * limitItems) - limitItems;
+    let delimiter = count + limitItems;
+
+    if (pageActual <= totalPage) {
+      for (let i = count; i < delimiter; i++) {
+        result.push(items[i]);
+        count++;
+      }
+    }
+    return result;
+  }
+
+  async function mountTable() {
+    const res = await getUsers();
+
+    let totalPage = Math.ceil(res.users.length / 20);
+
+    let pagination = document.querySelector(".pagination");
+    pagination.innerHTML = "";
+    sessionStorage.setItem("page-active", 1);
+    document.querySelector(".count-users").textContent = res.users.length;
+    let active = sessionStorage.getItem("page-active");
+    for (let i = 1; i <= totalPage; i++) {
+      pagination.insertAdjacentHTML('beforeend', `<li class="page-item ${active == i ? "active" : ""}"><a class="page-link" href="#">${i}</a></li>`);
+      actPagination();
+    }
+    let tbody = document.querySelector(".table tbody");
+    tbody.innerHTML = "";
+    let usersTable = paginator(res.users, active, 20);
+
+    usersTable.map(item => {
+      tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>${item.nome}</td>
+        <td>${item.email}</td>
+        <td><span>${roles[item.urole]}</span></td>
+        <td>
+          <div class="row justify-content-end" style="gap: 0.2rem">
+            <button type="submit" class="btn mx-0 btn-flat btn-outline-primary btn-sm" name="button"><a href="/usuario/perfil/${item.id}" style="text-decoration: none; color: inherit;">Visualizar <i class="fas fa-external-link-alt"></i></a></button>
+            
+            <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${item.id}" style="text-decoration: none;color: white;">Editar</a></button>
+            
+            
+            <form action="/usuario/muda_senha_admin" method="POST">
+              <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+              <div>
+                <input type="hidden" name="id" value="${item.id}">
+              </div>
+              <button type="submit" class="btn mx-0 btn-flat btn-warning btn-sm" onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
+                Senha</button>
+            </form>
+            
+            
+            <form action="/usuario/inativar_usuario_lista/" method="POST">
+              <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+              <div>
+                <input type="hidden" name="id" value="${item.id}">
+              </div>
+              <button type="submit" class="btn mx-0 btn-flat btn-outline-danger btn-sm" onclick="return confirm('Você deseja realmente inativar este usuário?');"><i class="fas fa-trash"></i></button>
+            </form>                
+          </div>
+        </td>
+      </tr>`
+      )
+    })
+
+  }
+  window.onload = async () => {
+    mountTable();
+    const userLength = document.querySelectorAll(".table tbody tr").length;
+    const usersTable = document.querySelectorAll(".table tbody tr");
+
+
+
+    /* Select status */
+    const status = document.querySelector("#desativados");
+    status.onchange = async (e) => {
+      await getUsersByFilter();
+      document.querySelector(".count-users").textContent = users.length;
+    }
+    /* Manipulação select roles */
+    const urole = document.querySelector("#urole");
+    urole.onchange = async (e) => {
+      await getUsersByFilter();
+      document.querySelector(".count-users").textContent = users.length;
+    }
+  };
+</script>
+
 {% endblock %}

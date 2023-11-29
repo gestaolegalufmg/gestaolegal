@@ -523,7 +523,6 @@ class TornarAssistidoForm(FlaskForm):
             ),
         ],
     )
-
     profissao = StringField(
         "Profissão",
         validators=[

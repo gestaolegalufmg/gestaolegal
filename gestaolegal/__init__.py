@@ -257,11 +257,16 @@ app.config["ARQUIVOS_POR_PAGINA"] = 20
 ######################## EMAIL #############################
 ############################################################
 
+# app.config["MAIL_SERVER"] = "smtp.gmail.com"
+# app.config["MAIL_PORT"] = 465
+# app.config["MAIL_USE_SSL"] = True
+# app.config["MAIL_USERNAME"] = "testedodaj@gmail.com"
+# app.config["MAIL_PASSWORD"] = "testedaj12345"
 app.config["MAIL_SERVER"] = "smtp.gmail.com"
 app.config["MAIL_PORT"] = 465
 app.config["MAIL_USE_SSL"] = True
-app.config["MAIL_USERNAME"] = "testedodaj@gmail.com"
-app.config["MAIL_PASSWORD"] = "testedaj12345"
+app.config["MAIL_USERNAME"] = 'cassio@setter.global'
+app.config["MAIL_PASSWORD"] = 'bgmxdotawlytmtvp'
 
 mail = Mail(app)
 

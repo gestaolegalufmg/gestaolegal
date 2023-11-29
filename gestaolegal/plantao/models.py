@@ -479,7 +479,7 @@ class OrientacaoJuridica(db.Model):
     data_criacao = db.Column(db.DateTime)
     status = db.Column(db.Integer, nullable=False)
 
-    id_usuario = db.Column(db.Integer, nullable=True)
+    # id_usuario = db.Column(db.Integer, nullable=True)
 
     assistenciasJudiciarias = db.relationship(
         "AssistenciaJudiciaria",
@@ -487,6 +487,8 @@ class OrientacaoJuridica(db.Model):
         backref="AssistenciaJudiciaria",
     )
     atendidos = db.relationship("Atendido", secondary="atendido_xOrientacaoJuridica")
+    id_usuario = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+    usuario = db.relationship(Usuario, backref='usuarios')
 
     def setSubAreas(self, area_direito, sub_area, sub_areaAdmin):
         if area_direito == area_do_direito["CIVEL"][0]:
@@ -616,3 +618,23 @@ class RegistroEntrada(db.Model):
     )
     id_usuario = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
     usuario = db.relationship(Usuario, backref=db.backref("registro_entrada"))
+
+# MELHORIAS SOLICITADAS - SETTER
+
+class FilaAtendidos(db.Model):
+    __tablename__ = 'fila_atendimentos'
+
+    id = db.Column(db.Integer, primary_key = True)
+    psicologia = db.Column(db.Integer, nullable=False, default=0)
+    prioridade = db.Column(db.Integer, nullable=False, default=0)
+    data_criacao = db.Column(db.DateTime)
+    senha = db.Column(db.String(10, collation="latin1_general_ci"), nullable=False)
+    status = db.Column(db.Integer, nullable=False, default=0)
+    id_atendido = db.Column(db.Integer, db.ForeignKey("atendidos.id"))
+
+    atendido = db.relationship(
+        Atendido, backref=db.backref("atendidos")
+    )
+
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}

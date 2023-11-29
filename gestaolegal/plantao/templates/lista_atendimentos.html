@@ -1,0 +1,266 @@
+{% extends "base_dashboard.html" %}
+
+{% block css %}
+<style>
+    .legends,
+    .legends>div {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 1.5rem;
+    }
+
+    .legends>div {
+        justify-content: flex-start;
+        gap: 12px;
+    }
+
+    .legends span.badge:empty {
+        display: inline-block;
+        width: 20px;
+        height: 8px;
+        border-radius: 0 !important;
+    }
+
+    .legends span.bg-warning:empty {
+        background-color: #FFA426 !important;
+    }
+
+    .legends span.bg-primary:empty {
+        background-color: #38B4FD !important;
+    }
+
+    .legends span.bg-white:empty {
+        height: 6px;
+        border: 1px solid #D3DADE;
+    }
+</style>
+{% endblock %}
+{% block titulo %} Fila de Atendimento {% endblock %}
+{% block conteudo %}
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th class="bg-white"></th>
+                <th class="bg-white">Nome</th>
+                <th class="bg-white">Senha</th>
+                <th class="bg-white">Hora</th>
+                <th class="bg-white">Psicologia</th>
+                <th class="bg-white">Ações</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<section class="section">
+    <div class="section-header d-flex justify-content-start">
+        <h1>Atendidos e cancelados</h1>
+        <button id="outQueue" type="button" class="btn btn-outline-primary ml-4 btn-sm" data-toggle="collapse"
+            data-target="#table-out-queue" aria-expanded="false" aria-controls="table-out-queue">
+            <span>Expandir</span>
+            <i class="fas fa-angle-down ml-2"></i>
+        </button>
+    </div>
+    <div id="table-out-queue" class="card collapse">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th class="bg-white"></th>
+                    <th class="bg-white">Nome</th>
+                    <th class="bg-white">Senha</th>
+                    <th class="bg-white">Hora</th>
+                    <th class="bg-white">Psicologia</th>
+                    <th class="bg-white">Ações</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script defer>
+    let options = {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+    };
+    const atendidos = [];
+    const listaAtendimento = document.querySelectorAll(".table tbody");
+    const todosAtendidos = async () => {
+        let res = await fetch("{{url_for('plantao.pegar_atendimentos')}}", {
+            headers: {
+                'X-CSRF-Token': "{{ csrf_token() }}",
+                'Content-Type': 'application/json'
+            }
+        });
+        let data = await res.json();
+        data.map(item => atendidos.push(item));
+
+        // Montar fila de atendimento
+        let superPrioridade = filtrarPrioridade(2);
+        let prioridade = filtrarPrioridade(1);
+        let normal = filtrarPrioridade(0);
+        montarTabela(superPrioridade, listaAtendimento[0]);
+        montarTabela(prioridade, listaAtendimento[0]);
+        montarTabela(normal, listaAtendimento[0]);
+
+        // Fora da fila de atendimento
+        document.querySelector("#outQueue").addEventListener("click", (e) => {
+            let text = document.querySelector(`#outQueue > span`);
+            let icon = document.querySelector(`#outQueue > i`);
+            text.textContent = text.textContent === "Expandir" ? "Ocultar" : "Expandir";
+            icon.classList.value = icon.classList.value.includes("down") ? "fas fa-angle-up ml-2" : "fas fa-angle-down ml-2"
+        })
+        montarTabelaChamados(superPrioridade, listaAtendimento[1])
+        montarTabelaChamados(prioridade, listaAtendimento[1])
+        montarTabelaChamados(normal, listaAtendimento[1])
+    }
+    const buttonsActions = async (button, act) => {
+        let atendido = atendidos.filter(item => item.id === parseInt(button.dataset.id))
+        atendido[0].status = act;
+        let res = await fetch("{{url_for('plantao.pegar_atendimentos')}}", {
+            method: "PUT",
+            headers: {
+                'X-CSRF-Token': "{{ csrf_token() }}",
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({id: atendido[0].id, status: act})
+        })
+        listaAtendimento[0].innerHTML = "";
+        listaAtendimento[1].innerHTML = "";
+
+        // Remontar as tabelas
+        let superPrioridade = filtrarPrioridade(2)
+        let prioridade = filtrarPrioridade(1)
+        let normal = filtrarPrioridade(0);
+        montarTabela(superPrioridade, listaAtendimento[0])
+        montarTabela(prioridade, listaAtendimento[0])
+        montarTabela(normal, listaAtendimento[0])
+        montarTabelaChamados(superPrioridade, listaAtendimento[1])
+        montarTabelaChamados(prioridade, listaAtendimento[1])
+        montarTabelaChamados(normal, listaAtendimento[1])
+
+    }
+    const filtrarPrioridade = (prioridade) => {
+        return atendidos.filter(atendido => atendido.prioridade === prioridade);
+    }
+    const montarTabela = (lista, table) => {
+        let options = {
+            hour: "numeric",
+            minute: "numeric",
+            second: "numeric",
+            hour12: false,
+        };
+        let senha;
+        let bg;
+        let txt;
+        lista.map((item, index) => {
+            if (item.status === 0) {
+                switch (item.prioridade) {
+                    case 2:
+                        senha = `S${index + 1 < 10 ? "0" + (index + 1) : index}`;
+                        bg = "table-warning";
+                        txt = "text-warning";
+                        break;
+                    case 1:
+                        senha = `P${index < 10 ? "0" + (index + 1) : index}`;
+                        bg = "table-primary";
+                        txt = "text-primary";
+                        break;
+                    case 0:
+                        senha = `N${index < 10 ? "0" + (index + 1) : index}`;
+                        bg = "table-light";
+                        txt = "text-dark";
+                        break;
+                }
+                let format = new Intl.DateTimeFormat("pt-BR", options).format(new Date(item.hora));
+                table.insertAdjacentHTML("beforeend", `
+                    <tr class="${bg}">
+                        <td class="${txt}">#${table.children.length + 1}</td>
+                        <td class="${txt}">${item.nome}</td>
+                        <td class="${txt}">${senha}</td>
+                        <td class="${txt}">${format}</td>
+                        <td class="${txt}">${item.psicologia}</td>
+                        <td>
+                            <button type="button" class="btn btn-outline-dark text-dark bg-white" onclick="buttonsActions(this, 1)" data-id="${item.id}">Chamar</button>
+                            <button type="button" class="btn btn-outline-danger text-danger bg-white" onclick="buttonsActions(this, 2)" data-id="${item.id}">Tirar da fila</button>
+                        </td>
+                    </tr>
+                `)
+            }
+        })
+    }
+    const montarTabelaChamados = (lista, table) => {
+        let options = {
+            hour: "numeric",
+            minute: "numeric",
+            second: "numeric",
+            hour12: false,
+        };
+        let senha;
+        let bg;
+        let txt;
+        lista.map((item, index) => {
+            if (item.status !== 0) {
+                switch (item.prioridade) {
+                    case 2:
+                        senha = `S${index + 1 < 10 ? "0" + (index + 1) : index}`;
+                        bg = "table-warning";
+                        txt = "text-warning";
+                        break;
+                    case 1:
+                        senha = `P${index < 10 ? "0" + (index + 1) : index}`;
+                        bg = "table-primary";
+                        txt = "text-primary";
+                        break;
+                    case 0:
+                        senha = `N${index < 10 ? "0" + (index + 1) : index}`;
+                        bg = "table-light";
+                        txt = "text-dark";
+                        break;
+                }
+                let format = new Intl.DateTimeFormat("pt-BR", options).format(new Date(item.hora));
+                table.insertAdjacentHTML("beforeend", `
+                    <tr class="${bg}">
+                        <td class="${txt}">#${table.children.length + 1}</td>
+                        <td class="${txt}">${item.nome}</td>
+                        <td class="${txt}">${senha}</td>
+                        <td class="${txt}">${format}</td>
+                        <td class="${txt}">${item.psicologia ? "Sim" : "Não"}</td>
+                        <td>
+                            ${item.status === 1 ? '<span class="border border-dark rounded-pill px-2 py-1 text-dark bg-white"><small>Chamado</small></span>' : '<span class="border border-danger rounded-pill px-2 py-1 text-danger bg-white"><small>Cancelado</small></span>'
+                    }
+                        </td>
+                    </tr>
+                `)
+            }
+        })
+    }
+    todosAtendidos();
+    const today = new Intl.DateTimeFormat("pt-BR", options).format(new Date());
+    document.querySelector(".section-header h1").innerHTML = `Fila de Atendimento - Hoje - <span>${today}</span>`;
+    document.querySelector(".section-header").classList.add("justify-content-between");
+    document.querySelector(".section-header").insertAdjacentHTML("beforeend", `
+        <div class="col-5 legends">
+            <div>
+                <span class="badge bg-warning"></span>
+                <span>Super Prioridade</span>
+            </div>
+            <div>
+                <span class="badge bg-primary"></span>
+                <span>Prioridade</span>
+            </div>
+            <div>
+                <span class="badge bg-white"></span>
+                <span>Normal</span>
+            </div>
+        </div>
+    `);
+
+</script>
+{%endblock%}
