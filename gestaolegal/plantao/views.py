@@ -43,6 +43,7 @@ from gestaolegal.plantao.models import (
     Plantao,
     meses,
     RegistroEntrada,
+    FilaAtendidos,
 )
 from gestaolegal.plantao.views_util import *
 from gestaolegal.usuario.models import (
@@ -74,9 +75,9 @@ def cadastro_na():
 
         if not form.validate():
             return False
-        if emailRepetido:
-            flash("Este email já está em uso.", "warning")
-            return False
+        # if emailRepetido:
+        #     flash("Este email já está em uso.", "warning")
+        #     return False
         return True
 
     def CriaAtendido(form: CadastroAtendidoForm):
@@ -467,7 +468,7 @@ def cadastro_orientacao_juridica():
         entidade_orientacao = OrientacaoJuridica(
             area_direito=form.area_direito.data,
             descricao=form.descricao.data,
-            data_criacao=datetime.now(),
+            data_criacao=datetime.now(tz=pytz.timezone("America/Sao_Paulo")),
             status=True,
             id_usuario=id_usuario
         )
@@ -1885,3 +1886,136 @@ def verifica_assistdo(_id):
         return json.dumps({"hello": "world"})
     verificado = Assistido.query.filter(Assistido.id_atendido == _id).first()
     return json.dumps({"assistido": True if verificado else False})
+
+@plantao.route("/fila-atendimento", methods=[ "GET", "POST" ])
+@login_required()
+def fila_atendimento():
+    return render_template("lista_atendimentos.html")
+
+@plantao.route("/fila-atendimento/criar", methods=[ "GET", "POST" ])
+@login_required()
+def criar_fila():
+    if request.method == "GET":
+        return json.dumps({"error": "error to access the page"})     
+    data = request.get_json(silent=True, force=True)
+    
+    psicologia = data['psicologia']
+    prioridade = data['prioridade']
+    senha = data['senha']
+    id_atendido = data['id_atendido']
+    fila = FilaAtendidos()
+    fila.psicologia=psicologia
+    fila.prioridade=prioridade
+    fila.data_criacao=datetime.now()
+    fila.senha=senha
+    fila.id_atendido=id_atendido
+    fila.status=0
+    db.session.add(fila)
+    db.session.commit()
+    return json.dumps({"message": "success" if fila.id else "error"})
+
+@plantao.route("/fila-atendimento/gerar-senha/<prioridade>", methods=[ "GET" ])
+@login_required()
+def gerar_senha(prioridade):
+    today = datetime.now()
+    senha = len(
+        FilaAtendidos.query.filter(FilaAtendidos.prioridade == prioridade, FilaAtendidos.data_criacao.between(today.strftime("%Y-%m-%d 00:00:00"), today.strftime("%Y-%m-%d 23:59:59"))).all()
+        ) + 1
+    senha = "0"+str(senha) if senha < 10 else str(senha)
+    return json.dumps({"senha": senha})
+
+@plantao.route("/fila-atendimento/hoje", methods=["GET", "PUT"])
+@login_required()
+def pegar_atendimentos():
+    if request.method == "PUT":
+        data = request.get_json(silent=True, force=True)
+        id = data['id']
+        fila = FilaAtendidos.query.filter(FilaAtendidos.id == id).first()
+        fila.status = data['status']
+        try:
+            db.session.commit()
+            return json.dumps({"message": "Status atualizado com sucesso"})
+        except: 
+            return json.dumps({"message": "Ocorreu um erro durante a atualização"})
+
+    today = datetime.now()
+    fila = FilaAtendidos.query.filter(
+            FilaAtendidos.data_criacao.between(today.strftime("%Y-%m-%d 00:00:00"), today.strftime("%Y-%m-%d 23:59:59"))
+        ).all()
+    fila_obj = []
+    for f in fila:
+        fila_obj.append({
+            "id": f.id,
+            "nome": f.atendido.nome,
+            "senha": f.senha,
+            "hora": f.data_criacao,
+            "prioridade": f.prioridade,
+            "psicologia": "Sim" if f.psicologia else "Não",
+            "status": f.status
+        })
+    return json.dumps(fila_obj)
+
+@plantao.route("/atendido/fila-atendimento", methods=["GET","POST"])
+@login_required()
+def ajax_cadastrar_atendido():
+    data = request.get_json(silent=True, force=True)
+    # form = CadastroAtendidoForm()
+    entidade_endereco = Endereco(
+        logradouro=data['logradouro'],
+        numero=data['numero'],
+        complemento=data['complemento'],
+        bairro=data['bairro'],
+        cep=data['cep'],
+        cidade=data['cidade'],
+        estado=data['estado'],
+    )
+    db.session.add(entidade_endereco)
+    db.session.flush()
+    entidade_atendido = Atendido(
+        nome=data['nome'],
+        data_nascimento=data['data_nascimento'],
+        cpf=data['cpf'],
+        cnpj=data['cnpj'],
+        telefone=data['telefone'],
+        celular=data['celular'],
+        email=data['email'],
+        estado_civil=data['estado_civil'],
+        como_conheceu=data['como_conheceu'],
+        indicacao_orgao=data['indicacao_orgao'],
+        procurou_outro_local=data['procurou_outro_local'],
+        procurou_qual_local=data['procurou_qual_local'],
+        obs=data['obs_atendido'],
+        endereco_id=entidade_endereco.id,
+        pj_constituida=1 if data['pj_constituida'] == "True" else 0,
+        repres_legal=1 if data['repres_legal'] == "True" else 0,
+        nome_repres_legal=data['nome_repres_legal'],
+        cpf_repres_legal=data['cpf_repres_legal'],
+        contato_repres_legal=data['contato_repres_legal'],
+        rg_repres_legal=data['rg_repres_legal'],
+        nascimento_repres_legal=data['nascimento_repres_legal'],
+        pretende_constituir_pj=data['pretende_constituir_pj'],
+        status=1,
+    )
+    entidade_atendido.setIndicacao_orgao(
+        data['indicacao_orgao'], entidade_atendido.como_conheceu
+    )
+    entidade_atendido.setCnpj(
+        entidade_atendido.pj_constituida, data['cnpj'], 1 if data['repres_legal'] else 0
+    )
+
+    entidade_atendido.setRepres_legal(
+        entidade_atendido.repres_legal,
+        entidade_atendido.pj_constituida,
+        data['nome_repres_legal'],
+        data['cpf_repres_legal'],
+        data['contato_repres_legal'],
+        data['rg_repres_legal'],
+        data['nascimento_repres_legal'],
+    )
+
+    entidade_atendido.setProcurou_qual_local(
+        entidade_atendido.procurou_outro_local, data['procurou_qual_local']
+    )
+    db.session.add(entidade_atendido)
+    db.session.commit()
+    return json.dumps({"id": entidade_atendido.id, "nome": entidade_atendido.nome})
