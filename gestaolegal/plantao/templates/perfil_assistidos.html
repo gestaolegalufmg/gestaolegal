@@ -1,4 +1,105 @@
 {% extends 'base_dashboard.html' %}
+{% block css %}
+<style>
+    .badge-custom {
+        background-color: #DBF2FF;
+        color: #0062B8;
+        font-size: 12px !important;
+        line-height: 16px !important;
+        margin-left: 12px;
+        padding: 3px 12px 4px 12px !important;
+    }
+
+    .container-modal-queue {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: rgba(0, 0, 0, 0.2);
+        z-index: 999;
+    }
+
+    .modal-queue {
+        padding: 2rem;
+    }
+
+    .modal-queue h1 {
+        font-size: 18px;
+        text-align: center;
+        line-height: 25px;
+        font-weight: 600;
+        color: #142129;
+    }
+
+    .modal-queue label {
+        font-size: 1rem;
+        font-weight: 600;
+        line-height: 22px;
+        color: #1A1E21;
+    }
+
+    .modal-queue label+p {
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 19px;
+        color: #3F5059;
+    }
+
+    .queue-body {
+        padding: 2rem;
+        gap: 2rem;
+    }
+
+    .modal-queue .separator {
+        overflow: hidden;
+        height: 226px;
+        flex-basis: 1px;
+        border: 1px solid #EAEEF0;
+        margin: auto 0;
+    }
+
+    .modal-queue .content {
+        flex: 1
+    }
+
+    .modal-queue .password-queue {
+        flex-basis: 186px;
+    }
+
+    .setor {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .senha-atendido {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .senha-atendido > p{
+        text-align: center;
+    }
+    .senha-atendido>p:first-child {
+        font-size: 18px;
+        line-height: 28px;
+        color: #283A45;
+        margin-bottom: 0;
+    }
+
+    .senha-atendido>.senha {
+        font-size: 48px;
+        line-height: 57px;
+        color: #0062B8;
+        font-weight: 600;
+    }
+
+</style>
+{% endblock %}
 {% block titulo %} Perfil {{assistido.Atendido.nome}} {% endblock titulo %}
 
 {% block conteudo %}
@@ -69,7 +170,7 @@
             </div>
         </div>
     </div>
-{% if assistido.Assistido.id != Null %}
+    {% if assistido.Assistido.id != Null %}
     <div class="col-md-6 col-xs-12">
         <div class="card">
             <div class="card-header">
@@ -83,9 +184,9 @@
                         </span>
                         <span class="float-right text-muted">
                             {% for key in sexo_usuario %}
-                                {% if sexo_usuario[key][0] == assistido.Assistido.sexo %}
-                                    {{sexo_usuario[key][1]}}
-                                {% endif %}
+                            {% if sexo_usuario[key][0] == assistido.Assistido.sexo %}
+                            {{sexo_usuario[key][1]}}
+                            {% endif %}
                             {% endfor %}
                         </span>
                     </p>
@@ -123,9 +224,9 @@
                         </span>
                         <span class="float-right text-muted">
                             {% for key in escolaridade %}
-                                {% if escolaridade[key][0] == assistido.Assistido.grau_instrucao %}
-                                    {{escolaridade[key][1]}}
-                                {% endif %}
+                            {% if escolaridade[key][0] == assistido.Assistido.grau_instrucao %}
+                            {{escolaridade[key][1]}}
+                            {% endif %}
                             {% endfor %}
                         </span>
                     </p>
@@ -149,75 +250,75 @@
 {% if assistido.AssistidoPessoaJuridica.id != Null %}
 <div class="row">
     <div class="col-md-6 col-xs-12">
-    <div class="card">
-        <div class="card-header">
-            <h4>Dados de Assistido Pessoa Jurídica</h4>
-        </div>
-        <div class="card-body">
-            <div class="py-2">
+        <div class="card">
+            <div class="card-header">
+                <h4>Dados de Assistido Pessoa Jurídica</h4>
+            </div>
+            <div class="card-body">
+                <div class="py-2">
 
-                <p class="clearfix">
-                    <span class="float-left">
-                        Situação Receita:
-                    </span>
-                    <span class="float-right text-muted">
-                        {{assistido.AssistidoPessoaJuridica.situacao_receita or '--'}}
-                    </span>
-                </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Situação Receita:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.AssistidoPessoaJuridica.situacao_receita or '--'}}
+                        </span>
+                    </p>
 
-                <p class="clearfix">
-                    <span class="float-left">
-                        Enquadramento:
-                    </span>
-                    <span class="float-right text-muted">
-                        {% for key in enquadramento %}
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Enquadramento:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% for key in enquadramento %}
                             {% if enquadramento[key][0] == assistido.AssistidoPessoaJuridica.enquadramento %}
-                                {{enquadramento[key][1]}}
+                            {{enquadramento[key][1]}}
                             {% endif %}
-                        {% endfor %}
-                    </span>
-                </p>
+                            {% endfor %}
+                        </span>
+                    </p>
 
-                <p class="clearfix">
-                    <span class="float-left">
-                        Area de Atuação:
-                    </span>
-                    <span class="float-right text-muted">
-                        {% for key in area_atuacao %}
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Area de Atuação:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% for key in area_atuacao %}
                             {% if area_atuacao[key][0] == assistido.AssistidoPessoaJuridica.area_atuacao %}
-                                {{area_atuacao[key][1]}}
+                            {{area_atuacao[key][1]}}
                             {% endif %}
-                        {% endfor %}
-                    </span>
-                </p>
+                            {% endfor %}
+                        </span>
+                    </p>
 
-                <p class="clearfix">
-                    <span class="float-left">
-                        Órgão de Registro:
-                    </span>
-                    <span class="float-right text-muted">
-                        {% for key in orgao_reg %}
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Órgão de Registro:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% for key in orgao_reg %}
                             {% if orgao_reg[key][0] == assistido.AssistidoPessoaJuridica.orgao_registro %}
-                                {{orgao_reg[key][1]}}
+                            {{orgao_reg[key][1]}}
                             {% endif %}
-                        {% endfor %}
-                    </span>
-                </p>
+                            {% endfor %}
+                        </span>
+                    </p>
 
-                <p class="clearfix">
-                    <span class="float-left">
-                        Faturamento Anual:
-                    </span>
-                    <span class="float-right text-muted">
-                        {{"R$ " + formata_float(assistido.AssistidoPessoaJuridica.faturamento_anual)}}
-                    </span>
-                </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Faturamento Anual:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{"R$ " + formata_float(assistido.AssistidoPessoaJuridica.faturamento_anual)}}
+                        </span>
+                    </p>
 
+                </div>
             </div>
         </div>
     </div>
-    </div>
-{% endif %}
+    {% endif %}
     <div class="col-md-6 col-xs-12">
         <div class="card">
             <div class="card-header">
@@ -286,358 +387,556 @@
 </div>
 <div class="row">
     {% if assistido.Assistido.id != Null %}
-        <div class="col-md-6 col-xs-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4>Renda e Patrimônio</h4>
-                </div>
-                <div class="card-body">
-                    <div class="py-2">
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Benefício Social:
-                            </span>
-                            <span class="float-right text-muted">
-                                {% for key in beneficio %}
-                                    {% if beneficio[key][0] == assistido.Assistido.beneficio %}
-                                        {{beneficio[key][1]}}
-                                    {% endif %}
-                                {% endfor %}
-                            </span>
-                        </p>
+    <div class="col-md-6 col-xs-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>Renda e Patrimônio</h4>
+            </div>
+            <div class="card-body">
+                <div class="py-2">
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Benefício Social:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% for key in beneficio %}
+                            {% if beneficio[key][0] == assistido.Assistido.beneficio %}
+                            {{beneficio[key][1]}}
+                            {% endif %}
+                            {% endfor %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Contribui para a previdência social:
-                            </span>
-                            <span class="float-right text-muted">
-                                {% for key in contribuicao_inss %}
-                                    {% if contribuicao_inss[key][0] == assistido.Assistido.contribui_inss %}
-                                        {{contribuicao_inss[key][1]}}
-                                    {% endif %}
-                                {% endfor %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Contribui para a previdência social:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% for key in contribuicao_inss %}
+                            {% if contribuicao_inss[key][0] == assistido.Assistido.contribui_inss %}
+                            {{contribuicao_inss[key][1]}}
+                            {% endif %}
+                            {% endfor %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Quantidade de pessoas que moram na mesma casa:
-                            </span>
-                            <span class="float-right text-muted">
-                                {{assistido.Assistido.qtd_pessoas_moradia}}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Quantidade de pessoas que moram na mesma casa:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Assistido.qtd_pessoas_moradia}}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Renda Familiar:
-                            </span>
-                            <span class="float-right text-muted">
-                                {{"R$ " + formata_float(assistido.Assistido.renda_familiar)}}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Renda Familiar:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{"R$ " + formata_float(assistido.Assistido.renda_familiar)}}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Posição em relação à renda familiar:
-                            </span>
-                            <span class="float-right text-muted">
-                                {% for key in participacao_renda %}
-                                    {% if participacao_renda[key][0] == assistido.Assistido.participacao_renda %}
-                                        {{participacao_renda[key][1]}}
-                                    {% endif %}
-                                {% endfor %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Posição em relação à renda familiar:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% for key in participacao_renda %}
+                            {% if participacao_renda[key][0] == assistido.Assistido.participacao_renda %}
+                            {{participacao_renda[key][1]}}
+                            {% endif %}
+                            {% endfor %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Residência:
-                            </span>
-                            <span class="float-right text-muted">
-                                {% for key in moradia %}
-                                    {% if moradia[key][0] == assistido.Assistido.tipo_moradia %}
-                                        {{moradia[key][1]}}
-                                    {% endif %}
-                                {% endfor %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Residência:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% for key in moradia %}
+                            {% if moradia[key][0] == assistido.Assistido.tipo_moradia %}
+                            {{moradia[key][1]}}
+                            {% endif %}
+                            {% endfor %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Possui outros imóveis:
-                            </span>
-                            <span class="float-right text-muted">
-                                {% if assistido.Assistido.possui_outros_imoveis %} Sim {% else %} Não {% endif %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Possui outros imóveis:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% if assistido.Assistido.possui_outros_imoveis %} Sim {% else %} Não {% endif %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Possui veículos:
-                            </span>
-                            <span class="float-right text-muted">
-                                {% if assistido.Assistido.possui_veiculos %} Sim {% else %} Não {% endif %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Possui veículos:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% if assistido.Assistido.possui_veiculos %} Sim {% else %} Não {% endif %}
+                        </span>
+                    </p>
 
-                        {% if assistido.Assistido.possui_veiculos %}
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Veículo:
-                            </span>
-                            <span class="float-right text-muted">
-                                {{assistido.Assistido.possui_veiculos_obs}}
-                            </span>
-                        </p>
-                        {% endif %}
+                    {% if assistido.Assistido.possui_veiculos %}
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Veículo:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Assistido.possui_veiculos_obs}}
+                        </span>
+                    </p>
+                    {% endif %}
 
-                        {% if assistido.Assistido.possui_veiculos %}
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Quantidade de Veículos:
-                            </span>
-                            <span class="float-right text-muted">
-                                {{assistido.Assistido.quantos_veiculos}}
-                            </span>
-                        </p>
-                        {% endif %}
+                    {% if assistido.Assistido.possui_veiculos %}
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Quantidade de Veículos:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Assistido.quantos_veiculos}}
+                        </span>
+                    </p>
+                    {% endif %}
 
-                        {% if assistido.Assistido.possui_veiculos %}
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Ano do Veículo:
-                            </span>
-                            <span class="float-right text-muted">
-                                {{assistido.Assistido.ano_veiculo}}
-                            </span>
-                        </p>
-                        {% endif %}
+                    {% if assistido.Assistido.possui_veiculos %}
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Ano do Veículo:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Assistido.ano_veiculo}}
+                        </span>
+                    </p>
+                    {% endif %}
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Há pessoas com doença grave na família?
-                            </span>
-                            <span class="float-right text-muted">
-                                {% if assistido.Assistido.doenca_grave_familia == 'sim' %}
-                                    Sim
-                                {% elif assistido.Assistido.doenca_grave_familia == 'nao' %}
-                                    Não
-                                {% else %}
-                                    Não Informou
-                                {% endif %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Há pessoas com doença grave na família?
+                        </span>
+                        <span class="float-right text-muted">
+                            {% if assistido.Assistido.doenca_grave_familia == 'sim' %}
+                            Sim
+                            {% elif assistido.Assistido.doenca_grave_familia == 'nao' %}
+                            Não
+                            {% else %}
+                            Não Informou
+                            {% endif %}
+                        </span>
+                    </p>
 
-                        {% if assistido.Assistido.doenca_grave_familia == 'sim' %}
-                            <p class="clearfix">
-                                <span class="float-left">
-                                    Pessoa doente:
-                                </span>
-                                <span class="float-right text-muted">
-                                    {% for key in qual_pessoa_doente %}
-                                        {% if qual_pessoa_doente[key][0] == assistido.Assistido.pessoa_doente %}
-                                            {{qual_pessoa_doente[key][1]}}
-                                        {% endif %}
-                                    {% endfor %}
-                                </span>
-                            </p>
-                        {% endif %}
+                    {% if assistido.Assistido.doenca_grave_familia == 'sim' %}
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Pessoa doente:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% for key in qual_pessoa_doente %}
+                            {% if qual_pessoa_doente[key][0] == assistido.Assistido.pessoa_doente %}
+                            {{qual_pessoa_doente[key][1]}}
+                            {% endif %}
+                            {% endfor %}
+                        </span>
+                    </p>
+                    {% endif %}
 
-                        {% if assistido.Assistido.doenca_grave_familia == 'sim' %}
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Gasto em medicamentos:
-                            </span>
-                            <span class="float-right text-muted">
-                                {{"R$ " + formata_float(assistido.Assistido.gastos_medicacao)}}
-                            </span>
-                        </p>
-                        {% endif %}
+                    {% if assistido.Assistido.doenca_grave_familia == 'sim' %}
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Gasto em medicamentos:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{"R$ " + formata_float(assistido.Assistido.gastos_medicacao)}}
+                        </span>
+                    </p>
+                    {% endif %}
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Observações:
-                            </span>
-                            <span class="float-right text-muted">
-                                {{assistido.Assistido.obs or "--"}}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Observações:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{assistido.Assistido.obs or "--"}}
+                        </span>
+                    </p>
 
-                    </div>
                 </div>
             </div>
         </div>
+    </div>
     {% endif %}
 
     {% if assistido.Assistido.id != Null %}
-        <div class="col-md-6 col-xs-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4>Dados Jurídicos</h4>
-                </div>
-                <div class="card-body">
-                    <div class="py-2">
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Enquadramento:
-                            </span>
-                            <span class="float-right text-muted">
-                                {% for key in enquadramento %}
-                                    {% if enquadramento[key][0] == assistido.AssistidoPessoaJuridica.enquadramento %}
-                                        {{enquadramento[key][1]}}
-                                    {% endif %}
-                                {% endfor %}
-                            </span>
-                        </p>
+    <div class="col-md-6 col-xs-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>Dados Jurídicos</h4>
+            </div>
+            <div class="card-body">
+                <div class="py-2">
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Enquadramento:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% for key in enquadramento %}
+                            {% if enquadramento[key][0] == assistido.AssistidoPessoaJuridica.enquadramento %}
+                            {{enquadramento[key][1]}}
+                            {% endif %}
+                            {% endfor %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                                <span class="float-left">
-                                    Sócios da Pessoa Jurídica:
-                                </span>
-                                <span class="float-right text-muted">
-                                    {{ assistido.AssistidoPessoaJuridica.socios or "--" }}
-                                </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Sócios da Pessoa Jurídica:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{ assistido.AssistidoPessoaJuridica.socios or "--" }}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Situação perante a Receita Federal:
-                            </span>
-                            <span class="float-right text-muted">
-                                {{ assistido.AssistidoPessoaJuridica.situacao_receita }}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Situação perante a Receita Federal:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{ assistido.AssistidoPessoaJuridica.situacao_receita }}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Sede constituída ou a constituir em Belo Horizonte?
-                            </span>
-                            <span class="float-right text-muted">
-                                {% if assistido.AssistidoPessoaJuridica.sede_bh %} Sim {% else %} Não {% endif %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Sede constituída ou a constituir em Belo Horizonte?
+                        </span>
+                        <span class="float-right text-muted">
+                            {% if assistido.AssistidoPessoaJuridica.sede_bh %} Sim {% else %} Não {% endif %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Local da Sede:
-                            </span>
-                            <span class="float-right text-muted">
-                                {% if assistido.AssistidoPessoaJuridica.sede_bh %}
-                                    {% for key in regiao_bh %}
-                                        {% if regiao_bh[key][0] == assistido.AssistidoPessoaJuridica.regiao_sede_bh %}
-                                            {{regiao_bh[key][1]}}
-                                        {% endif %}
-                                    {% endfor %}
-                                {% else %}
-                                    {{assistido.AssistidoPessoaJuridica.regiao_sede_outros}}
-                                {% endif %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Local da Sede:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% if assistido.AssistidoPessoaJuridica.sede_bh %}
+                            {% for key in regiao_bh %}
+                            {% if regiao_bh[key][0] == assistido.AssistidoPessoaJuridica.regiao_sede_bh %}
+                            {{regiao_bh[key][1]}}
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            {{assistido.AssistidoPessoaJuridica.regiao_sede_outros}}
+                            {% endif %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Área de atuação:
-                            </span>
-                            <span class="float-right text-muted">
-                                {% for key in area_atuacao %}
-                                    {% if area_atuacao[key][0] == assistido.AssistidoPessoaJuridica.area_atuacao %}
-                                        {{area_atuacao[key][1]}}
-                                    {% endif %}
-                                {% endfor %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Área de atuação:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% for key in area_atuacao %}
+                            {% if area_atuacao[key][0] == assistido.AssistidoPessoaJuridica.area_atuacao %}
+                            {{area_atuacao[key][1]}}
+                            {% endif %}
+                            {% endfor %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                É negócio nascente?
-                            </span>
-                            <span class="float-right text-muted">
-                                {% if assistido.AssistidoPessoaJuridica.negocio_nascente %} Sim {% else %} Não {% endif %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            É negócio nascente?
+                        </span>
+                        <span class="float-right text-muted">
+                            {% if assistido.AssistidoPessoaJuridica.negocio_nascente %} Sim {% else %} Não {% endif %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Órgão competente:
-                            </span>
-                            <span class="float-right text-muted">
-                                {% for key in orgao_reg %}
-                                    {% if orgao_reg[key][0] == assistido.AssistidoPessoaJuridica.orgao_registro %}
-                                        {{orgao_reg[key][1]}}
-                                    {% endif %}
-                                {% endfor %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Órgão competente:
+                        </span>
+                        <span class="float-right text-muted">
+                            {% for key in orgao_reg %}
+                            {% if orgao_reg[key][0] == assistido.AssistidoPessoaJuridica.orgao_registro %}
+                            {{orgao_reg[key][1]}}
+                            {% endif %}
+                            {% endfor %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Faturamento anual:
-                            </span>
-                            <span class="float-right text-muted">
-                                {{"R$ " + formata_float(assistido.AssistidoPessoaJuridica.faturamento_anual)}}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Faturamento anual:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{"R$ " + formata_float(assistido.AssistidoPessoaJuridica.faturamento_anual)}}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                O balanço patrimonial do último ano foi negativo?
-                            </span>
-                            <span class="float-right text-muted">
-                                {% if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == '1' %} 
-                                    Sim 
-                                {% elif assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == '0' %} 
-                                    Não
-                                {% else %} 
-                                    Não se aplica
-                                {% endif %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            O balanço patrimonial do último ano foi negativo?
+                        </span>
+                        <span class="float-right text-muted">
+                            {% if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == '1' %}
+                            Sim
+                            {% elif assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == '0' %}
+                            Não
+                            {% else %}
+                            Não se aplica
+                            {% endif %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                O resultado econômico do último ano foi negativo?
-                            </span>
-                            <span class="float-right text-muted">
-                                {% if assistido.AssistidoPessoaJuridica.resultado_econ_neg == "sim" %} 
-                                    Sim 
-                                {% elif assistido.AssistidoPessoaJuridica.resultado_econ_neg == "nao" %}
-                                    Não
-                                {% else %} 
-                                    Não se Aplica 
-                                {% endif %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            O resultado econômico do último ano foi negativo?
+                        </span>
+                        <span class="float-right text-muted">
+                            {% if assistido.AssistidoPessoaJuridica.resultado_econ_neg == "sim" %}
+                            Sim
+                            {% elif assistido.AssistidoPessoaJuridica.resultado_econ_neg == "nao" %}
+                            Não
+                            {% else %}
+                            Não se Aplica
+                            {% endif %}
+                        </span>
+                    </p>
 
-                        <p class="clearfix">
-                            <span class="float-left">
-                                Tem funcionários?
-                            </span>
-                            <span class="float-right text-muted">
-                                {% if assistido.AssistidoPessoaJuridica.tem_funcionarios == "sim" %} 
-                                    Sim 
-                                {% elif assistido.AssistidoPessoaJuridica.tem_funcionarios == "nao" %}
-                                    Não
-                                {% else %} 
-                                    Não se Aplica 
-                                {% endif %}
-                            </span>
-                        </p>
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Tem funcionários?
+                        </span>
+                        <span class="float-right text-muted">
+                            {% if assistido.AssistidoPessoaJuridica.tem_funcionarios == "sim" %}
+                            Sim
+                            {% elif assistido.AssistidoPessoaJuridica.tem_funcionarios == "nao" %}
+                            Não
+                            {% else %}
+                            Não se Aplica
+                            {% endif %}
+                        </span>
+                    </p>
 
-                        {% if assistido.AssistidoPessoaJuridica.tem_funcionarios == 'sim' %}
-                            <p class="clearfix">
-                                <span class="float-left">
-                                    Quantidade de Funcionarios:
-                                </span>
-                                <span class="float-right text-muted">
-                                    {{ assistido.AssistidoPessoaJuridica.qtd_funcionarios }}
-                                </span>
-                            </p>
-                        {% endif %}
-                    </div>
+                    {% if assistido.AssistidoPessoaJuridica.tem_funcionarios == 'sim' %}
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Quantidade de Funcionarios:
+                        </span>
+                        <span class="float-right text-muted">
+                            {{ assistido.AssistidoPessoaJuridica.qtd_funcionarios }}
+                        </span>
+                    </p>
+                    {% endif %}
                 </div>
             </div>
         </div>
+    </div>
     {% endif %}
 </div>
+{% if count > 0 %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>
+                    Orientações Recebidas
+                    <span class="rounded-pill badge-custom">
+                        Total: {{ count }}
+                    </span>
+                </h4>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Área do direito </th>
+                            <th>Data</th>
+                            <th>Hora</th>
+                            <th>Criado por</th>
+                            <th style="color: transparent">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for orientacao in assistido.Atendido.orientacoesJuridicas %}
+                        <tr>
+                            <td class="text-capitalize">{{orientacao.area_direito}}</td>
+                            <td>{{orientacao.data_criacao.strftime("%d/%m/%Y")}}</td>
+                            <td>{{orientacao.data_criacao.strftime("%H:%M")}}</td>
+                            <td>{{orientacao.usuario.nome if orientacao.id_usuario else '--' }}</td>
+                            <td>
+                                <a class="btn btn-outline-light text-primary border btn-sm"
+                                    href="/plantao/orientacao_juridica/{{orientacao.id}}" target="_blank">
+                                    <span>Visualizar</span>
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
+
+{% block modal %}
+<div class="container-modal-queue border d-none">
+    <div class="modal-queue bg-white text-dark" style="max-width: 680px;">
+        <div class="queue-header">
+            <h1>Escolha o tipo de senha</h1>
+        </div>
+        <div class="queue-body d-flex flex-row align-items-stretch">
+            <div class="content">
+                <div class="row-input d-flex align-items-start mb-4">
+                    <input style="width: 20px; height: 20px;" type="radio" name="senha" value="N" id="senhaNormal">
+                    <div class="col p-0 ml-2">
+                        <label class="m-0" for="senhaNormal">Normal</label>
+                        <p class="m-0">Público em geral</p>
+                    </div>
+                </div>
+                <div class="row-input d-flex align-items-start mb-4">
+                    <input style="width: 20px; height: 20px;" type="radio" name="senha" value="P" id="senhaPrioridade">
+                    <div class="col p-0 ml-2">
+                        <label class="m-0" for="senhaPrioridade">Prioridade</label>
+                        <p class="m-0">Idosos até 80 anos; pessoas com deficiência; gestantes; lactantes; pessoas com
+                            crianças de colo e obesos</p>
+                    </div>
+                </div>
+                <div class="row-input d-flex align-items-start mb-4">
+                    <input style="width: 20px; height: 20px;" type="radio" name="senha" value="S"
+                        id="senhaSuperPrioridade">
+                    <div class="col p-0 ml-2">
+                        <label class="m-0" for="senhaSuperPrioridade">Super Prioridade</label>
+                        <p class="m-0">Idosos acima de 80 anos.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="separator"></div>
+            <div class="password-queue d-flex justify-content-center align-items-center">
+                <div class="spinner-border text-primary d-none" style="width: 80px; height: 80px; border-width: 10px;"
+                    role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <div class="senha-atendido d-none">
+                    <p>Senha do atendido</p>
+                    <p class="senha"></p>
+                </div>
+            </div>
+        </div>
+        <div class="queue-footer">
+            <div class="setor">
+                <div class="col p-0 d-flex justify-content-center align-items-center">
+                    <input style="width: 20px; height: 20px;" type="checkbox" name="setor" value="1" id="psicologia">
+                    <label class="m-0 ml-2" for="psicologia">Há atendimento da psicologia</label>
+                </div>
+                <div class="col d-flex justify-content-center align-items-center">
+                    <button id="closeModal" type="button" class="btn btn-outline-primary">Voltar</button>
+                    <button id="createQueue" type="button" class="btn btn-primary" style="margin-left: 12px;">Cadastrar e Incluir na
+                        Fila</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script defer>
+    const radios = document.querySelectorAll(".queue-body input[type=radio]");
+    const criarAtendimento = async () => {
+        let prioridade;
+        let radio = document.querySelector(".queue-body input[type=radio]:checked");
+        let psicologia = document.querySelector(".queue-footer input[type=checkbox]").checked;
+        let senha = document.querySelector("p.senha").textContent;
+        let id_atendido = window.location.pathname.split("/");
+        id_atendido = id_atendido[id_atendido.length - 1]
+        
+        if(radio){
+            switch (radio.value) {
+                case "N":
+                    prioridade = 0;
+                    break;
+                case "P":
+                    prioridade = 1;
+                    break;
+                case "S":
+                    prioridade = 2;
+                    break;
+            }
+            let obj = { prioridade, psicologia: psicologia ? 1 : 0, senha, id_atendido}
+            console.log("OBJ", obj)
+            let res = await fetch(`{{url_for('plantao.criar_fila')}}`, {
+                method: "POST",
+                headers: {
+                    'X-CSRF-Token': "{{ csrf_token() }}",
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(obj)
+            });
+            let data = await res.json();
+            if(data.message === "success"){
+                window.location.href = "{{url_for('plantao.fila_atendimento')}}"
+            }
+        }
+    }
+    const gerarSenha = async (prioridadeStr) => {
+        document.querySelector(".spinner-border").classList.toggle("d-none");
+        document.querySelector(".senha-atendido").classList.add("d-none");
+        let prioridade;
+        switch (prioridadeStr) {
+            case "N":
+                prioridade = 0;
+                break;
+            case "P":
+                prioridade = 1;
+                break;
+            case "S":
+                prioridade = 2;
+                break;
+        }
+        let res = await fetch("/plantao/fila-atendimento/gerar-senha/" + prioridade, {
+            headers: {
+                'X-CSRF-Token': "{{ csrf_token() }}",
+            }
+        })
+        let data = await res.json();
+        setTimeout(() => {
+            document.querySelector(".spinner-border").classList.toggle("d-none");
+            document.querySelector(".senha-atendido").classList.toggle("d-none");
+            document.querySelector(".senha-atendido .senha").textContent = `${prioridadeStr}${data.senha}`
+        }, 1000)
+
+    }
+    document.querySelector(".section-header").insertAdjacentHTML("beforeend", `
+    <div class="d-flex justify-content-end align-items-center" style="gap: 12px;">
+        <button id="addQueue" type="button" class="btn btn-sm btn-outline-primary">Incluir na Fila de Atendimento</button>
+        <a class="btn btn-sm btn-primary" href="/plantao/editar_atendido/{{assistido.Atendido.id}}">
+            <span>Editar</span> <span><i class="fas fa-edit"></i></span>
+        </a>
+    </div>
+    `);
+    document.querySelector(".section-header").classList.add("justify-content-between");
+    document.querySelector("#addQueue").addEventListener("click", () => {
+        document.querySelector(".container-modal-queue").classList.toggle("d-none")
+    });
+    Array.from(radios).map((item) => {
+        item.onclick = async () => {
+            gerarSenha(item.value);
+        }
+    })
+    document.querySelector("#closeModal").addEventListener("click", () => {
+        document.querySelector(".container-modal-queue").classList.toggle("d-none")
+    });
+    document.querySelector("#createQueue").addEventListener("click", criarAtendimento)
+</script>
+{%endblock%}

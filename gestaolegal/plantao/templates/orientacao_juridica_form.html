@@ -4,8 +4,15 @@
         height: 100px;
     }
 
+    .toBack {
+        z-index: 1;
+    }
+
     .s-container-modal,
-    .a-container-modal {
+    .a-container-modal,
+    .c-container-modal,
+    .alert-container-modal,
+    .confirm-container-modal {
         display: none;
         position: fixed;
         top: 0;
@@ -14,7 +21,7 @@
         height: 100vh;
         background-color: rgba(0, 0, 0, 0.3);
         overflow: hidden;
-        z-index: 1;
+        z-index: 900;
     }
 
     .s-container-modal.modal-active,
@@ -43,7 +50,8 @@
     }
 
     .s-modal .close,
-    .a-modal .close {
+    .a-modal .close,
+    .c-modal .close {
         position: absolute;
         top: 0;
         right: 0;
@@ -57,7 +65,7 @@
         cursor: pointer;
     }
 
-    .a-modal h5{
+    .a-modal h5 {
         font-size: 18px;
         line-height: 26px;
     }
@@ -110,11 +118,13 @@
         font-size: 14px;
         letter-spacing: .5px;
     }
-    #lista-assistencias-judiciarias{
+
+    #lista-assistencias-judiciarias {
         position: relative;
         display: none;
     }
-    #lista-assistencias-judiciarias ul{
+
+    #lista-assistencias-judiciarias ul {
         list-style: none;
         width: 100%;
         max-height: 200px;
@@ -130,11 +140,176 @@
         z-index: 1;
 
     }
-    #lista-assistencias-judiciarias li{
+
+    #lista-assistencias-judiciarias li {
         padding: 10px 20px;
         cursor: pointer;
     }
-    .search-aj{ display: none;}
+
+    .search-aj {
+        display: none;
+    }
+
+    .c-modal {
+        background-color: #fff;
+        max-width: 540px;
+        height: 100vh;
+        overflow: hidden auto;
+        margin-left: auto;
+        padding: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .c-modal .atendido {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 1rem;
+        align-items: center;
+        padding: 12px 20px;
+        border: 1px solid #EAEEF0;
+        border-radius: 4px;
+        margin-bottom: 28px;
+    }
+
+    c.modal header h2 {
+        color: #142129;
+    }
+
+    c.modal header p {
+        color: #52646E;
+        font-size: 14px;
+        line-height: 20px;
+        letter-spacing: -0.14px;
+    }
+
+    .c-modal p {
+        margin-bottom: 0;
+    }
+
+    .c-modal .atendido+div>section {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+    }
+
+    .c-modal h2 {
+        color: #3F5059;
+        font-size: 1.5rem;
+        line-height: 29px;
+        letter-spacing: -0.24px;
+    }
+
+    .c-modal header h2 {
+        color: #142129;
+    }
+
+    .c-modal .atendido+div>section:not(:last-child) {
+        margin-bottom: 28px;
+    }
+
+    .c-modal .atendido>p,
+    .c-modal .atendido>span i {
+        color: #283A45;
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 28px;
+        letter-spacing: -0.02px;
+    }
+
+    .c-modal .row-buttons {
+        gap: 12px;
+    }
+
+    .alert-modal,
+    .confirm-modal {
+        max-width: 400px;
+        width: 100%;
+        padding: 2rem;
+        background-color: #FFF;
+    }
+
+    .modal-icons {
+        gap: 1rem;
+    }
+
+    .modal-icons .user,
+    .modal-icons .file {
+        padding: 1.5rem;
+        border-radius: 50%;
+        background-color: #F2F5F7;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        width: 80px;
+        height: 80px;
+    }
+
+    .modal-icons .file {
+        background-color: #DBF2FF;
+    }
+
+    .modal-icons .user i {
+        color: #6F818C;
+    }
+
+    .modal-icons .file i {
+        color: #38B4FD;
+    }
+
+    .modal-icons .user i,
+    .modal-icons .file i,
+    .modal-icons .arrow i {
+        font-size: 2rem;
+    }
+
+    .flow-atendido {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        text-align: center;
+    }
+
+    .alert-modal-text .title,
+    .confirm-modal-text .title {
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 25px;
+        color: #142129;
+    }
+
+    .alert-modal-text .context {
+        font-size: 14px;
+        line-height: 20px;
+        color: #3F5059;
+        font-weight: 400;
+    }
+
+    .alert-modal-text .context span {
+        color: #0062B8;
+        font-weight: 600;
+    }
+
+    .row-buttons {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
+        align-self: stretch;
+    }
+
+    .row-buttons .btn {
+        padding: 12px 20px;
+    }
+
+    .row-buttons>.btn:first-child {
+        flex-grow: 1;
+    }
+
+    .lista-atendidos {
+        overflow: hidden auto;
+    }
 </style>
 <input type="hidden" id="assistencia_judiciaria" name="assistencia_judiciaria" value="">
 <div class="form-group row" id="div_area_direito">
@@ -203,11 +378,11 @@
 </div>
 
 <!-- Modal -->
-<div class="s-container-modal">
-    <div class="s-modal">
+<div class="s-container-modal ">
+    <div class="s-modal" style="overflow: hidden auto;">
         <div class="s-modal-header position-relative">
             <h5>Associar atendidos</h5>
-            <p>Selecione as pessoas para associar à Orientação Júridica</p>
+            <p>Selecione as pessoas para associar à Orientação Jurídica</p>
             <span class="close">
                 <i class="fas fa-times"></i>
             </span>
@@ -249,7 +424,7 @@
         </div>
     </div>
 </div>
-<div class="a-container-modal">
+<div class="a-container-modal ">
     <div class="a-modal">
         <div class="s-modal-header position-relative">
             <h5>Deseja encaminhar essa orientação para outra <span class="text-primary">Assistência Jurídica?</span>
@@ -274,7 +449,8 @@
             <div class="col px-0 search-aj">
                 <div class="border d-flex align-items-center border rounded-lg" style="padding:10px 12px;">
                     <label for="search-aj" class="m-0"><i class="fas fa-search"></i></label>
-                    <input type="text" name="search" id="search-aj" class="border-0 col" style="outline: 0;" placeholder="Encontrar assistência">
+                    <input type="text" name="search" id="search-aj" class="border-0 col" style="outline: 0;"
+                        placeholder="Encontrar assistência">
 
                 </div>
                 <div id="lista-assistencias-judiciarias">
@@ -294,7 +470,8 @@
         let data = await fetch("{{url_for('plantao.pega_atendidos')}}", {
             method: "GET",
             headers: {
-                'X-CSRF-Token': "{{ csrf_token() }}"
+                'X-CSRF-Token': "{{ csrf_token() }}",
+                'Content-Type': 'application/json'
             },
         });
         let res = await data.json();
@@ -314,12 +491,12 @@
                 <li data-id="${item.id}">${item.nome}</li>
             `)
         })
-        Array.from(document.querySelectorAll("#lista-assistencias-judiciarias li")).map( li => {
-                li.onclick = () => {
-                    document.querySelector("#search-aj").value = li.textContent;
-                    document.querySelector("#assistencia_judiciaria").value = li.dataset.id;
-                    document.querySelector("#lista-assistencias-judiciarias").style.display = "none";
-                }
+        Array.from(document.querySelectorAll("#lista-assistencias-judiciarias li")).map(li => {
+            li.onclick = () => {
+                document.querySelector("#search-aj").value = li.textContent;
+                document.querySelector("#assistencia_judiciaria").value = li.dataset.id;
+                document.querySelector("#lista-assistencias-judiciarias").style.display = "none";
+            }
         })
         // return res;
     }
@@ -342,18 +519,34 @@
         if (modal.classList.value.includes("modal-active")) {
             let data = await atendidos();
             document.querySelector(".badge-atendidos").textContent = data.length;
-            data.map((atendido, index) => {
-                document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
-                    <tr data-list="${index}">
-                        <td>
-                            <input type="checkbox" name="atendidos[]">
-                        </td>
-                        <td>${atendido.nome}</td>
-                        <td>${atendido.cpf}</td>
-                        <td>${atendido.celular}</td>
-                    </tr>
-                `)
-            })
+            if (data.length > 50) {
+                for (let i = 0; i < 50; i++) {
+                    document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
+                        <tr data-list="${i}">
+                            <td>
+                                <input type="checkbox" name="atendidos[]">
+                            </td>
+                            <td>${data[i].nome}</td>
+                            <td>${data[i].cpf}</td>
+                            <td>${data[i].celular}</td>
+                        </tr>
+                    `)
+                }
+            }
+            else {
+                data.map((atendido, index) => {
+                    document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
+                        <tr data-list="${index}">
+                            <td>
+                                <input type="checkbox" name="atendidos[]">
+                            </td>
+                            <td>${atendido.nome}</td>
+                            <td>${atendido.cpf}</td>
+                            <td>${atendido.celular}</td>
+                        </tr>
+                    `)
+                })
+            }
             atendidosSelecionados()
         }
 
@@ -378,11 +571,42 @@
 
     document.querySelector(".s-modal .search").addEventListener("input", (e) => {
         let search = lista.atendidos;
-        search.map((item, index) => {
-            if (e.target.value !== "") {
-                !item.nome.toLowerCase().includes(e.target.value.toLowerCase()) ? document.querySelector(`tr[data-list='${index}']`).style.display = "none" : "";
+        // search.map((item, index) => {
+        //     if (e.target.value !== "") {
+        //         !item.nome.toLowerCase().includes(e.target.value.toLowerCase()) ? document.querySelector(`tr[data-list='${index}']`).style.display = "none" : "";
+        //     }
+        // })
+        if (e.target.value !== "") {
+            document.querySelector(".lista-atendidos tbody").innerHTML = "";
+            search.map((item, index) => {
+                if (item.nome.toLowerCase().includes(e.target.value.toLowerCase())) {
+                    document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
+                        <tr data-list="${index}">
+                            <td>
+                                <input type="checkbox" name="atendidos[]">
+                            </td>
+                            <td>${item.nome}</td>
+                            <td>${item.cpf}</td>
+                            <td>${item.celular}</td>
+                        </tr>
+                    `)
+                }
+            })
+        }
+        else {
+            for (let i = 0; i < 50; i++) {
+                document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
+                        <tr data-list="${i}">
+                            <td>
+                                <input type="checkbox" name="atendidos[]">
+                            </td>
+                            <td>${data[i].nome}</td>
+                            <td>${data[i].cpf}</td>
+                            <td>${data[i].celular}</td>
+                        </tr>
+                    `)
             }
-        })
+        }
         atendidosSelecionados()
     });
 
@@ -394,7 +618,7 @@
 
     document.querySelector("#encaminhar_outras_aj").addEventListener("change", (e) => {
         document.querySelector(".search-aj").style.display = e.target.value === "True" ? "block" : "none";
-        if(e.target.value !== "True") document.querySelector("#assistencia_judiciaria").value = "";
+        if (e.target.value !== "True") document.querySelector("#assistencia_judiciaria").value = "";
     })
 
     document.querySelector("#associados-checked").addEventListener("click", () => {
@@ -427,7 +651,9 @@
                     <td>${row.nome}</td>
                     <td>${row.cpf}</td>
                     <td>${row.celular}</td>
-                    <td><button type="button" class="btn btn-sm btn-info">visualizar</button></td>
+                    <td>
+                        <a href="/plantao/perfil_assistido/${row.id}" target="_blank" class="btn btn-sm btn-info">visualizar</a>
+                    </td>
                 </tr>
             `);
         })
@@ -440,16 +666,16 @@
     })
     document.querySelector("#search-aj").addEventListener("input", (e) => {
         let value = e.target.value
-        if(value !== ""){
-            document.querySelector("#lista-assistencias-judiciarias").style.display="block";
+        if (value !== "") {
+            document.querySelector("#lista-assistencias-judiciarias").style.display = "block";
             let listaAJ = document.querySelectorAll("#lista-assistencias-judiciarias li");
-            Array.from(listaAJ).map( li => {
+            Array.from(listaAJ).map(li => {
                 li.style.display = !li.textContent.includes(value) ? "none" : "block";
             })
         }
-        else{
-            document.querySelector("#lista-assistencias-judiciarias").style.display="none";
+        else {
+            document.querySelector("#lista-assistencias-judiciarias").style.display = "none";
         }
     })
-    assistencia_judiciarias()
+    assistencia_judiciarias();
 </script>
