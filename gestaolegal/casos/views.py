@@ -159,7 +159,7 @@ def novo_caso():
 
         flash("Caso criado com sucesso!", "success")
 
-        return redirect(url_for("casos.index"))
+        return redirect(url_for("casos.visualizar_caso", id=_caso.id))
 
     return render_template("caso.html", form=_form, title="Novo Caso", caso=None)
 

@@ -429,7 +429,7 @@ def apaga_dias_marcados(plantao: Plantao, dias_marcados_plantao):
 # Funcionalidades Setter
 def busca_atendidos_modal():
     # atendidos = serializar()
-    atendidos = db.session.query(Atendido)
+    atendidos = db.session.query(Atendido).filter(Atendido.status == 1).order_by(Atendido.nome)
     
     return serializar(atendidos)
     
