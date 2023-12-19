@@ -326,19 +326,6 @@
                 form.nome.parentElement.parentElement.insertAdjacentHTML("afterend", '<div class="alert alert-danger">O campo nome não pode ficar em branco.</div>')
                 errors++;
             }
-            if(form.email.value === ""){
-                form.nome.parentElement.parentElement.insertAdjacentHTML("afterend", '<div class="alert alert-danger">O campo nome não pode ficar em branco.</div>')
-                errors++;
-            }
-            if(form.email.value !== ""){
-                let res = await fetch("{{url_for('plantao.pega_atendidos')}}")
-                let data = await res.json();
-                let email = data.filter( item => item.email === form.email.value);
-                if(email.length > 0) {
-                    form.email.parentElement.parentElement.insertAdjacentHTML("afterend", '<div class="alert alert-danger">Usuário já existe no banco de dados.</div>')
-                    errors++;
-                }
-            }
             if(form.formcel.value === ""){
                 form.formcel.parentElement.parentElement.insertAdjacentHTML('afterend', `<div class="alert alert-danger">O campo telefone celular não pode ficar em branco.</div>`);
                 errors++;
