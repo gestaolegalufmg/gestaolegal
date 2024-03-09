@@ -257,7 +257,7 @@ class Atendido(db.Model):
     telefone = db.Column(db.String(18, collation="latin1_general_ci"))
     celular = db.Column(db.String(18, collation="latin1_general_ci"), nullable=False)
     email = db.Column(
-        db.String(80, collation="latin1_general_ci"), unique=True, nullable=False
+        db.String(80, collation="latin1_general_ci"), nullable=False
     )
     estado_civil = db.Column(
         db.String(80, collation="latin1_general_ci"), nullable=False
