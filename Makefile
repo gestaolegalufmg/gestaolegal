@@ -26,7 +26,7 @@ clean:
 	fi
 
 logs:
-	$(DC) $(COMPOSE_FILES) logs -f
+	$(DC) $(COMPOSE_FILES) logs -f || true
 
 exec:
 	$(DC) $(COMPOSE_FILES) exec -ti $(service) $(cmd)
