@@ -1,6 +1,6 @@
 #!/bin/env sh
 
-set -xe
+set -e
 
 echo "Waiting for containers to be ready..."
 until docker ps | grep app_gl | grep -q "Up"; do
