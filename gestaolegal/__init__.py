@@ -262,11 +262,20 @@ app.config["ARQUIVOS_POR_PAGINA"] = 20
 # app.config["MAIL_USE_SSL"] = True
 # app.config["MAIL_USERNAME"] = "testedodaj@gmail.com"
 # app.config["MAIL_PASSWORD"] = "testedaj12345"
-app.config["MAIL_SERVER"] = "smtp.gmail.com"
-app.config["MAIL_PORT"] = 465
-app.config["MAIL_USE_SSL"] = True
-app.config["MAIL_USERNAME"] = 'cassio@setter.global'
-app.config["MAIL_PASSWORD"] = 'bgmxdotawlytmtvp'
+if flask_env == "development":
+    app.config["MAIL_SERVER"] = "mailhog"
+    app.config["MAIL_PORT"] = 1025
+    app.config["MAIL_USE_SSL"] = False
+    app.config["MAIL_USE_TLS"] = False
+    app.config["MAIL_USERNAME"] = None
+    app.config["MAIL_PASSWORD"] = None
+    app.config["MAIL_DEFAULT_SENDER"] = "development@gestaolegal.com"
+else:
+    app.config["MAIL_SERVER"] = "smtp.gmail.com"
+    app.config["MAIL_PORT"] = 465
+    app.config["MAIL_USE_SSL"] = True
+    app.config["MAIL_USERNAME"] = 'cassio@setter.global'
+    app.config["MAIL_PASSWORD"] = 'bgmxdotawlytmtvp'
 
 mail = Mail(app)
 
