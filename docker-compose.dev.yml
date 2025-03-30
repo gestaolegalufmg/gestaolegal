@@ -1,0 +1,11 @@
+services:
+  app_gl:
+    command: flask run --host=0.0.0.0 
+
+  db_gl:
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+    driver: local
