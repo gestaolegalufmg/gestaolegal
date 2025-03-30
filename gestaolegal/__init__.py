@@ -263,7 +263,7 @@ app.config["ARQUIVOS_POR_PAGINA"] = 20
 # app.config["MAIL_USERNAME"] = "testedodaj@gmail.com"
 # app.config["MAIL_PASSWORD"] = "testedaj12345"
 if flask_env == "development":
-    app.config["MAIL_SERVER"] = "mailhog"
+    app.config["MAIL_SERVER"] = "mailpit"
     app.config["MAIL_PORT"] = 1025
     app.config["MAIL_USE_SSL"] = False
     app.config["MAIL_USE_TLS"] = False
