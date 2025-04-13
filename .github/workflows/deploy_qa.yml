@@ -6,28 +6,25 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: QA
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.inputs.branch }}
 
       - name: Setup SSH
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VPS_SSH_HOST }}
-          username: ${{ secrets.VPS_SSH_USERNAME }}
-          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          host: ${{ vars.QA_SSH_HOST }}
+          username: ${{ vars.QA_SSH_USERNAME }}
+          key: ${{ secrets.QA_SSH_PRIVATE_KEY }}
           port: 22
           script: |
             cd gestaolegal
-            git checkout ${{ github.event.inputs.branch }}
             git pull
 
             export ENV=qa
+            make clean
             make up
-            make init_dev_enviroment
+            make initialize_environment
 
 
