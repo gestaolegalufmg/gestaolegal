@@ -1,4 +1,11 @@
 services:
+  app_gl:
+    command: flask run --host=0.0.0.0 
+
+  db_gl:
+    volumes:
+      - mysql_data:/var/lib/mysql
+
   mailpit:
     image: axllent/mailpit:v1.24
     restart: unless-stopped
@@ -7,3 +14,7 @@ services:
       - "8025:8025"
     networks:
         - gestaolegal
+
+volumes:
+  mysql_data:
+    driver: local
