@@ -6,6 +6,15 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
+  mailpit:
+    image: axllent/mailpit:v1.24
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+        - gestaolegal
+
 volumes:
   mysql_data:
     driver: local

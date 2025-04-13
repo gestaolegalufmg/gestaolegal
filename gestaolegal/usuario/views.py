@@ -375,16 +375,14 @@ def login():
         senha = form["senha"]
 
         loginUsuario = Usuario.query.filter_by(email=login).first()
-        if loginUsuario:
-            """ checaSenha = Usuario.checa_senha(loginUsuario, senha) """
-            """ if checaSenha: """
+        if loginUsuario and Usuario.checa_senha(loginUsuario, senha):
             login_user(loginUsuario)
             flash("Você foi logado com sucesso!", "success")
             return redirect(url_for("principal.index"))
+        elif not loginUsuario:
+            flash("Email inválido!", "warning")
         else:
             flash("Senha inválida!", "warning")
-            """ else:
-                flash("Email inválido!", "warning") """
 
     return render_template("login.html")
 
