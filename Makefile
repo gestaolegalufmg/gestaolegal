@@ -12,7 +12,7 @@ else
   COMPOSE_FILES := -f docker-compose.yml -f docker-compose.dev.yml
 endif
 
-.PHONY: help up down clean logs exec build initialize_dev_environment
+.PHONY: help up down clean logs exec build initialize_environment
 
 ensure_volumes:
 	@echo "Ensuring required directories exist..."
