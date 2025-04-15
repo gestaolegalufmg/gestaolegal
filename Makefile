@@ -47,6 +47,9 @@ initialize_environment:
 		DC="$(DC)" COMPOSE_FILES="$(COMPOSE_FILES)" ./scripts/initialize_environment.sh; \
 	fi
 
+run_test:
+	pytest --ignore=mysql_data/
+
 help:
 	@echo "Usage:"
 	@echo ""
