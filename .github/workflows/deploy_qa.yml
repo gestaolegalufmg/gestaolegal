@@ -1,0 +1,30 @@
+name: Deploy to QA VPS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ vars.QA_SSH_HOST }}
+          username: ${{ vars.QA_SSH_USERNAME }}
+          key: ${{ secrets.QA_SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd gestaolegal
+            git pull
+
+            export ENV=qa
+            make clean
+            make up
+            make initialize_environment
+
+
