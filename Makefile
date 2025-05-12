@@ -1,6 +1,6 @@
 ENV ?= development
 
-DC := docker-compose --project-name $(ENV)
+DC := docker compose --project-name $(ENV)
 
 ifeq ($(ENV),production)
   COMPOSE_FILES := -f docker-compose.yml -f docker-compose.prod.yml
