@@ -5,7 +5,7 @@ Sistema desenvolvido pelo projeto de extensão da Faculdade de Direito da UFMG [
 
 
 
-Esse sistema tem como objetivo auxiliar o gerenciamento e funcionamento da Divisão de Assistência Judiciária (DAJ)da Faculdade de Direito da UFMG.
+Esse sistema tem como objetivo auxiliar o gerenciamento e funcionamento da [Divisão de Assistência Judiciária - DAJ](https://daj.direito.ufmg.br/) da Faculdade de Direito da UFMG.
 
 [Manual de Instalação](https://github.com/gestaolegalufmg/gestaolegal/wiki/Manual-de-Instala%C3%A7%C3%A3o)
 
