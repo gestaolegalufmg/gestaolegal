@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime, date, time, timedelta
-import calendar
 import pytz
 from flask import (
     Blueprint,
@@ -9,14 +8,9 @@ from flask import (
     render_template,
     request,
     url_for,
-    session,
     json,
-    jsonify
 )
 from flask_login import current_user
-from flask_paginate import Pagination, get_page_args
-from sqlalchemy import desc, asc, null, delete, select
-from sqlalchemy.orm import load_only
 
 from gestaolegal import app, db, login_required
 from gestaolegal.plantao.forms import (
@@ -30,7 +24,6 @@ from gestaolegal.plantao.forms import (
     SelecionarDuracaoPlantaoForm,
     FecharPlantaoForm,
 )
-from gestaolegal.plantao.forms import assistencia_jud_areas_atendidas
 from gestaolegal.plantao.models import (
     Assistido,
     AssistidoPessoaJuridica,
@@ -47,7 +40,6 @@ from gestaolegal.plantao.models import (
     contribuicao_inss,
     enquadramento,
     escolaridade,
-    meses,
     RegistroEntrada,
     FilaAtendidos,
     moradia,
@@ -934,7 +926,8 @@ def perfil_assistido(_id):
     if assistido.Atendido.orientacoesJuridicas:
         for i, orientacao in enumerate(assistido.Atendido.orientacoesJuridicas, 1):
             key = f"Orientação {i}"
-            value = f"{orientacao.area_direito.capitalize()} - {orientacao.data_criacao.strftime('%d/%m/%Y')} - <a href='/plantao/orientacao_juridica/{orientacao.id}' target='_blank'>Visualizar</a>"
+            value = f"{orientacao.area_direito.capitalize()} - {orientacao.data_criacao.strftime('%d/%m/%Y')}"
+            value = f"<a href='/plantao/orientacao_juridica/{orientacao.id}' target='_blank'>{value}</a>"
             orientacoes[key] = value
     else:
         orientacoes["Status"] = "Não há nenhuma orientação jurídica vinculada"
@@ -947,6 +940,7 @@ def perfil_assistido(_id):
             value = f"{caso.area_direito.capitalize()}"
             if caso.sub_area:
                 value += f" - {caso.sub_area.capitalize()}"
+            value = f"<a href='/casos/visualizar/{caso.id}' target='_blank'>{value}</a>"
             casos[key] = value
     else:
         casos["Status"] = "Não há nenhum caso vinculado"
