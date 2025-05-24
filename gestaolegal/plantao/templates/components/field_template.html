@@ -1,0 +1,10 @@
+{% macro card_field(title, value) %}
+<p class="clearfix">
+  <span class="float-left">
+    {{ title | safe }}:
+  </span>
+  <span class="float-right text-muted">
+    {{ value or '--' | safe }}
+  </span>
+</p>
+{% endmacro %}

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, date, time, timedelta
 import calendar
 import pytz
@@ -41,19 +42,35 @@ from gestaolegal.plantao.models import (
     DiasMarcadosPlantao,
     DiaPlantao,
     Plantao,
+    area_atuacao,
+    beneficio,
+    contribuicao_inss,
+    enquadramento,
+    escolaridade,
     meses,
     RegistroEntrada,
     FilaAtendidos,
+    moradia,
+    orgao_reg,
+    participacao_renda,
+    qual_pessoa_doente,
+    regiao_bh,
 )
 from gestaolegal.plantao.views_util import *
 from gestaolegal.usuario.models import (
     Endereco,
     Usuario,
+    sexo_usuario,
     usuario_urole_roles,
     usuario_urole_inverso,
 )
 from gestaolegal.utils.models import queryFiltradaStatus
 from gestaolegal.notificacoes.models import Notificacao, acoes
+
+@dataclass
+class CardInfo:
+    title: str
+    body: dict[str, str | None]
 
 
 plantao = Blueprint("plantao", __name__, template_folder="templates")
@@ -801,8 +818,132 @@ def perfil_assistido(_id):
         )
         .first()
     )
-    print(assistido.Atendido.orientacoesJuridicas)
-    return render_template("perfil_assistidos.html", assistido=assistido, count=len(assistido.Atendido.orientacoesJuridicas))
+
+    dados_atendimento = {
+        "Nome": assistido.Atendido.nome,
+        "Data de Nascimento": assistido.Atendido.data_nascimento.strftime("%d/%m/%Y"),
+        "CPF": assistido.Atendido.cpf,
+        "CNPJ": assistido.Atendido.cnpj,
+        "Celular": assistido.Atendido.celular,
+        "E-Mail": assistido.Atendido.email
+    }
+
+    dados_assistido = {
+        "Sexo": next(sex[1] for sex in sexo_usuario.values() if sex[0] == assistido.Assistido.sexo),
+        "Profissão": assistido.Assistido.profissao,
+        "Raça": assistido.Assistido.raca,
+        "RG": assistido.Assistido.rg,
+        "Grau de Instrução": next(esc[1] for esc in escolaridade.values() if esc[0] == assistido.Assistido.grau_instrucao),
+        "Salário": "R$ " + str(assistido.Assistido.salario).replace(".", ",")
+    } if assistido.Assistido else None
+
+    dados_pj = {
+        "Situação Receita": assistido.AssistidoPessoaJuridica.situacao_receita,
+        "Enquadramento": next(enq[1] for enq in enquadramento.values() if enq[0] == assistido.AssistidoPessoaJuridica.enquadramento),
+        "Area de Atuação": next(area[1] for area in area_atuacao.values() if area[0] == assistido.AssistidoPessoaJuridica.area_atuacao),
+        "Órgão de Registro": next(org[1] for org in orgao_reg.values() if org[0] == assistido.AssistidoPessoaJuridica.orgao_registro),
+        "Faturamento Anual": "R$ " + str(assistido.AssistidoPessoaJuridica.faturamento_anual).replace(".", ",")
+    } if assistido.AssistidoPessoaJuridica else None
+
+    dados_endereco = {
+        "Logradouro": assistido.Atendido.endereco.logradouro,
+        "Número": assistido.Atendido.endereco.numero,
+        "Complemento": assistido.Atendido.endereco.complemento,
+        "Bairro": assistido.Atendido.endereco.bairro,
+        "CEP": assistido.Atendido.endereco.cep,
+        "Cidade": assistido.Atendido.endereco.cidade + ", " + assistido.Atendido.endereco.estado
+    }
+
+    dados_renda = {
+        "Benefício Social": next(ben[1] for ben in beneficio.values() if ben[0] == assistido.Assistido.beneficio),
+        "Contribui para a previdência social": next(cont[1] for cont in contribuicao_inss.values() if cont[0] == assistido.Assistido.contribui_inss),
+        "Quantidade de pessoas que moram na mesma casa": assistido.Assistido.qtd_pessoas_moradia,
+        "Renda Familiar": "R$ " + str(assistido.Assistido.renda_familiar).replace(".", ","),
+        "Posição em relação à renda familiar": next(part[1] for part in participacao_renda.values() if part[0] == assistido.Assistido.participacao_renda),
+        "Residência": next(mor[1] for mor in moradia.values() if mor[0] == assistido.Assistido.tipo_moradia),
+        "Possui outros imóveis": "Sim" if assistido.Assistido.possui_outros_imoveis else "Não",
+        "Possui veículos": "Sim" if assistido.Assistido.possui_veiculos else "Não"
+    }
+
+    if assistido.Assistido.possui_veiculos:
+        dados_renda = dados_renda | {
+        "Veículo": assistido.Assistido.possui_veiculos_obs,
+        "Quantidade de Veículos": assistido.Assistido.quantos_veiculos,
+        "Ano do Veículo": assistido.Assistido.ano_veiculo
+        }
+
+    doenca_resposta = "Sim" if assistido.Assistido.doenca_grave_familia == 'sim' else  ("Não" if assistido.Assistido.doenca_grave_familia == 'nao' else "Não Informou")
+
+    dados_renda = dados_renda | {
+        "Há pessoas com doença grave na família?": doenca_resposta
+    }
+
+    if assistido.Assistido.doenca_grave_familia == 'sim':
+        dados_renda = dados_renda | {
+            "Pessoa doente": next(pess[1] for pess in qual_pessoa_doente.values() if pess[0] == assistido.Assistido.pessoa_doente),
+            "Gasto em medicamentos": "R$ " + str(assistido.Assistido.gastos_medicacao).replace(".", ",")
+        }
+
+    dados_renda = dados_renda | {
+        "Observações": assistido.Assistido.obs
+    }
+
+    if assistido.AssistidoPessoaJuridica:
+        dados_juridicos = {
+            "Enquadramento": next(enq[1] for enq in enquadramento.values() if enq[0] == assistido.AssistidoPessoaJuridica.enquadramento),
+            "Sócios da Pessoa Jurídica": assistido.AssistidoPessoaJuridica.socios,
+            "Situação perante a Receita Federal": assistido.AssistidoPessoaJuridica.situacao_receita,
+            "Sede constituída ou a constituir em Belo Horizonte?": "Sim" if assistido.AssistidoPessoaJuridica.sede_bh else "Não"
+        }
+
+        if assistido.AssistidoPessoaJuridica.sede_bh:
+            local_sede = next(reg[1] for reg in regiao_bh.values() if reg[0] == assistido.AssistidoPessoaJuridica.regiao_sede_bh)
+        else:
+            local_sede = assistido.AssistidoPessoaJuridica.regiao_sede_outros
+
+        dados_juridicos.update({
+            "Local da Sede": local_sede,
+            "Área de atuação": next(area[1] for area in area_atuacao.values() if area[0] == assistido.AssistidoPessoaJuridica.area_atuacao),
+            "É negócio nascente?": "Sim" if assistido.AssistidoPessoaJuridica.negocio_nascente else "Não",
+            "Órgão competente": next(org[1] for org in orgao_reg.values() if org[0] == assistido.AssistidoPessoaJuridica.orgao_registro),
+            "Faturamento anual": "R$ " + str(assistido.AssistidoPessoaJuridica.faturamento_anual).replace(".", ",")
+        })
+
+        balanco_resposta = "Sim" if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == '1' else \
+                      "Não" if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == '0' else "Não se aplica"
+
+        resultado_resposta = "Sim" if assistido.AssistidoPessoaJuridica.resultado_econ_neg == "sim" else \
+                         "Não" if assistido.AssistidoPessoaJuridica.resultado_econ_neg == "nao" else "Não se Aplica"
+
+        funcionarios_resposta = "Sim" if assistido.AssistidoPessoaJuridica.tem_funcionarios == "sim" else \
+                            "Não" if assistido.AssistidoPessoaJuridica.tem_funcionarios == "nao" else "Não se Aplica"
+
+        dados_juridicos.update({
+            "O balanço patrimonial do último ano foi negativo?": balanco_resposta,
+            "O resultado econômico do último ano foi negativo?": resultado_resposta,
+            "Tem funcionários?": funcionarios_resposta
+        })
+
+        if assistido.AssistidoPessoaJuridica.tem_funcionarios == 'sim':
+            dados_juridicos["Quantidade de Funcionários"] = assistido.AssistidoPessoaJuridica.qtd_funcionarios
+    else:
+        dados_juridicos = None
+
+    cards = [
+        CardInfo("Dados do Atendimento", dados_atendimento),
+        CardInfo("Dados de Assistido", dados_assistido),
+        CardInfo("Dados PJ", dados_pj),
+        CardInfo("Endereco", dados_endereco),
+        CardInfo("Renda", dados_renda),
+        CardInfo("Dados Juridicos", dados_juridicos)
+    ]
+
+    return render_template(
+        "perfil_assistidos.html",
+        assistido=assistido,
+        cards=cards,
+        count=len(assistido.Atendido.orientacoesJuridicas)
+    )
 
 
 ############################################# ASSISTÊNCIA JUDICIÁRIA ##############################################################
