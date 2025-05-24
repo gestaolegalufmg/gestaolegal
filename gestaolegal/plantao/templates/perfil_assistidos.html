@@ -115,7 +115,7 @@
         {% for key, value in card_item.body.items() %}
             {{ card_field(
                     title=key,
-                    value=value
+                    value=value | safe
                 )
             }}
         {% endfor %}
@@ -130,52 +130,6 @@
     {% endfor %}
 </div>
 
-{% if count > 0 %}
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4>
-                    Orientações Recebidas
-                    <span class="rounded-pill badge-custom">
-                        Total: {{ count }}
-                    </span>
-                </h4>
-            </div>
-            <div class="card-body">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Área do direito </th>
-                            <th>Data</th>
-                            <th>Hora</th>
-                            <th>Criado por</th>
-                            <th style="color: transparent">Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for orientacao in assistido.Atendido.orientacoesJuridicas %}
-                        <tr>
-                            <td class="text-capitalize">{{orientacao.area_direito}}</td>
-                            <td>{{orientacao.data_criacao.strftime("%d/%m/%Y")}}</td>
-                            <td>{{orientacao.data_criacao.strftime("%H:%M")}}</td>
-                            <td>{{orientacao.usuario.nome if orientacao.id_usuario else '--' }}</td>
-                            <td>
-                                <a class="btn btn-outline-light text-primary border btn-sm"
-                                    href="/plantao/orientacao_juridica/{{orientacao.id}}" target="_blank">
-                                    <span>Visualizar</span>
-                                    <i class="fas fa-external-link-alt"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %}
 
 {% block modal %}

@@ -929,10 +929,34 @@ def perfil_assistido(_id):
     else:
         dados_juridicos = None
 
+    # Create orientações jurídicas card
+    orientacoes = {}
+    if assistido.Atendido.orientacoesJuridicas:
+        for i, orientacao in enumerate(assistido.Atendido.orientacoesJuridicas, 1):
+            key = f"Orientação {i}"
+            value = f"{orientacao.area_direito.capitalize()} - {orientacao.data_criacao.strftime('%d/%m/%Y')} - <a href='/plantao/orientacao_juridica/{orientacao.id}' target='_blank'>Visualizar</a>"
+            orientacoes[key] = value
+    else:
+        orientacoes["Status"] = "Não há nenhuma orientação jurídica vinculada"
+
+    # Create casos card
+    casos = {}
+    if assistido.Atendido.casos and assistido.Assistido:
+        for i, caso in enumerate(assistido.Atendido.casos, 1):
+            key = f"Caso {i}"
+            value = f"{caso.area_direito.capitalize()}"
+            if caso.sub_area:
+                value += f" - {caso.sub_area.capitalize()}"
+            casos[key] = value
+    else:
+        casos["Status"] = "Não há nenhum caso vinculado"
+
     cards = [
         CardInfo("Dados do Atendimento", dados_atendimento),
         CardInfo("Dados de Assistido", dados_assistido),
         CardInfo("Dados PJ", dados_pj),
+        CardInfo("Orientações Jurídicas", orientacoes),
+        CardInfo("Casos Vinculados", casos),
         CardInfo("Endereco", dados_endereco),
         CardInfo("Renda", dados_renda),
         CardInfo("Dados Juridicos", dados_juridicos)
@@ -941,8 +965,7 @@ def perfil_assistido(_id):
     return render_template(
         "perfil_assistidos.html",
         assistido=assistido,
-        cards=cards,
-        count=len(assistido.Atendido.orientacoesJuridicas)
+        cards=cards
     )
 
 
