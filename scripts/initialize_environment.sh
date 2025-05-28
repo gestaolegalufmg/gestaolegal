@@ -1,4 +1,4 @@
-#!/bin/env sh
+#!/bin/sh
 set -e
 
 APP_CONTAINER="app_gl"
