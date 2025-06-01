@@ -1,5 +1,5 @@
-{% macro card_field(title, value) %}
-<div class="d-flex flex-wrap mb-2">
+{% macro card_field(title, value, field_class="") %}
+<div class="d-flex flex-wrap {{ field_class }}">
   <div class="text-left" style="flex: 0 0 40%">
     {{ title | safe }}:
   </div>

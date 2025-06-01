@@ -817,7 +817,7 @@ def perfil_assistido(_id):
         "CPF": assistido.Atendido.cpf,
         "CNPJ": assistido.Atendido.cnpj,
         "Celular": assistido.Atendido.celular,
-        "E-Mail": assistido.Atendido.email
+        "E-mail": assistido.Atendido.email
     }
 
     dados_assistido = {
@@ -921,7 +921,6 @@ def perfil_assistido(_id):
     else:
         dados_juridicos = None
 
-    # Create orientações jurídicas card
     orientacoes = {}
     if assistido.Atendido.orientacoesJuridicas:
         for i, orientacao in enumerate(assistido.Atendido.orientacoesJuridicas, 1):
@@ -932,7 +931,6 @@ def perfil_assistido(_id):
     else:
         orientacoes["Status"] = "Não há nenhuma orientação jurídica vinculada"
 
-    # Create casos card
     casos = {}
     if assistido.Atendido.casos and assistido.Assistido:
         for i, caso in enumerate(assistido.Atendido.casos, 1):
@@ -946,13 +944,13 @@ def perfil_assistido(_id):
         casos["Status"] = "Não há nenhum caso vinculado"
 
     cards = [
-        CardInfo("Dados do Atendimento", dados_atendimento),
+        CardInfo("Dados de Atendimento", dados_atendimento),
         CardInfo("Dados de Assistido", dados_assistido),
         CardInfo("Dados PJ", dados_pj),
         CardInfo("Orientações Jurídicas", orientacoes),
         CardInfo("Casos Vinculados", casos),
-        CardInfo("Endereco", dados_endereco),
-        CardInfo("Renda", dados_renda),
+        CardInfo("Endereço", dados_endereco),
+        CardInfo("Renda e Patrimônio", dados_renda),
         CardInfo("Dados Juridicos", dados_juridicos)
     ]
 

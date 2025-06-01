@@ -115,7 +115,8 @@
         {% for key, value in card_item.body.items() %}
             {{ card_field(
                     title=key,
-                    value=value | safe
+                    value=value | safe,
+                    field_class="mb-4"
                 )
             }}
         {% endfor %}
