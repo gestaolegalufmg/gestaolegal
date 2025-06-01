@@ -1,13 +1,5 @@
 ENV ?= development
 
-DC := docker compose --project-name gestaolegal
-
-ifeq ($(ENV),production)
-  COMPOSE_FILES := -f docker-compose.yml -f docker-compose.prod.yml
-else
-  COMPOSE_FILES := -f docker-compose.yml -f docker-compose.dev.yml
-endif
-
 .PHONY: help up down clean logs exec build initialize_environment
 
 ensure_volumes:
@@ -15,10 +7,7 @@ ensure_volumes:
 	@mkdir -p /opt/docker_volumes/mysql_data
 
 up: ensure_volumes
-	$(DC) $(COMPOSE_FILES) up -d
-
-down:
-	$(DC) $(COMPOSE_FILES) down
+	docker compose up -d
 
 clean:
 	@if [ "$(ENV)" = "production" ]; then \
@@ -26,15 +15,6 @@ clean:
 	else \
 		$(DC) $(COMPOSE_FILES) down -v; \
 	fi
-
-logs:
-	$(DC) $(COMPOSE_FILES) logs -f || true
-
-exec:
-	$(DC) $(COMPOSE_FILES) exec -ti $(service) $(cmd)
-
-build:
-	$(DC) $(COMPOSE_FILES) build
 
 initialize_environment:
 	@if [ "$(ENV)" = "production" ]; then \

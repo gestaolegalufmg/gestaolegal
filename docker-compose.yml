@@ -6,11 +6,11 @@ services:
       - "5000:5000"
     volumes:
       - type: bind
-        source: .
-        target: /code
-
+        source: /opt/docker_volumes/mysql_data
+        target: /var/lib/mysql
+    command: gunicorn --bind 0.0.0.0:5000 --workers=4 --timeout=300 wsgi:app
     environment:
-      - FLASK_ENV=development
+      - FLASK_ENV=production
     restart: unless-stopped
 
   db_gl:
@@ -26,9 +26,26 @@ services:
       - '3306:3306'
     expose:
       - '3306'
+    volumes:
+      - type: bind
+        source: /opt/docker_volumes/mysql_data
+        target: /var/lib/mysql
 
   adminer_gl:
-      image: adminer
-      restart: unless-stopped
-      ports:
-        - '8080:8080'
+    image: adminer
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+
+  mailpit:
+    profiles:
+      - dev
+    image: axllent/mailpit:v1.24
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  mysql_data:
+    driver: local

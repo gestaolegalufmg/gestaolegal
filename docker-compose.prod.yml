@@ -3,6 +3,10 @@ services:
     environment:
       - FLASK_ENV=production
     command: gunicorn --bind 0.0.0.0:5000 --workers=4 --timeout=300 wsgi:app
+    volumes:
+      - type: bind
+        source: /opt/docker_volumes/mysql_data
+        target: /var/lib/mysql
 
   db_gl:
     volumes:
