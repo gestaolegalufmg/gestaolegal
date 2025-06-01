@@ -1,13 +1,9 @@
 ENV ?= development
 
-DC := docker compose --project-name $(ENV)
+DC := docker compose --project-name gestaolegal
 
 ifeq ($(ENV),production)
   COMPOSE_FILES := -f docker-compose.yml -f docker-compose.prod.yml
-else ifeq ($(ENV),qa)
-  COMPOSE_FILES := -f docker-compose.yml -f docker-compose.prod.yml
-else ifeq ($(ENV),test)
-  COMPOSE_FILES := -f docker-compose.yml -f docker-compose.test.yml
 else
   COMPOSE_FILES := -f docker-compose.yml -f docker-compose.dev.yml
 endif
@@ -63,8 +59,6 @@ help:
 	@echo ""
 	@echo "Environments:"
 	@echo "  development (default)"
-	@echo "  test"
-	@echo "  qa"
 	@echo "  production"
 	@echo ""
 	@echo "Targets:"
