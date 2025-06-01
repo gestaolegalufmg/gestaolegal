@@ -1,4 +1,0 @@
-aiosmtpd==1.4.6
-pytest-playwright==0.7.0
-pytest-base-url
-
