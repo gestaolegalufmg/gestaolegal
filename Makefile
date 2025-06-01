@@ -47,8 +47,11 @@ initialize_environment:
 		DC="$(DC)" COMPOSE_FILES="$(COMPOSE_FILES)" ./scripts/initialize_environment.sh; \
 	fi
 
-run_test:
-	pytest --ignore=mysql_data/
+tests: up initialize_environment
+	pytest --base-url http://localhost:5000 tests/ -v
+
+tests_dockerized: up initialize_environment
+	./scripts/run_tests.sh
 
 help:
 	@echo "Usage:"
