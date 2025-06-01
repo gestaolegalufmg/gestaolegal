@@ -22,7 +22,7 @@ jobs:
             cd gestaolegal
             git fetch && git reset --hard origin/${{ github.ref_name }}
 
-            export ENV=qa
+            export ENV=production
             make clean
             make up
             make initialize_environment
