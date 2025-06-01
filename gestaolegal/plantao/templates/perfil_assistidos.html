@@ -110,24 +110,24 @@
 <div class="row row-cols-1 row-cols-md-2">
     {% for card_item in cards %}
         {% if card_item.body is defined and card_item.body is not none %}
-
-        {% set body_content %}
-        {% for key, value in card_item.body.items() %}
-            {{ card_field(
-                    title=key,
-                    value=value | safe,
-                    field_class="mb-4"
-                )
-            }}
-        {% endfor %}
-        {% endset %}
-
-        <div class="col">
-            {{ card(header=card_item.title, body=body_content) }}
-        </div>
-
+            {% set body_content %}
+            {% if card_item.body is string %}
+                {{ card_field(message=card_item.body, field_class="mb-4") }}
+            {% else %}
+                {% for key, value in card_item.body.items() %}
+                    {{ card_field(
+                            title=key,
+                            value=value | safe,
+                            field_class="mb-4"
+                        )
+                    }}
+                {% endfor %}
+            {% endif %}
+            {% endset %}
+            <div class="col">
+                {{ card(header=card_item.title, body=body_content) }}
+            </div>
         {% endif %}
-
     {% endfor %}
 </div>
 

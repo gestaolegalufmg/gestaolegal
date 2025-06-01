@@ -62,7 +62,7 @@ from gestaolegal.notificacoes.models import Notificacao, acoes
 @dataclass
 class CardInfo:
     title: str
-    body: dict[str, str | None]
+    body: dict[str, str | None] | str
 
 
 plantao = Blueprint("plantao", __name__, template_folder="templates")
@@ -855,30 +855,30 @@ def perfil_assistido(_id):
         "Residência": next(mor[1] for mor in moradia.values() if mor[0] == assistido.Assistido.tipo_moradia),
         "Possui outros imóveis": "Sim" if assistido.Assistido.possui_outros_imoveis else "Não",
         "Possui veículos": "Sim" if assistido.Assistido.possui_veiculos else "Não"
-    }
+    } if assistido.Assistido else None
 
-    if assistido.Assistido.possui_veiculos:
+    if assistido.Assistido and assistido.Assistido.possui_veiculos:
         dados_renda = dados_renda | {
         "Veículo": assistido.Assistido.possui_veiculos_obs,
         "Quantidade de Veículos": assistido.Assistido.quantos_veiculos,
         "Ano do Veículo": assistido.Assistido.ano_veiculo
         }
 
-    doenca_resposta = "Sim" if assistido.Assistido.doenca_grave_familia == 'sim' else  ("Não" if assistido.Assistido.doenca_grave_familia == 'nao' else "Não Informou")
+        doenca_resposta = "Sim" if assistido.Assistido.doenca_grave_familia == 'sim' else  ("Não" if assistido.Assistido.doenca_grave_familia == 'nao' else "Não Informou")
 
-    dados_renda = dados_renda | {
-        "Há pessoas com doença grave na família?": doenca_resposta
-    }
-
-    if assistido.Assistido.doenca_grave_familia == 'sim':
         dados_renda = dados_renda | {
+        "Há pessoas com doença grave na família?": doenca_resposta
+        }
+
+        if assistido.Assistido.doenca_grave_familia == 'sim':
+            dados_renda = dados_renda | {
             "Pessoa doente": next(pess[1] for pess in qual_pessoa_doente.values() if pess[0] == assistido.Assistido.pessoa_doente),
             "Gasto em medicamentos": "R$ " + str(assistido.Assistido.gastos_medicacao).replace(".", ",")
         }
 
-    dados_renda = dados_renda | {
-        "Observações": assistido.Assistido.obs
-    }
+        dados_renda = dados_renda | {
+            "Observações": assistido.Assistido.obs
+        }
 
     if assistido.AssistidoPessoaJuridica:
         dados_juridicos = {
@@ -921,7 +921,7 @@ def perfil_assistido(_id):
     else:
         dados_juridicos = None
 
-    orientacoes = {}
+    orientacoes: dict[str, str] | str = {}
     if assistido.Atendido.orientacoesJuridicas:
         for i, orientacao in enumerate(assistido.Atendido.orientacoesJuridicas, 1):
             key = f"Orientação {i}"
@@ -929,9 +929,9 @@ def perfil_assistido(_id):
             value = f"<a href='/plantao/orientacao_juridica/{orientacao.id}' target='_blank'>{value}</a>"
             orientacoes[key] = value
     else:
-        orientacoes["Status"] = "Não há nenhuma orientação jurídica vinculada"
+        orientacoes = "Não há nenhuma orientação jurídica vinculada"
 
-    casos = {}
+    casos: dict[str, str] | str = {}
     if assistido.Atendido.casos and assistido.Assistido:
         for i, caso in enumerate(assistido.Atendido.casos, 1):
             key = f"Caso {i}"
@@ -940,19 +940,27 @@ def perfil_assistido(_id):
                 value += f" - {caso.sub_area.capitalize()}"
             value = f"<a href='/casos/visualizar/{caso.id}' target='_blank'>{value}</a>"
             casos[key] = value
-    else:
-        casos["Status"] = "Não há nenhum caso vinculado"
 
-    cards = [
-        CardInfo("Dados de Atendimento", dados_atendimento),
-        CardInfo("Dados de Assistido", dados_assistido),
-        CardInfo("Dados PJ", dados_pj),
-        CardInfo("Orientações Jurídicas", orientacoes),
-        CardInfo("Casos Vinculados", casos),
-        CardInfo("Endereço", dados_endereco),
-        CardInfo("Renda e Patrimônio", dados_renda),
-        CardInfo("Dados Juridicos", dados_juridicos)
-    ]
+    else:
+        casos = "Não há nenhum caso vinculado"
+
+    if assistido.Assistido:
+        cards = [
+            CardInfo("Dados de Atendimento", dados_atendimento),
+            CardInfo("Dados de Assistido", dados_assistido),
+            CardInfo("Dados PJ", dados_pj),
+            CardInfo("Orientações Jurídicas", orientacoes),
+            CardInfo("Casos Vinculados", casos),
+            CardInfo("Endereço", dados_endereco),
+            CardInfo("Renda e Patrimônio", dados_renda),
+            CardInfo("Dados Juridicos", dados_juridicos)
+        ]
+    else:
+        cards = [
+            CardInfo("Dados de Atendimento", dados_atendimento),
+            CardInfo("Endereço", dados_endereco),
+            CardInfo("Orientações Jurídicas", orientacoes),
+        ]
 
     return render_template(
         "perfil_assistidos.html",

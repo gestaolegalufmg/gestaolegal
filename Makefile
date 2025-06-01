@@ -17,7 +17,10 @@ initialize_environment:
 	fi
 
 tests: up initialize_environment
-	pytest --base-url http://localhost:5000 tests/ -v
+	pytest --base-url http://localhost:5000 tests/ -vx
+
+test: up initialize_environment
+	pytest --base-url http://localhost:5000 tests/ $(file) --headed -vx
 
 tests_dockerized: up initialize_environment
 	./scripts/run_tests.sh

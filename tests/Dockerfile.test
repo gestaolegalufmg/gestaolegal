@@ -12,5 +12,4 @@ COPY . .
 
 RUN pip install .[dev]
 
-
-ENTRYPOINT ["pytest", "--base-url", "http://app_gl:5000", "tests/", "-v"]
+ENTRYPOINT ["pytest", "--browser-channel", "chromium", "--base-url", "http://app_gl:5000", "tests/", "-v"]
