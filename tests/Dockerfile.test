@@ -6,12 +6,11 @@ WORKDIR /code
 RUN pip install playwright && \
     playwright install --with-deps
 
-COPY requirements.txt .
-COPY tests/requirements.txt tests/requirements.txt
-
-RUN pip install -r requirements.txt
-RUN pip install -r tests/requirements.txt
+COPY pyproject.toml .
 
 COPY . .
+
+RUN pip install .[dev]
+
 
 ENTRYPOINT ["pytest", "--base-url", "http://app_gl:5000", "tests/", "-v"]

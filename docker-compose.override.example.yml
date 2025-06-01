@@ -1,6 +1,12 @@
 services:
   app_gl:
-    command: flask run --host=0.0.0.0 
+    volumes:
+      - type: bind
+        source: .
+        target: /code
+    command: flask run --host=0.0.0.0
+    environment:
+      - FLASK_ENV=development
 
   db_gl:
     volumes:
@@ -12,9 +18,7 @@ services:
     ports:
       - "1025:1025"
       - "8025:8025"
-    networks:
-        - gestaolegal
 
 volumes:
   mysql_data:
-    driver: local
+    driver: local 
