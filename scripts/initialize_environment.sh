@@ -6,25 +6,25 @@ DB_SERVICE="db_gl"
 
 echo "Waiting for services to be ready..."
 
-until $DC $COMPOSE_FILES ps -q ${APP_SERVICE} | xargs docker inspect -f '{{.State.Running}}' | grep -q "true"; do
+until docker compose ps -q ${APP_SERVICE} | xargs docker inspect -f '{{.State.Running}}' | grep -q "true"; do
   echo "Waiting for ${APP_SERVICE} service to start..."
   sleep 2
 done
 
-until $DC $COMPOSE_FILES exec -T ${DB_SERVICE} mysqladmin ping -h localhost -u root -padministrator --silent 2>/dev/null; do
+until docker compose exec -T ${DB_SERVICE} mysqladmin ping -h localhost -u root -padministrator --silent 2>/dev/null; do
   echo "Waiting for ${DB_SERVICE} database to be ready..."
   sleep 2
 done
 
 echo "Running initialization commands..."
 
-$DC $COMPOSE_FILES exec -T ${APP_SERVICE} bash -c "flask db upgrade"
+docker compose exec -T ${APP_SERVICE} bash -c "flask db upgrade"
 
-ADMIN_EXISTS=$($DC $COMPOSE_FILES exec -T ${DB_SERVICE} mysql -u root -padministrator -e "SELECT COUNT(*) FROM usuarios WHERE nome='admin' LIMIT 1;" gestaolegal --skip-column-names)
+ADMIN_EXISTS=$(docker compose exec -T ${DB_SERVICE} mysql -u root -padministrator -e "SELECT COUNT(*) FROM usuarios WHERE nome='admin' LIMIT 1;" gestaolegal --skip-column-names)
 
 if [ "$ADMIN_EXISTS" -eq "0" ]; then
   echo "Admin user does not exist. Creating..."
-  $DC $COMPOSE_FILES exec -T ${APP_SERVICE} bash -c "flask create-admin admin admin@gl.com 123456"
+  docker compose exec -T ${APP_SERVICE} bash -c "flask create-admin admin admin@gl.com 123456"
   echo "Admin user created successfully"
 else
   echo "Admin user already exists, skipping creation"
