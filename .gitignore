@@ -148,3 +148,4 @@ cython_debug/
 
 #Localhost config
 mysql_data
+docker-compose.override.yml
