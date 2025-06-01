@@ -1,6 +1,6 @@
 ENV ?= development
 
-.PHONY: help up down clean logs exec build initialize_environment
+.PHONY: help up down logs exec build initialize_environment
 
 ensure_volumes:
 	@echo "Ensuring required directories exist..."
@@ -8,13 +8,6 @@ ensure_volumes:
 
 up: ensure_volumes
 	docker compose up -d
-
-clean:
-	@if [ "$(ENV)" = "production" ]; then \
-		echo "This command is intended only for non-production environments"; \
-	else \
-		$(DC) $(COMPOSE_FILES) down -v; \
-	fi
 
 initialize_environment:
 	@if [ "$(ENV)" = "production" ]; then \

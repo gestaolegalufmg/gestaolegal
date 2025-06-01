@@ -19,12 +19,12 @@ jobs:
           key: ${{ secrets.QA_SSH_PRIVATE_KEY }}
           port: 22
           script: |
+            set -e
+
             cd gestaolegal
             git fetch && git reset --hard origin/${{ github.ref_name }}
 
-            export ENV=production
-            make clean
-            make up
+            docker compose pull
+            docker compose build --no-cache
+            docker compose up -d --force-recreate
             make initialize_environment
-
-
