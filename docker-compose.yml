@@ -1,7 +1,6 @@
 services:
   app_gl:
     build: .
-    image: gestao_legal_app
     ports:
       - "5000:5000"
     volumes:
@@ -36,15 +35,6 @@ services:
     restart: unless-stopped
     ports:
       - '8080:8080'
-
-  mailpit:
-    profiles:
-      - dev
-    image: axllent/mailpit:v1.24
-    restart: unless-stopped
-    ports:
-      - "1025:1025"
-      - "8025:8025"
 
 volumes:
   mysql_data:
