@@ -6,7 +6,6 @@ from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
 from flask import Flask, current_app
 from flask_login import LoginManager, current_user
-from flask_migrate import Migrate
 from flask_mail import Mail
 
 
@@ -56,8 +55,6 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_recycle": 10}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
-Migrate(app, db, compare_type=True)
-
 
 #############################################################
 ########### VARIÁVEIS/FUNÇÕES DO TEMPLATE ###################
