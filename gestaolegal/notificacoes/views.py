@@ -36,7 +36,9 @@ def index():
     else:
         notificacoes = notificacoes.filter(Notificacao.id_usu_notificar == current_user.id)
 
-    notificacoes = notificacoes.order_by(Notificacao.data.desc()).paginate(page, app.config['ATENDIDOS_POR_PAGINA'], False)
+    notificacoes = notificacoes.order_by(Notificacao.data.desc()).paginate(
+        page=page, per_page=app.config['ATENDIDOS_POR_PAGINA'], error_out=False
+    )
 
     return render_template('notificacoes.html', notificacoes = notificacoes)
 

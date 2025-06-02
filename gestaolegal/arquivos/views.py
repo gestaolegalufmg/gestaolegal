@@ -16,7 +16,9 @@ arquivos = Blueprint('arquivos', __name__, template_folder='templates')
 @login_required()
 def index():
     page = request.args.get('page', 1, type=int)
-    arquivos = Arquivo.query.paginate(page, app.config['ARQUIVOS_POR_PAGINA'], False)
+    arquivos = Arquivo.query.paginate(
+        page=page, per_page=app.config['ARQUIVOS_POR_PAGINA'], error_out=False
+    )
     return render_template('arquivos.html', arquivos = arquivos)
 
 @arquivos.route('/cadastrar_arquivo', methods = ['GET','POST'])

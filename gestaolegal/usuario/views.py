@@ -403,7 +403,7 @@ def listar_usuarios():
     page = request.args.get("page", 1, type=int)
     # usuarios = Usuario.query.filter(Usuario.status != False).order_by(Usuario.nome).paginate(
     usuarios = Usuario.query.order_by(Usuario.nome).paginate(
-        page, app.config["USUARIOS_POR_PAGINA"], False
+        page=page, per_page=app.config["USUARIOS_POR_PAGINA"], error_out=False
     )
     if not usuarios:
         flash("Não há usuários cadastrados no sistema.", "info")

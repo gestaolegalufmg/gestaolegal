@@ -191,7 +191,7 @@ def busca_atendidos_assistidos():
             .outerjoin(Assistido)
             .filter(Assistido.atendido == None)
             .order_by(Atendido.nome)
-            .paginate(page, app.config["ATENDIDOS_POR_PAGINA"], False)
+            .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
         )
         atendidos_assistidos.items = [(x, None) for x in atendidos_assistidos.items]
     elif tipo_busca == tipos_busca_atendidos["ASSISTIDOS"]:
@@ -208,7 +208,7 @@ def busca_atendidos_assistidos():
             .outerjoin(Assistido)
             .filter(Assistido.atendido != None)
             .order_by(Atendido.nome)
-            .paginate(page, app.config["ATENDIDOS_POR_PAGINA"], False)
+            .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
         )
 
     return render_template(
@@ -710,7 +710,7 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
         blacklist_ids.append(atendido.id)
     lista = Atendido.query.filter(
         ~Atendido.id.in_(blacklist_ids), Atendido.status == True
-    ).paginate(page, app.config["ATENDIDOS_POR_PAGINA"], False)
+    ).paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
     orientacao_entidade = OrientacaoJuridica.query.get(id_orientacao)
 
     return render_template(
@@ -1096,7 +1096,7 @@ def listar_assistencias_judiciarias():
     _assistencias = (
         AssistenciaJudiciaria.query.filter_by(status=True)
         .order_by("nome")
-        .paginate(page, app.config["ATENDIDOS_POR_PAGINA"], False)
+        .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
     )
 
     return render_template(
@@ -1114,7 +1114,7 @@ def orientacoes_juridicas():
     orientacoes = (
         OrientacaoJuridica.query.filter_by(status=True)
         .order_by(OrientacaoJuridica.id.desc())
-        .paginate(page, app.config["ATENDIDOS_POR_PAGINA"], False)
+        .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
     )
 
     return render_template("orientacoes_juridicas.html", orientacoes=orientacoes)
@@ -1208,7 +1208,7 @@ def busca_oj(_busca):
         orientacoes = (
             queryFiltradaStatus(OrientacaoJuridica)
             .order_by(OrientacaoJuridica.id.desc())
-            .paginate(page, app.config["ATENDIDOS_POR_PAGINA"], False)
+            .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
         )
     else:
         orientacoes = (
@@ -1225,7 +1225,7 @@ def busca_oj(_busca):
                 ((Atendido.nome.contains(_busca)) | (Atendido.cpf.contains(_busca)))
             )
             .order_by(OrientacaoJuridica.id.desc())
-            .paginate(page, app.config["ATENDIDOS_POR_PAGINA"], False)
+            .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
         )
 
     return render_template("busca_orientacoes_juridicas.html", orientacoes=orientacoes)
@@ -1265,7 +1265,7 @@ def busca_assistencia_judiciaria():
         db.session.query(AssistenciaJudiciaria), _busca
     )
     assistencias = query_filtro_assistencia_judiciaria(assistencias, filtro).paginate(
-        page, app.config["ATENDIDOS_POR_PAGINA"], False
+        page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
     )
 
     return render_template(
