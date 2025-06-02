@@ -1,4 +1,4 @@
-from playwright.sync_api import Playwright, expect
+from playwright.sync_api import expect
 
 
 def test_login_sucessful(page) -> None:
