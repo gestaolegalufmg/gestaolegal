@@ -106,10 +106,8 @@ def setValoresFormAtendido(entidade_atendido: Atendido, form: CadastroAtendidoFo
     form.cep.data = entidade_atendido.endereco.cep
     form.cidade.data = entidade_atendido.endereco.cidade
     form.estado.data = entidade_atendido.endereco.estado
-    form.pj_constituida.data = (
-        False if entidade_atendido.pj_constituida == "0" else True
-    )
-    form.repres_legal.data = False if entidade_atendido.repres_legal == "0" else True
+    form.pj_constituida.data = entidade_atendido.pj_constituida
+    form.repres_legal.data = entidade_atendido.repres_legal
     form.nome_repres_legal.data = entidade_atendido.nome_repres_legal
     form.cpf_repres_legal.data = entidade_atendido.cpf_repres_legal
     form.contato_repres_legal.data = entidade_atendido.contato_repres_legal
@@ -207,7 +205,7 @@ def busca_todos_atendidos_assistidos(busca, page):
             & (Atendido.status == True)
         )
         .order_by(Atendido.nome)
-        .paginate(page, app.config["ATENDIDOS_POR_PAGINA"], False)
+        .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
     )
 
 

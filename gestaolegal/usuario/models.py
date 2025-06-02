@@ -7,9 +7,9 @@ from flask import Flask
 from flask import session
 from flask_bcrypt import Bcrypt
 from flask_login import UserMixin
-from sqlalchemy.sql import expression
-from sqlalchemy import null
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from sqlalchemy import select, false
+from sqlalchemy.orm import relationship
+from itsdangerous import URLSafeTimedSerializer as Serializer
 
 from gestaolegal import app, db, login_manager
 from datetime import datetime
@@ -67,7 +67,7 @@ tipo_bolsaUsuario = {
 
 @login_manager.user_loader
 def load_user(user_id):
-    return Usuario.query.get(user_id)
+    return db.session.get(Usuario, user_id)
 
 
 class Usuario(db.Model, UserMixin):
@@ -115,7 +115,7 @@ class Usuario(db.Model, UserMixin):
     fim_bolsa = db.Column(db.DateTime)
     endereco_id = db.Column(db.Integer, db.ForeignKey("enderecos.id"))
     endereco = db.relationship("Endereco", lazy="joined")
-    chave_recuperacao = db.Column(db.Boolean, server_default=expression.false())
+    chave_recuperacao = db.Column(db.Boolean, server_default=false())
 
     def setSenha(self, senha):
         self.senha = self.bcrypt.generate_password_hash(senha).decode("utf-8")
@@ -152,7 +152,7 @@ class Usuario(db.Model, UserMixin):
             user_id = s.loads(token)["user_id"]
         except:
             return None
-        return Usuario.query.get(user_id)
+        return db.session.get(Usuario, user_id)
 
 
 class Endereco(db.Model):

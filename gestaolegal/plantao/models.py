@@ -276,7 +276,7 @@ class Atendido(db.Model):
     pj_constituida = db.Column(
         db.String(80, collation="latin1_general_ci"), nullable=False
     )
-    repres_legal = db.Column(db.Boolean)
+    repres_legal = db.Column(db.String(1, collation="latin1_general_ci"))
     nome_repres_legal = db.Column(db.String(80, collation="latin1_general_ci"))
     cpf_repres_legal = db.Column(db.String(14, collation="latin1_general_ci"))
     contato_repres_legal = db.Column(db.String(18, collation="latin1_general_ci"))
@@ -340,8 +340,8 @@ class Assistido(db.Model):
     __tablename__ = "assistidos"
 
     id = db.Column(db.Integer, primary_key=True)
-    id_atendido = db.Column(db.Integer, db.ForeignKey("atendidos.id"))
-    atendido = db.relationship("Atendido", lazy="joined")
+    id_atendido = db.Column(db.Integer, db.ForeignKey("atendidos.id", ondelete='CASCADE'))
+    atendido = relationship("Atendido", lazy="joined")
 
     # Dados pessoais
     sexo = db.Column(db.String(1, collation="latin1_general_ci"), nullable=False)
@@ -418,8 +418,8 @@ class AssistidoPessoaJuridica(db.Model):
     __tablename__ = "assistidos_pessoa_juridica"
 
     id = db.Column(db.Integer, primary_key=True)
-    id_assistido = db.Column(db.Integer, db.ForeignKey("assistidos.id"))
-    assistido = db.relationship("Assistido", lazy="joined")
+    id_assistido = db.Column(db.Integer, db.ForeignKey("assistidos.id", ondelete='CASCADE'))
+    assistido = relationship("Assistido", lazy="joined")
 
     # Dados específicos
     socios = db.Column(db.String(1000, collation="latin1_general_ci"))

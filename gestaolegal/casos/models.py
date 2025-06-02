@@ -3,8 +3,8 @@ from sqlalchemy import null
 
 # Relacionamento Casos <--> Atendidos
 associacao_casos_atendidos = db.Table('casos_atendidos', db.metadata,
-                                      db.Column('id_caso', db.Integer, db.ForeignKey('casos.id')),
-                                      db.Column('id_atendido', db.Integer, db.ForeignKey('atendidos.id'))
+                                      db.Column('id_caso', db.Integer, db.ForeignKey('casos.id', ondelete='CASCADE')),
+                                      db.Column('id_atendido', db.Integer, db.ForeignKey('atendidos.id', ondelete='CASCADE'))
                                       )
 
 situacao_deferimento = {

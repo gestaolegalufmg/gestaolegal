@@ -61,7 +61,7 @@ def index():
     )
 
     casos = query_opcoes_filtro_casos(opcao_filtro).paginate(
-        page, app.config["CASOS_POR_PAGINA"], False
+        page=page, per_page=app.config["CASOS_POR_PAGINA"], error_out=False
     )
 
     return render_template(
@@ -80,7 +80,7 @@ def ajax_filtro_casos():
     )
 
     casos = query_opcoes_filtro_casos(opcao_filtro).paginate(
-        page, app.config["CASOS_POR_PAGINA"], False
+        page=page, per_page=app.config["CASOS_POR_PAGINA"], error_out=False
     )
 
     return render_template(
@@ -681,7 +681,7 @@ def eventos(id_caso):
     )
 
     _eventos = query_opcoes_filtro_eventos(id_caso, opcao_filtro).paginate(
-        page, app.config["CASOS_POR_PAGINA"], False
+        page=page, per_page=app.config["EVENTOS_POR_PAGINA"], error_out=False
     )
 
     if not _eventos.items:
@@ -704,7 +704,7 @@ def ajax_filtro_eventos(id_caso):
     )
 
     _eventos = query_opcoes_filtro_eventos(id_caso, opcao_filtro).paginate(
-        page, app.config["CASOS_POR_PAGINA"], False
+        page=page, per_page=app.config["EVENTOS_POR_PAGINA"], error_out=False
     )
 
     return render_template(
@@ -899,7 +899,7 @@ def historico(id_caso):
             .join(Caso)
             .filter((Caso.id == id_caso) & (Usuario.id == Historico.id_usuario))
             .order_by(Historico.data.desc())
-            .paginate(page, app.config["HISTORICOS_POR_PAGINA"], False)
+            .paginate(page=page, per_page=app.config["HISTORICOS_POR_PAGINA"], error_out=False)
     )
     return render_template("historico.html", historicos=historicos, caso_id=id_caso)
 
@@ -914,7 +914,7 @@ def meus_casos():
     )
 
     casos = query_opcoes_filtro_meus_casos(current_user.id, opcao_filtro).paginate(
-        page, app.config["CASOS_POR_PAGINA"], False
+        page=page, per_page=app.config["CASOS_POR_PAGINA"], error_out=False
     )
 
     titulo_total = titulo_total_meus_casos(casos.total)
@@ -936,7 +936,7 @@ def ajax_filtro_meus_casos():
     )
 
     casos = query_opcoes_filtro_meus_casos(current_user.id, opcao_filtro).paginate(
-        page, app.config["CASOS_POR_PAGINA"], False
+        page=page, per_page=app.config["CASOS_POR_PAGINA"], error_out=False
     )
 
     titulo_total = titulo_total_meus_casos(casos.total)

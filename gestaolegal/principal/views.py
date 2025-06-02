@@ -54,22 +54,24 @@ def busca_geral():
                   .join(Assistido)
                   .filter(or_(Atendido.nome.contains(busca), Atendido.cpf.contains(busca)))
                   .order_by('nome')
-                  .paginate(page_assistido_pfisica, app.config['ATENDIDOS_POR_PAGINA'], False))
+                  .paginate(page=page_assistido_pfisica, per_page=app.config['ATENDIDOS_POR_PAGINA'], error_out=False))
                   
     assistidos_pjuridica = (Atendido.query
                             .join(Assistido)
                             .join(AssistidoPessoaJuridica)
                             .filter(or_(Atendido.nome.contains(busca), Atendido.cpf.contains(busca))).order_by('nome')
-                            .paginate(page_assistido_pjuridica, app.config['ATENDIDOS_POR_PAGINA'], False))
+                            .paginate(page=page_assistido_pjuridica, per_page=app.config['ATENDIDOS_POR_PAGINA'], error_out=False))
 
     usuarios = (Usuario.query.filter(or_(
                 and_(Usuario.nome.contains(busca), Usuario.status != False), 
                 and_(Usuario.cpf.contains(busca), Usuario.status != False)))
                 .order_by('nome')
-                .paginate(page_usuario, app.config['USUARIOS_POR_PAGINA'], False))
+                .paginate(page=page_usuario, per_page=app.config['USUARIOS_POR_PAGINA'], error_out=False))
     
     casos = None
     if busca.isdigit():
-        casos = Caso.query.filter_by(status = True, id = int(busca)).paginate(page_caso, app.config['CASOS_POR_PAGINA'], False)
+        casos = Caso.query.filter_by(status = True, id = int(busca)).paginate(
+            page=page_caso, per_page=app.config['CASOS_POR_PAGINA'], error_out=False
+        )
 
     return render_template("busca_geral.html", assistidos = assistidos, assistidos_pjuridica = assistidos_pjuridica, usuarios = usuarios, casos = casos, busca_atual = busca)
