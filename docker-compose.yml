@@ -7,9 +7,10 @@ services:
       - type: bind
         source: /opt/docker_volumes/mysql_data
         target: /var/lib/mysql
-    command: gunicorn --bind 0.0.0.0:5000 --workers=4 --timeout=300 wsgi:app
+    command: gunicorn --bind 0.0.0.0:5000 --workers=4 --timeout=300 gestaolegal.wsgi:app
     environment:
       - FLASK_ENV=production
+      - FLASK_APP=gestaolegal.wsgi:app
 
       # Uncomment the lines below and tweak its values to customize the app
       # - COMPANY_NAME=Custom Name
