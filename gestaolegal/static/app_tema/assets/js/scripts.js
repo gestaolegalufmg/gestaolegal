@@ -577,8 +577,8 @@ $(function () {
     if ($(this).val() == "1") {
       $('body').removeClass();
       $('body').addClass('light');
-      $('body').addClass('blue-sidebar');
-      $('body').addClass('theme-blue');
+      // $('body').addClass('blue-sidebar');
+      // $('body').addClass('theme-blue');
 
       $(".choose-theme li").removeClass("active");
       $(".choose-theme li[title|='white']").addClass("active");
@@ -626,8 +626,8 @@ $(function () {
 
   //add default class on body tag
   jQuery("body").addClass('light');
-  jQuery("body").addClass("blue-sidebar");
-  jQuery("body").addClass("theme-blue");
+  // jQuery("body").addClass("blue-sidebar");
+  // jQuery("body").addClass("theme-blue");
   // set theme default color
   $(".sidebar-color li").removeClass("active");
   $(".sidebar-color li[title|='purple']").addClass("active");
