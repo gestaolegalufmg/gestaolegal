@@ -10,6 +10,11 @@ services:
     command: gunicorn --bind 0.0.0.0:5000 --workers=4 --timeout=300 wsgi:app
     environment:
       - FLASK_ENV=production
+
+      # Uncomment the lines below and tweak its values to customize the app
+      # - COMPANY_NAME=Custom Name
+      # - COMPANY_COLOR=#8a1237
+
     restart: unless-stopped
 
   db_gl:
