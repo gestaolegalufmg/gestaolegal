@@ -63,7 +63,7 @@ Migrate(app, db, compare_type=True)
 ########### VARIÁVEIS/FUNÇÕES DO TEMPLATE ###################
 #############################################################
 @app.context_processor
-def inject_company_name():
+def inject_company_config():
     return dict(company_name=app.config["COMPANY_NAME"], company_color=app.config["COMPANY_COLOR"])
 
 @app.context_processor
