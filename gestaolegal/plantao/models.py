@@ -289,15 +289,15 @@ class Atendido(db.Model):
         if como_conheceu == como_conheceu_daj["ORGAOSPUBLICOS"][0]:
             self.indicacao_orgao = indicacao_orgao
         else:
-            self.indicacao_orgao = null()
+            self.indicacao_orgao = None
 
     def setCnpj(self, pj_constituida, cnpj, repres_legal):
         if pj_constituida:
             self.cnpj = cnpj
             self.repres_legal = repres_legal
         else:
-            self.cnpj = null()
-            self.repres_legal = null()
+            self.cnpj = None
+            self.repres_legal = None
 
     def setRepres_legal(
         self,
@@ -316,17 +316,17 @@ class Atendido(db.Model):
             self.rg_repres_legal = rg_repres_legal
             self.nascimento_repres_legal = nascimento_repres_legal
         else:
-            self.nome_repres_legal = null()
-            self.cpf_repres_legal = null()
-            self.contato_repres_legal = null()
-            self.rg_repres_legal = null()
-            self.nascimento_repres_legal = null()
+            self.nome_repres_legal = None
+            self.cpf_repres_legal = None
+            self.contato_repres_legal = None
+            self.rg_repres_legal = None
+            self.nascimento_repres_legal = None
 
     def setProcurou_qual_local(self, procurou_outro_local, procurou_qual_local):
         if procurou_outro_local:
             self.procurou_qual_local = procurou_qual_local
         else:
-            self.procurou_qual_local = null()
+            self.procurou_qual_local = None
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
@@ -391,9 +391,9 @@ class Assistido(db.Model):
             self.quantos_veiculos = quantos_veiculos
             self.ano_veiculo = ano_veiculo
         else:
-            self.possui_veiculos_obs = null()
-            self.quantos_veiculos = null()
-            self.ano_veiculo = null()
+            self.possui_veiculos_obs = None
+            self.quantos_veiculos = None
+            self.ano_veiculo = None
 
     def setCamposDoenca(
         self, doenca_grave_familia, pessoa_doente, pessoa_doente_obs, gastos_medicacao
@@ -404,11 +404,11 @@ class Assistido(db.Model):
             if pessoa_doente == "sim":
                 self.pessoa_doente_obs = pessoa_doente_obs
             else:
-                self.pessoa_doente_obs = null()
+                self.pessoa_doente_obs = None
         else:
-            self.pessoa_doente = null()
-            self.pessoa_doente_obs = null()
-            self.gastos_medicacao = null()
+            self.pessoa_doente = None
+            self.pessoa_doente_obs = None
+            self.gastos_medicacao = None
 
     def __repr__(self):
         return f"RG:{self.rg}"
@@ -450,16 +450,16 @@ class AssistidoPessoaJuridica(db.Model):
     def setCamposRegiao_sede(self, sede_bh, regiao_sede_bh, regiao_sede_outros):
         if sede_bh:
             self.regiao_sede_bh = regiao_sede_bh
-            self.regiao_sede_outros = null()
+            self.regiao_sede_outros = None
         else:
-            self.regiao_sede_bh = null()
+            self.regiao_sede_bh = None
             self.regiao_sede_outros = regiao_sede_outros
 
     def setQtd_funcionarios(self, tem_funcionarios, qtd_funcionarios):
         if tem_funcionarios:
             self.qtd_funcionarios = qtd_funcionarios
         else:
-            self.qtd_funcionarios = null()
+            self.qtd_funcionarios = None
 
     def __repr__(self):
         return f"RG:{self.enquadramento}"
@@ -496,7 +496,7 @@ class OrientacaoJuridica(db.Model):
         elif area_direito == area_do_direito["ADMINISTRATIVO"][0]:
             self.sub_area = sub_areaAdmin
         else:
-            self.sub_area = null()
+            self.sub_area = None
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

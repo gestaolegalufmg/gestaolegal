@@ -1,13 +1,9 @@
-import enum
 from datetime import date, datetime
-from enum import Enum
 import click
 
-from flask import Flask
-from flask import session
 from flask_bcrypt import Bcrypt
 from flask_login import UserMixin
-from sqlalchemy import select, false
+from sqlalchemy import false
 from sqlalchemy.orm import relationship
 from itsdangerous import URLSafeTimedSerializer as Serializer
 
@@ -134,9 +130,9 @@ class Usuario(db.Model, UserMixin):
             self.fim_bolsa = fim_bolsa
             self.tipo_bolsa = tipo_bolsa
         else:
-            self.inicio_bolsa = null()
-            self.fim_bolsa = null()
-            self.tipo_bolsa = null()
+            self.inicio_bolsa = None
+            self.fim_bolsa = None
+            self.tipo_bolsa = None
 
     def tokenRecuperacao(self, expires_sec=2200):
         s = Serializer(app.config["SECRET_KEY"], expires_sec)

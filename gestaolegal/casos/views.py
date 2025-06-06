@@ -287,17 +287,17 @@ def editar_caso(id_caso):
             return render_template("caso.html", form=form, caso=entidade_caso)
         else:
             if form.orientador.data == "":
-                entidade_caso.id_orientador = null()
+                entidade_caso.id_orientador = None
             else:
                 entidade_caso.id_orientador = int(form.orientador.data)
 
             if form.estagiario.data == "":
-                entidade_caso.id_estagiario = null()
+                entidade_caso.id_estagiario = None
             else:
                 entidade_caso.id_estagiario = int(form.estagiario.data)
 
             if form.colaborador.data == "":
-                entidade_caso.id_colaborador = null()
+                entidade_caso.id_colaborador = None
             else:
                 entidade_caso.id_colaborador = int(form.colaborador.data)
 
