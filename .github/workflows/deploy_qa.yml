@@ -9,7 +9,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.QA_SSH_HOST }}
+          username: ${{ vars.QA_SSH_USERNAME }}
+          key: ${{ secrets.QA_SSH_PRIVATE_KEY }}
+          port: 22
+          source: "docker-compose.yml,Makefile,scripts"
+          target: "/tmp/gestaolegal/"
 
       - name: Setup SSH
         uses: appleboy/ssh-action@master
@@ -21,10 +31,20 @@ jobs:
           script: |
             set -e
 
-            cd gestaolegal
-            git fetch && git reset --hard origin/${{ github.ref_name }}
+            cd /tmp/gestaolegal
+
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            IMAGE_TAG="latest"
+            if [[ "${{ github.ref_name }}" != "master" ]]; then
+              IMAGE_TAG="${{ github.ref_name }}"
+            fi
+
+            export DOCKER_IMAGE="ghcr.io/${{ github.repository_owner }}/gestaolegal:${IMAGE_TAG}"
 
             docker compose pull
-            docker compose build --no-cache
             docker compose up -d --force-recreate
             make initialize_environment
+
+            # HACK: Workaround so this deployment will work on temporary QA VPS
+            docker network connect caddy_reverse-proxy gestaolegal-app_gl-1
