@@ -400,8 +400,8 @@ def valida_fim_plantao(plantao: Plantao):
                     DiaPlantao.query.delete()
                     db.session.flush()
 
-                    plantao.data_fechamento = null()
-                    plantao.data_abertura = null()
+                    plantao.data_fechamento = None
+                    plantao.data_abertura = None
                     db.session.commit()
                 except:
                     db.session.rollback()

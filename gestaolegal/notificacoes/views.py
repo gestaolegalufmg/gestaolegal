@@ -1,24 +1,9 @@
-import os
-from datetime import datetime
-from unicodedata import normalize
-
-from flask import (Blueprint, abort, current_app, flash, json, redirect,
+from flask import (Blueprint, redirect,
                    render_template, request, url_for)
 from flask_login import current_user
-from flask_paginate import Pagination, get_page_args
-from sqlalchemy import and_, or_
-from sqlalchemy import null
-from sqlalchemy.exc import SQLAlchemyError
-
 from gestaolegal import app, db, login_required
-from gestaolegal.casos.forms import (CasoForm,
-                                     JustificativaIndeferimento,
-                                     LembreteForm, RoteiroForm, EventoForm, ProcessoForm)
-from gestaolegal.casos.models import (Caso, Historico, Lembrete, Roteiro,
-                                      situacao_deferimento, Evento, Processo)
 from gestaolegal.notificacoes.models import Notificacao
 from gestaolegal.usuario.models import usuario_urole_roles
-from gestaolegal.utils.models import queryFiltradaStatus
 
 notificacoes = Blueprint('notificacoes', __name__, template_folder='templates')
 
@@ -32,7 +17,7 @@ def index():
                      .query(Notificacao)
 
     if current_user.urole in [usuario_urole_roles['ORIENTADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]]:
-        notificacoes = notificacoes.filter((Notificacao.id_usu_notificar == current_user.id) | (Notificacao.id_usu_notificar == null()))
+        notificacoes = notificacoes.filter((Notificacao.id_usu_notificar == current_user.id) | (Notificacao.id_usu_notificar == None))
     else:
         notificacoes = notificacoes.filter(Notificacao.id_usu_notificar == current_user.id)
 

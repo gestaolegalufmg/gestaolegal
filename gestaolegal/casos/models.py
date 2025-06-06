@@ -75,7 +75,7 @@ class Caso(db.Model):
         elif area_direito == 'administrativo':
             self.sub_area = sub_areaAdmin
         else:
-            self.sub_area = null()
+            self.sub_area = None
 
 
 class ArquivoCaso(db.Model):
