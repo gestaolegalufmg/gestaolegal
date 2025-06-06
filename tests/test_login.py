@@ -20,6 +20,7 @@ def test_login_empty_password_failure(page) -> None:
 
     expect(page.locator(".was-validated #senha:invalid")).to_be_visible()
 
+
 def test_login_wrong_password_failure(page) -> None:
     page.goto("/usuario/login")
     page.locator("#login").click()
@@ -30,6 +31,7 @@ def test_login_wrong_password_failure(page) -> None:
 
     expect(page).to_have_url("/usuario/login")
     page.locator("div").filter(has_text="Atenção:Senha inválida!").nth(2)
+
 
 def test_login_wrong_password_failure(page) -> None:
     page.goto("/usuario/login")
@@ -42,6 +44,7 @@ def test_login_wrong_password_failure(page) -> None:
     expect(page).to_have_url("/usuario/login")
     page.locator("div").filter(has_text="Atenção:Senha inválida!").nth(2)
 
+
 def test_login_wrong_email_failure(page) -> None:
     page.goto("/usuario/login")
     page.locator("#login").click()
@@ -52,6 +55,7 @@ def test_login_wrong_email_failure(page) -> None:
 
     expect(page).to_have_url("/usuario/login")
     page.locator("div").filter(has_text="Atenção:Email inválido!").nth(2)
+
 
 def test_login_invalid_email_failure(page) -> None:
     page.goto("/usuario/login")

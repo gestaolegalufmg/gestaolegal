@@ -1,14 +1,13 @@
 from flask_wtf import FlaskForm
 from wtforms import (
     DateField,
-    FloatField,
+    HiddenField,
     IntegerField,
     SelectField,
     SelectMultipleField,
     StringField,
     SubmitField,
     TextAreaField,
-    HiddenField,
     TimeField,
 )
 from wtforms.validators import (
@@ -23,11 +22,10 @@ from wtforms.validators import (
 )
 
 from gestaolegal.plantao.models import (
-    Assistido,
-    AssistidoPessoaJuridica,
-    Atendido,
     area_atuacao,
     area_do_direito,
+    assistencia_jud_areas_atendidas,
+    assistencia_jud_regioes,
     beneficio,
     como_conheceu_daj,
     contribuicao_inss,
@@ -41,18 +39,13 @@ from gestaolegal.plantao.models import (
     regiao_bh,
     se_administrativo,
     se_civel,
-    assistencia_jud_areas_atendidas,
-    assistencia_jud_regioes,
 )
 from gestaolegal.usuario.forms import EnderecoForm
 from gestaolegal.usuario.models import (
     estado_civilUsuario,
     sexo_usuario,
-    tipo_bolsaUsuario,
-    usuario_urole_roles,
 )
 from gestaolegal.utils.forms import MyFloatField
-
 
 #####################################################
 ##################### CONSTANTS ####################
@@ -70,29 +63,29 @@ MSG_EscolhaUmaData = "Por favor, escolha uma data {}"
 
 # Field length limits
 FIELD_LIMITS = {
-    'nome': 80,
-    'cpf': 14,
-    'cnpj': 18,
-    'telefone': 18,
-    'celular': 18,
-    'areajuridica': 80,
-    'comoconheceu': 80,
-    'indicacaoOrgao': 80,
-    'procurouOutroLocal': 80,
-    'obs': 1000,
-    'logradouro': 100,
-    'numero': 8,
-    'complemento': 100,
-    'bairro': 100,
-    'cep': 9,
-    'profissao': 80,
-    'sit_receita': 100,
-    'qual_veiculo': 100,
-    'ano_veiculo': 5,
-    'rg': 50,
-    'sede_outros': 100,
-    'qts_func': 7,
-    'descricao': 2000,
+    "nome": 80,
+    "cpf": 14,
+    "cnpj": 18,
+    "telefone": 18,
+    "celular": 18,
+    "areajuridica": 80,
+    "comoconheceu": 80,
+    "indicacaoOrgao": 80,
+    "procurouOutroLocal": 80,
+    "obs": 1000,
+    "logradouro": 100,
+    "numero": 8,
+    "complemento": 100,
+    "bairro": 100,
+    "cep": 9,
+    "profissao": 80,
+    "sit_receita": 100,
+    "qual_veiculo": 100,
+    "ano_veiculo": 5,
+    "rg": 50,
+    "sede_outros": 100,
+    "qts_func": 7,
+    "descricao": 2000,
 }
 
 
@@ -100,11 +93,13 @@ FIELD_LIMITS = {
 ############### CUSTOM VALIDATORS ###################
 #####################################################
 
+
 class RequiredIf:
     """
     Custom validator that makes a field required based on another field's value.
     Modern replacement for the old RequiredIf validator.
     """
+
     def __init__(self, fieldname, value=None, message=None, **kwargs):
         self.fieldname = fieldname
         self.value = value
@@ -118,7 +113,7 @@ class RequiredIf:
 
         # Check if multiple conditions need to be met
         conditions_met = True
-        
+
         # Check main fieldname condition
         if self.value is not None:
             if other_field.data != self.value:
@@ -135,7 +130,7 @@ class RequiredIf:
                 break
 
         if conditions_met and not field.data:
-            message = self.message or f'This field is required.'
+            message = self.message or "This field is required."
             raise ValidationError(message)
 
 
@@ -143,13 +138,14 @@ class RequiredIfInputRequired(RequiredIf):
     """
     Similar to RequiredIf but for numeric fields that need InputRequired behavior.
     """
+
     def __call__(self, form, field):
         other_field = form._fields.get(self.fieldname)
         if other_field is None:
             raise Exception(f'No field named "{self.fieldname}" in form')
 
         if other_field.data == self.value and field.data is None:
-            message = self.message or f'This field is required.'
+            message = self.message or "This field is required."
             raise ValidationError(message)
 
 
@@ -157,12 +153,16 @@ class RequiredIfInputRequired(RequiredIf):
 #################### FORMS ##########################
 #####################################################
 
+
 class OrientacaoJuridicaForm(FlaskForm):
     area_direito = SelectField(
         "Área do Direito",
         choices=[
             (area_do_direito["AMBIENTAL"][0], area_do_direito["AMBIENTAL"][1]),
-            (area_do_direito["ADMINISTRATIVO"][0], area_do_direito["ADMINISTRATIVO"][1]),
+            (
+                area_do_direito["ADMINISTRATIVO"][0],
+                area_do_direito["ADMINISTRATIVO"][1],
+            ),
             (area_do_direito["CIVEL"][0], area_do_direito["CIVEL"][1]),
             (area_do_direito["EMPRESARIAL"][0], area_do_direito["EMPRESARIAL"][1]),
             (area_do_direito["PENAL"][0], area_do_direito["PENAL"][1]),
@@ -184,7 +184,10 @@ class OrientacaoJuridicaForm(FlaskForm):
             (se_civel["CONTRATOS"][0], se_civel["CONTRATOS"][1]),
             (se_civel["FAMILIA"][0], se_civel["FAMILIA"][1]),
             (se_civel["REAIS"][0], se_civel["REAIS"][1]),
-            (se_civel["RESPONSABILIDADE_CIVIL"][0], se_civel["RESPONSABILIDADE_CIVIL"][1]),
+            (
+                se_civel["RESPONSABILIDADE_CIVIL"][0],
+                se_civel["RESPONSABILIDADE_CIVIL"][1],
+            ),
             (se_civel["SUCESSOES"][0], se_civel["SUCESSOES"][1]),
         ],
         validators=[
@@ -203,8 +206,14 @@ class OrientacaoJuridicaForm(FlaskForm):
     sub_areaAdmin = SelectField(
         "Sub-área Administrativo",
         choices=[
-            (se_administrativo["ADMINISTRATIVO"][0], se_administrativo["ADMINISTRATIVO"][1]),
-            (se_administrativo["PREVIDENCIARIO"][0], se_administrativo["PREVIDENCIARIO"][1]),
+            (
+                se_administrativo["ADMINISTRATIVO"][0],
+                se_administrativo["ADMINISTRATIVO"][1],
+            ),
+            (
+                se_administrativo["PREVIDENCIARIO"][0],
+                se_administrativo["PREVIDENCIARIO"][1],
+            ),
             (se_administrativo["TRIBUTARIO"][0], se_administrativo["TRIBUTARIO"][1]),
         ],
         validators=[
@@ -225,7 +234,7 @@ class OrientacaoJuridicaForm(FlaskForm):
         validators=[
             Optional(),
             Length(
-                max=FIELD_LIMITS['descricao'],
+                max=FIELD_LIMITS["descricao"],
                 message=f"A descrição não pode conter mais de {FIELD_LIMITS['descricao']} caracteres!",
             ),
         ],
@@ -260,7 +269,7 @@ class CadastroAtendidoForm(EnderecoForm):
         validators=[
             DataRequired(MSG_NaoPodeEstarEmBranco.format("O nome")),
             Length(
-                max=FIELD_LIMITS['nome'],
+                max=FIELD_LIMITS["nome"],
                 message=f"O nome não pode conter mais de {FIELD_LIMITS['nome']} caracteres!",
             ),
         ],
@@ -281,7 +290,7 @@ class CadastroAtendidoForm(EnderecoForm):
         validators=[
             Optional(),
             Length(
-                max=FIELD_LIMITS['cpf'],
+                max=FIELD_LIMITS["cpf"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['cpf']} caracteres para o CPF.",
             ),
         ],
@@ -292,7 +301,7 @@ class CadastroAtendidoForm(EnderecoForm):
         validators=[
             Optional(),
             Length(
-                max=FIELD_LIMITS['cnpj'],
+                max=FIELD_LIMITS["cnpj"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['cnpj']} caracteres para o CNPJ.",
             ),
         ],
@@ -303,7 +312,7 @@ class CadastroAtendidoForm(EnderecoForm):
         validators=[
             Optional(),
             Length(
-                max=FIELD_LIMITS['telefone'],
+                max=FIELD_LIMITS["telefone"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['telefone']} caracteres para o telefone fixo.",
             ),
         ],
@@ -314,7 +323,7 @@ class CadastroAtendidoForm(EnderecoForm):
         validators=[
             DataRequired(MSG_NaoPodeEstarEmBranco.format("O telefone celular")),
             Length(
-                max=FIELD_LIMITS['celular'],
+                max=FIELD_LIMITS["celular"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['celular']} caracteres para o telefone celular.",
             ),
         ],
@@ -325,7 +334,10 @@ class CadastroAtendidoForm(EnderecoForm):
         choices=[
             (estado_civilUsuario["SOLTEIRO"][0], estado_civilUsuario["SOLTEIRO"][1]),
             (estado_civilUsuario["CASADO"][0], estado_civilUsuario["CASADO"][1]),
-            (estado_civilUsuario["DIVORCIADO"][0], estado_civilUsuario["DIVORCIADO"][1]),
+            (
+                estado_civilUsuario["DIVORCIADO"][0],
+                estado_civilUsuario["DIVORCIADO"][1],
+            ),
             (estado_civilUsuario["VIUVO"][0], estado_civilUsuario["VIUVO"][1]),
             (estado_civilUsuario["SEPARADO"][0], estado_civilUsuario["SEPARADO"][1]),
             (estado_civilUsuario["UNIAO"][0], estado_civilUsuario["UNIAO"][1]),
@@ -344,14 +356,22 @@ class CadastroAtendidoForm(EnderecoForm):
         choices=[
             (como_conheceu_daj["ASSISTIDOS"][0], como_conheceu_daj["ASSISTIDOS"][1]),
             (como_conheceu_daj["INTEGRANTES"][0], como_conheceu_daj["INTEGRANTES"][1]),
-            (como_conheceu_daj["ORGAOSPUBLICOS"][0], como_conheceu_daj["ORGAOSPUBLICOS"][1]),
-            (como_conheceu_daj["MEIOSCOMUNICACAO"][0], como_conheceu_daj["MEIOSCOMUNICACAO"][1]),
+            (
+                como_conheceu_daj["ORGAOSPUBLICOS"][0],
+                como_conheceu_daj["ORGAOSPUBLICOS"][1],
+            ),
+            (
+                como_conheceu_daj["MEIOSCOMUNICACAO"][0],
+                como_conheceu_daj["MEIOSCOMUNICACAO"][1],
+            ),
             (como_conheceu_daj["NUCLEOS"][0], como_conheceu_daj["NUCLEOS"][1]),
             (como_conheceu_daj["CONHECIDOS"][0], como_conheceu_daj["CONHECIDOS"][1]),
             (como_conheceu_daj["OUTROS"][0], como_conheceu_daj["OUTROS"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format('de "Como conheceu a DAJ?"')),
+            DataRequired(
+                MSG_SelecioneUmaOpcaoLista.format('de "Como conheceu a DAJ?"')
+            ),
             AnyOf(
                 [como_conheceu_daj[key][0] for key in como_conheceu_daj],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -368,7 +388,7 @@ class CadastroAtendidoForm(EnderecoForm):
                 message=MSG_NaoPodeEstarEmBranco.format('"Qual foi o órgão?"'),
             ),
             Length(
-                max=FIELD_LIMITS['indicacaoOrgao'],
+                max=FIELD_LIMITS["indicacaoOrgao"],
                 message=f'Por favor, use no máximo {FIELD_LIMITS["indicacaoOrgao"]} caracteres para o campo "Qual foi o órgão?".',
             ),
         ],
@@ -395,7 +415,7 @@ class CadastroAtendidoForm(EnderecoForm):
                 message=MSG_NaoPodeEstarEmBranco.format('"Qual local?"'),
             ),
             Length(
-                max=FIELD_LIMITS['procurouOutroLocal'],
+                max=FIELD_LIMITS["procurouOutroLocal"],
                 message=f'Por favor, use no máximo {FIELD_LIMITS["procurouOutroLocal"]} caracteres para o campo "Qual local?".',
             ),
         ],
@@ -406,7 +426,7 @@ class CadastroAtendidoForm(EnderecoForm):
         validators=[
             Optional(),
             Length(
-                max=FIELD_LIMITS['obs'],
+                max=FIELD_LIMITS["obs"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['obs']} caracteres para as observações.",
             ),
         ],
@@ -417,7 +437,9 @@ class CadastroAtendidoForm(EnderecoForm):
         choices=[("1", "Sim"), ("0", "Não")],
         validators=[
             InputRequired(
-                MSG_SelecioneUmaOpcaoLista.format('de "Existe Pessoa Jurídica constituída?"')
+                MSG_SelecioneUmaOpcaoLista.format(
+                    'de "Existe Pessoa Jurídica constituída?"'
+                )
             )
         ],
     )
@@ -427,7 +449,9 @@ class CadastroAtendidoForm(EnderecoForm):
         choices=[("1", "Sim"), ("0", "Não")],
         validators=[
             InputRequired(
-                MSG_SelecioneUmaOpcaoLista.format('de "O atendido é o representante legal?"')
+                MSG_SelecioneUmaOpcaoLista.format(
+                    'de "O atendido é o representante legal?"'
+                )
             )
         ],
         default="1",
@@ -441,10 +465,12 @@ class CadastroAtendidoForm(EnderecoForm):
                 "repres_legal",
                 "0",
                 pj_constituida="1",
-                message=MSG_NaoPodeEstarEmBranco.format("O Nome do representante legal"),
+                message=MSG_NaoPodeEstarEmBranco.format(
+                    "O Nome do representante legal"
+                ),
             ),
             Length(
-                max=FIELD_LIMITS['nome'],
+                max=FIELD_LIMITS["nome"],
                 message=f"O nome não pode conter mais de {FIELD_LIMITS['nome']} caracteres!",
             ),
         ],
@@ -455,7 +481,7 @@ class CadastroAtendidoForm(EnderecoForm):
         validators=[
             Optional(),
             Length(
-                max=FIELD_LIMITS['cpf'],
+                max=FIELD_LIMITS["cpf"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['cpf']} caracteres para o CPF.",
             ),
         ],
@@ -466,7 +492,7 @@ class CadastroAtendidoForm(EnderecoForm):
         validators=[
             Optional(),
             Length(
-                max=FIELD_LIMITS['telefone'],
+                max=FIELD_LIMITS["telefone"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['telefone']} caracteres para o telefone.",
             ),
         ],
@@ -477,7 +503,7 @@ class CadastroAtendidoForm(EnderecoForm):
         validators=[
             Optional(),
             Length(
-                max=FIELD_LIMITS['rg'],
+                max=FIELD_LIMITS["rg"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['rg']} caracteres para o RG.",
             ),
         ],
@@ -523,8 +549,14 @@ class TornarAssistidoForm(FlaskForm):
         choices=[
             (como_conheceu_daj["ASSISTIDOS"][0], como_conheceu_daj["ASSISTIDOS"][1]),
             (como_conheceu_daj["INTEGRANTES"][0], como_conheceu_daj["INTEGRANTES"][1]),
-            (como_conheceu_daj["ORGAOSPUBLICOS"][0], como_conheceu_daj["ORGAOSPUBLICOS"][1]),
-            (como_conheceu_daj["MEIOSCOMUNICACAO"][0], como_conheceu_daj["MEIOSCOMUNICACAO"][1]),
+            (
+                como_conheceu_daj["ORGAOSPUBLICOS"][0],
+                como_conheceu_daj["ORGAOSPUBLICOS"][1],
+            ),
+            (
+                como_conheceu_daj["MEIOSCOMUNICACAO"][0],
+                como_conheceu_daj["MEIOSCOMUNICACAO"][1],
+            ),
             (como_conheceu_daj["NUCLEOS"][0], como_conheceu_daj["NUCLEOS"][1]),
             (como_conheceu_daj["CONHECIDOS"][0], como_conheceu_daj["CONHECIDOS"][1]),
             (como_conheceu_daj["OUTROS"][0], como_conheceu_daj["OUTROS"][1]),
@@ -547,7 +579,7 @@ class TornarAssistidoForm(FlaskForm):
         "Já procurou outro local para atendimento?",
         choices=[("sim", "Sim"), ("nao", "Não")],
         validators=[DataRequired()],
-        default="nao"
+        default="nao",
     )
 
     procurou_qual_local = StringField("Qual local?")
@@ -557,14 +589,14 @@ class TornarAssistidoForm(FlaskForm):
         "Existe pessoa jurídica constituída?",
         choices=[("True", "Sim"), ("False", "Não")],
         validators=[DataRequired()],
-        default="False"
+        default="False",
     )
 
     repres_legal = SelectField(
         "O atendido é o representante legal?",
         choices=[("True", "Sim"), ("False", "Não")],
         validators=[RequiredIf("pj_constituida", "True")],
-        default="True"
+        default="True",
     )
 
     nome_repres_legal = StringField("Nome do representante legal")
@@ -577,7 +609,7 @@ class TornarAssistidoForm(FlaskForm):
         "Pretende constituir pessoa jurídica?",
         choices=[("sim", "Sim"), ("nao", "Não")],
         validators=[DataRequired()],
-        default="nao"
+        default="nao",
     )
 
     # General data fields
@@ -602,7 +634,7 @@ class TornarAssistidoForm(FlaskForm):
         validators=[
             DataRequired(MSG_NaoPodeEstarEmBranco.format("A profissão")),
             Length(
-                max=FIELD_LIMITS['profissao'],
+                max=FIELD_LIMITS["profissao"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['profissao']} caracteres para descrever a profissão.",
             ),
         ],
@@ -632,7 +664,7 @@ class TornarAssistidoForm(FlaskForm):
         validators=[
             DataRequired(MSG_NaoPodeEstarEmBranco.format("O RG")),
             Length(
-                max=FIELD_LIMITS['rg'],
+                max=FIELD_LIMITS["rg"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['rg']} caracteres para o RG.",
             ),
         ],
@@ -646,9 +678,15 @@ class TornarAssistidoForm(FlaskForm):
             (escolaridade["INFANTIL_INC"][0], escolaridade["INFANTIL_INC"][1]),
             (escolaridade["INFANTIL_COMP"][0], escolaridade["INFANTIL_COMP"][1]),
             (escolaridade["FUNDAMENTAL1_INC"][0], escolaridade["FUNDAMENTAL1_INC"][1]),
-            (escolaridade["FUNDAMENTAL1_COMP"][0], escolaridade["FUNDAMENTAL1_COMP"][1]),
+            (
+                escolaridade["FUNDAMENTAL1_COMP"][0],
+                escolaridade["FUNDAMENTAL1_COMP"][1],
+            ),
             (escolaridade["FUNDAMENTAL2_INC"][0], escolaridade["FUNDAMENTAL2_INC"][1]),
-            (escolaridade["FUNDAMENTAL2_COMP"][0], escolaridade["FUNDAMENTAL2_COMP"][1]),
+            (
+                escolaridade["FUNDAMENTAL2_COMP"][0],
+                escolaridade["FUNDAMENTAL2_COMP"][1],
+            ),
             (escolaridade["MEDIO_INC"][0], escolaridade["MEDIO_INC"][1]),
             (escolaridade["MEDIO_COMP"][0], escolaridade["MEDIO_COMP"][1]),
             (escolaridade["TECNICO_INC"][0], escolaridade["TECNICO_INC"][1]),
@@ -681,7 +719,10 @@ class TornarAssistidoForm(FlaskForm):
     beneficio = SelectField(
         "Recebe algum benefício social?",
         choices=[
-            (beneficio["BENEFICIO_PRESTACAO_CONT"][0], beneficio["BENEFICIO_PRESTACAO_CONT"][1]),
+            (
+                beneficio["BENEFICIO_PRESTACAO_CONT"][0],
+                beneficio["BENEFICIO_PRESTACAO_CONT"][1],
+            ),
             (beneficio["RENDA_BASICA"][0], beneficio["RENDA_BASICA"][1]),
             (beneficio["BOLSA_ESCOLA"][0], beneficio["BOLSA_ESCOLA"][1]),
             (beneficio["BOLSA_MORADIA"][0], beneficio["BOLSA_MORADIA"][1]),
@@ -692,7 +733,9 @@ class TornarAssistidoForm(FlaskForm):
             (beneficio["OUTRO"][0], beneficio["OUTRO"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format('"Recebe algum benefício social?"')),
+            DataRequired(
+                MSG_SelecioneUmaOpcaoLista.format('"Recebe algum benefício social?"')
+            ),
             AnyOf(
                 [beneficio[key][0] for key in beneficio],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -715,12 +758,19 @@ class TornarAssistidoForm(FlaskForm):
         "Contribui para a previdência social",
         choices=[
             (contribuicao_inss["SIM"][0], contribuicao_inss["SIM"][1]),
-            (contribuicao_inss["ENQ_TRABALHAVA"][0], contribuicao_inss["ENQ_TRABALHAVA"][1]),
+            (
+                contribuicao_inss["ENQ_TRABALHAVA"][0],
+                contribuicao_inss["ENQ_TRABALHAVA"][1],
+            ),
             (contribuicao_inss["NAO"][0], contribuicao_inss["NAO"][1]),
             (contribuicao_inss["NAO_INFO"][0], contribuicao_inss["NAO_INFO"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format('de "Contribui para a previdência social"')),
+            DataRequired(
+                MSG_SelecioneUmaOpcaoLista.format(
+                    'de "Contribui para a previdência social"'
+                )
+            ),
             AnyOf(
                 [contribuicao_inss[key][0] for key in contribuicao_inss],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -731,7 +781,9 @@ class TornarAssistidoForm(FlaskForm):
     qtd_pessoas_moradia = IntegerField(
         "Quantas pessoas moram com você?",
         validators=[
-            InputRequired(MSG_NaoPodeEstarEmBranco.format("Quantas pessoas moram com você")),
+            InputRequired(
+                MSG_NaoPodeEstarEmBranco.format("Quantas pessoas moram com você")
+            ),
             NumberRange(min=0, max=999999999, message="Número inválido de pessoas."),
         ],
     )
@@ -739,20 +791,34 @@ class TornarAssistidoForm(FlaskForm):
     renda_familiar = MyFloatField(
         "Qual o valor da renda familiar?",
         validators=[
-            InputRequired(MSG_NaoPodeEstarEmBranco.format('"Qual o valor da renda familiar?"')),
-            NumberRange(min=0, max=999999999, message="Valor da renda familiar inválido."),
+            InputRequired(
+                MSG_NaoPodeEstarEmBranco.format('"Qual o valor da renda familiar?"')
+            ),
+            NumberRange(
+                min=0, max=999999999, message="Valor da renda familiar inválido."
+            ),
         ],
     )
 
     participacao_renda = SelectField(
         "Qual a sua posição em relação à renda familiar?",
         choices=[
-            (participacao_renda["PRINCIPAL_RESPONSAVEL"][0], participacao_renda["PRINCIPAL_RESPONSAVEL"][1]),
-            (participacao_renda["CONTRIBUINTE"][0], participacao_renda["CONTRIBUINTE"][1]),
+            (
+                participacao_renda["PRINCIPAL_RESPONSAVEL"][0],
+                participacao_renda["PRINCIPAL_RESPONSAVEL"][1],
+            ),
+            (
+                participacao_renda["CONTRIBUINTE"][0],
+                participacao_renda["CONTRIBUINTE"][1],
+            ),
             (participacao_renda["DEPENDENTE"][0], participacao_renda["DEPENDENTE"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format('de "Qual a sua posição em relação à renda familiar?"')),
+            DataRequired(
+                MSG_SelecioneUmaOpcaoLista.format(
+                    'de "Qual a sua posição em relação à renda familiar?"'
+                )
+            ),
             AnyOf(
                 [participacao_renda[key][0] for key in participacao_renda],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -773,8 +839,13 @@ class TornarAssistidoForm(FlaskForm):
             (moradia["SITUACAO_DE_RUA"][0], moradia["SITUACAO_DE_RUA"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format('de "A família reside em:"')),
-            AnyOf([moradia[key][0] for key in moradia], message="Desculpe, ocorreu um erro. Por favor, atualize a página."),
+            DataRequired(
+                MSG_SelecioneUmaOpcaoLista.format('de "A família reside em:"')
+            ),
+            AnyOf(
+                [moradia[key][0] for key in moradia],
+                message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
+            ),
         ],
     )
 
@@ -782,7 +853,11 @@ class TornarAssistidoForm(FlaskForm):
         "A família possui outros imóveis?",
         choices=[("True", "Sim"), ("False", "Não")],
         validators=[
-            InputRequired(MSG_SelecioneUmaOpcaoLista.format('de "A família possui outros imóveis?"'))
+            InputRequired(
+                MSG_SelecioneUmaOpcaoLista.format(
+                    'de "A família possui outros imóveis?"'
+                )
+            )
         ],
     )
 
@@ -792,7 +867,9 @@ class TornarAssistidoForm(FlaskForm):
             RequiredIf(
                 "possui_outros_imoveis",
                 "True",
-                message=MSG_NaoPodeEstarEmBranco.format('"Quantos outros imóveis a família tem?"'),
+                message=MSG_NaoPodeEstarEmBranco.format(
+                    '"Quantos outros imóveis a família tem?"'
+                ),
             ),
             NumberRange(min=0, max=999999999, message="Número inválido de imóveis."),
         ],
@@ -802,7 +879,9 @@ class TornarAssistidoForm(FlaskForm):
         "A família possui veículos?",
         choices=[("True", "Sim"), ("False", "Não")],
         validators=[
-            InputRequired(MSG_SelecioneUmaOpcaoLista.format('de "A família possui veículos?"'))
+            InputRequired(
+                MSG_SelecioneUmaOpcaoLista.format('de "A família possui veículos?"')
+            )
         ],
     )
 
@@ -815,7 +894,7 @@ class TornarAssistidoForm(FlaskForm):
                 message=MSG_NaoPodeEstarEmBranco.format('"Qual é o veículo?"'),
             ),
             Length(
-                max=FIELD_LIMITS['qual_veiculo'],
+                max=FIELD_LIMITS["qual_veiculo"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['qual_veiculo']} caracteres para descrever o veículo.",
             ),
         ],
@@ -842,7 +921,7 @@ class TornarAssistidoForm(FlaskForm):
                 message=MSG_NaoPodeEstarEmBranco.format('"Qual o ano do veículo?"'),
             ),
             Length(
-                max=FIELD_LIMITS['ano_veiculo'],
+                max=FIELD_LIMITS["ano_veiculo"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['ano_veiculo']} caracteres para o ano do veículo.",
             ),
         ],
@@ -852,15 +931,25 @@ class TornarAssistidoForm(FlaskForm):
         "Há pessoas com doença grave na família?",
         choices=[("sim", "Sim"), ("nao", "Não"), ("nao_inf", "Não informou")],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format('"Há pessoas com doença grave na família?"'))
+            DataRequired(
+                MSG_SelecioneUmaOpcaoLista.format(
+                    '"Há pessoas com doença grave na família?"'
+                )
+            )
         ],
     )
 
     pessoa_doente = SelectField(
         "Pessoa doente:",
         choices=[
-            (qual_pessoa_doente["PROPRIA_PESSOA"][0], qual_pessoa_doente["PROPRIA_PESSOA"][1]),
-            (qual_pessoa_doente["CONJUGE_OU_COMPANHEIRA_COMPANHEIRO"][0], qual_pessoa_doente["CONJUGE_OU_COMPANHEIRA_COMPANHEIRO"][1]),
+            (
+                qual_pessoa_doente["PROPRIA_PESSOA"][0],
+                qual_pessoa_doente["PROPRIA_PESSOA"][1],
+            ),
+            (
+                qual_pessoa_doente["CONJUGE_OU_COMPANHEIRA_COMPANHEIRO"][0],
+                qual_pessoa_doente["CONJUGE_OU_COMPANHEIRA_COMPANHEIRO"][1],
+            ),
             (qual_pessoa_doente["FILHOS"][0], qual_pessoa_doente["FILHOS"][1]),
             (qual_pessoa_doente["PAIS"][0], qual_pessoa_doente["PAIS"][1]),
             (qual_pessoa_doente["AVOS"][0], qual_pessoa_doente["AVOS"][1]),
@@ -898,9 +987,15 @@ class TornarAssistidoForm(FlaskForm):
             RequiredIfInputRequired(
                 "doenca_grave_familia",
                 "sim",
-                message=MSG_NaoPodeEstarEmBranco.format('"Valores gastos com medicação"'),
+                message=MSG_NaoPodeEstarEmBranco.format(
+                    '"Valores gastos com medicação"'
+                ),
             ),
-            NumberRange(min=0, max=999999999, message="Valor inválido para gastos com medicação."),
+            NumberRange(
+                min=0,
+                max=999999999,
+                message="Valor inválido para gastos com medicação.",
+            ),
         ],
     )
 
@@ -909,7 +1004,7 @@ class TornarAssistidoForm(FlaskForm):
         validators=[
             Optional(),
             Length(
-                max=FIELD_LIMITS['obs'],
+                max=FIELD_LIMITS["obs"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['obs']} caracteres para as observações.",
             ),
         ],
@@ -925,10 +1020,12 @@ class TornarAssistidoForm(FlaskForm):
             RequiredIf(
                 "pj_constituida",
                 "True",
-                message=MSG_NaoPodeEstarEmBranco.format("A situação perante a Receita Federal"),
+                message=MSG_NaoPodeEstarEmBranco.format(
+                    "A situação perante a Receita Federal"
+                ),
             ),
             Length(
-                max=FIELD_LIMITS['sit_receita'],
+                max=FIELD_LIMITS["sit_receita"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['sit_receita']} caracteres para a situação na receita.",
             ),
         ],
@@ -937,9 +1034,15 @@ class TornarAssistidoForm(FlaskForm):
     enquadramento = SelectField(
         "Enquadramento",
         choices=[
-            (enquadramento["MICROEMPREENDEDOR_INDIVIDUAL"][0], enquadramento["MICROEMPREENDEDOR_INDIVIDUAL"][1]),
+            (
+                enquadramento["MICROEMPREENDEDOR_INDIVIDUAL"][0],
+                enquadramento["MICROEMPREENDEDOR_INDIVIDUAL"][1],
+            ),
             (enquadramento["MICROEMPRESA"][0], enquadramento["MICROEMPRESA"][1]),
-            (enquadramento["EMPRESA_PEQUENO_PORTE"][0], enquadramento["EMPRESA_PEQUENO_PORTE"][1]),
+            (
+                enquadramento["EMPRESA_PEQUENO_PORTE"][0],
+                enquadramento["EMPRESA_PEQUENO_PORTE"][1],
+            ),
             (enquadramento["OUTROS"][0], enquadramento["OUTROS"][1]),
         ],
         validators=[
@@ -962,7 +1065,9 @@ class TornarAssistidoForm(FlaskForm):
             RequiredIfInputRequired(
                 "pj_constituida",
                 "True",
-                message=MSG_SelecioneUmaOpcaoLista.format('de "Sede constituída ou a constituir em Belo Horizonte?"'),
+                message=MSG_SelecioneUmaOpcaoLista.format(
+                    'de "Sede constituída ou a constituir em Belo Horizonte?"'
+                ),
             )
         ],
     )
@@ -986,9 +1091,14 @@ class TornarAssistidoForm(FlaskForm):
                 "pj_constituida",
                 "True",
                 sede_bh="True",
-                message=MSG_SelecioneUmaOpcaoLista.format('de "Qual seria a região, em caso de sede em belo horizonte?"'),
+                message=MSG_SelecioneUmaOpcaoLista.format(
+                    'de "Qual seria a região, em caso de sede em belo horizonte?"'
+                ),
             ),
-            AnyOf([regiao_bh[key][0] for key in regiao_bh], message="Desculpe, ocorreu um erro. Por favor, atualize a página."),
+            AnyOf(
+                [regiao_bh[key][0] for key in regiao_bh],
+                message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
+            ),
         ],
     )
 
@@ -999,10 +1109,12 @@ class TornarAssistidoForm(FlaskForm):
                 "pj_constituida",
                 "True",
                 sede_bh="False",
-                message=MSG_NaoPodeEstarEmBranco.format('"Não sendo em Belo Horizonte, qual seria o local da sede constituída ou a constituir?"'),
+                message=MSG_NaoPodeEstarEmBranco.format(
+                    '"Não sendo em Belo Horizonte, qual seria o local da sede constituída ou a constituir?"'
+                ),
             ),
             Length(
-                max=FIELD_LIMITS['sede_outros'],
+                max=FIELD_LIMITS["sede_outros"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['sede_outros']} caracteres para o local da sede.",
             ),
         ],
@@ -1011,8 +1123,14 @@ class TornarAssistidoForm(FlaskForm):
     area_atuacao = SelectField(
         "Área de atuação",
         choices=[
-            (area_atuacao["PRODUCAO_CIRCULACAO_BENS"][0], area_atuacao["PRODUCAO_CIRCULACAO_BENS"][1]),
-            (area_atuacao["PRESTACAO_SERVICOS"][0], area_atuacao["PRESTACAO_SERVICOS"][1]),
+            (
+                area_atuacao["PRODUCAO_CIRCULACAO_BENS"][0],
+                area_atuacao["PRODUCAO_CIRCULACAO_BENS"][1],
+            ),
+            (
+                area_atuacao["PRESTACAO_SERVICOS"][0],
+                area_atuacao["PRESTACAO_SERVICOS"][1],
+            ),
             (area_atuacao["ATIVIDADE_RURAL"][0], area_atuacao["ATIVIDADE_RURAL"][1]),
             (area_atuacao["OUTROS"][0], area_atuacao["OUTROS"][1]),
         ],
@@ -1022,7 +1140,10 @@ class TornarAssistidoForm(FlaskForm):
                 "True",
                 message=MSG_SelecioneUmaOpcaoLista.format("Área de atuação"),
             ),
-            AnyOf([area_atuacao[key][0] for key in area_atuacao], message="Desculpe, ocorreu um erro. Por favor, atualize a página."),
+            AnyOf(
+                [area_atuacao[key][0] for key in area_atuacao],
+                message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
+            ),
         ],
     )
 
@@ -1048,7 +1169,9 @@ class TornarAssistidoForm(FlaskForm):
             RequiredIf(
                 "pj_constituida",
                 "True",
-                message=MSG_SelecioneUmaOpcaoLista.format('de "Órgão competente pelo registro do ato constitutivo"'),
+                message=MSG_SelecioneUmaOpcaoLista.format(
+                    'de "Órgão competente pelo registro do ato constitutivo"'
+                ),
             )
         ],
     )
@@ -1061,7 +1184,9 @@ class TornarAssistidoForm(FlaskForm):
                 "True",
                 message=MSG_NaoPodeEstarEmBranco.format("Faturamento anual"),
             ),
-            NumberRange(min=0, max=999999999, message="Valor inválido para faturamento anual."),
+            NumberRange(
+                min=0, max=999999999, message="Valor inválido para faturamento anual."
+            ),
         ],
     )
 
@@ -1072,7 +1197,9 @@ class TornarAssistidoForm(FlaskForm):
             RequiredIfInputRequired(
                 "pj_constituida",
                 "True",
-                message=MSG_SelecioneUmaOpcaoLista.format('de "O balanço patrimonial do último ano foi negativo?"'),
+                message=MSG_SelecioneUmaOpcaoLista.format(
+                    'de "O balanço patrimonial do último ano foi negativo?"'
+                ),
             )
         ],
     )
@@ -1084,7 +1211,9 @@ class TornarAssistidoForm(FlaskForm):
             RequiredIf(
                 "pj_constituida",
                 "True",
-                message=MSG_SelecioneUmaOpcaoLista.format('de "O resultado econômico do último ano foi negativo?"'),
+                message=MSG_SelecioneUmaOpcaoLista.format(
+                    'de "O resultado econômico do último ano foi negativo?"'
+                ),
             )
         ],
     )
@@ -1108,10 +1237,12 @@ class TornarAssistidoForm(FlaskForm):
                 "pj_constituida",
                 "True",
                 tem_funcionarios="sim",
-                message=MSG_NaoPodeEstarEmBranco.format('"Em caso positivo, quantos funcionários?"'),
+                message=MSG_NaoPodeEstarEmBranco.format(
+                    '"Em caso positivo, quantos funcionários?"'
+                ),
             ),
             Length(
-                max=FIELD_LIMITS['qts_func'],
+                max=FIELD_LIMITS["qts_func"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['qts_func']} caracteres para a quantidade de funcionários.",
             ),
         ],
@@ -1120,6 +1251,7 @@ class TornarAssistidoForm(FlaskForm):
 
 class EditarAssistidoForm(CadastroAtendidoForm, TornarAssistidoForm):
     """Combined form for editing assistido data."""
+
     pass
 
 
@@ -1129,7 +1261,7 @@ class AssistenciaJudiciariaForm(EnderecoForm):
         validators=[
             DataRequired(MSG_NaoPodeEstarEmBranco.format("O nome")),
             Length(
-                max=FIELD_LIMITS['nome'],
+                max=FIELD_LIMITS["nome"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['nome']} caracteres para o nome.",
             ),
         ],
@@ -1138,12 +1270,30 @@ class AssistenciaJudiciariaForm(EnderecoForm):
     areas_atendidas = SelectMultipleField(
         "Áreas do Direito",
         choices=[
-            (assistencia_jud_areas_atendidas["AMBIENTAL"][0], assistencia_jud_areas_atendidas["AMBIENTAL"][1]),
-            (assistencia_jud_areas_atendidas["ADMINISTRATIVO"][0], assistencia_jud_areas_atendidas["ADMINISTRATIVO"][1]),
-            (assistencia_jud_areas_atendidas["CIVEL"][0], assistencia_jud_areas_atendidas["CIVEL"][1]),
-            (assistencia_jud_areas_atendidas["EMPRESARIAL"][0], assistencia_jud_areas_atendidas["EMPRESARIAL"][1]),
-            (assistencia_jud_areas_atendidas["PENAL"][0], assistencia_jud_areas_atendidas["PENAL"][1]),
-            (assistencia_jud_areas_atendidas["TRABALHISTA"][0], assistencia_jud_areas_atendidas["TRABALHISTA"][1]),
+            (
+                assistencia_jud_areas_atendidas["AMBIENTAL"][0],
+                assistencia_jud_areas_atendidas["AMBIENTAL"][1],
+            ),
+            (
+                assistencia_jud_areas_atendidas["ADMINISTRATIVO"][0],
+                assistencia_jud_areas_atendidas["ADMINISTRATIVO"][1],
+            ),
+            (
+                assistencia_jud_areas_atendidas["CIVEL"][0],
+                assistencia_jud_areas_atendidas["CIVEL"][1],
+            ),
+            (
+                assistencia_jud_areas_atendidas["EMPRESARIAL"][0],
+                assistencia_jud_areas_atendidas["EMPRESARIAL"][1],
+            ),
+            (
+                assistencia_jud_areas_atendidas["PENAL"][0],
+                assistencia_jud_areas_atendidas["PENAL"][1],
+            ),
+            (
+                assistencia_jud_areas_atendidas["TRABALHISTA"][0],
+                assistencia_jud_areas_atendidas["TRABALHISTA"][1],
+            ),
         ],
         validators=[DataRequired("Escolha pelo menos uma área do Direito!")],
     )
@@ -1155,13 +1305,34 @@ class AssistenciaJudiciariaForm(EnderecoForm):
             (assistencia_jud_regioes["SUL"][0], assistencia_jud_regioes["SUL"][1]),
             (assistencia_jud_regioes["LESTE"][0], assistencia_jud_regioes["LESTE"][1]),
             (assistencia_jud_regioes["OESTE"][0], assistencia_jud_regioes["OESTE"][1]),
-            (assistencia_jud_regioes["NOROESTE"][0], assistencia_jud_regioes["NOROESTE"][1]),
-            (assistencia_jud_regioes["CENTRO_SUL"][0], assistencia_jud_regioes["CENTRO_SUL"][1]),
-            (assistencia_jud_regioes["NORDESTE"][0], assistencia_jud_regioes["NORDESTE"][1]),
-            (assistencia_jud_regioes["PAMPULHA"][0], assistencia_jud_regioes["PAMPULHA"][1]),
-            (assistencia_jud_regioes["BARREIRO"][0], assistencia_jud_regioes["BARREIRO"][1]),
-            (assistencia_jud_regioes["VENDA_NOVA"][0], assistencia_jud_regioes["VENDA_NOVA"][1]),
-            (assistencia_jud_regioes["CONTAGEM"][0], assistencia_jud_regioes["CONTAGEM"][1]),
+            (
+                assistencia_jud_regioes["NOROESTE"][0],
+                assistencia_jud_regioes["NOROESTE"][1],
+            ),
+            (
+                assistencia_jud_regioes["CENTRO_SUL"][0],
+                assistencia_jud_regioes["CENTRO_SUL"][1],
+            ),
+            (
+                assistencia_jud_regioes["NORDESTE"][0],
+                assistencia_jud_regioes["NORDESTE"][1],
+            ),
+            (
+                assistencia_jud_regioes["PAMPULHA"][0],
+                assistencia_jud_regioes["PAMPULHA"][1],
+            ),
+            (
+                assistencia_jud_regioes["BARREIRO"][0],
+                assistencia_jud_regioes["BARREIRO"][1],
+            ),
+            (
+                assistencia_jud_regioes["VENDA_NOVA"][0],
+                assistencia_jud_regioes["VENDA_NOVA"][1],
+            ),
+            (
+                assistencia_jud_regioes["CONTAGEM"][0],
+                assistencia_jud_regioes["CONTAGEM"][1],
+            ),
             (assistencia_jud_regioes["BETIM"][0], assistencia_jud_regioes["BETIM"][1]),
         ],
         validators=[DataRequired(MSG_SelecioneUmaOpcaoLista.format('de "Região"'))],
@@ -1172,7 +1343,7 @@ class AssistenciaJudiciariaForm(EnderecoForm):
         validators=[
             DataRequired(MSG_NaoPodeEstarEmBranco.format("O telefone")),
             Length(
-                max=FIELD_LIMITS['celular'],
+                max=FIELD_LIMITS["celular"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['celular']} caracteres para o telefone.",
             ),
         ],
@@ -1182,7 +1353,9 @@ class AssistenciaJudiciariaForm(EnderecoForm):
         "Endereço de e-mail",
         validators=[
             DataRequired(MSG_NaoPodeEstarEmBranco.format("O email")),
-            Email("Formato de e-mail inválido! Certifique-se de que ele foi digitado corretamente."),
+            Email(
+                "Formato de e-mail inválido! Certifique-se de que ele foi digitado corretamente."
+            ),
         ],
     )
 
@@ -1194,7 +1367,7 @@ class AbrirPlantaoForm(FlaskForm):
         "Data de abertura",
         validators=[DataRequired(MSG_EscolhaUmaData.format("de abertura"))],
     )
-    
+
     hora_abertura = TimeField(
         "Horário de Abertura",
         validators=[DataRequired("Por favor, escolha um horário de abertura.")],
@@ -1215,7 +1388,7 @@ class FecharPlantaoForm(FlaskForm):
         "Data de fechamento",
         validators=[DataRequired(MSG_EscolhaUmaData.format("de fechamento"))],
     )
-    
+
     hora_fechamento = TimeField(
         "Horário de fechamento",
         validators=[DataRequired("Por favor, escolha um horário de fechamento.")],
@@ -1226,29 +1399,36 @@ class FecharPlantaoForm(FlaskForm):
 ################ UTILITY FUNCTIONS #################
 #####################################################
 
+
 def convert_boolean_fields(form_data):
     """
     Utility function to convert string boolean values to actual booleans.
     Use this in your view functions to handle the boolean field conversions.
-    
+
     Example usage:
         if form.validate_on_submit():
             data = convert_boolean_fields(form.data)
             # Now use 'data' instead of 'form.data'
     """
     boolean_fields = [
-        'encaminhar_outras_aj', 'procurou_outro_local', 'pj_constituida',
-        'repres_legal', 'pretende_constituir_pj', 'possui_outros_imoveis',
-        'possui_veiculos', 'sede_bh', 'negocio_nascente'
+        "encaminhar_outras_aj",
+        "procurou_outro_local",
+        "pj_constituida",
+        "repres_legal",
+        "pretende_constituir_pj",
+        "possui_outros_imoveis",
+        "possui_veiculos",
+        "sede_bh",
+        "negocio_nascente",
     ]
-    
+
     converted_data = form_data.copy()
-    
+
     for field in boolean_fields:
         if field in converted_data:
             if converted_data[field] == "True":
                 converted_data[field] = True
             elif converted_data[field] == "False":
                 converted_data[field] = False
-    
+
     return converted_data

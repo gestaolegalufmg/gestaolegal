@@ -1,15 +1,13 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for, json
-from flask_login import current_user, login_user, logout_user
-from flask_paginate import Pagination, get_page_args
 from datetime import datetime
+
+from flask import Blueprint, flash, json, redirect, render_template, request, url_for
 from flask_bcrypt import Bcrypt
+from flask_login import current_user, login_user, logout_user
 from flask_mail import Message
 
-from gestaolegal import db, login_required, app, mail
-from gestaolegal.usuario.forms import EditarUsuarioForm, CadastrarUsuarioForm
-from gestaolegal.usuario.models import Usuario, usuario_urole_roles, Endereco
-from gestaolegal.plantao.models import Atendido
-from datetime import datetime
+from gestaolegal import app, db, login_required, mail
+from gestaolegal.usuario.forms import CadastrarUsuarioForm, EditarUsuarioForm
+from gestaolegal.usuario.models import Endereco, Usuario, usuario_urole_roles
 
 usuario = Blueprint("usuario", __name__, template_folder="templates")
 
@@ -177,13 +175,11 @@ def editar_usuario(id_user):
     form = EditarUsuarioForm()
     if id_user > 0:
         if (
-            not (
-                current_user.urole
-                in [
-                    usuario_urole_roles["ADMINISTRADOR"][0],
-                    usuario_urole_roles["PROFESSOR"][0],
-                ]
-            )
+            current_user.urole
+            not in [
+                usuario_urole_roles["ADMINISTRADOR"][0],
+                usuario_urole_roles["PROFESSOR"][0],
+            ]
         ) and (current_user.id != id_user):
             flash("Você não tem permissão para editar outro usuário.", "warning")
             return redirect(url_for("principal.index"))
@@ -228,9 +224,7 @@ def editar_usuario(id_user):
 @usuario.route("/editar_senha_usuario", methods=["POST", "GET"])
 @login_required()
 def editar_senha_usuario():
-
     if request.method == "POST":
-
         entidade_usuario = Usuario.query.filter_by(id=current_user.get_id()).first()
 
         form = request.form
@@ -264,7 +258,6 @@ def editar_senha_usuario():
 def cadastrar_usuario():
     form = CadastrarUsuarioForm()
     if request.method == "POST":
-
         senha = form.senha.data
         confirmacao = form.confirmacao.data
         email = form.email.data
@@ -305,11 +298,9 @@ def cadastrar_usuario():
             flash("Este email já está em uso.", "warning")
             return render_template("cadastro.html", form=form)
         else:
-
             if not (form.validate()):
                 return render_template("cadastro.html", form=form)
             else:
-
                 entidade_endereco = Endereco(
                     logradouro=form.logradouro.data,
                     numero=form.numero.data,
@@ -783,19 +774,30 @@ def validaSenha(senha):
 
 # Melhorias Setter
 
+
 @usuario.route("/listar_usuarios_ajax/", methods=["GET"])
 @login_required()
 def lista_usuario_ajax():
     def serializar(lista):
         return [x.as_dict() for x in lista]
-    if(request.args.get("funcao") and request.args.get("status")):
-        if(request.args.get("funcao") != "all"):
-            usuarios = db.session.query(Usuario).filter(Usuario.urole == request.args.get("funcao"), Usuario.status == request.args.get("status"))
+
+    if request.args.get("funcao") and request.args.get("status"):
+        if request.args.get("funcao") != "all":
+            usuarios = db.session.query(Usuario).filter(
+                Usuario.urole == request.args.get("funcao"),
+                Usuario.status == request.args.get("status"),
+            )
         else:
-            usuarios = db.session.query(Usuario).filter(Usuario.status == request.args.get("status"))
+            usuarios = db.session.query(Usuario).filter(
+                Usuario.status == request.args.get("status")
+            )
     else:
-        if(request.args.get('status')):
-            usuarios = db.session.query(Usuario).filter(Usuario.status == request.args.get('status')).all()
+        if request.args.get("status"):
+            usuarios = (
+                db.session.query(Usuario)
+                .filter(Usuario.status == request.args.get("status"))
+                .all()
+            )
         else:
             usuarios = db.session.query(Usuario).filter(Usuario.status == 1).all()
     # if urole == "all":
@@ -806,47 +808,58 @@ def lista_usuario_ajax():
     #     usuarios = db.session.query(Usuario).filter(Usuario.urole == urole).all()
     return json.dumps({"users": serializar(usuarios)})
 
+
 @usuario.route("/esqueci-a-senha", methods=["GET", "POST"])
 def esqueci_senha():
     if request.method == "POST":
         data = request.get_json(silent=True, force=True)
-        usuario = db.session.query(Usuario).filter(Usuario.email == data['email']).first()
+        usuario = (
+            db.session.query(Usuario).filter(Usuario.email == data["email"]).first()
+        )
         if not usuario:
             return json.dumps({"status": "error", "message": "E-mail não existe"})
         else:
             usuario.chave_recuperacao = True
             db.session.commit()
             titulo = "Recuperação de senha Gestão Legal"
-            token = usuario.tokenRecuperacao() # Gera o token para o usuário em questão
-            msg = Message(titulo,sender=app.config['MAIL_USERNAME'],recipients=[usuario.email]) # Constrói o corpo da mensagem
-            msg.body = f''' Solicitação de recuperação/alteração de senha.
+            token = usuario.tokenRecuperacao()  # Gera o token para o usuário em questão
+            msg = Message(
+                titulo, sender=app.config["MAIL_USERNAME"], recipients=[usuario.email]
+            )  # Constrói o corpo da mensagem
+            msg.body = f""" Solicitação de recuperação/alteração de senha.
 
             Se você solicitou este serviço, por favor, clique no link abaixo:
-            {url_for('usuario.resetar_senha',token=token, _external=True)}
+            {url_for("usuario.resetar_senha", token=token, _external=True)}
 
             Caso você não tenha solicitado este serviço, por favor ignore essa mensagem.
-            '''
+            """
             mail.send(msg)
-            return json.dumps({"status": "success", "user": {"nome": usuario.nome, "email": usuario.email}})
+            return json.dumps(
+                {
+                    "status": "success",
+                    "user": {"nome": usuario.nome, "email": usuario.email},
+                }
+            )
 
     return render_template("esqueci-a-senha.html")
+
+
 @usuario.route("/resetar-a-senha/<token>", methods=["GET", "POST"])
 def resetar_senha(token):
     usuario = Usuario.verificaToken(token)
     if usuario is None:
-        flash('Token inválido.','warning')
-        return redirect(url_for('usuario.login'))
+        flash("Token inválido.", "warning")
+        return redirect(url_for("usuario.login"))
     bcrypt = Bcrypt()
     if usuario.chave_recuperacao:
-        if request.method == 'POST':
+        if request.method == "POST":
             data = request.get_json(silent=True, force=True)
-            senha = bcrypt.generate_password_hash(data['password'])
+            senha = bcrypt.generate_password_hash(data["password"])
             usuario.senha = senha
             usuario.chave_recuperacao = False
             db.session.commit()
             return json.dumps({"status": "success"})
     else:
-        flash('Erro! Por favor refaça a operação','warning')
-        return redirect(url_for('usuario.login'))
-    return render_template('recuperar_senha.html')
-    
+        flash("Erro! Por favor refaça a operação", "warning")
+        return redirect(url_for("usuario.login"))
+    return render_template("recuperar_senha.html")

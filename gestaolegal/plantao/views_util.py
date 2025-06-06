@@ -1,28 +1,26 @@
 from datetime import date, datetime
-from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import current_user
-from flask_paginate import Pagination, get_page_args
 
-from gestaolegal import app, db, login_required
-from gestaolegal.usuario.models import Usuario, usuario_urole_roles, Endereco
+from flask import flash, redirect, url_for
+from flask_login import current_user
+
+from gestaolegal import app, db
+from gestaolegal.plantao.forms import (
+    AbrirPlantaoForm,
+    CadastroAtendidoForm,
+    FecharPlantaoForm,
+    TornarAssistidoForm,
+)
 from gestaolegal.plantao.models import (
-    Atendido,
+    AssistenciaJudiciaria,
     Assistido,
     AssistidoPessoaJuridica,
+    Atendido,
+    DiaPlantao,
     DiasMarcadosPlantao,
     Plantao,
-    AssistenciaJudiciaria,
     assistencia_jud_areas_atendidas,
-    DiaPlantao,
 )
-from gestaolegal.plantao.forms import (
-    CadastroAtendidoForm,
-    TornarAssistidoForm,
-    EditarAssistidoForm,
-    AbrirPlantaoForm,
-    FecharPlantaoForm,
-)
-from sqlalchemy import null
+from gestaolegal.usuario.models import Usuario, usuario_urole_roles
 
 ##############################################################
 ################## CONSTANTES ################################
@@ -205,12 +203,13 @@ def busca_todos_atendidos_assistidos(busca, page):
             & (Atendido.status == True)
         )
         .order_by(Atendido.nome)
-        .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
+        .paginate(
+            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+        )
     )
 
 
 def numero_plantao_a_marcar(id_usuario: int):
-
     dias_marcados = DiasMarcadosPlantao.query.filter_by(id_usuario=id_usuario).all()
 
     return len(dias_marcados) + 1
@@ -221,9 +220,7 @@ def checa_vagas_em_todos_dias(dias_disponiveis: list, urole: str) -> bool:
     Função que retorna verdadeiro caso NÃO exista vagas para um determinado tipo de usuario
     """
     if urole == usuario_urole_roles["ORIENTADOR"][0]:
-        orientador_no_dia = (
-            []
-        )  # essa lista armazena se todos os dias tem ou nao um orientador ja cadastrado num dia, true caso sim e false do contrario
+        orientador_no_dia = []  # essa lista armazena se todos os dias tem ou nao um orientador ja cadastrado num dia, true caso sim e false do contrario
         for i in range(0, len(dias_disponiveis)):
             seletor_banco_de_dados = DiasMarcadosPlantao.query.filter_by(
                 data_marcada=dias_disponiveis[i]
@@ -238,9 +235,7 @@ def checa_vagas_em_todos_dias(dias_disponiveis: list, urole: str) -> bool:
         else:
             return True
     else:
-        tres_estagiarios_no_dia = (
-            []
-        )  # essa lista armazena se todos os dias tem ou nao 3 ou mais estagiarios ja cadastrados num dia, true caso sim e false do contrario
+        tres_estagiarios_no_dia = []  # essa lista armazena se todos os dias tem ou nao 3 ou mais estagiarios ja cadastrados num dia, true caso sim e false do contrario
         for i in range(0, len(dias_disponiveis)):
             seletor_banco_de_dados = DiasMarcadosPlantao.query.filter_by(
                 data_marcada=dias_disponiveis[i]
@@ -361,7 +356,7 @@ def vagas_restantes(dias_disponiveis: list, data: date):
         )
         .all()
     )
-    if not current_user.urole in [
+    if current_user.urole not in [
         usuario_urole_roles["ORIENTADOR"][0],
         usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
     ]:
@@ -409,6 +404,7 @@ def valida_fim_plantao(plantao: Plantao):
 
     return True
 
+
 def apaga_dias_marcados(plantao: Plantao, dias_marcados_plantao):
     if plantao:
         if plantao.data_fechamento:
@@ -424,13 +420,17 @@ def apaga_dias_marcados(plantao: Plantao, dias_marcados_plantao):
 
     return True
 
+
 # Funcionalidades Setter
 def busca_atendidos_modal():
     # atendidos = serializar()
-    atendidos = db.session.query(Atendido).filter(Atendido.status == 1).order_by(Atendido.nome)
-    
+    atendidos = (
+        db.session.query(Atendido).filter(Atendido.status == 1).order_by(Atendido.nome)
+    )
+
     return serializar(atendidos)
-    
+
+
 def busca_assistencias_judiciarias_modal():
     assistencias_judiciarias = db.session.query(AssistenciaJudiciaria)
     return serializar(assistencias_judiciarias)

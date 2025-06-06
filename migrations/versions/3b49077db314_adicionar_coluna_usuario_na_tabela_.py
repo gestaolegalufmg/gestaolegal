@@ -5,19 +5,22 @@ Revises: ed1b0a0a61a6
 Create Date: 2023-10-25 06:06:35.372156
 
 """
-from alembic import op
+
 import sqlalchemy as sa
-from sqlalchemy.dialects import mysql
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = '3b49077db314'
-down_revision = 'ed1b0a0a61a6'
+revision = "3b49077db314"
+down_revision = "ed1b0a0a61a6"
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
-    op.add_column('orientacao_juridica', sa.Column('id_usuario', sa.Integer, nullable=True))
+    op.add_column(
+        "orientacao_juridica", sa.Column("id_usuario", sa.Integer, nullable=True)
+    )
+
 
 def downgrade():
-    op.drop_column('orientacao_juridica', 'id_usuario')
+    op.drop_column("orientacao_juridica", "id_usuario")

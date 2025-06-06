@@ -1,5 +1,6 @@
-from gestaolegal import app
 from flask_wtf.csrf import CSRFProtect
+
+from gestaolegal import app
 
 csrf = CSRFProtect(app)
 
