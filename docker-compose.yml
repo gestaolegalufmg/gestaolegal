@@ -1,6 +1,6 @@
 services:
   app_gl:
-    image: ${DOCKER_IMAGE:-ghcr.io/your-username/gestaolegal:latest}
+    build: .
     ports:
       - "5000:5000"
     volumes:
