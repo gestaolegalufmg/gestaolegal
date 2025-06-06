@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
-    <title id="titulo">{%block titulo%}{% endblock %} - Gestão Legal</title>
+    <title id="titulo">{%block titulo%}{% endblock %} - {{ company_name }}</title>
     <!-- General CSS Files -->
     <link rel="stylesheet" href="{{url_for('static',filename='app_tema/assets/css/app.min.css')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='app_tema/assets/bundles/izitoast/css/iziToast.min.css')}}">
@@ -33,10 +33,89 @@
         .dropdown-menu li{
             line-height: 1rem !important;
         }
+
+        .btn.btn-primary {
+            color: white;
+            background-color: color-mix(in srgb, {{ company_color }} 75%, white) !important;
+            border: none;
+            box-shadow: none;
+        }
+
+        .btn.btn-primary:hover,
+         .btn.btn-primary:focus,
+         .btn.btn-primary:active {
+            color: white;
+            background-color: color-mix(in srgb, {{ company_color }} 60%, white) !important;
+        }
+
+        .main-sidebar .sidebar-menu li ul.dropdown-menu li a:hover,
+        .main-sidebar .sidebar-menu li ul.dropdown-menu li a:hover:before {
+            color: color-mix(in srgb, {{ company_color }} 80%, black) !important;
+        }
+
+        .sidebar-mini .main-sidebar:after,
+        .btn-primary,
+        .navbar,
+        .page-link,
+        .main-sidebar, .sidebar-wrapper {
+            color: white;
+            background-color: {{ company_color }} !important;
+        }
+
+        .main-sidebar .sidebar-menu li a,
+        .sidebar-menu .dropdown-menu .dropdown-title,
+        .sidebar-mini .main-sidebar .sidebar-menu>li ul.dropdown-menu li a,
+        .sidebar-mini .main-sidebar .sidebar-menu>li ul.dropdown-menu,
+        .sidebar-mini .main-sidebar .sidebar-menu>li ul.dropdown-menu {
+            color: white !important;
+            background-color: {{ company_color }} !important;
+        }
+
+        .dropdown-item:hover {
+            background-color: color-mix(in srgb, black 5%, white) !important;
+        }
+
+        .dropdown-item:focus,
+        .dropdown-item:active {
+            background-color: color-mix(in srgb, black 25%, white) !important;
+        }
+
+        .main-sidebar .sidebar-menu li a:hover,
+        .navbar .btn.btn-primary:hover,
+        .navbar .btn.btn-primary:focus,
+        .navbar .btn.btn-primary:active { 
+            color: white !important;
+            background-color: color-mix(in srgb, {{ company_color }} 90%, black) !important;
+        }
+
+        .main-sidebar .sidebar-menu li ul.dropdown-menu li a {
+            color: white;
+            opacity: 0.8;
+        }
+
+        .main-sidebar .sidebar-menu li ul.dropdown-menu li a:hover {
+            color: white !important;
+            opacity: 1 !important;
+        }
+
+        .main-sidebar .sidebar-menu li ul.dropdown-menu li a:hover:before {
+            color: white !important;
+            opacity: 1 !important;
+        }
+
+
+        .nav-link span,
+        span.logo-name {
+            color: white;
+        }
+
+        div .sidebar-brand {
+            background-color: color-mix(in srgb, {{ company_color }} 60%, black) !important;
+        }
         </style>
 </head>
 
-<body class="theme-blue blue-sidebar" style="font-family: 'Montserrat', sans-serif ">
+<body class="" style="font-family: 'Montserrat', sans-serif ">
     {%block modal %}{% endblock %}
     <div class="loader"></div>
     <div id="app">
@@ -94,13 +173,13 @@
                     </li>
                 </ul>
             </nav>
-            <div class="main-sidebar sidebar-style-2">
+            <div class="main-sidebar" style="background-color: {{ company_color }}">
                 <aside id="sidebar-wrapper">
                     <div class="sidebar-brand">
                         <a href="{{url_for('principal.index')}}">
                              <img alt="image" src="{{url_for('static', filename='imgs_daj/GL_icon.png')}}"
                                 class="header-logo" >
-                            <span class="logo-name" style="font-family: 'Montserrat', sans-serif;">Gestão Legal</span>
+                            <span class="logo-name" style="font-family: 'Montserrat', sans-serif;">{{ company_name }}</span>
                         </a>
                     </div>
                     <ul class="sidebar-menu" style="font-family: 'Montserrat', sans-serif;">

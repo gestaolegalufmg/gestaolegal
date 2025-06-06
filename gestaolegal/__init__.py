@@ -1,7 +1,4 @@
 import configparser
-from datetime import datetime
-
-import click
 
 config = configparser.ConfigParser()
 import os
@@ -30,6 +27,9 @@ config.read("config.ini")
 
 app = Flask(__name__)
 app.wsgi_app = ReverseProxied(app.wsgi_app)
+
+app.config["COMPANY_NAME"] = os.environ.get("COMPANY_NAME", "Gestão Legal")
+app.config["COMPANY_COLOR"] = os.environ.get("COMPANY_COLOR", "#1758ac")
 
 if flask_env == 'development':
     config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_test.ini"))
@@ -62,6 +62,10 @@ Migrate(app, db, compare_type=True)
 #############################################################
 ########### VARIÁVEIS/FUNÇÕES DO TEMPLATE ###################
 #############################################################
+@app.context_processor
+def inject_company_config():
+    return dict(company_name=app.config["COMPANY_NAME"], company_color=app.config["COMPANY_COLOR"])
+
 @app.context_processor
 def processor_tipo_classe():
     def tipo_classe(var: object, tipo: str):
@@ -367,8 +371,3 @@ app.register_blueprint(casos, url_prefix="/casos")
 app.register_blueprint(arquivos, url_prefix="/arquivos")
 app.register_blueprint(relatorios, url_prefix="/relatorios")
 app.register_blueprint(notificacoes, url_prefix="/notificacoes")
-
-
-#############################################################
-################# CUSTOM CLI COMMANDS #######################
-#############################################################

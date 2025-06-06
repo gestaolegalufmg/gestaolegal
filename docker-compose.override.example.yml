@@ -1,5 +1,6 @@
 services:
   app_gl:
+    build: .
     volumes:
       - type: bind
         source: .

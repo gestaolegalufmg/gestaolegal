@@ -1,6 +1,6 @@
 services:
   app_gl:
-    build: .
+    image: ${DOCKER_IMAGE:-ghcr.io/your-username/gestaolegal:latest}
     ports:
       - "5000:5000"
     volumes:
@@ -10,10 +10,15 @@ services:
     command: gunicorn --bind 0.0.0.0:5000 --workers=4 --timeout=300 wsgi:app
     environment:
       - FLASK_ENV=production
+
+      # Uncomment the lines below and tweak its values to customize the app
+      # - COMPANY_NAME=Custom Name
+      # - COMPANY_COLOR=#8a1237
+
     restart: unless-stopped
 
   db_gl:
-    image: mysql:8.0.23
+    image: mysql:8.0.42
     command: --default-authentication-plugin=mysql_native_password
     restart: unless-stopped
     environment:
@@ -39,3 +44,4 @@ services:
 volumes:
   mysql_data:
     driver: local
+
