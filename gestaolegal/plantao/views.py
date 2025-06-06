@@ -1,47 +1,49 @@
 from dataclasses import dataclass
-from datetime import datetime, date, time, timedelta
+from datetime import date, datetime, time, timedelta
+
 import pytz
 from flask import (
     Blueprint,
     flash,
+    json,
     redirect,
     render_template,
     request,
     url_for,
-    json,
 )
 from flask_login import current_user
 
 from gestaolegal import app, db, login_required
+from gestaolegal.notificacoes.models import Notificacao, acoes
 from gestaolegal.plantao.forms import (
-    CadastroAtendidoForm,
-    EditarAssistidoForm,
-    OrientacaoJuridicaForm,
-    TornarAssistidoForm,
-    AssistenciaJudiciariaForm,
-    CadastroOrientacaoJuridicaForm,
     AbrirPlantaoForm,
-    SelecionarDuracaoPlantaoForm,
+    AssistenciaJudiciariaForm,
+    CadastroAtendidoForm,
+    CadastroOrientacaoJuridicaForm,
+    EditarAssistidoForm,
     FecharPlantaoForm,
+    OrientacaoJuridicaForm,
+    SelecionarDuracaoPlantaoForm,
+    TornarAssistidoForm,
 )
 from gestaolegal.plantao.models import (
+    AssistenciaJudiciaria,
+    AssistenciaJudiciaria_xOrientacaoJuridica,
     Assistido,
     AssistidoPessoaJuridica,
     Atendido,
-    OrientacaoJuridica,
-    AssistenciaJudiciaria,
-    AssistenciaJudiciaria_xOrientacaoJuridica,
     Atendido_xOrientacaoJuridica,
-    DiasMarcadosPlantao,
     DiaPlantao,
+    DiasMarcadosPlantao,
+    FilaAtendidos,
+    OrientacaoJuridica,
     Plantao,
+    RegistroEntrada,
     area_atuacao,
     beneficio,
     contribuicao_inss,
     enquadramento,
     escolaridade,
-    RegistroEntrada,
-    FilaAtendidos,
     moradia,
     orgao_reg,
     participacao_renda,
@@ -53,11 +55,11 @@ from gestaolegal.usuario.models import (
     Endereco,
     Usuario,
     sexo_usuario,
-    usuario_urole_roles,
     usuario_urole_inverso,
+    usuario_urole_roles,
 )
 from gestaolegal.utils.models import queryFiltradaStatus
-from gestaolegal.notificacoes.models import Notificacao, acoes
+
 
 @dataclass
 class CardInfo:
@@ -68,6 +70,7 @@ class CardInfo:
 plantao = Blueprint("plantao", __name__, template_folder="templates")
 
 data_atual = datetime.now().date()
+
 
 ####Cadastrar Atendido
 @plantao.route("/novo_atendimento", methods=["GET", "POST"])
@@ -154,7 +157,6 @@ def cadastro_na():
     form = CadastroAtendidoForm()
 
     if request.method == "POST":
-
         if not validaDadosForm(form):
             return render_template("cadastro_novo_atendido.html", form=form)
 
@@ -191,7 +193,9 @@ def busca_atendidos_assistidos():
             .outerjoin(Assistido)
             .filter(Assistido.atendido == None)
             .order_by(Atendido.nome)
-            .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
+            .paginate(
+                page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+            )
         )
         atendidos_assistidos.items = [(x, None) for x in atendidos_assistidos.items]
     elif tipo_busca == tipos_busca_atendidos["ASSISTIDOS"]:
@@ -208,7 +212,9 @@ def busca_atendidos_assistidos():
             .outerjoin(Assistido)
             .filter(Assistido.atendido != None)
             .order_by(Atendido.nome)
-            .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
+            .paginate(
+                page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+            )
         )
 
     return render_template(
@@ -216,6 +222,7 @@ def busca_atendidos_assistidos():
         atendidos_assistidos=atendidos_assistidos,
         tipos_busca_atendidos=tipos_busca_atendidos,
     )
+
 
 @plantao.route("/atendidos_assistidos", methods=["GET", "POST"])
 @login_required()
@@ -284,7 +291,6 @@ def editar_atendido(id_atendido):
 
     form = CadastroAtendidoForm()
     if request.method == "POST":
-
         if not validaDadosEditar_atendidoForm(form, request.form["emailAtual"]):
             return render_template(
                 "editar_atendido.html", atendido=entidade_atendido, form=form
@@ -329,7 +335,7 @@ def tornar_assistido(id_atendido):
         False if entidade_atendido.pj_constituida == "0" else True
     )
 
-    if request.method == "POST": 
+    if request.method == "POST":
         if not form.validate():
             return render_template(
                 "tornar_assistido.html", atendido=entidade_atendido, form=form
@@ -479,11 +485,14 @@ def cadastro_orientacao_juridica():
             descricao=form.descricao.data,
             data_criacao=datetime.now(tz=pytz.timezone("America/Sao_Paulo")),
             status=True,
-            id_usuario=id_usuario
+            id_usuario=id_usuario,
         )
 
-        if len(entidade_orientacao.descricao) > 2000 :
-            flash("A descrição da orientacao juridica não pode ter mais de 2000 caracteres", "warning")
+        if len(entidade_orientacao.descricao) > 2000:
+            flash(
+                "A descrição da orientacao juridica não pode ter mais de 2000 caracteres",
+                "warning",
+            )
             return redirect(url_for("casos.cadastro_orientacao_juridica"))
 
         entidade_orientacao.setSubAreas(
@@ -501,11 +510,13 @@ def cadastro_orientacao_juridica():
         db.session.commit()
         if request.form.get("listaAtendidos"):
             listaAtendidos = json.loads(request.form.get("listaAtendidos"))
-        
-            if len(listaAtendidos['id']) > 0:
+
+            if len(listaAtendidos["id"]) > 0:
                 # Inserção de atendidos
-                for id_atendido in listaAtendidos['id']:
-                    entidade_atendido = Atendido.query.filter_by(id=int(id_atendido)).first()
+                for id_atendido in listaAtendidos["id"]:
+                    entidade_atendido = Atendido.query.filter_by(
+                        id=int(id_atendido)
+                    ).first()
                     # orientacao = OrientacaoJuridica.query.filter_by(id=id_orientacao).first()
                     entidade_atendido.orientacoesJuridicas.append(entidade_orientacao)
                     db.session.add(entidade_atendido)
@@ -514,23 +525,17 @@ def cadastro_orientacao_juridica():
         if request.form.get("encaminhar_outras_aj") == "True":
             aj_oj = AssistenciaJudiciaria_xOrientacaoJuridica()
             aj_oj.id_orientacaoJuridica = entidade_orientacao.id
-            aj_oj.id_assistenciaJudiciaria = int(request.form.get("assistencia_judiciaria"))
+            aj_oj.id_assistenciaJudiciaria = int(
+                request.form.get("assistencia_judiciaria")
+            )
             db.session.add(aj_oj)
             db.session.commit()
 
         flash("Orientação jurídica cadastrada!", "success")
-        return redirect(
-            url_for(
-                "plantao.perfil_oj",
-                id=entidade_orientacao.id
-            )
-        )
-            
+        return redirect(url_for("plantao.perfil_oj", id=entidade_orientacao.id))
 
         # return request.form.get("listaAtendidos")
-        
 
-            
         # return redirect(
         #     url_for(
         #         "plantao.associacao_orientacao_juridica",
@@ -554,8 +559,12 @@ def cadastro_orientacao_juridica():
 )
 def encaminha_assistencia_judiciaria(id_orientacao):
     assistencias_judiciarias = db.session.query(AssistenciaJudiciaria)
-    orientacao_juridica = OrientacaoJuridica.query.filter(OrientacaoJuridica.id == id_orientacao).first()
-    assistencias_judiciarias = query_filtro_assistencia_judiciaria(assistencias_judiciarias, orientacao_juridica.area_direito).all()
+    orientacao_juridica = OrientacaoJuridica.query.filter(
+        OrientacaoJuridica.id == id_orientacao
+    ).first()
+    assistencias_judiciarias = query_filtro_assistencia_judiciaria(
+        assistencias_judiciarias, orientacao_juridica.area_direito
+    ).all()
 
     if request.method == "POST":
         list_ids = request.form.getlist(
@@ -657,7 +666,7 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
         )
         relacoes_aj_oj = [x[0] for x in relacoes_aj_oj]
         for id_aj in lista_aj:
-            if not (int(id_aj) in relacoes_aj_oj):
+            if int(id_aj) not in relacoes_aj_oj:
                 associacao = AssistenciaJudiciaria_xOrientacaoJuridica(
                     id_orientacaoJuridica=id_orientacao, id_assistenciaJudiciaria=id_aj
                 )
@@ -688,7 +697,10 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
             entidade_atendido.orientacoesJuridicas.append(orientacao)
             db.session.add(entidade_atendido)
             db.session.commit()
-            flash(f"{entidade_atendido.nome} associado à Orientação Jurídica com sucesso!", "success")
+            flash(
+                f"{entidade_atendido.nome} associado à Orientação Jurídica com sucesso!",
+                "success",
+            )
 
             if lista_aj:
                 associa_ajs_a_oj(lista_aj, id_orientacao)
@@ -720,6 +732,8 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
         orientacao_entidade=orientacao_entidade,
         encaminhar_outras_aj=encaminhar_outras_aj,
     )
+
+
 @plantao.route(
     "/desassociar_orientacao_juridica/<int:id_orientacao>/<int:id_atendido>",
     methods=["POST", "GET"],
@@ -737,7 +751,10 @@ def desassociar_orientacao_juridica(id_atendido, id_orientacao):
 
     entidade_atendido.orientacoesJuridicas.remove(orientacao)
     db.session.commit()
-    flash(f"{entidade_atendido.nome} removido da Orientação Jurídica com sucesso.", "success")
+    flash(
+        f"{entidade_atendido.nome} removido da Orientação Jurídica com sucesso.",
+        "success",
+    )
 
     return redirect(url_for("plantao.perfil_oj", id=id_orientacao))
 
@@ -752,7 +769,6 @@ def desassociar_orientacao_juridica(id_atendido, id_orientacao):
     ]
 )
 def busca_atendidos_oj(_busca):
-
     encaminhar_outras_aj = request.args.get("encaminhar_outras_aj")
     id_orientacao_entidade = request.args.get("id_orientacao_entidade")
 
@@ -817,25 +833,56 @@ def perfil_assistido(_id):
         "CPF": assistido.Atendido.cpf,
         "CNPJ": assistido.Atendido.cnpj,
         "Celular": assistido.Atendido.celular,
-        "E-mail": assistido.Atendido.email
+        "E-mail": assistido.Atendido.email,
     }
 
-    dados_assistido = {
-        "Sexo": next(sex[1] for sex in sexo_usuario.values() if sex[0] == assistido.Assistido.sexo),
-        "Profissão": assistido.Assistido.profissao,
-        "Raça": assistido.Assistido.raca,
-        "RG": assistido.Assistido.rg,
-        "Grau de Instrução": next(esc[1] for esc in escolaridade.values() if esc[0] == assistido.Assistido.grau_instrucao),
-        "Salário": "R$ " + str(assistido.Assistido.salario).replace(".", ",")
-    } if assistido.Assistido else None
+    dados_assistido = (
+        {
+            "Sexo": next(
+                sex[1]
+                for sex in sexo_usuario.values()
+                if sex[0] == assistido.Assistido.sexo
+            ),
+            "Profissão": assistido.Assistido.profissao,
+            "Raça": assistido.Assistido.raca,
+            "RG": assistido.Assistido.rg,
+            "Grau de Instrução": next(
+                esc[1]
+                for esc in escolaridade.values()
+                if esc[0] == assistido.Assistido.grau_instrucao
+            ),
+            "Salário": "R$ " + str(assistido.Assistido.salario).replace(".", ","),
+        }
+        if assistido.Assistido
+        else None
+    )
 
-    dados_pj = {
-        "Situação Receita": assistido.AssistidoPessoaJuridica.situacao_receita,
-        "Enquadramento": next(enq[1] for enq in enquadramento.values() if enq[0] == assistido.AssistidoPessoaJuridica.enquadramento),
-        "Area de Atuação": next(area[1] for area in area_atuacao.values() if area[0] == assistido.AssistidoPessoaJuridica.area_atuacao),
-        "Órgão de Registro": next(org[1] for org in orgao_reg.values() if org[0] == assistido.AssistidoPessoaJuridica.orgao_registro),
-        "Faturamento Anual": "R$ " + str(assistido.AssistidoPessoaJuridica.faturamento_anual).replace(".", ",")
-    } if assistido.AssistidoPessoaJuridica else None
+    dados_pj = (
+        {
+            "Situação Receita": assistido.AssistidoPessoaJuridica.situacao_receita,
+            "Enquadramento": next(
+                enq[1]
+                for enq in enquadramento.values()
+                if enq[0] == assistido.AssistidoPessoaJuridica.enquadramento
+            ),
+            "Area de Atuação": next(
+                area[1]
+                for area in area_atuacao.values()
+                if area[0] == assistido.AssistidoPessoaJuridica.area_atuacao
+            ),
+            "Órgão de Registro": next(
+                org[1]
+                for org in orgao_reg.values()
+                if org[0] == assistido.AssistidoPessoaJuridica.orgao_registro
+            ),
+            "Faturamento Anual": "R$ "
+            + str(assistido.AssistidoPessoaJuridica.faturamento_anual).replace(
+                ".", ","
+            ),
+        }
+        if assistido.AssistidoPessoaJuridica
+        else None
+    )
 
     dados_endereco = {
         "Logradouro": assistido.Atendido.endereco.logradouro,
@@ -843,81 +890,161 @@ def perfil_assistido(_id):
         "Complemento": assistido.Atendido.endereco.complemento,
         "Bairro": assistido.Atendido.endereco.bairro,
         "CEP": assistido.Atendido.endereco.cep,
-        "Cidade": assistido.Atendido.endereco.cidade + ", " + assistido.Atendido.endereco.estado
+        "Cidade": assistido.Atendido.endereco.cidade
+        + ", "
+        + assistido.Atendido.endereco.estado,
     }
 
-    dados_renda = {
-        "Benefício Social": next(ben[1] for ben in beneficio.values() if ben[0] == assistido.Assistido.beneficio),
-        "Contribui para a previdência social": next(cont[1] for cont in contribuicao_inss.values() if cont[0] == assistido.Assistido.contribui_inss),
-        "Quantidade de pessoas que moram na mesma casa": assistido.Assistido.qtd_pessoas_moradia,
-        "Renda Familiar": "R$ " + str(assistido.Assistido.renda_familiar).replace(".", ","),
-        "Posição em relação à renda familiar": next(part[1] for part in participacao_renda.values() if part[0] == assistido.Assistido.participacao_renda),
-        "Residência": next(mor[1] for mor in moradia.values() if mor[0] == assistido.Assistido.tipo_moradia),
-        "Possui outros imóveis": "Sim" if assistido.Assistido.possui_outros_imoveis else "Não",
-        "Possui veículos": "Sim" if assistido.Assistido.possui_veiculos else "Não"
-    } if assistido.Assistido else None
+    dados_renda = (
+        {
+            "Benefício Social": next(
+                ben[1]
+                for ben in beneficio.values()
+                if ben[0] == assistido.Assistido.beneficio
+            ),
+            "Contribui para a previdência social": next(
+                cont[1]
+                for cont in contribuicao_inss.values()
+                if cont[0] == assistido.Assistido.contribui_inss
+            ),
+            "Quantidade de pessoas que moram na mesma casa": assistido.Assistido.qtd_pessoas_moradia,
+            "Renda Familiar": "R$ "
+            + str(assistido.Assistido.renda_familiar).replace(".", ","),
+            "Posição em relação à renda familiar": next(
+                part[1]
+                for part in participacao_renda.values()
+                if part[0] == assistido.Assistido.participacao_renda
+            ),
+            "Residência": next(
+                mor[1]
+                for mor in moradia.values()
+                if mor[0] == assistido.Assistido.tipo_moradia
+            ),
+            "Possui outros imóveis": "Sim"
+            if assistido.Assistido.possui_outros_imoveis
+            else "Não",
+            "Possui veículos": "Sim" if assistido.Assistido.possui_veiculos else "Não",
+        }
+        if assistido.Assistido
+        else None
+    )
 
     if assistido.Assistido and assistido.Assistido.possui_veiculos:
         dados_renda = dados_renda | {
-        "Veículo": assistido.Assistido.possui_veiculos_obs,
-        "Quantidade de Veículos": assistido.Assistido.quantos_veiculos,
-        "Ano do Veículo": assistido.Assistido.ano_veiculo
+            "Veículo": assistido.Assistido.possui_veiculos_obs,
+            "Quantidade de Veículos": assistido.Assistido.quantos_veiculos,
+            "Ano do Veículo": assistido.Assistido.ano_veiculo,
         }
 
-        doenca_resposta = "Sim" if assistido.Assistido.doenca_grave_familia == 'sim' else  ("Não" if assistido.Assistido.doenca_grave_familia == 'nao' else "Não Informou")
+        doenca_resposta = (
+            "Sim"
+            if assistido.Assistido.doenca_grave_familia == "sim"
+            else (
+                "Não"
+                if assistido.Assistido.doenca_grave_familia == "nao"
+                else "Não Informou"
+            )
+        )
 
         dados_renda = dados_renda | {
-        "Há pessoas com doença grave na família?": doenca_resposta
+            "Há pessoas com doença grave na família?": doenca_resposta
         }
 
-        if assistido.Assistido.doenca_grave_familia == 'sim':
+        if assistido.Assistido.doenca_grave_familia == "sim":
             dados_renda = dados_renda | {
-            "Pessoa doente": next(pess[1] for pess in qual_pessoa_doente.values() if pess[0] == assistido.Assistido.pessoa_doente),
-            "Gasto em medicamentos": "R$ " + str(assistido.Assistido.gastos_medicacao).replace(".", ",")
-        }
+                "Pessoa doente": next(
+                    pess[1]
+                    for pess in qual_pessoa_doente.values()
+                    if pess[0] == assistido.Assistido.pessoa_doente
+                ),
+                "Gasto em medicamentos": "R$ "
+                + str(assistido.Assistido.gastos_medicacao).replace(".", ","),
+            }
 
-        dados_renda = dados_renda | {
-            "Observações": assistido.Assistido.obs
-        }
+        dados_renda = dados_renda | {"Observações": assistido.Assistido.obs}
 
     if assistido.AssistidoPessoaJuridica:
         dados_juridicos = {
-            "Enquadramento": next(enq[1] for enq in enquadramento.values() if enq[0] == assistido.AssistidoPessoaJuridica.enquadramento),
+            "Enquadramento": next(
+                enq[1]
+                for enq in enquadramento.values()
+                if enq[0] == assistido.AssistidoPessoaJuridica.enquadramento
+            ),
             "Sócios da Pessoa Jurídica": assistido.AssistidoPessoaJuridica.socios,
             "Situação perante a Receita Federal": assistido.AssistidoPessoaJuridica.situacao_receita,
-            "Sede constituída ou a constituir em Belo Horizonte?": "Sim" if assistido.AssistidoPessoaJuridica.sede_bh else "Não"
+            "Sede constituída ou a constituir em Belo Horizonte?": "Sim"
+            if assistido.AssistidoPessoaJuridica.sede_bh
+            else "Não",
         }
 
         if assistido.AssistidoPessoaJuridica.sede_bh:
-            local_sede = next(reg[1] for reg in regiao_bh.values() if reg[0] == assistido.AssistidoPessoaJuridica.regiao_sede_bh)
+            local_sede = next(
+                reg[1]
+                for reg in regiao_bh.values()
+                if reg[0] == assistido.AssistidoPessoaJuridica.regiao_sede_bh
+            )
         else:
             local_sede = assistido.AssistidoPessoaJuridica.regiao_sede_outros
 
-        dados_juridicos.update({
-            "Local da Sede": local_sede,
-            "Área de atuação": next(area[1] for area in area_atuacao.values() if area[0] == assistido.AssistidoPessoaJuridica.area_atuacao),
-            "É negócio nascente?": "Sim" if assistido.AssistidoPessoaJuridica.negocio_nascente else "Não",
-            "Órgão competente": next(org[1] for org in orgao_reg.values() if org[0] == assistido.AssistidoPessoaJuridica.orgao_registro),
-            "Faturamento anual": "R$ " + str(assistido.AssistidoPessoaJuridica.faturamento_anual).replace(".", ",")
-        })
+        dados_juridicos.update(
+            {
+                "Local da Sede": local_sede,
+                "Área de atuação": next(
+                    area[1]
+                    for area in area_atuacao.values()
+                    if area[0] == assistido.AssistidoPessoaJuridica.area_atuacao
+                ),
+                "É negócio nascente?": "Sim"
+                if assistido.AssistidoPessoaJuridica.negocio_nascente
+                else "Não",
+                "Órgão competente": next(
+                    org[1]
+                    for org in orgao_reg.values()
+                    if org[0] == assistido.AssistidoPessoaJuridica.orgao_registro
+                ),
+                "Faturamento anual": "R$ "
+                + str(assistido.AssistidoPessoaJuridica.faturamento_anual).replace(
+                    ".", ","
+                ),
+            }
+        )
 
-        balanco_resposta = "Sim" if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == '1' else \
-                      "Não" if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == '0' else "Não se aplica"
+        balanco_resposta = (
+            "Sim"
+            if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == "1"
+            else "Não"
+            if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == "0"
+            else "Não se aplica"
+        )
 
-        resultado_resposta = "Sim" if assistido.AssistidoPessoaJuridica.resultado_econ_neg == "sim" else \
-                         "Não" if assistido.AssistidoPessoaJuridica.resultado_econ_neg == "nao" else "Não se Aplica"
+        resultado_resposta = (
+            "Sim"
+            if assistido.AssistidoPessoaJuridica.resultado_econ_neg == "sim"
+            else "Não"
+            if assistido.AssistidoPessoaJuridica.resultado_econ_neg == "nao"
+            else "Não se Aplica"
+        )
 
-        funcionarios_resposta = "Sim" if assistido.AssistidoPessoaJuridica.tem_funcionarios == "sim" else \
-                            "Não" if assistido.AssistidoPessoaJuridica.tem_funcionarios == "nao" else "Não se Aplica"
+        funcionarios_resposta = (
+            "Sim"
+            if assistido.AssistidoPessoaJuridica.tem_funcionarios == "sim"
+            else "Não"
+            if assistido.AssistidoPessoaJuridica.tem_funcionarios == "nao"
+            else "Não se Aplica"
+        )
 
-        dados_juridicos.update({
-            "O balanço patrimonial do último ano foi negativo?": balanco_resposta,
-            "O resultado econômico do último ano foi negativo?": resultado_resposta,
-            "Tem funcionários?": funcionarios_resposta
-        })
+        dados_juridicos.update(
+            {
+                "O balanço patrimonial do último ano foi negativo?": balanco_resposta,
+                "O resultado econômico do último ano foi negativo?": resultado_resposta,
+                "Tem funcionários?": funcionarios_resposta,
+            }
+        )
 
-        if assistido.AssistidoPessoaJuridica.tem_funcionarios == 'sim':
-            dados_juridicos["Quantidade de Funcionários"] = assistido.AssistidoPessoaJuridica.qtd_funcionarios
+        if assistido.AssistidoPessoaJuridica.tem_funcionarios == "sim":
+            dados_juridicos["Quantidade de Funcionários"] = (
+                assistido.AssistidoPessoaJuridica.qtd_funcionarios
+            )
     else:
         dados_juridicos = None
 
@@ -953,7 +1080,7 @@ def perfil_assistido(_id):
             CardInfo("Casos Vinculados", casos),
             CardInfo("Endereço", dados_endereco),
             CardInfo("Renda e Patrimônio", dados_renda),
-            CardInfo("Dados Juridicos", dados_juridicos)
+            CardInfo("Dados Juridicos", dados_juridicos),
         ]
     else:
         cards = [
@@ -962,11 +1089,7 @@ def perfil_assistido(_id):
             CardInfo("Orientações Jurídicas", orientacoes),
         ]
 
-    return render_template(
-        "perfil_assistidos.html",
-        assistido=assistido,
-        cards=cards
-    )
+    return render_template("perfil_assistidos.html", assistido=assistido, cards=cards)
 
 
 ############################################# ASSISTÊNCIA JUDICIÁRIA ##############################################################
@@ -1096,7 +1219,9 @@ def listar_assistencias_judiciarias():
     _assistencias = (
         AssistenciaJudiciaria.query.filter_by(status=True)
         .order_by("nome")
-        .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
+        .paginate(
+            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+        )
     )
 
     return render_template(
@@ -1114,7 +1239,9 @@ def orientacoes_juridicas():
     orientacoes = (
         OrientacaoJuridica.query.filter_by(status=True)
         .order_by(OrientacaoJuridica.id.desc())
-        .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
+        .paginate(
+            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+        )
     )
 
     return render_template("orientacoes_juridicas.html", orientacoes=orientacoes)
@@ -1145,7 +1272,7 @@ def perfil_oj(id):
         orientacao=_orientacao,
         atendidos=atendidos_envolvidos,
         assistencias=assistencias_envolvidas,
-        usuario=usuario
+        usuario=usuario,
     )
 
 
@@ -1208,7 +1335,9 @@ def busca_oj(_busca):
         orientacoes = (
             queryFiltradaStatus(OrientacaoJuridica)
             .order_by(OrientacaoJuridica.id.desc())
-            .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
+            .paginate(
+                page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+            )
         )
     else:
         orientacoes = (
@@ -1225,7 +1354,9 @@ def busca_oj(_busca):
                 ((Atendido.nome.contains(_busca)) | (Atendido.cpf.contains(_busca)))
             )
             .order_by(OrientacaoJuridica.id.desc())
-            .paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
+            .paginate(
+                page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+            )
         )
 
     return render_template("busca_orientacoes_juridicas.html", orientacoes=orientacoes)
@@ -1289,31 +1420,32 @@ def perfil_assistencia_judiciaria(_id):
         return redirect(url_for("plantao.listar_assistencias_judiciarias"))
     return render_template("visualizar_assistencia_judiciaria.html", aj=aj)
 
+
 # Página de plantao
 @plantao.route("/pagina_plantao", methods=["POST", "GET"])
 @login_required()
 def pg_plantao():
     dias_usuario_marcado = DiasMarcadosPlantao.query.filter_by(
-        id_usuario=current_user.id, status = True, 
+        id_usuario=current_user.id,
+        status=True,
     ).all()
 
     plantao = Plantao.query.first()
     apaga_dias_marcados(plantao, dias_usuario_marcado)
     try:
         if (
-            not (
-                current_user.urole
-                in [
-                    usuario_urole_roles["ADMINISTRADOR"][0],
-                    usuario_urole_roles["COLAB_PROJETO"][0],
-                ]
-            )
+            current_user.urole
+            not in [
+                usuario_urole_roles["ADMINISTRADOR"][0],
+                usuario_urole_roles["COLAB_PROJETO"][0],
+            ]
         ) and (plantao.data_abertura == None):
             flash("O plantão não está aberto!")
             return redirect(url_for("principal.index"))
 
         dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(
-            id_usuario=current_user.id, status = True,
+            id_usuario=current_user.id,
+            status=True,
         ).all()
 
         return render_template(
@@ -1327,13 +1459,14 @@ def pg_plantao():
         return redirect(url_for("principal.index"))
 
 
-
 @plantao.route("/ajax_obter_escala_plantao", methods=["GET"])
 @login_required()
 def ajax_obter_escala_plantao():
     escala = []
 
-    datas_ja_marcadas = DiasMarcadosPlantao.query.filter(DiasMarcadosPlantao.status == True).all()
+    datas_ja_marcadas = DiasMarcadosPlantao.query.filter(
+        DiasMarcadosPlantao.status == True
+    ).all()
     for registro in datas_ja_marcadas:
         if registro.usuario.status:
             escala.append(
@@ -1377,13 +1510,11 @@ def ajax_confirma_data_plantao():
     plantao = Plantao.query.first()
     valida_fim_plantao(plantao)
     if (
-        not (
-            current_user.urole
-            in [
-                usuario_urole_roles["ADMINISTRADOR"][0],
-                usuario_urole_roles["COLAB_PROJETO"][0],
-            ]
-        )
+        current_user.urole
+        not in [
+            usuario_urole_roles["ADMINISTRADOR"][0],
+            usuario_urole_roles["COLAB_PROJETO"][0],
+        ]
     ) and (plantao.data_abertura == None):
         flash("O plantão não está aberto!")
         return redirect(url_for("principal.index"))
@@ -1402,7 +1533,7 @@ def ajax_confirma_data_plantao():
     resultado_json = {}
 
     dias_usuario_marcado = DiasMarcadosPlantao.query.filter_by(
-        id_usuario=current_user.id, status = True
+        id_usuario=current_user.id, status=True
     ).all()
 
     validacao = data_marcada in lista_dias_abertos
@@ -1410,7 +1541,11 @@ def ajax_confirma_data_plantao():
         tipo_mensagem = "warning"
         mensagem = "Data selecionada não foi aberta para plantão."
         resultado_json = cria_json(
-            render_template("lista_datas_plantao.html", data_atual=data_atual, datas_plantao=dias_usuario_marcado),
+            render_template(
+                "lista_datas_plantao.html",
+                data_atual=data_atual,
+                datas_plantao=dias_usuario_marcado,
+            ),
             mensagem,
             tipo_mensagem,
         )
@@ -1422,7 +1557,11 @@ def ajax_confirma_data_plantao():
         tipo_mensagem = "warning"
         mensagem = "Não há vagas disponíveis na data selecionada, tente outro dia."
         resultado_json = cria_json(
-            render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_marcado, data_atual=data_atual),
+            render_template(
+                "lista_datas_plantao.html",
+                datas_plantao=dias_usuario_marcado,
+                data_atual=data_atual,
+            ),
             mensagem,
             tipo_mensagem,
         )
@@ -1430,11 +1569,18 @@ def ajax_confirma_data_plantao():
             response=json.dumps(resultado_json), status=200, mimetype="application/json"
         )
 
-    if len(dias_usuario_marcado) >= 2 or (len(dias_usuario_marcado) >= 1 and current_user.urole == usuario_urole_roles['ORIENTADOR'][0]):
+    if len(dias_usuario_marcado) >= 2 or (
+        len(dias_usuario_marcado) >= 1
+        and current_user.urole == usuario_urole_roles["ORIENTADOR"][0]
+    ):
         tipo_mensagem = "warning"
         mensagem = "Você atingiu o limite de plantões cadastrados."
         resultado_json = cria_json(
-            render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_marcado, data_atual=data_atual),
+            render_template(
+                "lista_datas_plantao.html",
+                datas_plantao=dias_usuario_marcado,
+                data_atual=data_atual,
+            ),
             mensagem,
             tipo_mensagem,
         )
@@ -1446,7 +1592,11 @@ def ajax_confirma_data_plantao():
         tipo_mensagem = "warning"
         mensagem = "Você já marcou plantão neste dia!"
         resultado_json = cria_json(
-            render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_marcado, data_atual=data_atual),
+            render_template(
+                "lista_datas_plantao.html",
+                datas_plantao=dias_usuario_marcado,
+                data_atual=data_atual,
+            ),
             mensagem,
             tipo_mensagem,
         )
@@ -1465,7 +1615,11 @@ def ajax_confirma_data_plantao():
         id_usuario=current_user.id, status=True
     ).all()
     resultado_json = cria_json(
-        render_template("lista_datas_plantao.html", datas_plantao=dias_usuario_atual, data_atual=data_atual),
+        render_template(
+            "lista_datas_plantao.html",
+            datas_plantao=dias_usuario_atual,
+            data_atual=data_atual,
+        ),
         mensagem,
         tipo_mensagem,
     )
@@ -1494,7 +1648,6 @@ def editar_plantao():
 @plantao.route("/ajax_disponibilidade_de_vagas", methods=["POST", "GET"])
 @login_required()
 def ajax_disponibilidade_de_vagas():
-
     ano = request.args.get("ano")
     mes = request.args.get("mes")
 
@@ -1524,7 +1677,6 @@ def ajax_disponibilidade_de_vagas():
 @plantao.route("/ajax_vagas_disponiveis", methods=["POST", "GET"])
 @login_required()
 def ajax_vagas_disponiveis():
-
     ano = request.args.get("ano")
     mes = request.args.get("mes")
     dia = request.args.get("dia")
@@ -1626,7 +1778,6 @@ def ajax_registra_presenca():
     ]
 )
 def confirmar_presenca():
-
     if request.method == "POST":
         dados_cru = request.form.to_dict()
         dados = [(chave, dados_cru[chave]) for chave in dados_cru.keys()]
@@ -1794,13 +1945,11 @@ def configurar_abertura():
 
     valida_fim_plantao(plantao)
     if (
-        not (
-            current_user.urole
-            in [
-                usuario_urole_roles["ADMINISTRADOR"][0],
-                usuario_urole_roles["COLAB_PROJETO"][0],
-            ]
-        )
+        current_user.urole
+        not in [
+            usuario_urole_roles["ADMINISTRADOR"][0],
+            usuario_urole_roles["COLAB_PROJETO"][0],
+        ]
     ) and (plantao.data_abertura == None):
         flash("O plantão não está aberto!")
         return redirect(url_for("principal.index"))
@@ -1809,11 +1958,11 @@ def configurar_abertura():
     set_fechar_plantao_form(form_fechar, plantao)
 
     _notificacao = Notificacao(
-            acao=acoes["ABERTURA_PLANTAO"].format(),
-            data=datetime.now(),
-            id_executor_acao=current_user.id,
-            id_usu_notificar=current_user.id,
-        )
+        acao=acoes["ABERTURA_PLANTAO"].format(),
+        data=datetime.now(),
+        id_executor_acao=current_user.id,
+        id_usu_notificar=current_user.id,
+    )
     db.session.add(_notificacao)
     db.session.commit()
 
@@ -1821,7 +1970,7 @@ def configurar_abertura():
         "configurar_abertura.html",
         form_fechar=form_fechar,
         form_abrir=form_abrir,
-        periodo=f"{hoje.month+1:02}/{hoje.year}",
+        periodo=f"{hoje.month + 1:02}/{hoje.year}",
         form=_form,
         dias_front=dias_front,
     )
@@ -1864,14 +2013,14 @@ def ajax_salva_config_plantao():
         # Se dia no front não esta no banco, adicionar no banco.
         datas_duracao_banco_dados = [data[0] for data in lista_duracao_banco_dados]
         for data in datas_duracao:
-            if not (data in datas_duracao_banco_dados):
+            if data not in datas_duracao_banco_dados:
                 nova_data = DiaPlantao(data=data)
                 db.session.add(nova_data)
                 db.session.flush()
 
         # Se dia do banco não estava no front, apagar no banco.
         for duracao in lista_duracao_banco_dados:
-            if not (duracao[0] in datas_duracao):
+            if duracao[0] not in datas_duracao:
                 DiaPlantao.query.filter(DiaPlantao.id == duracao[1]).delete()
                 db.session.flush()
                 print("Se dia do banco não estava no front, apagar no banco.")
@@ -1971,6 +2120,7 @@ def ajax_salva_config_plantao():
         response=json.dumps(resposta), status=200, mimetype="application/json"
     )
 
+
 # ENDPOINTS DE MELHORIA
 ### Retorna lista de atendidos
 @plantao.route("/todos-atendidos", methods=["GET", "POST"])
@@ -1979,12 +2129,14 @@ def pega_atendidos():
     atendidos = busca_atendidos_modal()
     return json.dumps(atendidos)
 
+
 ### Retorna lista de assistencia judiciaria
 @plantao.route("/todas-assistencias-judiciarias", methods=["GET", "POST"])
 @login_required()
 def pega_assistencias_judiciarias():
     assistencias_judiciarias = busca_assistencias_judiciarias_modal()
     return json.dumps(assistencias_judiciarias)
+
 
 @plantao.route("/tornar_assistido_modal/", methods=["GET", "POST"])
 @login_required(
@@ -1997,48 +2149,63 @@ def tornar_assistido_modal():
     if request.method == "GET":
         return json.dumps({"hello": "world"})
     data = request.get_json(silent=True, force=True)
-    if data['action'] == 'modal':
+    if data["action"] == "modal":
         entidade_assistido = Assistido()
-        entidade_assistido.id_atendido = data['id_atendido']
-        entidade_assistido.sexo = data['sexo']
-        entidade_assistido.raca = data['raca']
-        entidade_assistido.profissao = data['profissao']
-        entidade_assistido.rg = data['rg']
-        entidade_assistido.grau_instrucao = data['grau_instrucao']
-        entidade_assistido.salario = data['salario']
-        entidade_assistido.beneficio = data['beneficio']
-        entidade_assistido.qual_beneficio = data['qual_beneficio']
-        entidade_assistido.contribui_inss = data['contribui_inss']
-        entidade_assistido.qtd_pessoas_moradia = data['qtd_pessoas_moradia']
-        entidade_assistido.renda_familiar = data['renda_familiar']
-        entidade_assistido.participacao_renda = data['participacao_renda']
-        entidade_assistido.tipo_moradia = data['tipo_moradia']
-        entidade_assistido.possui_outros_imoveis = True if data['possui_outros_imoveis'] == 'Não' else False
-        entidade_assistido.quantos_imoveis = 0 if data['quantos_imoveis'] == "" else data['quantos_imoveis']
-        entidade_assistido.possui_veiculos = True if data['possui_veiculos'] == 'Não' else False
-        entidade_assistido.doenca_grave_familia = data['doenca_grave_familia']
-        entidade_assistido.obs = data['obs_assistido']
+        entidade_assistido.id_atendido = data["id_atendido"]
+        entidade_assistido.sexo = data["sexo"]
+        entidade_assistido.raca = data["raca"]
+        entidade_assistido.profissao = data["profissao"]
+        entidade_assistido.rg = data["rg"]
+        entidade_assistido.grau_instrucao = data["grau_instrucao"]
+        entidade_assistido.salario = data["salario"]
+        entidade_assistido.beneficio = data["beneficio"]
+        entidade_assistido.qual_beneficio = data["qual_beneficio"]
+        entidade_assistido.contribui_inss = data["contribui_inss"]
+        entidade_assistido.qtd_pessoas_moradia = data["qtd_pessoas_moradia"]
+        entidade_assistido.renda_familiar = data["renda_familiar"]
+        entidade_assistido.participacao_renda = data["participacao_renda"]
+        entidade_assistido.tipo_moradia = data["tipo_moradia"]
+        entidade_assistido.possui_outros_imoveis = (
+            True if data["possui_outros_imoveis"] == "Não" else False
+        )
+        entidade_assistido.quantos_imoveis = (
+            0 if data["quantos_imoveis"] == "" else data["quantos_imoveis"]
+        )
+        entidade_assistido.possui_veiculos = (
+            True if data["possui_veiculos"] == "Não" else False
+        )
+        entidade_assistido.doenca_grave_familia = data["doenca_grave_familia"]
+        entidade_assistido.obs = data["obs_assistido"]
 
         entidade_assistido.setCamposVeiculo(
             entidade_assistido.possui_veiculos,
-            data['possui_veiculos_obs'],
-            0 if data['quantos_veiculos'] == '' else data['quantos_veiculos'],
-            data['ano_veiculo'],
+            data["possui_veiculos_obs"],
+            0 if data["quantos_veiculos"] == "" else data["quantos_veiculos"],
+            data["ano_veiculo"],
         )
         entidade_assistido.setCamposDoenca(
             entidade_assistido.doenca_grave_familia,
-            data['pessoa_doente'],
-            data['pessoa_doente_obs'],
-            0 if data['gastos_medicacao'] == '' else data['gastos_medicacao'],
+            data["pessoa_doente"],
+            data["pessoa_doente_obs"],
+            0 if data["gastos_medicacao"] == "" else data["gastos_medicacao"],
         )
         db.session.add(entidade_assistido)
         db.session.commit()
 
-        return json.dumps({"status": "success", "message": "Assistido cadastrado com sucesso!", 'id': data['id_atendido']})
+        return json.dumps(
+            {
+                "status": "success",
+                "message": "Assistido cadastrado com sucesso!",
+                "id": data["id_atendido"],
+            }
+        )
     else:
-        return json.dumps({"status": "error", "message": "Campo de ação não encontrado"})
-    
-@plantao.route("/verifica_assistido/<_id>", methods=[ "GET", "POST" ])
+        return json.dumps(
+            {"status": "error", "message": "Campo de ação não encontrado"}
+        )
+
+
+@plantao.route("/verifica_assistido/<_id>", methods=["GET", "POST"])
 @login_required(
     role=[
         usuario_urole_roles["ADMINISTRADOR"][0],
@@ -2051,134 +2218,152 @@ def verifica_assistdo(_id):
     verificado = Assistido.query.filter(Assistido.id_atendido == _id).first()
     return json.dumps({"assistido": True if verificado else False})
 
-@plantao.route("/fila-atendimento", methods=[ "GET", "POST" ])
+
+@plantao.route("/fila-atendimento", methods=["GET", "POST"])
 @login_required()
 def fila_atendimento():
     return render_template("lista_atendimentos.html")
 
-@plantao.route("/fila-atendimento/criar", methods=[ "GET", "POST" ])
+
+@plantao.route("/fila-atendimento/criar", methods=["GET", "POST"])
 @login_required()
 def criar_fila():
     if request.method == "GET":
-        return json.dumps({"error": "error to access the page"})     
+        return json.dumps({"error": "error to access the page"})
     data = request.get_json(silent=True, force=True)
-    
-    psicologia = data['psicologia']
-    prioridade = data['prioridade']
-    senha = data['senha']
-    id_atendido = data['id_atendido']
+
+    psicologia = data["psicologia"]
+    prioridade = data["prioridade"]
+    senha = data["senha"]
+    id_atendido = data["id_atendido"]
     fila = FilaAtendidos()
-    fila.psicologia=psicologia
-    fila.prioridade=prioridade
-    fila.data_criacao=datetime.now()
-    fila.senha=senha
-    fila.id_atendido=id_atendido
-    fila.status=0
+    fila.psicologia = psicologia
+    fila.prioridade = prioridade
+    fila.data_criacao = datetime.now()
+    fila.senha = senha
+    fila.id_atendido = id_atendido
+    fila.status = 0
     db.session.add(fila)
     db.session.commit()
     return json.dumps({"message": "success" if fila.id else "error"})
 
-@plantao.route("/fila-atendimento/gerar-senha/<prioridade>", methods=[ "GET" ])
+
+@plantao.route("/fila-atendimento/gerar-senha/<prioridade>", methods=["GET"])
 @login_required()
 def gerar_senha(prioridade):
     today = datetime.now()
-    senha = len(
-        FilaAtendidos.query.filter(FilaAtendidos.prioridade == prioridade, FilaAtendidos.data_criacao.between(today.strftime("%Y-%m-%d 00:00:00"), today.strftime("%Y-%m-%d 23:59:59"))).all()
-        ) + 1
-    senha = "0"+str(senha) if senha < 10 else str(senha)
+    senha = (
+        len(
+            FilaAtendidos.query.filter(
+                FilaAtendidos.prioridade == prioridade,
+                FilaAtendidos.data_criacao.between(
+                    today.strftime("%Y-%m-%d 00:00:00"),
+                    today.strftime("%Y-%m-%d 23:59:59"),
+                ),
+            ).all()
+        )
+        + 1
+    )
+    senha = "0" + str(senha) if senha < 10 else str(senha)
     return json.dumps({"senha": senha})
+
 
 @plantao.route("/fila-atendimento/hoje", methods=["GET", "PUT"])
 @login_required()
 def pegar_atendimentos():
     if request.method == "PUT":
         data = request.get_json(silent=True, force=True)
-        id = data['id']
+        id = data["id"]
         fila = FilaAtendidos.query.filter(FilaAtendidos.id == id).first()
-        fila.status = data['status']
+        fila.status = data["status"]
         try:
             db.session.commit()
             return json.dumps({"message": "Status atualizado com sucesso"})
-        except: 
+        except:
             return json.dumps({"message": "Ocorreu um erro durante a atualização"})
 
     today = datetime.now()
     fila = FilaAtendidos.query.filter(
-            FilaAtendidos.data_criacao.between(today.strftime("%Y-%m-%d 00:00:00"), today.strftime("%Y-%m-%d 23:59:59"))
-        ).all()
+        FilaAtendidos.data_criacao.between(
+            today.strftime("%Y-%m-%d 00:00:00"), today.strftime("%Y-%m-%d 23:59:59")
+        )
+    ).all()
     fila_obj = []
     for f in fila:
-        fila_obj.append({
-            "id": f.id,
-            "nome": f.atendido.nome,
-            "senha": f.senha,
-            "hora": f.data_criacao,
-            "prioridade": f.prioridade,
-            "psicologia": "Sim" if f.psicologia else "Não",
-            "status": f.status
-        })
+        fila_obj.append(
+            {
+                "id": f.id,
+                "nome": f.atendido.nome,
+                "senha": f.senha,
+                "hora": f.data_criacao,
+                "prioridade": f.prioridade,
+                "psicologia": "Sim" if f.psicologia else "Não",
+                "status": f.status,
+            }
+        )
     return json.dumps(fila_obj)
 
-@plantao.route("/atendido/fila-atendimento", methods=["GET","POST"])
+
+@plantao.route("/atendido/fila-atendimento", methods=["GET", "POST"])
 @login_required()
 def ajax_cadastrar_atendido():
     data = request.get_json(silent=True, force=True)
     # form = CadastroAtendidoForm()
     entidade_endereco = Endereco(
-        logradouro=data['logradouro'],
-        numero=data['numero'],
-        complemento=data['complemento'],
-        bairro=data['bairro'],
-        cep=data['cep'],
-        cidade=data['cidade'],
-        estado=data['estado'],
+        logradouro=data["logradouro"],
+        numero=data["numero"],
+        complemento=data["complemento"],
+        bairro=data["bairro"],
+        cep=data["cep"],
+        cidade=data["cidade"],
+        estado=data["estado"],
     )
     db.session.add(entidade_endereco)
     db.session.flush()
     entidade_atendido = Atendido(
-        nome=data['nome'],
-        data_nascimento=data['data_nascimento'],
-        cpf=data['cpf'],
-        cnpj=data['cnpj'],
-        telefone=data['telefone'],
-        celular=data['celular'],
-        email=data['email'],
-        estado_civil=data['estado_civil'],
-        como_conheceu=data['como_conheceu'],
-        indicacao_orgao=data['indicacao_orgao'],
-        procurou_outro_local=data['procurou_outro_local'],
-        procurou_qual_local=data['procurou_qual_local'],
-        obs=data['obs_atendido'],
+        nome=data["nome"],
+        data_nascimento=data["data_nascimento"],
+        cpf=data["cpf"],
+        cnpj=data["cnpj"],
+        telefone=data["telefone"],
+        celular=data["celular"],
+        email=data["email"],
+        estado_civil=data["estado_civil"],
+        como_conheceu=data["como_conheceu"],
+        indicacao_orgao=data["indicacao_orgao"],
+        procurou_outro_local=data["procurou_outro_local"],
+        procurou_qual_local=data["procurou_qual_local"],
+        obs=data["obs_atendido"],
         endereco_id=entidade_endereco.id,
-        pj_constituida=1 if data['pj_constituida'] == "True" else 0,
-        repres_legal=1 if data['repres_legal'] == "True" else 0,
-        nome_repres_legal=data['nome_repres_legal'],
-        cpf_repres_legal=data['cpf_repres_legal'],
-        contato_repres_legal=data['contato_repres_legal'],
-        rg_repres_legal=data['rg_repres_legal'],
-        nascimento_repres_legal=data['nascimento_repres_legal'],
-        pretende_constituir_pj=data['pretende_constituir_pj'],
+        pj_constituida=1 if data["pj_constituida"] == "True" else 0,
+        repres_legal=1 if data["repres_legal"] == "True" else 0,
+        nome_repres_legal=data["nome_repres_legal"],
+        cpf_repres_legal=data["cpf_repres_legal"],
+        contato_repres_legal=data["contato_repres_legal"],
+        rg_repres_legal=data["rg_repres_legal"],
+        nascimento_repres_legal=data["nascimento_repres_legal"],
+        pretende_constituir_pj=data["pretende_constituir_pj"],
         status=1,
     )
     entidade_atendido.setIndicacao_orgao(
-        data['indicacao_orgao'], entidade_atendido.como_conheceu
+        data["indicacao_orgao"], entidade_atendido.como_conheceu
     )
     entidade_atendido.setCnpj(
-        entidade_atendido.pj_constituida, data['cnpj'], 1 if data['repres_legal'] else 0
+        entidade_atendido.pj_constituida, data["cnpj"], 1 if data["repres_legal"] else 0
     )
 
     entidade_atendido.setRepres_legal(
         entidade_atendido.repres_legal,
         entidade_atendido.pj_constituida,
-        data['nome_repres_legal'],
-        data['cpf_repres_legal'],
-        data['contato_repres_legal'],
-        data['rg_repres_legal'],
-        data['nascimento_repres_legal'],
+        data["nome_repres_legal"],
+        data["cpf_repres_legal"],
+        data["contato_repres_legal"],
+        data["rg_repres_legal"],
+        data["nascimento_repres_legal"],
     )
 
     entidade_atendido.setProcurou_qual_local(
-        entidade_atendido.procurou_outro_local, data['procurou_qual_local']
+        entidade_atendido.procurou_outro_local, data["procurou_qual_local"]
     )
     db.session.add(entidade_atendido)
     db.session.commit()

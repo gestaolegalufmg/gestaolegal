@@ -1,13 +1,4 @@
-import enum
-from datetime import datetime
-from enum import Enum
-
-from flask import session
-from flask_bcrypt import Bcrypt
-from flask_login import UserMixin
-from sqlalchemy import null
-from sqlalchemy.orm import backref, relationship
-from sqlalchemy.sql import expression
+from sqlalchemy.orm import relationship
 
 from gestaolegal import db
 from gestaolegal.casos.models import associacao_casos_atendidos
@@ -236,7 +227,6 @@ meses = {
 
 
 class Atendido(db.Model):
-
     __tablename__ = "atendidos"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -256,9 +246,7 @@ class Atendido(db.Model):
     endereco = db.relationship("Endereco", lazy="joined")
     telefone = db.Column(db.String(18, collation="latin1_general_ci"))
     celular = db.Column(db.String(18, collation="latin1_general_ci"), nullable=False)
-    email = db.Column(
-        db.String(80, collation="latin1_general_ci"), nullable=False
-    )
+    email = db.Column(db.String(80, collation="latin1_general_ci"), nullable=False)
     estado_civil = db.Column(
         db.String(80, collation="latin1_general_ci"), nullable=False
     )
@@ -336,11 +324,12 @@ class Atendido(db.Model):
 
 
 class Assistido(db.Model):
-
     __tablename__ = "assistidos"
 
     id = db.Column(db.Integer, primary_key=True)
-    id_atendido = db.Column(db.Integer, db.ForeignKey("atendidos.id", ondelete='CASCADE'))
+    id_atendido = db.Column(
+        db.Integer, db.ForeignKey("atendidos.id", ondelete="CASCADE")
+    )
     atendido = relationship("Atendido", lazy="joined")
 
     # Dados pessoais
@@ -418,7 +407,9 @@ class AssistidoPessoaJuridica(db.Model):
     __tablename__ = "assistidos_pessoa_juridica"
 
     id = db.Column(db.Integer, primary_key=True)
-    id_assistido = db.Column(db.Integer, db.ForeignKey("assistidos.id", ondelete='CASCADE'))
+    id_assistido = db.Column(
+        db.Integer, db.ForeignKey("assistidos.id", ondelete="CASCADE")
+    )
     assistido = relationship("Assistido", lazy="joined")
 
     # Dados específicos
@@ -473,9 +464,7 @@ class OrientacaoJuridica(db.Model):
         db.String(50, collation="latin1_general_ci"), nullable=False
     )
     sub_area = db.Column(db.String(50, collation="latin1_general_ci"))
-    descricao = db.Column(
-        db.Text(collation="latin1_general_ci"), nullable=False
-    )
+    descricao = db.Column(db.Text(collation="latin1_general_ci"), nullable=False)
     data_criacao = db.Column(db.DateTime)
     status = db.Column(db.Integer, nullable=False)
 
@@ -488,7 +477,7 @@ class OrientacaoJuridica(db.Model):
     )
     atendidos = db.relationship("Atendido", secondary="atendido_xOrientacaoJuridica")
     id_usuario = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
-    usuario = db.relationship(Usuario, backref='usuarios')
+    usuario = db.relationship(Usuario, backref="usuarios")
 
     def setSubAreas(self, area_direito, sub_area, sub_areaAdmin):
         if area_direito == area_do_direito["CIVEL"][0]:
@@ -619,12 +608,14 @@ class RegistroEntrada(db.Model):
     id_usuario = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
     usuario = db.relationship(Usuario, backref=db.backref("registro_entrada"))
 
+
 # MELHORIAS SOLICITADAS - SETTER
 
-class FilaAtendidos(db.Model):
-    __tablename__ = 'fila_atendimentos'
 
-    id = db.Column(db.Integer, primary_key = True)
+class FilaAtendidos(db.Model):
+    __tablename__ = "fila_atendimentos"
+
+    id = db.Column(db.Integer, primary_key=True)
     psicologia = db.Column(db.Integer, nullable=False, default=0)
     prioridade = db.Column(db.Integer, nullable=False, default=0)
     data_criacao = db.Column(db.DateTime)
@@ -632,9 +623,7 @@ class FilaAtendidos(db.Model):
     status = db.Column(db.Integer, nullable=False, default=0)
     id_atendido = db.Column(db.Integer, db.ForeignKey("atendidos.id"))
 
-    atendido = db.relationship(
-        Atendido, backref=db.backref("atendidos")
-    )
+    atendido = db.relationship(Atendido, backref=db.backref("atendidos"))
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

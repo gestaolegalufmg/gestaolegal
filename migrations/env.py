@@ -1,13 +1,12 @@
 from __future__ import with_statement
 
 import logging
-from logging.config import fileConfig
 import os
 import sys
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from logging.config import fileConfig
 
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -19,17 +18,18 @@ config = context.config
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
-logger = logging.getLogger('alembic.env')
+logger = logging.getLogger("alembic.env")
 
 # Import your models here
 from gestaolegal import app, db
-from gestaolegal.usuario.models import *
-from gestaolegal.plantao.models import *
 from gestaolegal.casos.models import *
+from gestaolegal.plantao.models import *
+from gestaolegal.usuario.models import *
 
 # Get the database URL from your Flask app config
-config.set_main_option('sqlalchemy.url', app.config['SQLALCHEMY_DATABASE_URI'])
+config.set_main_option("sqlalchemy.url", app.config["SQLALCHEMY_DATABASE_URI"])
 target_metadata = db.metadata
+
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode."""
@@ -44,18 +44,20 @@ def run_migrations_offline():
     with context.begin_transaction():
         context.run_migrations()
 
+
 def run_migrations_online():
     """Run migrations in 'online' mode."""
+
     def process_revision_directives(context, revision, directives):
-        if getattr(config.cmd_opts, 'autogenerate', False):
+        if getattr(config.cmd_opts, "autogenerate", False):
             script = directives[0]
             if script.upgrade_ops.is_empty():
                 directives[:] = []
-                logger.info('No changes in schema detected.')
+                logger.info("No changes in schema detected.")
 
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
-        prefix='sqlalchemy.',
+        prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
@@ -69,6 +71,7 @@ def run_migrations_online():
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

@@ -1,8 +1,8 @@
 from gestaolegal import db
 
-#EXEMPLO 1: atendidos = queryFiltradaStatus(Atendido).all()
+# EXEMPLO 1: atendidos = queryFiltradaStatus(Atendido).all()
 
-#EXEMPLO 2: as duas queries ABAIXO são EQUIVALENTES
+# EXEMPLO 2: as duas queries ABAIXO são EQUIVALENTES
 #   from gestaolegaldaj.utils.models import queryFiltradaStatus
 #   from gestaolegaldaj.plantao.models import OrientacaoJuridica, AssistenciaJudiciaria, AssistenciaJudiciaria_xOrientacaoJuridica
 #   sem_queryFiltradaStatus = (db.session.query(Atendido)
@@ -27,11 +27,18 @@ from gestaolegal import db
 #   print('COM FUNCAO DE QUERY FILTRADA:-----------------------------------------------------------')
 #   print(com_queryFiltradaStatus)
 
-def queryFiltradaStatus(entidade_principal, outras_entidades: list = [], status: bool = True): 
-    query_final = db.session.query(entidade_principal).filter(entidade_principal.status == status)
-    
+
+def queryFiltradaStatus(
+    entidade_principal, outras_entidades: list = [], status: bool = True
+):
+    query_final = db.session.query(entidade_principal).filter(
+        entidade_principal.status == status
+    )
+
     if outras_entidades:
         for entidade in outras_entidades:
-            query_final = query_final.add_entity(entidade).filter(entidade.status == status)
+            query_final = query_final.add_entity(entidade).filter(
+                entidade.status == status
+            )
 
     return query_final
