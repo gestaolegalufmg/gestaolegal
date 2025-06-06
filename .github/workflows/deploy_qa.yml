@@ -18,7 +18,7 @@ jobs:
           username: ${{ vars.QA_SSH_USERNAME }}
           key: ${{ secrets.QA_SSH_PRIVATE_KEY }}
           port: 22
-          source: "docker-compose.yml"
+          source: "docker-compose.yml,Makefile"
           target: "/tmp/gestaolegal/"
 
       - name: Setup SSH
