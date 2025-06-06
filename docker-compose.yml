@@ -1,6 +1,6 @@
 services:
   app_gl:
-    build: .
+    image: ${DOCKER_IMAGE:-ghcr.io/your-username/gestaolegal:latest}
     ports:
       - "5000:5000"
     volumes:
@@ -44,3 +44,4 @@ services:
 volumes:
   mysql_data:
     driver: local
+
