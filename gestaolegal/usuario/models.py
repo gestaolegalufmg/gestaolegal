@@ -1,7 +1,4 @@
 from datetime import date, datetime
-from typing import Final
-
-from sqlalchemy.orm import Mapped, mapped_column
 
 import click
 from flask_bcrypt import Bcrypt
@@ -152,6 +149,7 @@ class Usuario(Base, UserMixin):
         except:
             return None
         return db.session.get(Usuario, user_id)
+
 
 @app.cli.command("create-admin")
 @click.argument("nome")
