@@ -1,13 +1,20 @@
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Final, Optional, List
+from typing import TYPE_CHECKING, Final, Optional
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, Boolean, Numeric
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from gestaolegal import db
 from gestaolegal.casos.models import Caso, associacao_casos_atendidos
 from gestaolegal.models.base import Base
-
 from gestaolegal.usuario.models import Usuario
 
 if TYPE_CHECKING:
@@ -235,6 +242,7 @@ meses = {
     "Dez": 12,
 }
 
+
 class Atendido(Base):
     __tablename__: Final = "atendidos"
 
@@ -357,38 +365,72 @@ class Assistido(Base):
     __tablename__ = "assistidos"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_atendido: Mapped[int] = mapped_column(Integer, ForeignKey("atendidos.id", ondelete="CASCADE"))
+    id_atendido: Mapped[int] = mapped_column(
+        Integer, ForeignKey("atendidos.id", ondelete="CASCADE")
+    )
     atendido: Mapped["Atendido"] = relationship("Atendido", lazy="joined")
 
     # Dados pessoais
-    sexo: Mapped[str] = mapped_column(String(1, collation="latin1_general_ci"), nullable=False)
-    profissao: Mapped[str] = mapped_column(String(80, collation="latin1_general_ci"), nullable=False)
-    raca: Mapped[str] = mapped_column(String(20, collation="latin1_general_ci"), nullable=False)
-    rg: Mapped[str] = mapped_column(String(50, collation="latin1_general_ci"), nullable=False)
+    sexo: Mapped[str] = mapped_column(
+        String(1, collation="latin1_general_ci"), nullable=False
+    )
+    profissao: Mapped[str] = mapped_column(
+        String(80, collation="latin1_general_ci"), nullable=False
+    )
+    raca: Mapped[str] = mapped_column(
+        String(20, collation="latin1_general_ci"), nullable=False
+    )
+    rg: Mapped[str] = mapped_column(
+        String(50, collation="latin1_general_ci"), nullable=False
+    )
 
     # Dados sociais
-    grau_instrucao: Mapped[str] = mapped_column(String(100, collation="latin1_general_ci"), nullable=False)
+    grau_instrucao: Mapped[str] = mapped_column(
+        String(100, collation="latin1_general_ci"), nullable=False
+    )
 
     # Renda e patrimônio
     salario: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
-    beneficio: Mapped[str] = mapped_column(String(30, collation="latin1_general_ci"), nullable=False)
-    qual_beneficio: Mapped[Optional[str]] = mapped_column(String(30, collation="latin1_general_ci"))
-    contribui_inss: Mapped[str] = mapped_column(String(20, collation="latin1_general_ci"), nullable=False)
+    beneficio: Mapped[str] = mapped_column(
+        String(30, collation="latin1_general_ci"), nullable=False
+    )
+    qual_beneficio: Mapped[Optional[str]] = mapped_column(
+        String(30, collation="latin1_general_ci")
+    )
+    contribui_inss: Mapped[str] = mapped_column(
+        String(20, collation="latin1_general_ci"), nullable=False
+    )
     qtd_pessoas_moradia: Mapped[int] = mapped_column(Integer, nullable=False)
     renda_familiar: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
-    participacao_renda: Mapped[str] = mapped_column(String(100, collation="latin1_general_ci"), nullable=False)
-    tipo_moradia: Mapped[str] = mapped_column(String(100, collation="latin1_general_ci"), nullable=False)
+    participacao_renda: Mapped[str] = mapped_column(
+        String(100, collation="latin1_general_ci"), nullable=False
+    )
+    tipo_moradia: Mapped[str] = mapped_column(
+        String(100, collation="latin1_general_ci"), nullable=False
+    )
     possui_outros_imoveis: Mapped[bool] = mapped_column(Boolean, nullable=False)
     quantos_imoveis: Mapped[Optional[int]] = mapped_column(Integer)
     possui_veiculos: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    possui_veiculos_obs: Mapped[Optional[str]] = mapped_column(String(100, collation="latin1_general_ci"))
+    possui_veiculos_obs: Mapped[Optional[str]] = mapped_column(
+        String(100, collation="latin1_general_ci")
+    )
     quantos_veiculos: Mapped[Optional[int]] = mapped_column(Integer)
-    ano_veiculo: Mapped[Optional[str]] = mapped_column(String(5, collation="latin1_general_ci"))
-    doenca_grave_familia: Mapped[str] = mapped_column(String(20, collation="latin1_general_ci"), nullable=False)
-    pessoa_doente: Mapped[Optional[str]] = mapped_column(String(50, collation="latin1_general_ci"))
-    pessoa_doente_obs: Mapped[Optional[str]] = mapped_column(String(100, collation="latin1_general_ci"))
+    ano_veiculo: Mapped[Optional[str]] = mapped_column(
+        String(5, collation="latin1_general_ci")
+    )
+    doenca_grave_familia: Mapped[str] = mapped_column(
+        String(20, collation="latin1_general_ci"), nullable=False
+    )
+    pessoa_doente: Mapped[Optional[str]] = mapped_column(
+        String(50, collation="latin1_general_ci")
+    )
+    pessoa_doente_obs: Mapped[Optional[str]] = mapped_column(
+        String(100, collation="latin1_general_ci")
+    )
     gastos_medicacao: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
-    obs: Mapped[Optional[str]] = mapped_column(String(1000, collation="latin1_general_ci"))
+    obs: Mapped[Optional[str]] = mapped_column(
+        String(1000, collation="latin1_general_ci")
+    )
 
     def setCamposVeiculo(
         self, possui_veiculos, possui_veiculos_obs, quantos_veiculos, ano_veiculo
@@ -425,24 +467,48 @@ class AssistidoPessoaJuridica(Base):
     __tablename__ = "assistidos_pessoa_juridica"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_assistido: Mapped[int] = mapped_column(Integer, ForeignKey("assistidos.id", ondelete="CASCADE"))
+    id_assistido: Mapped[int] = mapped_column(
+        Integer, ForeignKey("assistidos.id", ondelete="CASCADE")
+    )
     assistido: Mapped["Assistido"] = relationship("Assistido", lazy="joined")
 
     # Dados específicos
-    socios: Mapped[Optional[str]] = mapped_column(String(1000, collation="latin1_general_ci"))
-    situacao_receita: Mapped[str] = mapped_column(String(100, collation="latin1_general_ci"), nullable=False)
-    enquadramento: Mapped[str] = mapped_column(String(100, collation="latin1_general_ci"), nullable=False)
+    socios: Mapped[Optional[str]] = mapped_column(
+        String(1000, collation="latin1_general_ci")
+    )
+    situacao_receita: Mapped[str] = mapped_column(
+        String(100, collation="latin1_general_ci"), nullable=False
+    )
+    enquadramento: Mapped[str] = mapped_column(
+        String(100, collation="latin1_general_ci"), nullable=False
+    )
     sede_bh: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    regiao_sede_bh: Mapped[Optional[str]] = mapped_column(String(50, collation="latin1_general_ci"))
-    regiao_sede_outros: Mapped[Optional[str]] = mapped_column(String(100, collation="latin1_general_ci"))
-    area_atuacao: Mapped[str] = mapped_column(String(50, collation="latin1_general_ci"), nullable=False)
+    regiao_sede_bh: Mapped[Optional[str]] = mapped_column(
+        String(50, collation="latin1_general_ci")
+    )
+    regiao_sede_outros: Mapped[Optional[str]] = mapped_column(
+        String(100, collation="latin1_general_ci")
+    )
+    area_atuacao: Mapped[str] = mapped_column(
+        String(50, collation="latin1_general_ci"), nullable=False
+    )
     negocio_nascente: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    orgao_registro: Mapped[str] = mapped_column(String(100, collation="latin1_general_ci"), nullable=False)
+    orgao_registro: Mapped[str] = mapped_column(
+        String(100, collation="latin1_general_ci"), nullable=False
+    )
     faturamento_anual: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
-    ultimo_balanco_neg: Mapped[Optional[str]] = mapped_column(String(50, collation="latin1_general_ci"))
-    resultado_econ_neg: Mapped[Optional[str]] = mapped_column(String(50, collation="latin1_general_ci"))
-    tem_funcionarios: Mapped[str] = mapped_column(String(20, collation="latin1_general_ci"), nullable=False)
-    qtd_funcionarios: Mapped[Optional[str]] = mapped_column(String(7, collation="latin1_general_ci"))
+    ultimo_balanco_neg: Mapped[Optional[str]] = mapped_column(
+        String(50, collation="latin1_general_ci")
+    )
+    resultado_econ_neg: Mapped[Optional[str]] = mapped_column(
+        String(50, collation="latin1_general_ci")
+    )
+    tem_funcionarios: Mapped[str] = mapped_column(
+        String(20, collation="latin1_general_ci"), nullable=False
+    )
+    qtd_funcionarios: Mapped[Optional[str]] = mapped_column(
+        String(7, collation="latin1_general_ci")
+    )
 
     def setCamposRegiao_sede(self, sede_bh, regiao_sede_bh, regiao_sede_outros):
         if sede_bh:
@@ -466,9 +532,15 @@ class OrientacaoJuridica(Base):
     __tablename__ = "orientacao_juridica"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    area_direito: Mapped[str] = mapped_column(String(50, collation="latin1_general_ci"), nullable=False)
-    sub_area: Mapped[Optional[str]] = mapped_column(String(50, collation="latin1_general_ci"))
-    descricao: Mapped[str] = mapped_column(Text(collation="latin1_general_ci"), nullable=False)
+    area_direito: Mapped[str] = mapped_column(
+        String(50, collation="latin1_general_ci"), nullable=False
+    )
+    sub_area: Mapped[Optional[str]] = mapped_column(
+        String(50, collation="latin1_general_ci")
+    )
+    descricao: Mapped[str] = mapped_column(
+        Text(collation="latin1_general_ci"), nullable=False
+    )
     data_criacao: Mapped[Optional[datetime]] = mapped_column(DateTime)
     status: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -477,8 +549,12 @@ class OrientacaoJuridica(Base):
         secondary="assistenciasJudiciarias_xOrientacao_juridica",
         backref="AssistenciaJudiciaria",
     )
-    atendidos: Mapped[list["Atendido"]] = relationship("Atendido", secondary="atendido_xOrientacaoJuridica")
-    id_usuario: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("usuarios.id"))
+    atendidos: Mapped[list["Atendido"]] = relationship(
+        "Atendido", secondary="atendido_xOrientacaoJuridica"
+    )
+    id_usuario: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("usuarios.id")
+    )
     usuario: Mapped[Optional["Usuario"]] = relationship(Usuario, backref="usuarios")
 
     def setSubAreas(self, area_direito, sub_area, sub_areaAdmin):
@@ -497,7 +573,9 @@ class Atendido_xOrientacaoJuridica(Base):
     __tablename__ = "atendido_xOrientacaoJuridica"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_orientacaoJuridica: Mapped[int] = mapped_column(Integer, ForeignKey("orientacao_juridica.id"))
+    id_orientacaoJuridica: Mapped[int] = mapped_column(
+        Integer, ForeignKey("orientacao_juridica.id")
+    )
     id_atendido: Mapped[int] = mapped_column(Integer, ForeignKey("atendidos.id"))
 
     atendido: Mapped["Atendido"] = relationship(
@@ -513,13 +591,25 @@ class AssistenciaJudiciaria(Base):
     __tablename__ = "assistencias_judiciarias"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    nome: Mapped[str] = mapped_column(String(150, collation="latin1_general_ci"), nullable=False)
-    regiao: Mapped[str] = mapped_column(String(80, collation="latin1_general_ci"), nullable=False)
-    areas_atendidas: Mapped[str] = mapped_column(String(1000, collation="latin1_general_ci"), nullable=False)
-    endereco_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("enderecos.id"))
+    nome: Mapped[str] = mapped_column(
+        String(150, collation="latin1_general_ci"), nullable=False
+    )
+    regiao: Mapped[str] = mapped_column(
+        String(80, collation="latin1_general_ci"), nullable=False
+    )
+    areas_atendidas: Mapped[str] = mapped_column(
+        String(1000, collation="latin1_general_ci"), nullable=False
+    )
+    endereco_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("enderecos.id")
+    )
     endereco: Mapped[Optional["Endereco"]] = relationship("Endereco", lazy="joined")
-    telefone: Mapped[str] = mapped_column(String(18, collation="latin1_general_ci"), nullable=False)
-    email: Mapped[str] = mapped_column(String(80, collation="latin1_general_ci"), unique=True, nullable=False)
+    telefone: Mapped[str] = mapped_column(
+        String(18, collation="latin1_general_ci"), nullable=False
+    )
+    email: Mapped[str] = mapped_column(
+        String(80, collation="latin1_general_ci"), unique=True, nullable=False
+    )
     status: Mapped[int] = mapped_column(Integer, nullable=False)
 
     orientacoesJuridicas: Mapped[list["OrientacaoJuridica"]] = relationship(
@@ -542,8 +632,12 @@ class AssistenciaJudiciaria_xOrientacaoJuridica(Base):
     __tablename__ = "assistenciasJudiciarias_xOrientacao_juridica"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_orientacaoJuridica: Mapped[int] = mapped_column(Integer, ForeignKey("orientacao_juridica.id"))
-    id_assistenciaJudiciaria: Mapped[int] = mapped_column(Integer, ForeignKey("assistencias_judiciarias.id"))
+    id_orientacaoJuridica: Mapped[int] = mapped_column(
+        Integer, ForeignKey("orientacao_juridica.id")
+    )
+    id_assistenciaJudiciaria: Mapped[int] = mapped_column(
+        Integer, ForeignKey("assistencias_judiciarias.id")
+    )
 
     assistenciaJudiciaria: Mapped["AssistenciaJudiciaria"] = relationship(
         AssistenciaJudiciaria,
@@ -576,11 +670,17 @@ class DiasMarcadosPlantao(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     data_marcada: Mapped[Optional[date]] = mapped_column(Date)
-    confirmacao: Mapped[str] = mapped_column(String(15, collation="latin1_general_ci"), nullable=False, default="aberto")
+    confirmacao: Mapped[str] = mapped_column(
+        String(15, collation="latin1_general_ci"), nullable=False, default="aberto"
+    )
     status: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=False)
 
-    id_usuario: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("usuarios.id"))
-    usuario: Mapped[Optional["Usuario"]] = relationship(Usuario, backref="dias_marcados_plantao")
+    id_usuario: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("usuarios.id")
+    )
+    usuario: Mapped[Optional["Usuario"]] = relationship(
+        Usuario, backref="dias_marcados_plantao"
+    )
 
 
 class RegistroEntrada(Base):
@@ -590,9 +690,15 @@ class RegistroEntrada(Base):
     data_entrada: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     data_saida: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     status: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
-    confirmacao: Mapped[str] = mapped_column(String(15, collation="latin1_general_ci"), nullable=False, default="aberto")
-    id_usuario: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("usuarios.id"))
-    usuario: Mapped[Optional["Usuario"]] = relationship(Usuario, backref="registro_entrada")
+    confirmacao: Mapped[str] = mapped_column(
+        String(15, collation="latin1_general_ci"), nullable=False, default="aberto"
+    )
+    id_usuario: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("usuarios.id")
+    )
+    usuario: Mapped[Optional["Usuario"]] = relationship(
+        Usuario, backref="registro_entrada"
+    )
 
 
 # MELHORIAS SOLICITADAS - SETTER
@@ -605,9 +711,13 @@ class FilaAtendidos(Base):
     psicologia: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     prioridade: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     data_criacao: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    senha: Mapped[str] = mapped_column(String(10, collation="latin1_general_ci"), nullable=False)
+    senha: Mapped[str] = mapped_column(
+        String(10, collation="latin1_general_ci"), nullable=False
+    )
     status: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    id_atendido: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("atendidos.id"))
+    id_atendido: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("atendidos.id")
+    )
 
     atendido: Mapped[Optional["Atendido"]] = relationship(Atendido, backref="atendidos")
 

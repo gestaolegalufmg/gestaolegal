@@ -48,7 +48,9 @@ def index():
         lista_de_casos = db.session.query(Caso).all()
 
         for caso in lista_de_casos:
-            processos = db.session.query(Processo).filter_by(id_caso=caso.id, status=True).all()
+            processos = (
+                db.session.query(Processo).filter_by(id_caso=caso.id, status=True).all()
+            )
             if processos:
                 ultimo_processo = processos[-1:]
                 caso.numero_ultimo_processo = ultimo_processo[0].numero
@@ -192,12 +194,14 @@ def visualizar_caso(id):
     arquivos = db.session.query(ArquivoCaso).filter(ArquivoCaso.id_caso == id).all()
     processos = db.session.query(Processo).filter_by(id_caso=id, status=True).all()
     _lembrete = (
-        db.session.query(Lembrete).filter_by(status=True, id_caso=id)
+        db.session.query(Lembrete)
+        .filter_by(status=True, id_caso=id)
         .order_by(Lembrete.data_criacao.desc())
         .first()
     )
     evento = (
-        db.session.query(Evento).filter_by(status=True, id_caso=id)
+        db.session.query(Evento)
+        .filter_by(status=True, id_caso=id)
         .order_by(Evento.data_criacao.desc())
         .first()
     )
@@ -290,7 +294,9 @@ def editar_caso(id_caso):
         flash("Não existe um caso com esse ID.", "warning")
         return redirect(url_for("casos.index"))
 
-    arquivos = db.session.query(ArquivoCaso).filter(ArquivoCaso.id_caso == id_caso).all()
+    arquivos = (
+        db.session.query(ArquivoCaso).filter(ArquivoCaso.id_caso == id_caso).all()
+    )
     form = CasoForm()
 
     if request.method == "POST":
@@ -687,7 +693,9 @@ def editar_roteiro():
     _form = RoteiroForm()
     if _form.validate_on_submit():
         _roteiro = (
-            db.session.query(Roteiro).filter_by(area_direito=_form.area_direito.data).first()
+            db.session.query(Roteiro)
+            .filter_by(area_direito=_form.area_direito.data)
+            .first()
             or Roteiro()
         )
 
@@ -757,14 +765,17 @@ def lembretes(id_caso):
     num_lembrete = request.args.get("num_lembrete", None)
 
     _lembretes = (
-        db.session.query(Lembrete).filter_by(status=True, id_caso=id_caso)
+        db.session.query(Lembrete)
+        .filter_by(status=True, id_caso=id_caso)
         .order_by(Lembrete.data_criacao.desc())
         .all()
     )
 
-    _lembrete = db.session.query(Lembrete).filter(
-        Lembrete.id_caso == id_caso, Lembrete.num_lembrete == num_lembrete
-    ).first()
+    _lembrete = (
+        db.session.query(Lembrete)
+        .filter(Lembrete.id_caso == id_caso, Lembrete.num_lembrete == num_lembrete)
+        .first()
+    )
 
     caso = db.session.query(Caso).get(id_caso)
     if (caso == None) or (caso.status == False):
@@ -848,7 +859,9 @@ def editar_lembrete(id_lembrete):
 
     ############################## IMPLEMENTAÇÃO DA ROTA ###########################################################
 
-    entidade_lembrete = db.session.query(Lembrete).filter_by(id=id_lembrete, status=True).first()
+    entidade_lembrete = (
+        db.session.query(Lembrete).filter_by(id=id_lembrete, status=True).first()
+    )
 
     if not entidade_lembrete:
         flash("Não existe um lembrete com esse ID.", "warning")
@@ -866,9 +879,11 @@ def editar_lembrete(id_lembrete):
         return redirect(url_for("casos.lembretes", id_caso=entidade_lembrete.id_caso))
 
     setValoresLembrete(_form, entidade_lembrete)
-    entidade_usuario_notificado = db.session.query(Usuario).filter_by(
-        id=entidade_lembrete.id_usuario, status=True
-    ).first()
+    entidade_usuario_notificado = (
+        db.session.query(Usuario)
+        .filter_by(id=entidade_lembrete.id_usuario, status=True)
+        .first()
+    )
     return render_template(
         "editar_lembrete.html", form=_form, usuario=entidade_usuario_notificado.nome
     )
@@ -884,7 +899,9 @@ def editar_lembrete(id_lembrete):
     ]
 )
 def excluir_lembrete(id_lembrete):
-    entidade_usuario = db.session.query(Usuario).filter_by(id=current_user.id, status=True).first()
+    entidade_usuario = (
+        db.session.query(Usuario).filter_by(id=current_user.id, status=True).first()
+    )
     entidade_lembrete = db.session.query(Lembrete).get(id_lembrete)
     caso = entidade_lembrete.id_caso
     if entidade_usuario.urole != "admin":
@@ -1101,14 +1118,18 @@ def editar_evento(id_evento):
             entidade_evento.data_evento = form.data_evento.data
             entidade_evento.id_usuario_responsavel = None
 
-    entidade_evento = db.session.query(Evento).filter_by(id=id_evento, status=True).first()
+    entidade_evento = (
+        db.session.query(Evento).filter_by(id=id_evento, status=True).first()
+    )
     if not entidade_evento:
         flash("Esse evento não existe!", "warning")
         return redirect(url_for("casos.index"))
 
-    arquivos_evento = db.session.query(ArquivosEvento).filter(
-        ArquivosEvento.id_evento == id_evento
-    ).all()
+    arquivos_evento = (
+        db.session.query(ArquivosEvento)
+        .filter(ArquivosEvento.id_evento == id_evento)
+        .all()
+    )
 
     form = EventoForm()
     if request.method == "POST":
@@ -1196,7 +1217,9 @@ def editar_evento(id_evento):
     ]
 )
 def excluir_evento(id_evento):
-    entidade_usuario = db.session.query(Usuario).filter_by(id=current_user.id, status=True).first()
+    entidade_usuario = (
+        db.session.query(Usuario).filter_by(id=current_user.id, status=True).first()
+    )
     entidade_evento = db.session.query(Evento).get(id_evento)
 
     if entidade_usuario.urole != "admin":
@@ -1246,9 +1269,11 @@ def excluir_evento(id_evento):
 @login_required()
 def visualizar_evento(num_evento):
     id_caso = request.args.get("id_caso", None)
-    entidade_evento = db.session.query(Evento).filter(
-        Evento.num_evento == num_evento, Evento.id_caso == id_caso
-    ).first()
+    entidade_evento = (
+        db.session.query(Evento)
+        .filter(Evento.num_evento == num_evento, Evento.id_caso == id_caso)
+        .first()
+    )
     caso = db.session.query(Caso).get(id_caso)
     if (caso == None) or (caso.status == False):
         flash("Caso inexistente!", "warning")
@@ -1258,9 +1283,11 @@ def visualizar_evento(num_evento):
         flash("Evento inexistente!", "warning")
         return redirect(url_for("casos.eventos", id_caso=id_caso))
 
-    arquivos = db.session.query(ArquivosEvento).filter(
-        ArquivosEvento.id_evento == entidade_evento.id
-    ).all()
+    arquivos = (
+        db.session.query(ArquivosEvento)
+        .filter(ArquivosEvento.id_evento == entidade_evento.id)
+        .all()
+    )
 
     return render_template(
         "visualizar_evento.html", entidade_evento=entidade_evento, arquivos=arquivos
@@ -1305,7 +1332,10 @@ def novo_processo(id_caso):
             id_criado_por=current_user.id,
         )
 
-        if db.session.query(Processo).filter_by(numero=int(form.numero.data)).count() > 0:
+        if (
+            db.session.query(Processo).filter_by(numero=int(form.numero.data)).count()
+            > 0
+        ):
             flash("O número deste processo já está cadastrado no sistema", "warning")
             return render_template("novo_processo.html", form=form)
 
@@ -1339,7 +1369,9 @@ def novo_processo(id_caso):
 @login_required()
 def visualizar_processo(id_processo):
     id_caso = request.args.get("id_caso", -1, type=int)
-    _processo = db.session.query(Processo).filter_by(id=id_processo, status=True).first_or_404()
+    _processo = (
+        db.session.query(Processo).filter_by(id=id_processo, status=True).first_or_404()
+    )
     return render_template(
         "visualizar_processo.html", processo=_processo, id_caso=id_caso
     )
@@ -1349,9 +1381,11 @@ def visualizar_processo(id_processo):
 @casos.route("/visualizar_processo_com_numero/<int:numero_processo>", methods=["GET"])
 @login_required()
 def visualizar_processo_com_numero(numero_processo):
-    _processo = db.session.query(Processo).filter_by(
-        numero=numero_processo, status=True
-    ).first_or_404()
+    _processo = (
+        db.session.query(Processo)
+        .filter_by(numero=numero_processo, status=True)
+        .first_or_404()
+    )
     return render_template(
         "visualizar_processo.html", processo=_processo, id_caso=_processo.id_caso
     )
@@ -1406,8 +1440,12 @@ def excluir_processo(id_processo):
         return False
 
     def atualizarUltimoProcesso(id_do_caso):
-        processos = db.session.query(Processo).filter_by(id_caso=id_do_caso, status=True).all()
-        entidade_caso = db.session.query(Caso).filter_by(id=id_do_caso, status=True).first()
+        processos = (
+            db.session.query(Processo).filter_by(id_caso=id_do_caso, status=True).all()
+        )
+        entidade_caso = (
+            db.session.query(Caso).filter_by(id=id_do_caso, status=True).first()
+        )
         if processos:
             ultimo_processo = processos[-1:]
             entidade_caso.numero_ultimo_processo = ultimo_processo[0].numero
@@ -1466,7 +1504,9 @@ def editar_processo(id_processo):
         entidade_processo.data_transito_em_julgado = form.data_transito_em_julgado.data
         entidade_processo.obs = form.obs.data
 
-    entidade_processo = db.session.query(Processo).filter_by(id=id_processo, status=True).first()
+    entidade_processo = (
+        db.session.query(Processo).filter_by(id=id_processo, status=True).first()
+    )
     if not entidade_processo:
         flash("Esse processo não existe!", "warning")
         return redirect(url_for("casos.index"))

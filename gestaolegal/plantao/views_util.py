@@ -210,7 +210,9 @@ def busca_todos_atendidos_assistidos(busca, page):
 
 
 def numero_plantao_a_marcar(id_usuario: int):
-    dias_marcados = db.session.query(DiasMarcadosPlantao).filter_by(id_usuario=id_usuario).all()
+    dias_marcados = (
+        db.session.query(DiasMarcadosPlantao).filter_by(id_usuario=id_usuario).all()
+    )
     return len(dias_marcados) + 1
 
 
@@ -221,9 +223,11 @@ def checa_vagas_em_todos_dias(dias_disponiveis: list, urole: str) -> bool:
     if urole == usuario_urole_roles["ORIENTADOR"][0]:
         orientador_no_dia = []  # essa lista armazena se todos os dias tem ou nao um orientador ja cadastrado num dia, true caso sim e false do contrario
         for i in range(0, len(dias_disponiveis)):
-            seletor_banco_de_dados = db.session.query(DiasMarcadosPlantao).filter_by(
-                data_marcada=dias_disponiveis[i]
-            ).all()
+            seletor_banco_de_dados = (
+                db.session.query(DiasMarcadosPlantao)
+                .filter_by(data_marcada=dias_disponiveis[i])
+                .all()
+            )
             for data in seletor_banco_de_dados:
                 if data.usuario.urole == usuario_urole_roles["ORIENTADOR"][0]:
                     orientador_no_dia.append(True)
@@ -236,9 +240,11 @@ def checa_vagas_em_todos_dias(dias_disponiveis: list, urole: str) -> bool:
     else:
         tres_estagiarios_no_dia = []  # essa lista armazena se todos os dias tem ou nao 3 ou mais estagiarios ja cadastrados num dia, true caso sim e false do contrario
         for i in range(0, len(dias_disponiveis)):
-            seletor_banco_de_dados = db.session.query(DiasMarcadosPlantao).filter_by(
-                data_marcada=dias_disponiveis[i]
-            ).all()
+            seletor_banco_de_dados = (
+                db.session.query(DiasMarcadosPlantao)
+                .filter_by(data_marcada=dias_disponiveis[i])
+                .all()
+            )
             numero_de_estagiarios_no_dia = 0
             for data in seletor_banco_de_dados:
                 if data.usuario.urole == "estag_direito":
@@ -261,7 +267,9 @@ def confirma_disponibilidade_dia(dias_disponiveis: list, data: date):
     """
 
     urole_usuario = current_user.urole
-    consulta_data_marcada = db.session.query(DiasMarcadosPlantao).filter_by(data_marcada=data).all()
+    consulta_data_marcada = (
+        db.session.query(DiasMarcadosPlantao).filter_by(data_marcada=data).all()
+    )
     numero_orientador = 0
     numero_estagiario = 0
 

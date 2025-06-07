@@ -4,13 +4,13 @@ from datetime import date, datetime, time, timedelta
 import pytz
 from flask import (
     Blueprint,
+    abort,
     flash,
     json,
     redirect,
     render_template,
     request,
     url_for,
-    abort,
 )
 from flask_login import current_user
 
@@ -22,7 +22,6 @@ from gestaolegal.plantao.forms import (
     AssistenciaJudiciariaForm,
     CadastroAtendidoForm,
     CadastroOrientacaoJuridicaForm,
-    EditarAssistidoForm,
     FecharPlantaoForm,
     OrientacaoJuridicaForm,
     SelecionarDuracaoPlantaoForm,
@@ -32,7 +31,6 @@ from gestaolegal.plantao.models import (
     AssistenciaJudiciaria,
     AssistenciaJudiciaria_xOrientacaoJuridica,
     Assistido,
-    AssistidoPessoaJuridica,
     Atendido,
     Atendido_xOrientacaoJuridica,
     DiaPlantao,
@@ -41,21 +39,10 @@ from gestaolegal.plantao.models import (
     OrientacaoJuridica,
     Plantao,
     RegistroEntrada,
-    area_atuacao,
-    beneficio,
-    contribuicao_inss,
-    enquadramento,
-    escolaridade,
-    moradia,
-    orgao_reg,
-    participacao_renda,
-    qual_pessoa_doente,
-    regiao_bh,
 )
 from gestaolegal.plantao.views_util import *
 from gestaolegal.usuario.models import (
     Usuario,
-    sexo_usuario,
     usuario_urole_inverso,
     usuario_urole_roles,
 )
@@ -171,9 +158,12 @@ def cadastro_na():
 def busca_atendidos_assistidos():
     if request.method == "POST":
         termo = request.form["termo"]
-        atendidos = db.session.query(Atendido).join(Assistido).filter(
-            Atendido.nome.like(termo + "%")
-        ).all()
+        atendidos = (
+            db.session.query(Atendido)
+            .join(Assistido)
+            .filter(Atendido.nome.like(termo + "%"))
+            .all()
+        )
         return json.dumps({"atendidos": [x.as_dict() for x in atendidos]})
     return render_template("busca_atendidos_assistidos.html")
 
@@ -182,10 +172,13 @@ def busca_atendidos_assistidos():
 @login_required()
 def listar_atendidos():
     page = request.args.get("page", 1, type=int)
-    atendidos = db.session.query(Atendido).join(Assistido).filter(
-        Atendido.status == True
-    ).paginate(
-        page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+    atendidos = (
+        db.session.query(Atendido)
+        .join(Assistido)
+        .filter(Atendido.status == True)
+        .paginate(
+            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+        )
     )
     return render_template("atendidos_assistidos.html", atendidos=atendidos)
 
@@ -308,7 +301,11 @@ def tornar_assistido(id_atendido):
     ]
 )
 def editar_assistido(id_atendido):
-    assistido = db.session.query(Assistido).filter_by(atendido_id=id_atendido, status=True).first()
+    assistido = (
+        db.session.query(Assistido)
+        .filter_by(atendido_id=id_atendido, status=True)
+        .first()
+    )
     if not assistido:
         abort(404)
     form = TornarAssistidoForm()
@@ -318,7 +315,9 @@ def editar_assistido(id_atendido):
             assistido.observacoes = form.observacoes.data
             db.session.commit()
             flash("Assistido editado com sucesso!", "success")
-            return redirect(url_for("plantao.perfil_assistido", _id=assistido.atendido_id))
+            return redirect(
+                url_for("plantao.perfil_assistido", _id=assistido.atendido_id)
+            )
     return render_template("editar_assistido.html", form=form)
 
 
@@ -346,7 +345,9 @@ def cadastro_orientacao_juridica():
     return render_template("cadastro_orientacao_juridica.html", form=form)
 
 
-@plantao.route("/encaminha_assistencia_judiciaria/<int:id_orientacao>", methods=["POST", "GET"])
+@plantao.route(
+    "/encaminha_assistencia_judiciaria/<int:id_orientacao>", methods=["POST", "GET"]
+)
 @login_required(
     role=[
         usuario_urole_roles["ADMINISTRADOR"][0],
@@ -355,7 +356,11 @@ def cadastro_orientacao_juridica():
     ]
 )
 def encaminha_assistencia_judiciaria(id_orientacao):
-    orientacao = db.session.query(OrientacaoJuridica).filter_by(id=id_orientacao, status=True).first()
+    orientacao = (
+        db.session.query(OrientacaoJuridica)
+        .filter_by(id=id_orientacao, status=True)
+        .first()
+    )
     if not orientacao:
         abort(404)
     form = AssistenciaJudiciariaForm()
@@ -382,15 +387,23 @@ def encaminha_assistencia_judiciaria(id_orientacao):
     ]
 )
 def ajax_multiselect_associa_aj_oj(orientacao_id):
-    orientacao = db.session.query(OrientacaoJuridica).filter_by(id=orientacao_id, status=True).first()
+    orientacao = (
+        db.session.query(OrientacaoJuridica)
+        .filter_by(id=orientacao_id, status=True)
+        .first()
+    )
     if not orientacao:
         abort(404)
-    
-    assistencias = db.session.query(AssistenciaJudiciaria).filter(
-        AssistenciaJudiciaria.area_direito == orientacao.area_direito,
-        AssistenciaJudiciaria.status == True
-    ).all()
-    
+
+    assistencias = (
+        db.session.query(AssistenciaJudiciaria)
+        .filter(
+            AssistenciaJudiciaria.area_direito == orientacao.area_direito,
+            AssistenciaJudiciaria.status == True,
+        )
+        .all()
+    )
+
     return json.dumps({"assistencias": [x.as_dict() for x in assistencias]})
 
 
@@ -411,18 +424,24 @@ def ajax_multiselect_associa_aj_oj(orientacao_id):
     ]
 )
 def associacao_orientacao_juridica(id_orientacao, id_atendido):
-    orientacao = db.session.query(OrientacaoJuridica).filter_by(id=id_orientacao, status=True).first()
+    orientacao = (
+        db.session.query(OrientacaoJuridica)
+        .filter_by(id=id_orientacao, status=True)
+        .first()
+    )
     if not orientacao:
         abort(404)
-    
+
     if id_atendido:
-        atendido = db.session.query(Atendido).filter_by(id=id_atendido, status=True).first()
+        atendido = (
+            db.session.query(Atendido).filter_by(id=id_atendido, status=True).first()
+        )
         if not atendido:
             abort(404)
         atendido.orientacoes_juridicas.append(orientacao)
         db.session.commit()
         flash("Atendido associado à orientação jurídica com sucesso!", "success")
-    
+
     return redirect(url_for("plantao.perfil_oj", id=id_orientacao))
 
 
@@ -438,14 +457,18 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
     ]
 )
 def desassociar_orientacao_juridica(id_atendido, id_orientacao):
-    orientacao = db.session.query(OrientacaoJuridica).filter_by(id=id_orientacao, status=True).first()
+    orientacao = (
+        db.session.query(OrientacaoJuridica)
+        .filter_by(id=id_orientacao, status=True)
+        .first()
+    )
     if not orientacao:
         abort(404)
-    
+
     atendido = db.session.query(Atendido).filter_by(id=id_atendido, status=True).first()
     if not atendido:
         abort(404)
-    
+
     atendido.orientacoes_juridicas.remove(orientacao)
     db.session.commit()
     flash("Atendido desassociado da orientação jurídica com sucesso!", "success")
@@ -464,18 +487,18 @@ def desassociar_orientacao_juridica(id_atendido, id_orientacao):
 def busca_atendidos_oj(_busca):
     page = request.args.get("page", 1, type=int)
     query = db.session.query(Atendido).filter(Atendido.status == True)
-    
+
     if _busca:
         query = query.filter(
-            (Atendido.nome.ilike(f"%{_busca}%")) |
-            (Atendido.cpf.ilike(f"%{_busca}%")) |
-            (Atendido.cnpj.ilike(f"%{_busca}%"))
+            (Atendido.nome.ilike(f"%{_busca}%"))
+            | (Atendido.cpf.ilike(f"%{_busca}%"))
+            | (Atendido.cnpj.ilike(f"%{_busca}%"))
         )
-    
+
     atendidos = query.order_by(Atendido.nome).paginate(
         page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
     )
-    
+
     return render_template("busca_atendidos_oj.html", atendidos=atendidos, busca=_busca)
 
 
@@ -483,7 +506,11 @@ def busca_atendidos_oj(_busca):
 @login_required(role=[usuario_urole_roles["ADMINISTRADOR"][0]])
 def excluir_oj():
     id_orientacao = request.form.get("id_orientacao")
-    orientacao = db.session.query(OrientacaoJuridica).filter_by(id=id_orientacao, status=True).first()
+    orientacao = (
+        db.session.query(OrientacaoJuridica)
+        .filter_by(id=id_orientacao, status=True)
+        .first()
+    )
     if not orientacao:
         abort(404)
     orientacao.status = False
@@ -495,21 +522,21 @@ def excluir_oj():
 @plantao.route("/perfil_assistido/<int:_id>", methods=["GET"])
 @login_required()
 def perfil_assistido(_id):
-    assistido = db.session.query(Assistido).filter_by(atendido_id=_id, status=True).first()
+    assistido = (
+        db.session.query(Assistido).filter_by(atendido_id=_id, status=True).first()
+    )
     if not assistido:
         abort(404)
-    
-    orientacoes = db.session.query(OrientacaoJuridica).join(
-        Assistido.orientacoes_juridicas
-    ).filter(
-        Assistido.id == assistido.id,
-        OrientacaoJuridica.status == True
-    ).all()
-    
+
+    orientacoes = (
+        db.session.query(OrientacaoJuridica)
+        .join(Assistido.orientacoes_juridicas)
+        .filter(Assistido.id == assistido.id, OrientacaoJuridica.status == True)
+        .all()
+    )
+
     return render_template(
-        "perfil_assistido.html",
-        assistido=assistido,
-        orientacoes=orientacoes
+        "perfil_assistido.html", assistido=assistido, orientacoes=orientacoes
     )
 
 
@@ -538,9 +565,9 @@ def editar_orientacao_juridica(id_oj):
 
     ############################################# IMPLEMENTAÇÃO DA ROTA ##############################################################
 
-    entidade_orientacao = db.session.query(OrientacaoJuridica).filter_by(
-        id=id_oj, status=True
-    ).first()
+    entidade_orientacao = (
+        db.session.query(OrientacaoJuridica).filter_by(id=id_oj, status=True).first()
+    )
 
     if not entidade_orientacao:
         flash("Essa orientação não existe!", "warning")
@@ -603,15 +630,14 @@ def busca_oj(_busca):
 @plantao.route("/excluir_assistencia_judiciaria/<int:id>", methods=["POST"])
 @login_required(role=[usuario_urole_roles["ADMINISTRADOR"][0]])
 def excluir_assistencia_judiciaria(id):
-    assistencia = db.session.query(AssistenciaJudiciaria).filter_by(
-        id=id,
-        status=True
-    ).first()
-    
+    assistencia = (
+        db.session.query(AssistenciaJudiciaria).filter_by(id=id, status=True).first()
+    )
+
     if not assistencia:
         flash("Assistência judiciária não encontrada!", "warning")
         return redirect(url_for("plantao.listar_assistencias_judiciarias"))
-    
+
     assistencia.status = False
     db.session.commit()
     flash("Assistência judiciária excluída com sucesso!", "success")
@@ -661,10 +687,14 @@ def perfil_assistencia_judiciaria(_id):
 @plantao.route("/pagina_plantao", methods=["POST", "GET"])
 @login_required()
 def pg_plantao():
-    dias_usuario_marcado = db.session.query(DiasMarcadosPlantao).filter_by(
-        id_usuario=current_user.id,
-        status=True,
-    ).all()
+    dias_usuario_marcado = (
+        db.session.query(DiasMarcadosPlantao)
+        .filter_by(
+            id_usuario=current_user.id,
+            status=True,
+        )
+        .all()
+    )
 
     plantao = db.session.query(Plantao).first()
 
@@ -680,10 +710,14 @@ def pg_plantao():
             flash("O plantão não está aberto!")
             return redirect(url_for("principal.index"))
 
-        dias_usuario_atual = db.session.query(DiasMarcadosPlantao).filter_by(
-            id_usuario=current_user.id,
-            status=True,
-        ).all()
+        dias_usuario_atual = (
+            db.session.query(DiasMarcadosPlantao)
+            .filter_by(
+                id_usuario=current_user.id,
+                status=True,
+            )
+            .all()
+        )
 
         return render_template(
             "pagina_plantao.html",
@@ -701,9 +735,11 @@ def pg_plantao():
 def ajax_obter_escala_plantao():
     escala = []
 
-    datas_ja_marcadas = db.session.query(DiasMarcadosPlantao).filter(
-        DiasMarcadosPlantao.status == True
-    ).all()
+    datas_ja_marcadas = (
+        db.session.query(DiasMarcadosPlantao)
+        .filter(DiasMarcadosPlantao.status == True)
+        .all()
+    )
     for registro in datas_ja_marcadas:
         if registro.usuario.status:
             escala.append(
@@ -724,7 +760,9 @@ def ajax_obter_escala_plantao():
 def ajax_obter_duracao_plantao():
     dias_duracao = []
 
-    dias_duracao_gravados = db.session.query(DiaPlantao).filter(DiaPlantao.status == True).all()
+    dias_duracao_gravados = (
+        db.session.query(DiaPlantao).filter(DiaPlantao.status == True).all()
+    )
     for dia_duracao in dias_duracao_gravados:
         dias_duracao.append(dia_duracao.data)
 
@@ -769,9 +807,11 @@ def ajax_confirma_data_plantao():
     mensagem = ""
     resultado_json = {}
 
-    dias_usuario_marcado = db.session.query(DiasMarcadosPlantao).filter_by(
-        id_usuario=current_user.id, status=True
-    ).all()
+    dias_usuario_marcado = (
+        db.session.query(DiasMarcadosPlantao)
+        .filter_by(id_usuario=current_user.id, status=True)
+        .all()
+    )
 
     validacao = data_marcada in lista_dias_abertos
     if not validacao:
@@ -848,9 +888,11 @@ def ajax_confirma_data_plantao():
     db.session.commit()
     mensagem = "Data de plantão cadastrada!"
     tipo_mensagem = "success"
-    dias_usuario_atual = db.session.query(DiasMarcadosPlantao).filter_by(
-        id_usuario=current_user.id, status=True
-    ).all()
+    dias_usuario_atual = (
+        db.session.query(DiasMarcadosPlantao)
+        .filter_by(id_usuario=current_user.id, status=True)
+        .all()
+    )
     resultado_json = cria_json(
         render_template(
             "lista_datas_plantao.html",
@@ -868,9 +910,11 @@ def ajax_confirma_data_plantao():
 @plantao.route("/editar_plantao", methods=["GET"])
 @login_required()
 def editar_plantao():
-    dias_marcados_plantao = db.session.query(DiasMarcadosPlantao).filter_by(
-        id_usuario=current_user.id, status=True
-    ).all()
+    dias_marcados_plantao = (
+        db.session.query(DiasMarcadosPlantao)
+        .filter_by(id_usuario=current_user.id, status=True)
+        .all()
+    )
     for dia in dias_marcados_plantao:
         dia.status = False
 
@@ -941,9 +985,14 @@ def reg_presenca():
     data_hora_atual = datetime.now(tz=pytz.timezone("America/Sao_Paulo"))
     status_presenca = "Entrada"
 
-    verifica_historico = db.session.query(RegistroEntrada).filter(
-        RegistroEntrada.id_usuario == current_user.id, RegistroEntrada.status == True
-    ).first()
+    verifica_historico = (
+        db.session.query(RegistroEntrada)
+        .filter(
+            RegistroEntrada.id_usuario == current_user.id,
+            RegistroEntrada.status == True,
+        )
+        .first()
+    )
     if verifica_historico:
         if (
             (data_hora_atual.day - verifica_historico.data_saida.day >= 1)
@@ -973,9 +1022,14 @@ def ajax_registra_presenca():
     hora_formatada = time(int(hora_registrada[0]), int(hora_registrada[1]))
     data_hora_registrada = datetime.combine(data_atual, hora_formatada)
 
-    verifica_historico = db.session.query(RegistroEntrada).filter(
-        RegistroEntrada.id_usuario == current_user.id, RegistroEntrada.status == True
-    ).first()
+    verifica_historico = (
+        db.session.query(RegistroEntrada)
+        .filter(
+            RegistroEntrada.id_usuario == current_user.id,
+            RegistroEntrada.status == True,
+        )
+        .first()
+    )
     if verifica_historico:
         verifica_historico.data_saida = data_hora_registrada
         verifica_historico.status = False
@@ -1023,13 +1077,17 @@ def confirmar_presenca():
             tipo_confirmacao = dados[i][0].split("_")
 
             if tipo_confirmacao[0] == "plantao":
-                plantao = db.session.query(DiasMarcadosPlantao).get_or_404(int(tipo_confirmacao[1]))
+                plantao = db.session.query(DiasMarcadosPlantao).get_or_404(
+                    int(tipo_confirmacao[1])
+                )
                 plantao.confirmacao = dados[i][1]
 
                 db.session.commit()
 
             else:
-                presenca = db.session.query(RegistroEntrada).get_or_404(int(tipo_confirmacao[1]))
+                presenca = db.session.query(RegistroEntrada).get_or_404(
+                    int(tipo_confirmacao[1])
+                )
                 presenca.confirmacao = dados[i][1]
 
                 db.session.commit()
@@ -1039,38 +1097,52 @@ def confirmar_presenca():
     ):  # Se for um dia diferente de segunda, lista as presencas de ontem
         data_ontem = date.today() - timedelta(days=1)
 
-        presencas_registradas = db.session.query(RegistroEntrada).filter(
-            RegistroEntrada.status == False, RegistroEntrada.confirmacao == "aberto"
-        ).all()
+        presencas_registradas = (
+            db.session.query(RegistroEntrada)
+            .filter(
+                RegistroEntrada.status == False, RegistroEntrada.confirmacao == "aberto"
+            )
+            .all()
+        )
         presencas_ontem = [
             presenca
             for presenca in presencas_registradas
             if presenca.data_entrada.date() == data_ontem
         ]
 
-        plantoes_ontem = db.session.query(DiasMarcadosPlantao).filter(
-            DiasMarcadosPlantao.data_marcada == data_ontem,
-            DiasMarcadosPlantao.confirmacao == "aberto",
-        ).all()
+        plantoes_ontem = (
+            db.session.query(DiasMarcadosPlantao)
+            .filter(
+                DiasMarcadosPlantao.data_marcada == data_ontem,
+                DiasMarcadosPlantao.confirmacao == "aberto",
+            )
+            .all()
+        )
 
     else:
         data_ontem = date.today() - timedelta(
             days=3
         )  # Se for segunda, lista as presenças
 
-        presencas_registradas = db.session.query(RegistroEntrada).filter(
-            RegistroEntrada.status == False
-        ).all()
+        presencas_registradas = (
+            db.session.query(RegistroEntrada)
+            .filter(RegistroEntrada.status == False)
+            .all()
+        )
         presencas_ontem = [
             presenca
             for presenca in presencas_registradas
             if presenca.data_entrada.date() == data_ontem
         ]
 
-        plantoes_ontem = db.session.query(DiasMarcadosPlantao).filter(
-            DiasMarcadosPlantao.data_marcada == data_ontem,
-            DiasMarcadosPlantao.confirmacao == "aberto",
-        ).all()
+        plantoes_ontem = (
+            db.session.query(DiasMarcadosPlantao)
+            .filter(
+                DiasMarcadosPlantao.data_marcada == data_ontem,
+                DiasMarcadosPlantao.confirmacao == "aberto",
+            )
+            .all()
+        )
 
     return render_template(
         "confirmar_presenca.html",
@@ -1108,19 +1180,27 @@ def ajax_busca_presencas_data():
         int(data_procurada_separada[2]),
     )
 
-    presencas_registradas = db.session.query(RegistroEntrada).filter(
-        RegistroEntrada.status == False, RegistroEntrada.confirmacao == "aberto"
-    ).all()
+    presencas_registradas = (
+        db.session.query(RegistroEntrada)
+        .filter(
+            RegistroEntrada.status == False, RegistroEntrada.confirmacao == "aberto"
+        )
+        .all()
+    )
     presencas = [
         presenca
         for presenca in presencas_registradas
         if presenca.data_entrada.date() == data_procurada
     ]
 
-    plantoes_marcados = db.session.query(DiasMarcadosPlantao).filter(
-        DiasMarcadosPlantao.data_marcada == data_procurada,
-        DiasMarcadosPlantao.confirmacao == "aberto",
-    ).all()
+    plantoes_marcados = (
+        db.session.query(DiasMarcadosPlantao)
+        .filter(
+            DiasMarcadosPlantao.data_marcada == data_procurada,
+            DiasMarcadosPlantao.confirmacao == "aberto",
+        )
+        .all()
+    )
 
     presencas_ajax = [
         {
@@ -1258,7 +1338,9 @@ def ajax_salva_config_plantao():
         # Se dia do banco não estava no front, apagar no banco.
         for duracao in lista_duracao_banco_dados:
             if duracao[0] not in datas_duracao:
-                db.session.query(DiaPlantao).filter(DiaPlantao.id == duracao[1]).delete()
+                db.session.query(DiaPlantao).filter(
+                    DiaPlantao.id == duracao[1]
+                ).delete()
                 db.session.flush()
                 print("Se dia do banco não estava no front, apagar no banco.")
 
@@ -1452,7 +1534,9 @@ def tornar_assistido_modal():
 def verifica_assistdo(_id):
     if request.method == "POST":
         return json.dumps({"hello": "world"})
-    verificado = db.session.query(Assistido).filter(Assistido.id_atendido == _id).first()
+    verificado = (
+        db.session.query(Assistido).filter(Assistido.id_atendido == _id).first()
+    )
     return json.dumps({"assistido": True if verificado else False})
 
 
@@ -1491,13 +1575,15 @@ def gerar_senha(prioridade):
     today = datetime.now()
     senha = (
         len(
-            db.session.query(FilaAtendidos).filter(
+            db.session.query(FilaAtendidos)
+            .filter(
                 FilaAtendidos.prioridade == prioridade,
                 FilaAtendidos.data_criacao.between(
                     today.strftime("%Y-%m-%d 00:00:00"),
                     today.strftime("%Y-%m-%d 23:59:59"),
                 ),
-            ).all()
+            )
+            .all()
         )
         + 1
     )
@@ -1520,11 +1606,15 @@ def pegar_atendimentos():
             return json.dumps({"message": "Ocorreu um erro durante a atualização"})
 
     today = datetime.now()
-    fila = db.session.query(FilaAtendidos).filter(
-        FilaAtendidos.data_criacao.between(
-            today.strftime("%Y-%m-%d 00:00:00"), today.strftime("%Y-%m-%d 23:59:59")
+    fila = (
+        db.session.query(FilaAtendidos)
+        .filter(
+            FilaAtendidos.data_criacao.between(
+                today.strftime("%Y-%m-%d 00:00:00"), today.strftime("%Y-%m-%d 23:59:59")
+            )
         )
-    ).all()
+        .all()
+    )
     fila_obj = []
     for f in fila:
         fila_obj.append(
@@ -1611,14 +1701,13 @@ def ajax_cadastrar_atendido():
 @login_required()
 def orientacoes_juridicas():
     page = request.args.get("page", 1, type=int)
-    orientacoes = db.session.query(OrientacaoJuridica).filter_by(
-        status=True
-    ).order_by(
-        OrientacaoJuridica.id.desc()
-    ).paginate(
-        page=page, 
-        per_page=app.config["ATENDIDOS_POR_PAGINA"], 
-        error_out=False
+    orientacoes = (
+        db.session.query(OrientacaoJuridica)
+        .filter_by(status=True)
+        .order_by(OrientacaoJuridica.id.desc())
+        .paginate(
+            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+        )
     )
     return render_template("orientacoes_juridicas.html", orientacoes=orientacoes)
 
@@ -1627,28 +1716,34 @@ def orientacoes_juridicas():
 @login_required()
 def perfil_oj(id):
     orientacao = db.session.query(OrientacaoJuridica).get_or_404(id)
-    
-    atendidos_envolvidos = db.session.query(Atendido).join(
-        Atendido_xOrientacaoJuridica
-    ).filter(
-        Atendido_xOrientacaoJuridica.id_orientacaoJuridica == orientacao.id,
-        Atendido.status == True
-    ).order_by(Atendido.nome).all()
-    
+
+    atendidos_envolvidos = (
+        db.session.query(Atendido)
+        .join(Atendido_xOrientacaoJuridica)
+        .filter(
+            Atendido_xOrientacaoJuridica.id_orientacaoJuridica == orientacao.id,
+            Atendido.status == True,
+        )
+        .order_by(Atendido.nome)
+        .all()
+    )
+
     usuario = None
     if orientacao.id_usuario:
         usuario = db.session.query(Usuario).filter_by(id=orientacao.id_usuario).first()
-    
-    assistencias_envolvidas = db.session.query(AssistenciaJudiciaria_xOrientacaoJuridica).filter_by(
-        id_orientacaoJuridica=orientacao.id
-    ).all()
-    
+
+    assistencias_envolvidas = (
+        db.session.query(AssistenciaJudiciaria_xOrientacaoJuridica)
+        .filter_by(id_orientacaoJuridica=orientacao.id)
+        .all()
+    )
+
     return render_template(
         "perfil_orientacao_juridica.html",
         orientacao=orientacao,
         atendidos=atendidos_envolvidos,
         assistencias=assistencias_envolvidas,
-        usuario=usuario or {"nome": "--"}
+        usuario=usuario or {"nome": "--"},
     )
 
 
@@ -1656,23 +1751,25 @@ def perfil_oj(id):
 @login_required()
 def listar_assistencias_judiciarias():
     page = request.args.get("page", 1, type=int)
-    assistencias = db.session.query(AssistenciaJudiciaria).filter_by(
-        status=True
-    ).order_by(
-        AssistenciaJudiciaria.nome
-    ).paginate(
-        page=page,
-        per_page=app.config["ATENDIDOS_POR_PAGINA"],
-        error_out=False
+    assistencias = (
+        db.session.query(AssistenciaJudiciaria)
+        .filter_by(status=True)
+        .order_by(AssistenciaJudiciaria.nome)
+        .paginate(
+            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+        )
     )
     return render_template(
         "lista_assistencia_judiciaria.html",
         assistencias=assistencias,
-        filtro_busca_assistencia_judiciaria=filtro_busca_assistencia_judiciaria
+        filtro_busca_assistencia_judiciaria=filtro_busca_assistencia_judiciaria,
     )
 
 
-@plantao.route("/editar_assistencia_judiciaria/<int:id_assistencia_judiciaria>", methods=["POST", "GET"])
+@plantao.route(
+    "/editar_assistencia_judiciaria/<int:id_assistencia_judiciaria>",
+    methods=["POST", "GET"],
+)
 @login_required(
     role=[
         usuario_urole_roles["ADMINISTRADOR"][0],
@@ -1682,17 +1779,18 @@ def listar_assistencias_judiciarias():
     ]
 )
 def editar_assistencia_judiciaria(id_assistencia_judiciaria):
-    assistencia_juridica = db.session.query(AssistenciaJudiciaria).filter_by(
-        id=id_assistencia_judiciaria,
-        status=True
-    ).first()
-    
+    assistencia_juridica = (
+        db.session.query(AssistenciaJudiciaria)
+        .filter_by(id=id_assistencia_judiciaria, status=True)
+        .first()
+    )
+
     if not assistencia_juridica:
         flash("Assistência judiciária não encontrada!", "warning")
         return redirect(url_for("plantao.listar_assistencias_judiciarias"))
-    
+
     form = AssistenciaJudiciariaForm()
-    
+
     if form.validate_on_submit():
         assistencia_juridica.nome = form.nome.data
         assistencia_juridica.regiao = form.regiao.data
@@ -1706,11 +1804,11 @@ def editar_assistencia_judiciaria(id_assistencia_judiciaria):
         assistencia_juridica.endereco.cep = form.cep.data
         assistencia_juridica.endereco.cidade = form.cidade.data
         assistencia_juridica.endereco.estado = form.estado.data
-        
+
         db.session.commit()
         flash("Assistência judiciária editada com sucesso!", "success")
         return redirect(url_for("plantao.listar_assistencias_judiciarias"))
-    
+
     # Pre-fill form with existing data
     form.nome.data = assistencia_juridica.nome
     form.regiao.data = assistencia_juridica.regiao
@@ -1724,7 +1822,7 @@ def editar_assistencia_judiciaria(id_assistencia_judiciaria):
     form.cep.data = assistencia_juridica.endereco.cep
     form.cidade.data = assistencia_juridica.endereco.cidade
     form.estado.data = assistencia_juridica.endereco.estado
-    
+
     return render_template("editar_assistencia_juridica.html", form=form)
 
 
@@ -1733,22 +1831,23 @@ def editar_assistencia_judiciaria(id_assistencia_judiciaria):
 def buscar_assistencia_judiciaria():
     termo = request.form.get("termo", "")
     page = request.args.get("page", 1, type=int)
-    
-    assistencias = db.session.query(AssistenciaJudiciaria).filter(
-        AssistenciaJudiciaria.status == True,
-        AssistenciaJudiciaria.nome.ilike(f"%{termo}%")
-    ).order_by(
-        AssistenciaJudiciaria.nome
-    ).paginate(
-        page=page,
-        per_page=app.config["ATENDIDOS_POR_PAGINA"],
-        error_out=False
+
+    assistencias = (
+        db.session.query(AssistenciaJudiciaria)
+        .filter(
+            AssistenciaJudiciaria.status == True,
+            AssistenciaJudiciaria.nome.ilike(f"%{termo}%"),
+        )
+        .order_by(AssistenciaJudiciaria.nome)
+        .paginate(
+            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+        )
     )
-    
+
     return render_template(
         "lista_assistencia_judiciaria.html",
         assistencias=assistencias,
-        filtro_busca_assistencia_judiciaria=filtro_busca_assistencia_judiciaria
+        filtro_busca_assistencia_judiciaria=filtro_busca_assistencia_judiciaria,
     )
 
 
@@ -1757,18 +1856,19 @@ def buscar_assistencia_judiciaria():
 def buscar_orientacao_juridica():
     termo = request.form.get("termo", "")
     page = request.args.get("page", 1, type=int)
-    
-    orientacoes = db.session.query(OrientacaoJuridica).filter(
-        OrientacaoJuridica.status == True,
-        OrientacaoJuridica.area_direito.ilike(f"%{termo}%")
-    ).order_by(
-        OrientacaoJuridica.id.desc()
-    ).paginate(
-        page=page,
-        per_page=app.config["ATENDIDOS_POR_PAGINA"],
-        error_out=False
+
+    orientacoes = (
+        db.session.query(OrientacaoJuridica)
+        .filter(
+            OrientacaoJuridica.status == True,
+            OrientacaoJuridica.area_direito.ilike(f"%{termo}%"),
+        )
+        .order_by(OrientacaoJuridica.id.desc())
+        .paginate(
+            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+        )
     )
-    
+
     return render_template("orientacoes_juridicas.html", orientacoes=orientacoes)
 
 
@@ -1777,16 +1877,14 @@ def buscar_orientacao_juridica():
 def buscar_atendido():
     termo = request.form.get("termo", "")
     page = request.args.get("page", 1, type=int)
-    
-    atendidos = db.session.query(Atendido).filter(
-        Atendido.status == True,
-        Atendido.nome.ilike(f"%{termo}%")
-    ).order_by(
-        Atendido.nome
-    ).paginate(
-        page=page,
-        per_page=app.config["ATENDIDOS_POR_PAGINA"],
-        error_out=False
+
+    atendidos = (
+        db.session.query(Atendido)
+        .filter(Atendido.status == True, Atendido.nome.ilike(f"%{termo}%"))
+        .order_by(Atendido.nome)
+        .paginate(
+            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+        )
     )
-    
+
     return render_template("lista_atendidos.html", atendidos=atendidos)

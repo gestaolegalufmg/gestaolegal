@@ -96,8 +96,12 @@ def busca_geral():
 
     casos = None
     if busca.isdigit():
-        casos = db.session.query(Caso).filter_by(status=True, id=int(busca)).paginate(
-            page=page_caso, per_page=app.config["CASOS_POR_PAGINA"], error_out=False
+        casos = (
+            db.session.query(Caso)
+            .filter_by(status=True, id=int(busca))
+            .paginate(
+                page=page_caso, per_page=app.config["CASOS_POR_PAGINA"], error_out=False
+            )
         )
 
     return render_template(

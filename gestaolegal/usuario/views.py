@@ -1,6 +1,15 @@
 from datetime import datetime
 
-from flask import Blueprint, flash, json, redirect, render_template, request, url_for, abort
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    json,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_bcrypt import Bcrypt
 from flask_login import current_user, login_user, logout_user
 from flask_mail import Message
@@ -395,8 +404,12 @@ def logout():
 @login_required()
 def listar_usuarios():
     page = request.args.get("page", 1, type=int)
-    usuarios = db.session.query(Usuario).order_by(Usuario.nome).paginate(
-        page=page, per_page=app.config["USUARIOS_POR_PAGINA"], error_out=False
+    usuarios = (
+        db.session.query(Usuario)
+        .order_by(Usuario.nome)
+        .paginate(
+            page=page, per_page=app.config["USUARIOS_POR_PAGINA"], error_out=False
+        )
     )
     if not usuarios:
         flash("Não há usuários cadastrados no sistema.", "info")

@@ -1,14 +1,13 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for, abort
-from flask_login import current_user
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
-from gestaolegal import app, db, login_required
-from gestaolegal.plantao.forms import CadastroAtendidoForm, EditarAssistidoForm
-from gestaolegal.plantao.models import Atendido, Assistido
+from gestaolegal import db, login_required
+from gestaolegal.plantao.forms import CadastroAtendidoForm
+from gestaolegal.plantao.models import Atendido
 from gestaolegal.plantao.views_util import setValoresFormAtendido
 from gestaolegal.usuario.models import Endereco, usuario_urole_roles
-from gestaolegal.utils.models import queryFiltradaStatus
 
 atendido_controller = Blueprint("atendido", __name__)
+
 
 def valida_dados_form(form: CadastroAtendidoForm):
     email_repetido = db.session.query(Atendido).filter_by(email=form.email.data).first()
@@ -16,6 +15,7 @@ def valida_dados_form(form: CadastroAtendidoForm):
     if not form.validate():
         return False
     return True
+
 
 def cria_atendido(form: CadastroAtendidoForm):
     entidade_endereco = Endereco(
@@ -29,7 +29,7 @@ def cria_atendido(form: CadastroAtendidoForm):
     )
     db.session.add(entidade_endereco)
     db.session.flush()
-    
+
     entidade_atendido = Atendido(
         nome=form.nome.data,
         data_nascimento=form.data_nascimento.data,
@@ -55,7 +55,7 @@ def cria_atendido(form: CadastroAtendidoForm):
         pretende_constituir_pj=form.pretende_constituir_pj.data,
         status=1,
     )
-    
+
     entidade_atendido.setIndicacao_orgao(
         form.indicacao_orgao.data, entidade_atendido.como_conheceu
     )
@@ -76,6 +76,7 @@ def cria_atendido(form: CadastroAtendidoForm):
     )
 
     return entidade_atendido
+
 
 @atendido_controller.route("/novo_atendimento", methods=["GET", "POST"])
 @login_required(
@@ -101,6 +102,7 @@ def cadastro_na():
 
     return render_template("cadastro_novo_atendido.html", form=form)
 
+
 @atendido_controller.route("/dados_atendido/<int:id>", methods=["GET"])
 @login_required()
 def dados_atendido(id):
@@ -111,6 +113,7 @@ def dados_atendido(id):
     setValoresFormAtendido(_atendido, _form)
     _form.id_atendido = _atendido.id
     return render_template("dados_atendido.html", form=_form)
+
 
 @atendido_controller.route("/excluir_atendido/", methods=["POST", "GET"])
 @login_required(role=[usuario_urole_roles["ADMINISTRADOR"][0]])
@@ -123,6 +126,7 @@ def excluir_atendido():
     db.session.commit()
     flash("Atendido excluído com sucesso!", "success")
     return redirect(url_for("plantao.listar_atendidos"))
+
 
 @atendido_controller.route("/editar_atendido/<id_atendido>", methods=["POST", "GET"])
 @login_required(
@@ -176,4 +180,4 @@ def editar_atendido(id_atendido):
             return redirect(url_for("plantao.perfil_assistido", _id=atendido.id))
 
     setValoresFormAtendido(atendido, form)
-    return render_template("editar_atendido.html", form=form) 
+    return render_template("editar_atendido.html", form=form)
