@@ -21,6 +21,7 @@ from gestaolegal.plantao.models import (
     OrientacaoJuridica,
     RegistroEntrada,
     assistencia_jud_areas_atendidas,
+    DiasMarcadosPlantao,
 )
 from gestaolegal.plantao.views_util import *
 from gestaolegal.relatorios.forms import RelatorioForm
@@ -190,7 +191,7 @@ def relatorio_horarios(inicio, final, usuarios):
         usuarios = db.session.query(Usuario).all()
         lista_usuarios = []
         horarios = (
-            RegistroEntrada.query.select_from(RegistroEntrada)
+            db.session.query(RegistroEntrada).select_from(RegistroEntrada)
             .join(Usuario)
             .filter(
                 RegistroEntrada.status == False,
@@ -201,20 +202,20 @@ def relatorio_horarios(inicio, final, usuarios):
         )
         for usuario in usuarios:
             lista_usuarios.append(usuario.id)
-        horarios_plantao = DiasMarcadosPlantao.query.filter(
+        horarios_plantao = db.session.query(DiasMarcadosPlantao).filter(
             DiasMarcadosPlantao.data_marcada >= inicio,
             DiasMarcadosPlantao.data_marcada <= final,
             DiasMarcadosPlantao.id_usuario.in_(lista_usuarios),
         ).all()
     else:
         usuarios = usuarios.split(sep=",")
-        horarios = RegistroEntrada.query.filter(
+        horarios = db.session.query(RegistroEntrada).filter(
             RegistroEntrada.status == False,
             RegistroEntrada.data_saida >= inicio,
             RegistroEntrada.data_saida <= final,
             RegistroEntrada.id_usuario.in_(usuarios),
         ).all()
-        horarios_plantao = DiasMarcadosPlantao.query.filter(
+        horarios_plantao = db.session.query(DiasMarcadosPlantao).filter(
             DiasMarcadosPlantao.data_marcada >= inicio,
             DiasMarcadosPlantao.data_marcada <= final,
             DiasMarcadosPlantao.id_usuario.in_(usuarios),
@@ -247,7 +248,7 @@ def casos_arq_sol_ativ(inicio, final, areas):
         area_direito = []
         for area in assistencia_jud_areas_atendidas:
             area_direito.append(assistencia_jud_areas_atendidas[area][0])
-        casos = Caso.query.filter(
+        casos = db.session.query(Caso).filter(
             Caso.status == True,
             Caso.data_criacao >= inicio,
             Caso.data_criacao <= final,
@@ -261,7 +262,7 @@ def casos_arq_sol_ativ(inicio, final, areas):
         ).all()
     else:
         area_direito = areas.split(sep=",")
-        casos = Caso.query.filter(
+        casos = db.session.query(Caso).filter(
             Caso.status == True,
             Caso.area_direito.in_(area_direito),
             Caso.data_criacao >= inicio,
@@ -309,13 +310,13 @@ def api_relatorios_buscar_usuarios():
     # Se nada for digitado, retornar os 5 assistidos mais recentes
     if termo:
         usuarios = (
-            Usuario.query.filter(Usuario.status)
+            db.session.query(Usuario).filter(Usuario.status)
             .filter(Usuario.nome.like(termo + "%"))
             .order_by(Usuario.nome)
             .all()
         )
     else:
-        usuarios = Usuario.query.filter(Usuario.status).order_by(Usuario.nome).all()
+        usuarios = db.session.query(Usuario).filter(Usuario.status).order_by(Usuario.nome).all()
 
     # Dados formatados para o select2
     usuarios_clean = [{"id": usuario.id, "text": usuario.nome} for usuario in usuarios]
@@ -364,3 +365,37 @@ def api_relatorios_buscar_area_direito():
         mimetype="application/json",
     )
     return response
+
+
+@relatorios.route("/relatorio_plantao", methods=["GET", "POST"])
+@login_required()
+def relatorio_plantao():
+    horarios_plantao = db.session.query(DiasMarcadosPlantao).filter(
+        DiasMarcadosPlantao.data >= data_inicio,
+        DiasMarcadosPlantao.data <= data_fim,
+    ).all()
+
+
+@relatorios.route("/relatorio_casos", methods=["GET", "POST"])
+@login_required()
+def relatorio_casos():
+    casos = db.session.query(Caso).filter(
+        Caso.data_criacao >= data_inicio,
+        Caso.data_criacao <= data_fim,
+    ).all()
+
+
+@relatorios.route("/relatorio_usuarios", methods=["GET", "POST"])
+@login_required()
+def relatorio_usuarios():
+    if request.method == "POST":
+        data_inicio = request.form["data_inicio"]
+        data_fim = request.form["data_fim"]
+        usuarios = db.session.query(Usuario).filter(Usuario.status).order_by(Usuario.nome).all()
+        return render_template(
+            "relatorio_usuarios.html",
+            usuarios=usuarios,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+        )
+    return render_template("relatorio_usuarios.html")

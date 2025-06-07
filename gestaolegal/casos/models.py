@@ -1,13 +1,13 @@
-from gestaolegal import db
+from sqlalchemy import Column, ForeignKey, Integer, Table
 
-# Relacionamento Casos <--> Atendidos
-associacao_casos_atendidos = db.Table(
+from gestaolegal import db
+from gestaolegal.models.base import Base
+
+associacao_casos_atendidos = Table(
     "casos_atendidos",
-    db.metadata,
-    db.Column("id_caso", db.Integer, db.ForeignKey("casos.id", ondelete="CASCADE")),
-    db.Column(
-        "id_atendido", db.Integer, db.ForeignKey("atendidos.id", ondelete="CASCADE")
-    ),
+    Base.metadata,
+    Column("id_caso", Integer, ForeignKey("casos.id", ondelete="CASCADE")),
+    Column("id_atendido", Integer, ForeignKey("atendidos.id", ondelete="CASCADE")),
 )
 
 situacao_deferimento = {
@@ -37,7 +37,7 @@ tipo_evento = {
 }
 
 
-class Caso(db.Model):
+class Caso(Base):
     __tablename__ = "casos"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -98,7 +98,7 @@ class Caso(db.Model):
             self.sub_area = None
 
 
-class ArquivoCaso(db.Model):
+class ArquivoCaso(Base):
     __tablename__ = "arquivosCaso"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -107,7 +107,7 @@ class ArquivoCaso(db.Model):
     id_caso = db.Column(db.Integer, db.ForeignKey("casos.id", ondelete="CASCADE"))
 
 
-class Roteiro(db.Model):
+class Roteiro(Base):
     __tablename__ = "documentos_roteiro"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -117,7 +117,7 @@ class Roteiro(db.Model):
     link = db.Column(db.String(1000, collation="latin1_general_ci"))
 
 
-class Lembrete(db.Model):
+class Lembrete(Base):
     __tablename__ = "lembretes"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -134,7 +134,7 @@ class Lembrete(db.Model):
     status = db.Column(db.Boolean, default=True, nullable=False)
 
 
-class Historico(db.Model):
+class Historico(Base):
     __tablename__ = "historicos"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -145,7 +145,7 @@ class Historico(db.Model):
     data = db.Column(db.DateTime, nullable=False)
 
 
-class Processo(db.Model):
+class Processo(Base):
     __tablename__ = "processos"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -170,7 +170,7 @@ class Processo(db.Model):
     criado_por = db.relationship("Usuario", foreign_keys=[id_criado_por])
 
 
-class Evento(db.Model):
+class Evento(Base):
     __tablename__ = "eventos"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -197,7 +197,7 @@ class Evento(db.Model):
     status = db.Column(db.Boolean, default=True, nullable=False)
 
 
-class ArquivosEvento(db.Model):
+class ArquivosEvento(Base):
     __tablename__ = "arquivosEvento"
 
     id = db.Column(db.Integer, primary_key=True)
