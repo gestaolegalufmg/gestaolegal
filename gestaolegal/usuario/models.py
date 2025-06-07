@@ -1,18 +1,14 @@
-import enum
 from datetime import date, datetime
-from enum import Enum
-import click
 
-from flask import Flask
-from flask import session
+import click
 from flask_bcrypt import Bcrypt
 from flask_login import UserMixin
-from sqlalchemy.sql import expression
-from sqlalchemy import null
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from itsdangerous import URLSafeTimedSerializer as Serializer
+from sqlalchemy import false
 
 from gestaolegal import app, db, login_manager
-from datetime import datetime
+from gestaolegal.models.base import Base
+from gestaolegal.models.endereco import Endereco
 
 ##############################################################
 ################## CONSTANTES/ENUMS ##########################
@@ -67,10 +63,10 @@ tipo_bolsaUsuario = {
 
 @login_manager.user_loader
 def load_user(user_id):
-    return Usuario.query.get(user_id)
+    return db.session.get(Usuario, user_id)
 
 
-class Usuario(db.Model, UserMixin):
+class Usuario(Base, UserMixin):
     bcrypt = Bcrypt()
 
     __tablename__ = "usuarios"
@@ -114,8 +110,8 @@ class Usuario(db.Model, UserMixin):
     inicio_bolsa = db.Column(db.DateTime)
     fim_bolsa = db.Column(db.DateTime)
     endereco_id = db.Column(db.Integer, db.ForeignKey("enderecos.id"))
-    endereco = db.relationship("Endereco", lazy="joined")
-    chave_recuperacao = db.Column(db.Boolean, server_default=expression.false())
+    endereco = db.relationship(Endereco, lazy="joined")
+    chave_recuperacao = db.Column(db.Boolean, server_default=false())
 
     def setSenha(self, senha):
         self.senha = self.bcrypt.generate_password_hash(senha).decode("utf-8")
@@ -134,14 +130,14 @@ class Usuario(db.Model, UserMixin):
             self.fim_bolsa = fim_bolsa
             self.tipo_bolsa = tipo_bolsa
         else:
-            self.inicio_bolsa = null()
-            self.fim_bolsa = null()
-            self.tipo_bolsa = null()
+            self.inicio_bolsa = None
+            self.fim_bolsa = None
+            self.tipo_bolsa = None
 
     def tokenRecuperacao(self, expires_sec=2200):
         s = Serializer(app.config["SECRET_KEY"], expires_sec)
         return s.dumps({"user_id": self.id}).decode("utf-8")
-    
+
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
@@ -152,26 +148,7 @@ class Usuario(db.Model, UserMixin):
             user_id = s.loads(token)["user_id"]
         except:
             return None
-        return Usuario.query.get(user_id)
-
-
-class Endereco(db.Model):
-    __tablename__ = "enderecos"
-
-    id = db.Column(db.Integer, primary_key=True)
-    logradouro = db.Column(
-        db.String(100, collation="latin1_general_ci"), nullable=False
-    )
-    numero = db.Column(db.String(8, collation="latin1_general_ci"), nullable=False)
-    complemento = db.Column(db.String(100, collation="latin1_general_ci"))
-    bairro = db.Column(db.String(100, collation="latin1_general_ci"), nullable=False)
-    cep = db.Column(db.String(9, collation="latin1_general_ci"), nullable=False)
-
-    cidade = db.Column(db.String(100, collation="latin1_general_ci"), nullable=False)
-    estado = db.Column(db.String(100, collation="latin1_general_ci"), nullable=False)
-
-
-# app = Flask(__name__)
+        return db.session.get(Usuario, user_id)
 
 
 @app.cli.command("create-admin")

@@ -7,4 +7,4 @@ ENV STATIC_PATH /code/gestaolegal
 COPY . /code
 WORKDIR /code
 RUN pip install --upgrade pip
-RUN pip install .
+RUN pip install -e .
