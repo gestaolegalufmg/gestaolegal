@@ -3,9 +3,10 @@ import os
 import pytz
 from flask import (
     Blueprint,
-    abort,
     current_app,
     json,
+    render_template,
+    request,
 )
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import RequestEntityTooLarge
@@ -44,10 +45,10 @@ casos = Blueprint("casos", __name__, template_folder="templates")
 def index():
     # ATUALIZAR TODOS OS NÚMEROS DO ÚLTIMO PROCESSO DE TODOS OS CASOS
     def atualizar_ultimo_processo_dos_casos():
-        lista_de_casos = Caso.query.all()
+        lista_de_casos = db.session.query(Caso).all()
 
         for caso in lista_de_casos:
-            processos = Processo.query.filter_by(id_caso=caso.id, status=True).all()
+            processos = db.session.query(Processo).filter_by(id_caso=caso.id, status=True).all()
             if processos:
                 ultimo_processo = processos[-1:]
                 caso.numero_ultimo_processo = ultimo_processo[0].numero
@@ -170,7 +171,7 @@ def novo_caso():
     ]
 )
 def excluir_arquivo_caso(id_arquivo, id_caso):
-    arquivo = ArquivoCaso.query.get_or_404(id_arquivo)
+    arquivo = db.session.query(ArquivoCaso).get_or_404(id_arquivo)
 
     db.session.delete(arquivo)
     db.session.commit()
@@ -182,23 +183,21 @@ def excluir_arquivo_caso(id_arquivo, id_caso):
 @casos.route("/visualizar/<int:id>", methods=["GET"])
 @login_required()
 def visualizar_caso(id):
-    _caso = Caso.query.filter_by(status=True, id=id).first()
+    _caso = db.session.query(Caso).filter_by(status=True, id=id).first()
 
     if _caso == None:
         flash("Caso inexistente!", "warning")
         return redirect(url_for("casos.index"))
 
-    arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id).all()
-    if not _caso:
-        abort(404)
-    processos = Processo.query.filter_by(id_caso=id, status=True).all()
+    arquivos = db.session.query(ArquivoCaso).filter(ArquivoCaso.id_caso == id).all()
+    processos = db.session.query(Processo).filter_by(id_caso=id, status=True).all()
     _lembrete = (
-        Lembrete.query.filter_by(status=True, id_caso=id)
+        db.session.query(Lembrete).filter_by(status=True, id_caso=id)
         .order_by(Lembrete.data_criacao.desc())
         .first()
     )
     evento = (
-        Evento.query.filter_by(status=True, id_caso=id)
+        db.session.query(Evento).filter_by(status=True, id_caso=id)
         .order_by(Evento.data_criacao.desc())
         .first()
     )
@@ -220,7 +219,7 @@ def visualizar_caso(id):
     ]
 )
 def deferir_caso(id_caso):
-    entidade_caso = Caso.query.filter_by(id=id_caso).first()
+    entidade_caso = db.session.query(Caso).filter_by(id=id_caso).first()
     if not entidade_caso:
         flash("Caso não encontrado.", "warning")
         return redirect(url_for("casos.index"))
@@ -248,7 +247,7 @@ def indeferir_caso(id_caso):
             )
             return redirect(url_for("visualizar_caso", id=_id))
 
-        _caso = Caso.query.filter_by(status=True, id=_id).first()
+        _caso = db.session.query(Caso).filter_by(status=True, id=_id).first()
         _caso.situacao_deferimento = situacao_deferimento["INDEFERIDO"][0]
         _caso.justif_indeferimento = _justificativa
 
@@ -270,8 +269,8 @@ def indeferir_caso(id_caso):
     ]
 )
 def editar_caso(id_caso):
-    entidade_caso = Caso.query.filter_by(id=id_caso, status=True).first()
-    usuario = Usuario.query.filter_by(id=current_user.id).first()
+    entidade_caso = db.session.query(Caso).filter_by(id=id_caso, status=True).first()
+    usuario = db.session.query(Usuario).filter_by(id=current_user.id).first()
 
     if (
         usuario.urole == usuario_urole_roles["COLAB_EXTERNO"][0]
@@ -291,7 +290,7 @@ def editar_caso(id_caso):
         flash("Não existe um caso com esse ID.", "warning")
         return redirect(url_for("casos.index"))
 
-    arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id_caso).all()
+    arquivos = db.session.query(ArquivoCaso).filter(ArquivoCaso.id_caso == id_caso).all()
     form = CasoForm()
 
     if request.method == "POST":
@@ -411,8 +410,8 @@ def editar_caso(id_caso):
 @casos.route("excluir_assistido_caso/<id_caso>/<id_assistido>", methods=["POST", "GET"])
 @login_required()
 def excluir_assistido_caso(id_caso, id_assistido):
-    entidade_caso = Caso.query.filter_by(id=id_caso).first()
-    cliente = Atendido.query.filter_by(id=id_assistido).first()
+    entidade_caso = db.session.query(Caso).filter_by(id=id_caso).first()
+    cliente = db.session.query(Atendido).filter_by(id=id_assistido).first()
     entidade_caso.clientes.remove(cliente)
     db.session.commit()
     return redirect(url_for("casos.index"))
@@ -421,12 +420,12 @@ def excluir_assistido_caso(id_caso, id_assistido):
 @casos.route("adicionar_assistido_caso/<id_caso>", methods=["POST", "GET"])
 @login_required()
 def adicionar_assistido_caso(id_caso):
-    entidade_caso = Caso.query.filter_by(id=id_caso, status=True).first()
+    entidade_caso = db.session.query(Caso).filter_by(id=id_caso, status=True).first()
     if request.method == "POST":
         clientes = request.form["adicao_assistido" + id_caso]
         if clientes != "":
             for id_cliente in clientes.split(sep=","):
-                cliente = Atendido.query.get(int(id_cliente))
+                cliente = db.session.query(Atendido).get(int(id_cliente))
                 entidade_caso.clientes.append(cliente)
         db.session.commit()
     return redirect(url_for("casos.index"))
@@ -440,7 +439,8 @@ def api_casos_buscar_assistido():
     # Se nada for digitado, retornar os 5 assistidos mais recentes
     if termo:
         _assistidos = (
-            Atendido.query.join(Assistido)
+            db.session.query(Atendido)
+            .join(Assistido)
             .filter(
                 or_(
                     Atendido.cpf.like(termo + "%"),
@@ -454,7 +454,8 @@ def api_casos_buscar_assistido():
         )
     else:
         _assistidos = (
-            Atendido.query.join(Assistido)
+            db.session.query(Atendido)
+            .join(Assistido)
             .filter(Atendido.status.is_(True))
             .order_by(Atendido.nome)
             .limit(5)
@@ -485,14 +486,16 @@ def api_casos_buscar_usuario():
     termo = request.args.get("q", type=str)
     if termo:
         _usuarios = (
-            Usuario.query.filter(Usuario.nome.like(termo + "%"))
+            db.session.query(Usuario)
+            .filter(Usuario.nome.like(termo + "%"))
             .filter(Usuario.status.is_(True))
             .order_by(Usuario.nome)
             .all()
         )
     else:
         _usuarios = (
-            Usuario.query.filter(Usuario.status.is_(True))
+            db.session.query(Usuario)
+            .filter(Usuario.status.is_(True))
             .order_by(Usuario.nome)
             .limit(5)
             .all()
@@ -513,7 +516,7 @@ def api_casos_buscar_usuario():
 def api_casos_buscar_roteiro():
     termo = request.args.get("termo", type=str)
     if termo:
-        _roteiro = Roteiro.query.filter_by(area_direito=termo).first()
+        _roteiro = db.session.query(Roteiro).filter_by(area_direito=termo).first()
         if _roteiro:
             roteiro_clean = {"link": _roteiro.link}
         else:
@@ -533,14 +536,19 @@ def api_casos_buscar_casos():
     id_caso = request.args.get("q", type=str)
     if id_caso:
         _casos = (
-            Caso.query.filter(Caso.id.like(id_caso + "%"))
+            db.session.query(Caso)
+            .filter(Caso.id.like(id_caso + "%"))
             .filter(Caso.status.is_(True))
             .order_by(Caso.id)
             .all()
         )
     else:
         _casos = (
-            Caso.query.filter(Caso.status.is_(True)).order_by(Caso.id).limit(5).all()
+            db.session.query(Caso)
+            .filter(Caso.status.is_(True))
+            .order_by(Caso.id)
+            .limit(5)
+            .all()
         )
 
     if not _casos:
@@ -573,7 +581,8 @@ def api_casos_buscar_orientador():
     termo = request.args.get("q", type=str)
     if termo:
         _usuarios = (
-            Usuario.query.filter(Usuario.nome.like(termo + "%"))
+            db.session.query(Usuario)
+            .filter(Usuario.nome.like(termo + "%"))
             .filter(Usuario.status.is_(True))
             .filter_by(urole="orient")
             .order_by(Usuario.nome)
@@ -581,7 +590,8 @@ def api_casos_buscar_orientador():
         )
     else:
         _usuarios = (
-            Usuario.query.filter(Usuario.status.is_(True))
+            db.session.query(Usuario)
+            .filter(Usuario.status.is_(True))
             .filter_by(urole="orient")
             .order_by(Usuario.nome)
             .limit(5)
@@ -604,7 +614,8 @@ def api_casos_buscar_estagiario():
     termo = request.args.get("q", type=str)
     if termo:
         _usuarios = (
-            Usuario.query.filter(Usuario.nome.like(termo + "%"))
+            db.session.query(Usuario)
+            .filter(Usuario.nome.like(termo + "%"))
             .filter(Usuario.status.is_(True))
             .filter_by(urole="estag_direito")
             .order_by(Usuario.nome)
@@ -612,7 +623,8 @@ def api_casos_buscar_estagiario():
         )
     else:
         _usuarios = (
-            Usuario.query.filter(Usuario.status.is_(True))
+            db.session.query(Usuario)
+            .filter(Usuario.status.is_(True))
             .filter_by(urole="estag_direito")
             .order_by(Usuario.nome)
             .limit(5)
@@ -635,7 +647,8 @@ def api_casos_buscar_colaborador():
     termo = request.args.get("q", type=str)
     if termo:
         _usuarios = (
-            Usuario.query.filter(Usuario.nome.like(termo + "%"))
+            db.session.query(Usuario)
+            .filter(Usuario.nome.like(termo + "%"))
             .filter(Usuario.status.is_(True))
             .filter_by(urole="colab_ext")
             .order_by(Usuario.nome)
@@ -643,7 +656,8 @@ def api_casos_buscar_colaborador():
         )
     else:
         _usuarios = (
-            Usuario.query.filter(Usuario.status.is_(True))
+            db.session.query(Usuario)
+            .filter(Usuario.status.is_(True))
             .filter_by(urole="colab_ext")
             .order_by(Usuario.nome)
             .limit(5)
@@ -673,7 +687,7 @@ def editar_roteiro():
     _form = RoteiroForm()
     if _form.validate_on_submit():
         _roteiro = (
-            Roteiro.query.filter_by(area_direito=_form.area_direito.data).first()
+            db.session.query(Roteiro).filter_by(area_direito=_form.area_direito.data).first()
             or Roteiro()
         )
 
@@ -685,7 +699,7 @@ def editar_roteiro():
         flash("Alteração realizada com sucesso!", "success")
         return redirect(url_for("casos.editar_roteiro"))
 
-    _roteiros = Roteiro.query.all()
+    _roteiros = db.session.query(Roteiro).all()
     return render_template(
         "links_roteiro.html",
         form=_form,
@@ -743,16 +757,16 @@ def lembretes(id_caso):
     num_lembrete = request.args.get("num_lembrete", None)
 
     _lembretes = (
-        Lembrete.query.filter_by(status=True, id_caso=id_caso)
+        db.session.query(Lembrete).filter_by(status=True, id_caso=id_caso)
         .order_by(Lembrete.data_criacao.desc())
         .all()
     )
 
-    _lembrete = Lembrete.query.filter(
+    _lembrete = db.session.query(Lembrete).filter(
         Lembrete.id_caso == id_caso, Lembrete.num_lembrete == num_lembrete
     ).first()
 
-    caso = Caso.query.get(id_caso)
+    caso = db.session.query(Caso).get(id_caso)
     if (caso == None) or (caso.status == False):
         flash("Caso inexistente!", "warning")
         return redirect(url_for("casos.index", id_caso=id_caso))
@@ -834,7 +848,7 @@ def editar_lembrete(id_lembrete):
 
     ############################## IMPLEMENTAÇÃO DA ROTA ###########################################################
 
-    entidade_lembrete = Lembrete.query.filter_by(id=id_lembrete, status=True).first()
+    entidade_lembrete = db.session.query(Lembrete).filter_by(id=id_lembrete, status=True).first()
 
     if not entidade_lembrete:
         flash("Não existe um lembrete com esse ID.", "warning")
@@ -852,7 +866,7 @@ def editar_lembrete(id_lembrete):
         return redirect(url_for("casos.lembretes", id_caso=entidade_lembrete.id_caso))
 
     setValoresLembrete(_form, entidade_lembrete)
-    entidade_usuario_notificado = Usuario.query.filter_by(
+    entidade_usuario_notificado = db.session.query(Usuario).filter_by(
         id=entidade_lembrete.id_usuario, status=True
     ).first()
     return render_template(
@@ -870,7 +884,7 @@ def editar_lembrete(id_lembrete):
     ]
 )
 def excluir_lembrete(id_lembrete):
-    entidade_usuario = Usuario.query.filter_by(id=current_user.id, status=True).first()
+    entidade_usuario = db.session.query(Usuario).filter_by(id=current_user.id, status=True).first()
     entidade_lembrete = db.session.query(Lembrete).get(id_lembrete)
     caso = entidade_lembrete.id_caso
     if entidade_usuario.urole != "admin":
@@ -1087,12 +1101,12 @@ def editar_evento(id_evento):
             entidade_evento.data_evento = form.data_evento.data
             entidade_evento.id_usuario_responsavel = None
 
-    entidade_evento = Evento.query.filter_by(id=id_evento, status=True).first()
+    entidade_evento = db.session.query(Evento).filter_by(id=id_evento, status=True).first()
     if not entidade_evento:
         flash("Esse evento não existe!", "warning")
         return redirect(url_for("casos.index"))
 
-    arquivos_evento = ArquivosEvento.query.filter(
+    arquivos_evento = db.session.query(ArquivosEvento).filter(
         ArquivosEvento.id_evento == id_evento
     ).all()
 
@@ -1182,7 +1196,7 @@ def editar_evento(id_evento):
     ]
 )
 def excluir_evento(id_evento):
-    entidade_usuario = Usuario.query.filter_by(id=current_user.id, status=True).first()
+    entidade_usuario = db.session.query(Usuario).filter_by(id=current_user.id, status=True).first()
     entidade_evento = db.session.query(Evento).get(id_evento)
 
     if entidade_usuario.urole != "admin":
@@ -1232,10 +1246,10 @@ def excluir_evento(id_evento):
 @login_required()
 def visualizar_evento(num_evento):
     id_caso = request.args.get("id_caso", None)
-    entidade_evento = Evento.query.filter(
+    entidade_evento = db.session.query(Evento).filter(
         Evento.num_evento == num_evento, Evento.id_caso == id_caso
     ).first()
-    caso = Caso.query.get(id_caso)
+    caso = db.session.query(Caso).get(id_caso)
     if (caso == None) or (caso.status == False):
         flash("Caso inexistente!", "warning")
         return redirect(url_for("casos.index", id_caso=id_caso))
@@ -1244,7 +1258,7 @@ def visualizar_evento(num_evento):
         flash("Evento inexistente!", "warning")
         return redirect(url_for("casos.eventos", id_caso=id_caso))
 
-    arquivos = ArquivosEvento.query.filter(
+    arquivos = db.session.query(ArquivosEvento).filter(
         ArquivosEvento.id_evento == entidade_evento.id
     ).all()
 
@@ -1264,7 +1278,7 @@ def visualizar_evento(num_evento):
     ]
 )
 def novo_processo(id_caso):
-    entidade_caso = Caso.query.filter_by(id=id_caso, status=True).first()
+    entidade_caso = db.session.query(Caso).filter_by(id=id_caso, status=True).first()
     if not entidade_caso:
         flash("Não é possível associar um processo a esse caso!", "warning")
         return redirect(url_for("casos.index"))
@@ -1291,11 +1305,11 @@ def novo_processo(id_caso):
             id_criado_por=current_user.id,
         )
 
-        if Processo.query.filter_by(numero=int(form.numero.data)).count() > 0:
+        if db.session.query(Processo).filter_by(numero=int(form.numero.data)).count() > 0:
             flash("O número deste processo já está cadastrado no sistema", "warning")
             return render_template("novo_processo.html", form=form)
 
-        caso = Caso.query.filter_by(id=entidade_processo.id_caso).first()
+        caso = db.session.query(Caso).filter_by(id=entidade_processo.id_caso).first()
         caso.numero_ultimo_processo = entidade_processo.numero
 
         try:
@@ -1325,7 +1339,7 @@ def novo_processo(id_caso):
 @login_required()
 def visualizar_processo(id_processo):
     id_caso = request.args.get("id_caso", -1, type=int)
-    _processo = Processo.query.filter_by(id=id_processo, status=True).first_or_404()
+    _processo = db.session.query(Processo).filter_by(id=id_processo, status=True).first_or_404()
     return render_template(
         "visualizar_processo.html", processo=_processo, id_caso=id_caso
     )
@@ -1335,7 +1349,7 @@ def visualizar_processo(id_processo):
 @casos.route("/visualizar_processo_com_numero/<int:numero_processo>", methods=["GET"])
 @login_required()
 def visualizar_processo_com_numero(numero_processo):
-    _processo = Processo.query.filter_by(
+    _processo = db.session.query(Processo).filter_by(
         numero=numero_processo, status=True
     ).first_or_404()
     return render_template(
@@ -1349,7 +1363,7 @@ def excluir_caso(id_caso):
     rota_paginacao = request.args.get("rota_paginacao", ROTA_PAGINACAO_CASOS, type=str)
 
     caso = db.session.query(Caso).get(id_caso)
-    arquivos = ArquivoCaso.query.filter(ArquivoCaso.id_caso == id_caso)
+    arquivos = db.session.query(ArquivoCaso).filter(ArquivoCaso.id_caso == id_caso)
 
     caso.status = False
 
@@ -1392,8 +1406,8 @@ def excluir_processo(id_processo):
         return False
 
     def atualizarUltimoProcesso(id_do_caso):
-        processos = Processo.query.filter_by(id_caso=id_do_caso, status=True).all()
-        entidade_caso = Caso.query.filter_by(id=id_do_caso, status=True).first()
+        processos = db.session.query(Processo).filter_by(id_caso=id_do_caso, status=True).all()
+        entidade_caso = db.session.query(Caso).filter_by(id=id_do_caso, status=True).first()
         if processos:
             ultimo_processo = processos[-1:]
             entidade_caso.numero_ultimo_processo = ultimo_processo[0].numero
@@ -1452,7 +1466,7 @@ def editar_processo(id_processo):
         entidade_processo.data_transito_em_julgado = form.data_transito_em_julgado.data
         entidade_processo.obs = form.obs.data
 
-    entidade_processo = Processo.query.filter_by(id=id_processo, status=True).first()
+    entidade_processo = db.session.query(Processo).filter_by(id=id_processo, status=True).first()
     if not entidade_processo:
         flash("Esse processo não existe!", "warning")
         return redirect(url_for("casos.index"))
@@ -1489,7 +1503,7 @@ def editar_processo(id_processo):
 )
 def editar_arquivo_caso(id_arquivo, id_caso):
     _form = ArquivoCasoForm()
-    _arquivo = ArquivoCaso.query.get_or_404(id_arquivo)
+    _arquivo = db.session.query(ArquivoCaso).get_or_404(id_arquivo)
 
     try:
         arquivo = request.files.get("arquivo")
@@ -1536,7 +1550,7 @@ def editar_arquivo_caso(id_arquivo, id_caso):
 )
 def editar_arquivo_evento(id_arquivo, id_evento):
     _form = EditarArquivoDeEventoForm()
-    _arquivo = ArquivosEvento.query.get_or_404(id_arquivo)
+    _arquivo = db.session.query(ArquivosEvento).get_or_404(id_arquivo)
 
     try:
         arquivo = request.files.get("arquivo")
@@ -1582,7 +1596,7 @@ def editar_arquivo_evento(id_arquivo, id_evento):
     ]
 )
 def excluir_arquivo_evento(id_arquivo, id_evento):
-    arquivo = ArquivosEvento.query.get_or_404(id_arquivo)
+    arquivo = db.session.query(ArquivosEvento).get_or_404(id_arquivo)
 
     db.session.delete(arquivo)
     db.session.commit()

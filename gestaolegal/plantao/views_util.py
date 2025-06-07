@@ -117,7 +117,7 @@ def setValoresFormAtendido(entidade_atendido: Atendido, form: CadastroAtendidoFo
 
 
 def validaDadosEditar_atendidoForm(form, emailAtual: str):
-    emailRepetido = Atendido.query.filter_by(email=form.email.data).first()
+    emailRepetido = db.session.query(Atendido).filter_by(email=form.email.data).first()
 
     if not form.validate():
         return False
@@ -210,8 +210,7 @@ def busca_todos_atendidos_assistidos(busca, page):
 
 
 def numero_plantao_a_marcar(id_usuario: int):
-    dias_marcados = DiasMarcadosPlantao.query.filter_by(id_usuario=id_usuario).all()
-
+    dias_marcados = db.session.query(DiasMarcadosPlantao).filter_by(id_usuario=id_usuario).all()
     return len(dias_marcados) + 1
 
 
@@ -222,7 +221,7 @@ def checa_vagas_em_todos_dias(dias_disponiveis: list, urole: str) -> bool:
     if urole == usuario_urole_roles["ORIENTADOR"][0]:
         orientador_no_dia = []  # essa lista armazena se todos os dias tem ou nao um orientador ja cadastrado num dia, true caso sim e false do contrario
         for i in range(0, len(dias_disponiveis)):
-            seletor_banco_de_dados = DiasMarcadosPlantao.query.filter_by(
+            seletor_banco_de_dados = db.session.query(DiasMarcadosPlantao).filter_by(
                 data_marcada=dias_disponiveis[i]
             ).all()
             for data in seletor_banco_de_dados:
@@ -237,7 +236,7 @@ def checa_vagas_em_todos_dias(dias_disponiveis: list, urole: str) -> bool:
     else:
         tres_estagiarios_no_dia = []  # essa lista armazena se todos os dias tem ou nao 3 ou mais estagiarios ja cadastrados num dia, true caso sim e false do contrario
         for i in range(0, len(dias_disponiveis)):
-            seletor_banco_de_dados = DiasMarcadosPlantao.query.filter_by(
+            seletor_banco_de_dados = db.session.query(DiasMarcadosPlantao).filter_by(
                 data_marcada=dias_disponiveis[i]
             ).all()
             numero_de_estagiarios_no_dia = 0
@@ -262,7 +261,7 @@ def confirma_disponibilidade_dia(dias_disponiveis: list, data: date):
     """
 
     urole_usuario = current_user.urole
-    consulta_data_marcada = DiasMarcadosPlantao.query.filter_by(data_marcada=data).all()
+    consulta_data_marcada = db.session.query(DiasMarcadosPlantao).filter_by(data_marcada=data).all()
     numero_orientador = 0
     numero_estagiario = 0
 
@@ -392,7 +391,7 @@ def valida_fim_plantao(plantao: Plantao):
         if plantao.data_fechamento:
             if plantao.data_fechamento < datetime.now():
                 try:
-                    DiaPlantao.query.delete()
+                    db.session.query(DiaPlantao).delete()
                     db.session.flush()
 
                     plantao.data_fechamento = None
@@ -405,7 +404,7 @@ def valida_fim_plantao(plantao: Plantao):
     return True
 
 
-def apaga_dias_marcados(plantao: Plantao, dias_marcados_plantao):
+def apaga_dias_marcados(plantao: Plantao | None, dias_marcados_plantao):
     if plantao:
         if plantao.data_fechamento:
             if plantao.data_fechamento < datetime.now():

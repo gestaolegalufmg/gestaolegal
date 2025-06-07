@@ -79,7 +79,8 @@ def busca_geral():
     )
 
     usuarios = (
-        Usuario.query.filter(
+        db.session.query(Usuario)
+        .filter(
             or_(
                 and_(Usuario.nome.contains(busca), Usuario.status != False),
                 and_(Usuario.cpf.contains(busca), Usuario.status != False),
@@ -95,7 +96,7 @@ def busca_geral():
 
     casos = None
     if busca.isdigit():
-        casos = Caso.query.filter_by(status=True, id=int(busca)).paginate(
+        casos = db.session.query(Caso).filter_by(status=True, id=int(busca)).paginate(
             page=page_caso, per_page=app.config["CASOS_POR_PAGINA"], error_out=False
         )
 

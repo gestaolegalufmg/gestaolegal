@@ -1,4 +1,11 @@
-from gestaolegal import db
+from datetime import date
+from typing import Optional
+
+from sqlalchemy import String, Integer, Date, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from gestaolegal.models.base import Base
+from gestaolegal.usuario.models import Usuario
 
 acoes = {
     "CAD_NOVO_CASO": "Cadastrado no caso {}",
@@ -8,15 +15,14 @@ acoes = {
 }
 
 
-class Notificacao(db.Model):
+class Notificacao(Base):
     __tablename__ = "notificacao"
 
-    id_executor_acao = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
-    executor_acao = db.relationship("Usuario", foreign_keys=[id_executor_acao])
+    id: Mapped[int] = mapped_column(primary_key=True)
+    id_executor_acao: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("usuarios.id"))
+    id_usu_notificar: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("usuarios.id"))
+    acao: Mapped[str] = mapped_column(String(200, collation="latin1_general_ci"), nullable=False)
+    data: Mapped[date] = mapped_column(Date, nullable=False)
 
-    id_usu_notificar = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
-    usu_notificar = db.relationship("Usuario", foreign_keys=[id_usu_notificar])
-
-    id = db.Column(db.Integer, primary_key=True)
-    acao = db.Column(db.String(200, collation="latin1_general_ci"), nullable=False)
-    data = db.Column(db.Date, nullable=False)
+    executor_acao: Mapped[Optional[Usuario]] = relationship("Usuario", foreign_keys=[id_executor_acao])
+    usu_notificar: Mapped[Optional[Usuario]] = relationship("Usuario", foreign_keys=[id_usu_notificar])

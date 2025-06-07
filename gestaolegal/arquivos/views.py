@@ -22,7 +22,7 @@ arquivos = Blueprint("arquivos", __name__, template_folder="templates")
 @login_required()
 def index():
     page = request.args.get("page", 1, type=int)
-    arquivos = Arquivo.query.paginate(
+    arquivos = db.session.query(Arquivo).paginate(
         page=page, per_page=app.config["ARQUIVOS_POR_PAGINA"], error_out=False
     )
     return render_template("arquivos.html", arquivos=arquivos)
@@ -70,7 +70,7 @@ def cadastrar_arquivo():
     ]
 )
 def editar_arquivo(id):
-    _arquivo = Arquivo.query.get_or_404(id)
+    _arquivo = db.session.query(Arquivo).get_or_404(id)
     _form = ArquivoForm()
 
     if _form.validate_on_submit():
@@ -118,7 +118,7 @@ def visualizar_arquivo(id):
     ]
 )
 def excluir_arquivo(id):
-    _arquivo = Arquivo.query.get_or_404(id)
+    _arquivo = db.session.query(Arquivo).get_or_404(id)
     local_arquivo = os.path.join(
         current_app.root_path, "static", "arquivos", _arquivo.nome
     )

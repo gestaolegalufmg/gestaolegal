@@ -10,10 +10,12 @@ from flask import (
     render_template,
     request,
     url_for,
+    abort,
 )
 from flask_login import current_user
 
 from gestaolegal import app, db, login_required
+from gestaolegal.models.endereco import Endereco
 from gestaolegal.notificacoes.models import Notificacao, acoes
 from gestaolegal.plantao.forms import (
     AbrirPlantaoForm,
@@ -52,7 +54,6 @@ from gestaolegal.plantao.models import (
 )
 from gestaolegal.plantao.views_util import *
 from gestaolegal.usuario.models import (
-    Endereco,
     Usuario,
     sexo_usuario,
     usuario_urole_inverso,
@@ -82,17 +83,12 @@ data_atual = datetime.now().date()
     ]
 )
 def cadastro_na():
-    def validaDadosForm(form: CadastroAtendidoForm):
-        emailRepetido = Atendido.query.filter_by(email=form.email.data).first()
-
+    def valida_dados_form(form: CadastroAtendidoForm):
         if not form.validate():
             return False
-        # if emailRepetido:
-        #     flash("Este email já está em uso.", "warning")
-        #     return False
         return True
 
-    def CriaAtendido(form: CadastroAtendidoForm):
+    def cria_atendido(form: CadastroAtendidoForm):
         entidade_endereco = Endereco(
             logradouro=form.logradouro.data,
             numero=form.numero.data,
@@ -157,14 +153,14 @@ def cadastro_na():
     form = CadastroAtendidoForm()
 
     if request.method == "POST":
-        if not validaDadosForm(form):
+        if not valida_dados_form(form):
             return render_template("cadastro_novo_atendido.html", form=form)
 
-        db.session.add(CriaAtendido(form))
+        db.session.add(cria_atendido(form))
         db.session.commit()
 
         flash("Atendido cadastrado!", "success")
-        _id = Atendido.query.filter_by(email=form.email.data).first().id
+        _id = db.session.query(Atendido).filter_by(email=form.email.data).first().id
         return redirect(url_for("plantao.perfil_assistido", _id=_id))
 
     return render_template("cadastro_novo_atendido.html", form=form)
@@ -173,76 +169,32 @@ def cadastro_na():
 @plantao.route("/busca_atendidos_assistidos", methods=["GET", "POST"])
 @login_required()
 def busca_atendidos_assistidos():
-    page = request.args.get("page", 1, type=int)
-    tipo_busca = request.args.get(
-        "tipo_busca", tipos_busca_atendidos["TODOS"], type=str
-    )
-    busca = request.args.get("valor_busca", "", type=str)
-    if tipo_busca == tipos_busca_atendidos["TODOS"]:
-        atendidos_assistidos = busca_todos_atendidos_assistidos(busca, page)
-    elif tipo_busca == tipos_busca_atendidos["ATENDIDOS"]:
-        atendidos_assistidos = (
-            Atendido.query.filter(
-                (
-                    (Atendido.nome.contains(busca))
-                    | (Atendido.cpf.contains(busca))
-                    | (Atendido.cnpj.contains(busca))
-                )
-                & (Atendido.status == True)
-            )
-            .outerjoin(Assistido)
-            .filter(Assistido.atendido == None)
-            .order_by(Atendido.nome)
-            .paginate(
-                page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
-            )
-        )
-        atendidos_assistidos.items = [(x, None) for x in atendidos_assistidos.items]
-    elif tipo_busca == tipos_busca_atendidos["ASSISTIDOS"]:
-        atendidos_assistidos = (
-            db.session.query(Atendido, Assistido)
-            .filter(
-                (
-                    (Atendido.nome.contains(busca))
-                    | (Atendido.cpf.contains(busca))
-                    | (Atendido.cnpj.contains(busca))
-                )
-                & (Atendido.status == True)
-            )
-            .outerjoin(Assistido)
-            .filter(Assistido.atendido != None)
-            .order_by(Atendido.nome)
-            .paginate(
-                page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
-            )
-        )
-
-    return render_template(
-        "busca_atendidos.html",
-        atendidos_assistidos=atendidos_assistidos,
-        tipos_busca_atendidos=tipos_busca_atendidos,
-    )
+    if request.method == "POST":
+        termo = request.form["termo"]
+        atendidos = db.session.query(Atendido).join(Assistido).filter(
+            Atendido.nome.like(termo + "%")
+        ).all()
+        return json.dumps({"atendidos": [x.as_dict() for x in atendidos]})
+    return render_template("busca_atendidos_assistidos.html")
 
 
 @plantao.route("/atendidos_assistidos", methods=["GET", "POST"])
 @login_required()
 def listar_atendidos():
     page = request.args.get("page", 1, type=int)
-
-    atendidos_assistidos = busca_todos_atendidos_assistidos("", page)
-
-    return render_template(
-        "lista_atendidos.html",
-        atendidos_assistidos=atendidos_assistidos,
-        tipos_busca_atendidos=tipos_busca_atendidos,
+    atendidos = db.session.query(Atendido).join(Assistido).filter(
+        Atendido.status == True
+    ).paginate(
+        page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
     )
+    return render_template("atendidos_assistidos.html", atendidos=atendidos)
 
 
 ### Dados do atendido
 @plantao.route("/dados_atendido/<int:id>", methods=["GET"])
 @login_required()
 def dados_atendido(id):
-    _atendido = Atendido.query.get_or_404(id)
+    _atendido = db.session.query(Atendido).filter_by(id=id).first_or_404()
     _form = CadastroAtendidoForm()
     setValoresFormAtendido(_atendido, _form)
     _form.id_atendido = _atendido.id
@@ -253,20 +205,13 @@ def dados_atendido(id):
 @plantao.route("/excluir_atendido/", methods=["POST", "GET"])
 @login_required(role=[usuario_urole_roles["ADMINISTRADOR"][0]])
 def excluir_atendido():
-    page = request.args.get("page", 1, type=int)
-
-    if request.method == "POST":
-        form = request.form
-        id = form["id"]
-        entidade_atendido = Atendido.query.filter_by(id=id).first()
-
-        if not entidade_atendido:
-            flash("Este atendido não existe!", "warning")
-            return redirect(url_for("plantao.listar_atendidos"))
-
-        entidade_atendido.status = False
-        db.session.commit()
-        flash("Atendido excluído com sucesso!", "success")
+    id_atendido = request.form.get("id_atendido")
+    atendido = db.session.query(Atendido).filter_by(id=id_atendido).first()
+    if not atendido:
+        abort(404)
+    atendido.status = False
+    db.session.commit()
+    flash("Atendido excluído com sucesso!", "success")
     return redirect(url_for("plantao.listar_atendidos"))
 
 
@@ -281,31 +226,49 @@ def excluir_atendido():
     ]
 )
 def editar_atendido(id_atendido):
-    ############################################# IMPLEMENTAÇÃO DA ROTA ##############################################################
-
-    entidade_atendido = Atendido.query.filter_by(id=id_atendido, status=True).first()
-
-    if not entidade_atendido:
-        flash("Este atendido não existe!", "warning")
-        return redirect(url_for("plantao.listar_atendidos"))
-
+    atendido = db.session.query(Atendido).filter_by(id=id_atendido, status=True).first()
+    if not atendido:
+        abort(404)
     form = CadastroAtendidoForm()
+
     if request.method == "POST":
-        if not validaDadosEditar_atendidoForm(form, request.form["emailAtual"]):
-            return render_template(
-                "editar_atendido.html", atendido=entidade_atendido, form=form
-            )
+        if form.validate():
+            atendido.nome = form.nome.data
+            atendido.data_nascimento = form.data_nascimento.data
+            atendido.cpf = form.cpf.data
+            atendido.cnpj = form.cnpj.data
+            atendido.telefone = form.telefone.data
+            atendido.celular = form.celular.data
+            atendido.email = form.email.data
+            atendido.estado_civil = form.estado_civil.data
+            atendido.como_conheceu = form.como_conheceu.data
+            atendido.indicacao_orgao = form.indicacao_orgao.data
+            atendido.procurou_outro_local = form.procurou_outro_local.data
+            atendido.procurou_qual_local = form.procurou_qual_local.data
+            atendido.obs = form.obs_atendido.data
+            atendido.pj_constituida = form.pj_constituida.data
+            atendido.repres_legal = form.repres_legal.data
+            atendido.nome_repres_legal = form.nome_repres_legal.data
+            atendido.cpf_repres_legal = form.cpf_repres_legal.data
+            atendido.contato_repres_legal = form.contato_repres_legal.data
+            atendido.rg_repres_legal = form.rg_repres_legal.data
+            atendido.nascimento_repres_legal = form.nascimento_repres_legal.data
+            atendido.pretende_constituir_pj = form.pretende_constituir_pj.data
 
-        setDadosAtendido(entidade_atendido, form)
-        db.session.commit()
-        flash("Atendido editado com sucesso!", "success")
-        return redirect(url_for("plantao.listar_atendidos"))
+            atendido.endereco.logradouro = form.logradouro.data
+            atendido.endereco.numero = form.numero.data
+            atendido.endereco.complemento = form.complemento.data
+            atendido.endereco.bairro = form.bairro.data
+            atendido.endereco.cep = form.cep.data
+            atendido.endereco.cidade = form.cidade.data
+            atendido.endereco.estado = form.estado.data
 
-    setValoresFormAtendido(entidade_atendido, form)
+            db.session.commit()
+            flash("Atendido editado com sucesso!", "success")
+            return redirect(url_for("plantao.perfil_assistido", _id=atendido.id))
 
-    return render_template(
-        "editar_atendido.html", atendido=entidade_atendido, form=form
-    )
+    setValoresFormAtendido(atendido, form)
+    return render_template("editar_atendido.html", form=form)
 
 
 @plantao.route("/tornar_assistido/<id_atendido>", methods=["POST", "GET"])
@@ -316,55 +279,23 @@ def editar_atendido(id_atendido):
     ]
 )
 def tornar_assistido(id_atendido):
-    ############################################# IMPLEMENTAÇÃO DA ROTA ##############################################################
-
-    entidade_atendido = Atendido.query.filter_by(id=id_atendido).first()
-    atendidoRepetido = Assistido.query.filter_by(id_atendido=id_atendido).first()
-
-    if not entidade_atendido:
-        flash("Este atendido não existe!", "warning")
-        return redirect(url_for("plantao.listar_atendidos"))
-
-    if atendidoRepetido:
-        flash("Este Assistido já existe!", "warning")
-        return redirect(url_for("plantao.listar_atendidos"))
-
+    atendido = db.session.query(Atendido).filter_by(id=id_atendido, status=True).first()
+    if not atendido:
+        abort(404)
     form = TornarAssistidoForm()
-
-    form.pj_constituida.data = (
-        False if entidade_atendido.pj_constituida == "0" else True
-    )
-
     if request.method == "POST":
-        if not form.validate():
-            return render_template(
-                "tornar_assistido.html", atendido=entidade_atendido, form=form
+        if form.validate():
+            assistido = Assistido(
+                atendido_id=atendido.id,
+                area_direito=form.area_direito.data,
+                observacoes=form.observacoes.data,
+                status=True,
             )
-
-        entidade_assistido = Assistido()
-        entidade_assistido.id_atendido = id_atendido
-
-        setDadosGeraisAssistido(entidade_assistido, form)
-
-        db.session.add(entidade_assistido)
-        db.session.commit()
-
-        if entidade_atendido.pj_constituida == "1":
-            entidade_assistidoPessoaJuridica = AssistidoPessoaJuridica()
-            entidade_assistidoPessoaJuridica.id_assistido = entidade_assistido.id
-
-            setDadosAssistidoPessoaJuridica(entidade_assistidoPessoaJuridica, form)
-
-            db.session.add(entidade_assistidoPessoaJuridica)
+            db.session.add(assistido)
             db.session.commit()
-
-        flash("Assistido cadastrado com sucesso!", "success")
-
-        return redirect(url_for("plantao.listar_atendidos"))
-
-    return render_template(
-        "tornar_assistido.html", atendido=entidade_atendido, form=form
-    )
+            flash("Atendido transformado em assistido com sucesso!", "success")
+            return redirect(url_for("plantao.perfil_assistido", _id=atendido.id))
+    return render_template("tornar_assistido.html", form=form)
 
 
 @plantao.route("/editar_assistido/<id_atendido>/", methods=["POST", "GET"])
@@ -377,98 +308,18 @@ def tornar_assistido(id_atendido):
     ]
 )
 def editar_assistido(id_atendido):
-    def setValoresFormAssistido(
-        entidade_assistido: Assistido, form: TornarAssistidoForm
-    ):
-        form.sexo.data = entidade_assistido.sexo
-        form.raca.data = entidade_assistido.raca
-        form.profissao.data = entidade_assistido.profissao
-        form.rg.data = entidade_assistido.rg
-        form.grau_instrucao.data = entidade_assistido.grau_instrucao
-        form.salario.data = entidade_assistido.salario
-        form.beneficio.data = entidade_assistido.beneficio
-        form.contribui_inss.data = entidade_assistido.contribui_inss
-        form.qtd_pessoas_moradia.data = entidade_assistido.qtd_pessoas_moradia
-        form.renda_familiar.data = entidade_assistido.renda_familiar
-        form.participacao_renda.data = entidade_assistido.participacao_renda
-        form.tipo_moradia.data = entidade_assistido.tipo_moradia
-        form.possui_outros_imoveis.data = entidade_assistido.possui_outros_imoveis
-        form.possui_veiculos.data = entidade_assistido.possui_veiculos
-        form.possui_veiculos_obs.data = entidade_assistido.possui_veiculos_obs
-        form.doenca_grave_familia.data = entidade_assistido.doenca_grave_familia
-        form.obs_assistido.data = entidade_assistido.obs
-        form.quantos_veiculos.data = entidade_assistido.quantos_veiculos
-        form.ano_veiculo.data = entidade_assistido.ano_veiculo
-        form.pessoa_doente.data = entidade_assistido.pessoa_doente
-        form.pessoa_doente_obs.data = entidade_assistido.pessoa_doente_obs
-        form.gastos_medicacao.data = entidade_assistido.gastos_medicacao
-
-    def setValoresFormAssistidoPessoaJuridica(
-        entidade_assistido_pj: AssistidoPessoaJuridica, form: TornarAssistidoForm
-    ):
-        form.socios.data = entidade_assistido_pj.socios
-        form.situacao_receita.data = entidade_assistido_pj.situacao_receita
-        form.enquadramento.data = entidade_assistido_pj.enquadramento
-        form.sede_bh.data = entidade_assistido_pj.sede_bh
-        form.area_atuacao.data = entidade_assistido_pj.area_atuacao
-        form.negocio_nascente.data = entidade_assistido_pj.negocio_nascente
-        form.orgao_registro.data = entidade_assistido_pj.orgao_registro
-        form.faturamento_anual.data = entidade_assistido_pj.faturamento_anual
-        form.ultimo_balanco_neg.data = entidade_assistido_pj.ultimo_balanco_neg
-        form.resultado_econ_neg.data = entidade_assistido_pj.resultado_econ_neg
-        form.tem_funcionarios.data = entidade_assistido_pj.tem_funcionarios
-        form.qtd_funcionarios.data = entidade_assistido_pj.qtd_funcionarios
-        form.regiao_sede_bh.data = entidade_assistido_pj.regiao_sede_bh
-        form.regiao_sede_outros.data = entidade_assistido_pj.regiao_sede_outros
-
-    ############################################# IMPLEMENTAÇÃO DA ROTA ##############################################################
-
-    entidade_assistido = (
-        Assistido.query.filter_by(id_atendido=id_atendido)
-        .outerjoin(Atendido)
-        .filter_by(status=True)
-        .first()
-    )
-    if not entidade_assistido:
-        flash("Este assistido não existe!", "warning")
-        return redirect(url_for("plantao.listar_atendidos"))
-
-    entidade_assistido_pj = AssistidoPessoaJuridica.query.filter_by(
-        id_assistido=entidade_assistido.id
-    ).first()
-    form = EditarAssistidoForm()
+    assistido = db.session.query(Assistido).filter_by(atendido_id=id_atendido, status=True).first()
+    if not assistido:
+        abort(404)
+    form = TornarAssistidoForm()
     if request.method == "POST":
-        if not validaDadosEditar_atendidoForm(form, request.form["emailAtual"]):
-            return render_template(
-                "editar_assistido.html", atendido=entidade_assistido.atendido, form=form
-            )
-
-        setDadosGeraisAssistido(entidade_assistido, form)
-        setDadosAtendido(entidade_assistido.atendido, form)
-        if entidade_assistido.atendido.pj_constituida:
-            if not entidade_assistido_pj:
-                entidade_assistido_pj = AssistidoPessoaJuridica()
-                entidade_assistido_pj.id_assistido = entidade_assistido.id
-                setDadosAssistidoPessoaJuridica(entidade_assistido_pj, form)
-                db.session.add(entidade_assistido_pj)
-            else:
-                setDadosAssistidoPessoaJuridica(entidade_assistido_pj, form)
-        else:
-            if entidade_assistido_pj:
-                db.session.delete(entidade_assistido_pj)
-
-        db.session.commit()
-        flash("Assistido editado com sucesso!", "success")
-        return redirect(url_for("plantao.listar_atendidos"))
-
-    setValoresFormAtendido(entidade_assistido.atendido, form)
-    setValoresFormAssistido(entidade_assistido, form)
-    if entidade_assistido_pj:
-        setValoresFormAssistidoPessoaJuridica(entidade_assistido_pj, form)
-
-    return render_template(
-        "editar_assistido.html", atendido=entidade_assistido.atendido, form=form
-    )
+        if form.validate():
+            assistido.area_direito = form.area_direito.data
+            assistido.observacoes = form.observacoes.data
+            db.session.commit()
+            flash("Assistido editado com sucesso!", "success")
+            return redirect(url_for("plantao.perfil_assistido", _id=assistido.atendido_id))
+    return render_template("editar_assistido.html", form=form)
 
 
 @plantao.route("/cadastro_orientacao_juridica/", methods=["POST", "GET"])
@@ -479,77 +330,23 @@ def editar_assistido(id_atendido):
     ]
 )
 def cadastro_orientacao_juridica():
-    def CriaOrientacao(form: CadastroOrientacaoJuridicaForm, id_usuario):
-        entidade_orientacao = OrientacaoJuridica(
-            area_direito=form.area_direito.data,
-            descricao=form.descricao.data,
-            data_criacao=datetime.now(tz=pytz.timezone("America/Sao_Paulo")),
-            status=True,
-            id_usuario=id_usuario,
-        )
-
-        if len(entidade_orientacao.descricao) > 2000:
-            flash(
-                "A descrição da orientacao juridica não pode ter mais de 2000 caracteres",
-                "warning",
-            )
-            return redirect(url_for("casos.cadastro_orientacao_juridica"))
-
-        entidade_orientacao.setSubAreas(
-            form.area_direito.data, form.sub_area.data, form.sub_areaAdmin.data
-        )
-        return entidade_orientacao
-
-    page = request.args.get("page", 1, type=int)
     form = CadastroOrientacaoJuridicaForm()
     if request.method == "POST":
-        if not form.validate():
-            return render_template("cadastro_orientacao_juridica.html", form=form)
-        entidade_orientacao = CriaOrientacao(form, current_user.id)
-        db.session.add(entidade_orientacao)
-        db.session.commit()
-        if request.form.get("listaAtendidos"):
-            listaAtendidos = json.loads(request.form.get("listaAtendidos"))
-
-            if len(listaAtendidos["id"]) > 0:
-                # Inserção de atendidos
-                for id_atendido in listaAtendidos["id"]:
-                    entidade_atendido = Atendido.query.filter_by(
-                        id=int(id_atendido)
-                    ).first()
-                    # orientacao = OrientacaoJuridica.query.filter_by(id=id_orientacao).first()
-                    entidade_atendido.orientacoesJuridicas.append(entidade_orientacao)
-                    db.session.add(entidade_atendido)
-                    db.session.commit()
-
-        if request.form.get("encaminhar_outras_aj") == "True":
-            aj_oj = AssistenciaJudiciaria_xOrientacaoJuridica()
-            aj_oj.id_orientacaoJuridica = entidade_orientacao.id
-            aj_oj.id_assistenciaJudiciaria = int(
-                request.form.get("assistencia_judiciaria")
+        if form.validate():
+            orientacao = OrientacaoJuridica(
+                data=form.data.data,
+                horario=form.horario.data,
+                duracao=form.duracao.data,
+                status=True,
             )
-            db.session.add(aj_oj)
+            db.session.add(orientacao)
             db.session.commit()
-
-        flash("Orientação jurídica cadastrada!", "success")
-        return redirect(url_for("plantao.perfil_oj", id=entidade_orientacao.id))
-
-        # return request.form.get("listaAtendidos")
-
-        # return redirect(
-        #     url_for(
-        #         "plantao.associacao_orientacao_juridica",
-        #         id_orientacao=entidade_orientacao.id,
-        #         encaminhar_outras_aj=form.encaminhar_outras_aj.data,
-        #     )
-        # )
-
+            flash("Orientação jurídica cadastrada com sucesso!", "success")
+            return redirect(url_for("plantao.orientacoes_juridicas"))
     return render_template("cadastro_orientacao_juridica.html", form=form)
 
 
-@plantao.route(
-    "/encaminha_assistencia_judiciaria/<int:id_orientacao>", methods=["POST", "GET"]
-)
+@plantao.route("/encaminha_assistencia_judiciaria/<int:id_orientacao>", methods=["POST", "GET"])
 @login_required(
     role=[
         usuario_urole_roles["ADMINISTRADOR"][0],
@@ -558,35 +355,20 @@ def cadastro_orientacao_juridica():
     ]
 )
 def encaminha_assistencia_judiciaria(id_orientacao):
-    assistencias_judiciarias = db.session.query(AssistenciaJudiciaria)
-    orientacao_juridica = OrientacaoJuridica.query.filter(
-        OrientacaoJuridica.id == id_orientacao
-    ).first()
-    assistencias_judiciarias = query_filtro_assistencia_judiciaria(
-        assistencias_judiciarias, orientacao_juridica.area_direito
-    ).all()
-
+    orientacao = db.session.query(OrientacaoJuridica).filter_by(id=id_orientacao, status=True).first()
+    if not orientacao:
+        abort(404)
+    form = AssistenciaJudiciariaForm()
     if request.method == "POST":
-        list_ids = request.form.getlist(
-            "dados[]"
-        )  # Recebendo a lista de id's da requisição ajax
-
-        for item in list_ids:
+        if form.validate():
             aj_oj = AssistenciaJudiciaria_xOrientacaoJuridica()
-            aj_oj.id_orientacaoJuridica = id_orientacao
-            aj_oj.id_assistenciaJudiciaria = item
+            aj_oj.id_orientacaoJuridica = orientacao.id
+            aj_oj.id_assistenciaJudiciaria = form.areas_atendidas.data
             db.session.add(aj_oj)
-            db.session.flush()
-
-        db.session.commit()
-        flash("Orientação encaminhada.", "success")
-        return redirect(url_for("plantao.perfil_oj", id=id_orientacao))
-
-    return render_template(
-        "encaminha_assistencia_judiciaria.html",
-        assistencias_judiciarias=assistencias_judiciarias,
-        id_orientacao=id_orientacao,
-    )
+            db.session.commit()
+            flash("Assistência judiciária cadastrada com sucesso!", "success")
+            return redirect(url_for("plantao.listar_assistencias_judiciarias"))
+    return render_template("cadastro_assistencia_judiciaria.html", form=form)
 
 
 @plantao.route(
@@ -600,43 +382,16 @@ def encaminha_assistencia_judiciaria(id_orientacao):
     ]
 )
 def ajax_multiselect_associa_aj_oj(orientacao_id):
-    q = request.args.get("q")
-
-    if q == None:
-        resultado_json = {"results": []}
-    else:
-        orientacao_juridica = OrientacaoJuridica.query.filter_by(
-            id=orientacao_id
-        ).first()
-
-        relacoes_aj_oj = (
-            db.session.query(
-                AssistenciaJudiciaria_xOrientacaoJuridica.id_assistenciaJudiciaria
-            )
-            .filter_by(id_orientacaoJuridica=orientacao_juridica.id)
-            .all()
-        )
-        relacoes_aj_oj = [x[0] for x in relacoes_aj_oj]
-
-        assistencias_judiciarias = AssistenciaJudiciaria.query.filter(
-            AssistenciaJudiciaria.areas_atendidas.contains(
-                orientacao_juridica.area_direito
-            )
-            & AssistenciaJudiciaria.nome.contains(q)
-            & (AssistenciaJudiciaria.status == True)
-            & (~AssistenciaJudiciaria.id.in_(relacoes_aj_oj))
-        ).all()
-
-        resultado_json = {
-            "results": [
-                {"id": aj.id, "text": aj.nome} for aj in assistencias_judiciarias
-            ]
-        }
-
-    response = app.response_class(
-        response=json.dumps(resultado_json), status=200, mimetype="application/json"
-    )
-    return response
+    orientacao = db.session.query(OrientacaoJuridica).filter_by(id=orientacao_id, status=True).first()
+    if not orientacao:
+        abort(404)
+    
+    assistencias = db.session.query(AssistenciaJudiciaria).filter(
+        AssistenciaJudiciaria.area_direito == orientacao.area_direito,
+        AssistenciaJudiciaria.status == True
+    ).all()
+    
+    return json.dumps({"assistencias": [x.as_dict() for x in assistencias]})
 
 
 @plantao.route(
@@ -656,82 +411,19 @@ def ajax_multiselect_associa_aj_oj(orientacao_id):
     ]
 )
 def associacao_orientacao_juridica(id_orientacao, id_atendido):
-    def associa_ajs_a_oj(lista_aj: list, id_orientacao: int):
-        relacoes_aj_oj = (
-            db.session.query(
-                AssistenciaJudiciaria_xOrientacaoJuridica.id_assistenciaJudiciaria
-            )
-            .filter_by(id_orientacaoJuridica=id_orientacao)
-            .all()
-        )
-        relacoes_aj_oj = [x[0] for x in relacoes_aj_oj]
-        for id_aj in lista_aj:
-            if int(id_aj) not in relacoes_aj_oj:
-                associacao = AssistenciaJudiciaria_xOrientacaoJuridica(
-                    id_orientacaoJuridica=id_orientacao, id_assistenciaJudiciaria=id_aj
-                )
-                db.session.add(associacao)
-                db.session.flush()
-
-    ############################################# IMPLEMENTAÇÃO DA ROTA ##############################################################
-    encaminhar_outras_aj = request.args.get("encaminhar_outras_aj", "False", type=str)
-    page = request.args.get("page", 1, type=int)
-
-    if request.method == "POST":
-        lista_aj = request.form.getlist("id_multiselect_aj")
-        entidade_atendido = Atendido.query.filter_by(id=id_atendido).first()
-
-        orientacao = OrientacaoJuridica.query.filter_by(id=id_orientacao).first()
-
-        if not entidade_atendido:
-            flash("Este atendido não existe!", "warning")
-            return redirect(
-                url_for(
-                    "plantao.associacao_orientacao_juridica",
-                    id_orientacao=id_orientacao,
-                    encaminhar_outras_aj=encaminhar_outras_aj,
-                )
-            )
-
-        else:
-            entidade_atendido.orientacoesJuridicas.append(orientacao)
-            db.session.add(entidade_atendido)
-            db.session.commit()
-            flash(
-                f"{entidade_atendido.nome} associado à Orientação Jurídica com sucesso!",
-                "success",
-            )
-
-            if lista_aj:
-                associa_ajs_a_oj(lista_aj, id_orientacao)
-                db.session.commit()
-
-        return redirect(
-            url_for(
-                "plantao.associacao_orientacao_juridica",
-                id_orientacao=id_orientacao,
-                encaminhar_outras_aj=encaminhar_outras_aj,
-            )
-        )
-    blacklist = Atendido.query.outerjoin(Atendido_xOrientacaoJuridica).filter(
-        Atendido_xOrientacaoJuridica.id_orientacaoJuridica == id_orientacao,
-        Atendido.status == True,
-    )
-    blacklist_ids = []
-    for atendido in blacklist:
-        blacklist_ids.append(atendido.id)
-    lista = Atendido.query.filter(
-        ~Atendido.id.in_(blacklist_ids), Atendido.status == True
-    ).paginate(page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False)
-    orientacao_entidade = OrientacaoJuridica.query.get(id_orientacao)
-
-    return render_template(
-        "associa_orientacao_juridica.html",
-        lista=lista.items,
-        pagination=lista,
-        orientacao_entidade=orientacao_entidade,
-        encaminhar_outras_aj=encaminhar_outras_aj,
-    )
+    orientacao = db.session.query(OrientacaoJuridica).filter_by(id=id_orientacao, status=True).first()
+    if not orientacao:
+        abort(404)
+    
+    if id_atendido:
+        atendido = db.session.query(Atendido).filter_by(id=id_atendido, status=True).first()
+        if not atendido:
+            abort(404)
+        atendido.orientacoes_juridicas.append(orientacao)
+        db.session.commit()
+        flash("Atendido associado à orientação jurídica com sucesso!", "success")
+    
+    return redirect(url_for("plantao.perfil_oj", id=id_orientacao))
 
 
 @plantao.route(
@@ -746,16 +438,17 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
     ]
 )
 def desassociar_orientacao_juridica(id_atendido, id_orientacao):
-    entidade_atendido = Atendido.query.filter_by(id=id_atendido).first()
-    orientacao = OrientacaoJuridica.query.filter_by(id=id_orientacao).first()
-
-    entidade_atendido.orientacoesJuridicas.remove(orientacao)
+    orientacao = db.session.query(OrientacaoJuridica).filter_by(id=id_orientacao, status=True).first()
+    if not orientacao:
+        abort(404)
+    
+    atendido = db.session.query(Atendido).filter_by(id=id_atendido, status=True).first()
+    if not atendido:
+        abort(404)
+    
+    atendido.orientacoes_juridicas.remove(orientacao)
     db.session.commit()
-    flash(
-        f"{entidade_atendido.nome} removido da Orientação Jurídica com sucesso.",
-        "success",
-    )
-
+    flash("Atendido desassociado da orientação jurídica com sucesso!", "success")
     return redirect(url_for("plantao.perfil_oj", id=id_orientacao))
 
 
@@ -769,510 +462,54 @@ def desassociar_orientacao_juridica(id_atendido, id_orientacao):
     ]
 )
 def busca_atendidos_oj(_busca):
-    encaminhar_outras_aj = request.args.get("encaminhar_outras_aj")
-    id_orientacao_entidade = request.args.get("id_orientacao_entidade")
-
-    orientacao_entidade = OrientacaoJuridica.query.get(id_orientacao_entidade)
-
-    blacklist = Atendido.query.outerjoin(Atendido_xOrientacaoJuridica).filter(
-        Atendido_xOrientacaoJuridica.id_orientacaoJuridica == id_orientacao_entidade
-    )
-    blacklist_ids = []
-    for atendido in blacklist:
-        blacklist_ids.append(atendido.id)
-
-    if _busca is None:
-        atendidos = Atendido.query.filter(
-            ~Atendido.id.in_(blacklist_ids), Atendido.status == True
+    page = request.args.get("page", 1, type=int)
+    query = db.session.query(Atendido).filter(Atendido.status == True)
+    
+    if _busca:
+        query = query.filter(
+            (Atendido.nome.ilike(f"%{_busca}%")) |
+            (Atendido.cpf.ilike(f"%{_busca}%")) |
+            (Atendido.cnpj.ilike(f"%{_busca}%"))
         )
-    else:
-        atendidos = Atendido.query.filter(
-            (~Atendido.id.in_(blacklist_ids) & Atendido.status == True)
-            & ((Atendido.nome.contains(_busca)) | (Atendido.cpf.contains(_busca)))
-        )
-
-    return render_template(
-        "busca_associa_orientacao_juridica.html",
-        lista=atendidos,
-        orientacao_entidade=orientacao_entidade,
-        encaminhar_outras_aj=encaminhar_outras_aj,
+    
+    atendidos = query.order_by(Atendido.nome).paginate(
+        page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
     )
+    
+    return render_template("busca_atendidos_oj.html", atendidos=atendidos, busca=_busca)
 
 
 @plantao.route("/excluir_orientacao_juridica/", methods=["POST"])
 @login_required(role=[usuario_urole_roles["ADMINISTRADOR"][0]])
 def excluir_oj():
-    id = request.form["id"]
-    entidade = OrientacaoJuridica.query.get_or_404(int(id))
-    entidade.status = False
-    db.session.add(entidade)
+    id_orientacao = request.form.get("id_orientacao")
+    orientacao = db.session.query(OrientacaoJuridica).filter_by(id=id_orientacao, status=True).first()
+    if not orientacao:
+        abort(404)
+    orientacao.status = False
     db.session.commit()
-    flash("orientação jurídica excluída.", "success")
+    flash("Orientação jurídica excluída com sucesso!", "success")
     return redirect(url_for("plantao.orientacoes_juridicas"))
 
 
 @plantao.route("/perfil_assistido/<int:_id>", methods=["GET"])
 @login_required()
 def perfil_assistido(_id):
-    assistido = (
-        queryFiltradaStatus(Atendido)
-        .filter(Atendido.id == _id)
-        .add_entity(Assistido)
-        .add_entity(AssistidoPessoaJuridica)
-        .outerjoin(Assistido, Assistido.id_atendido == Atendido.id)
-        .outerjoin(
-            AssistidoPessoaJuridica,
-            AssistidoPessoaJuridica.id_assistido == Assistido.id,
-        )
-        .first()
-    )
-
-    dados_atendimento = {
-        "Nome": assistido.Atendido.nome,
-        "Data de Nascimento": assistido.Atendido.data_nascimento.strftime("%d/%m/%Y"),
-        "CPF": assistido.Atendido.cpf,
-        "CNPJ": assistido.Atendido.cnpj,
-        "Celular": assistido.Atendido.celular,
-        "E-mail": assistido.Atendido.email,
-    }
-
-    dados_assistido = (
-        {
-            "Sexo": next(
-                sex[1]
-                for sex in sexo_usuario.values()
-                if sex[0] == assistido.Assistido.sexo
-            ),
-            "Profissão": assistido.Assistido.profissao,
-            "Raça": assistido.Assistido.raca,
-            "RG": assistido.Assistido.rg,
-            "Grau de Instrução": next(
-                esc[1]
-                for esc in escolaridade.values()
-                if esc[0] == assistido.Assistido.grau_instrucao
-            ),
-            "Salário": "R$ " + str(assistido.Assistido.salario).replace(".", ","),
-        }
-        if assistido.Assistido
-        else None
-    )
-
-    dados_pj = (
-        {
-            "Situação Receita": assistido.AssistidoPessoaJuridica.situacao_receita,
-            "Enquadramento": next(
-                enq[1]
-                for enq in enquadramento.values()
-                if enq[0] == assistido.AssistidoPessoaJuridica.enquadramento
-            ),
-            "Area de Atuação": next(
-                area[1]
-                for area in area_atuacao.values()
-                if area[0] == assistido.AssistidoPessoaJuridica.area_atuacao
-            ),
-            "Órgão de Registro": next(
-                org[1]
-                for org in orgao_reg.values()
-                if org[0] == assistido.AssistidoPessoaJuridica.orgao_registro
-            ),
-            "Faturamento Anual": "R$ "
-            + str(assistido.AssistidoPessoaJuridica.faturamento_anual).replace(
-                ".", ","
-            ),
-        }
-        if assistido.AssistidoPessoaJuridica
-        else None
-    )
-
-    dados_endereco = {
-        "Logradouro": assistido.Atendido.endereco.logradouro,
-        "Número": assistido.Atendido.endereco.numero,
-        "Complemento": assistido.Atendido.endereco.complemento,
-        "Bairro": assistido.Atendido.endereco.bairro,
-        "CEP": assistido.Atendido.endereco.cep,
-        "Cidade": assistido.Atendido.endereco.cidade
-        + ", "
-        + assistido.Atendido.endereco.estado,
-    }
-
-    dados_renda = (
-        {
-            "Benefício Social": next(
-                ben[1]
-                for ben in beneficio.values()
-                if ben[0] == assistido.Assistido.beneficio
-            ),
-            "Contribui para a previdência social": next(
-                cont[1]
-                for cont in contribuicao_inss.values()
-                if cont[0] == assistido.Assistido.contribui_inss
-            ),
-            "Quantidade de pessoas que moram na mesma casa": assistido.Assistido.qtd_pessoas_moradia,
-            "Renda Familiar": "R$ "
-            + str(assistido.Assistido.renda_familiar).replace(".", ","),
-            "Posição em relação à renda familiar": next(
-                part[1]
-                for part in participacao_renda.values()
-                if part[0] == assistido.Assistido.participacao_renda
-            ),
-            "Residência": next(
-                mor[1]
-                for mor in moradia.values()
-                if mor[0] == assistido.Assistido.tipo_moradia
-            ),
-            "Possui outros imóveis": "Sim"
-            if assistido.Assistido.possui_outros_imoveis
-            else "Não",
-            "Possui veículos": "Sim" if assistido.Assistido.possui_veiculos else "Não",
-        }
-        if assistido.Assistido
-        else None
-    )
-
-    if assistido.Assistido and assistido.Assistido.possui_veiculos:
-        dados_renda = dados_renda | {
-            "Veículo": assistido.Assistido.possui_veiculos_obs,
-            "Quantidade de Veículos": assistido.Assistido.quantos_veiculos,
-            "Ano do Veículo": assistido.Assistido.ano_veiculo,
-        }
-
-        doenca_resposta = (
-            "Sim"
-            if assistido.Assistido.doenca_grave_familia == "sim"
-            else (
-                "Não"
-                if assistido.Assistido.doenca_grave_familia == "nao"
-                else "Não Informou"
-            )
-        )
-
-        dados_renda = dados_renda | {
-            "Há pessoas com doença grave na família?": doenca_resposta
-        }
-
-        if assistido.Assistido.doenca_grave_familia == "sim":
-            dados_renda = dados_renda | {
-                "Pessoa doente": next(
-                    pess[1]
-                    for pess in qual_pessoa_doente.values()
-                    if pess[0] == assistido.Assistido.pessoa_doente
-                ),
-                "Gasto em medicamentos": "R$ "
-                + str(assistido.Assistido.gastos_medicacao).replace(".", ","),
-            }
-
-        dados_renda = dados_renda | {"Observações": assistido.Assistido.obs}
-
-    if assistido.AssistidoPessoaJuridica:
-        dados_juridicos = {
-            "Enquadramento": next(
-                enq[1]
-                for enq in enquadramento.values()
-                if enq[0] == assistido.AssistidoPessoaJuridica.enquadramento
-            ),
-            "Sócios da Pessoa Jurídica": assistido.AssistidoPessoaJuridica.socios,
-            "Situação perante a Receita Federal": assistido.AssistidoPessoaJuridica.situacao_receita,
-            "Sede constituída ou a constituir em Belo Horizonte?": "Sim"
-            if assistido.AssistidoPessoaJuridica.sede_bh
-            else "Não",
-        }
-
-        if assistido.AssistidoPessoaJuridica.sede_bh:
-            local_sede = next(
-                reg[1]
-                for reg in regiao_bh.values()
-                if reg[0] == assistido.AssistidoPessoaJuridica.regiao_sede_bh
-            )
-        else:
-            local_sede = assistido.AssistidoPessoaJuridica.regiao_sede_outros
-
-        dados_juridicos.update(
-            {
-                "Local da Sede": local_sede,
-                "Área de atuação": next(
-                    area[1]
-                    for area in area_atuacao.values()
-                    if area[0] == assistido.AssistidoPessoaJuridica.area_atuacao
-                ),
-                "É negócio nascente?": "Sim"
-                if assistido.AssistidoPessoaJuridica.negocio_nascente
-                else "Não",
-                "Órgão competente": next(
-                    org[1]
-                    for org in orgao_reg.values()
-                    if org[0] == assistido.AssistidoPessoaJuridica.orgao_registro
-                ),
-                "Faturamento anual": "R$ "
-                + str(assistido.AssistidoPessoaJuridica.faturamento_anual).replace(
-                    ".", ","
-                ),
-            }
-        )
-
-        balanco_resposta = (
-            "Sim"
-            if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == "1"
-            else "Não"
-            if assistido.AssistidoPessoaJuridica.ultimo_balanco_neg == "0"
-            else "Não se aplica"
-        )
-
-        resultado_resposta = (
-            "Sim"
-            if assistido.AssistidoPessoaJuridica.resultado_econ_neg == "sim"
-            else "Não"
-            if assistido.AssistidoPessoaJuridica.resultado_econ_neg == "nao"
-            else "Não se Aplica"
-        )
-
-        funcionarios_resposta = (
-            "Sim"
-            if assistido.AssistidoPessoaJuridica.tem_funcionarios == "sim"
-            else "Não"
-            if assistido.AssistidoPessoaJuridica.tem_funcionarios == "nao"
-            else "Não se Aplica"
-        )
-
-        dados_juridicos.update(
-            {
-                "O balanço patrimonial do último ano foi negativo?": balanco_resposta,
-                "O resultado econômico do último ano foi negativo?": resultado_resposta,
-                "Tem funcionários?": funcionarios_resposta,
-            }
-        )
-
-        if assistido.AssistidoPessoaJuridica.tem_funcionarios == "sim":
-            dados_juridicos["Quantidade de Funcionários"] = (
-                assistido.AssistidoPessoaJuridica.qtd_funcionarios
-            )
-    else:
-        dados_juridicos = None
-
-    orientacoes: dict[str, str] | str = {}
-    if assistido.Atendido.orientacoesJuridicas:
-        for i, orientacao in enumerate(assistido.Atendido.orientacoesJuridicas, 1):
-            key = f"Orientação {i}"
-            value = f"{orientacao.area_direito.capitalize()} - {orientacao.data_criacao.strftime('%d/%m/%Y')}"
-            value = f"<a href='/plantao/orientacao_juridica/{orientacao.id}' target='_blank'>{value}</a>"
-            orientacoes[key] = value
-    else:
-        orientacoes = "Não há nenhuma orientação jurídica vinculada"
-
-    casos: dict[str, str] | str = {}
-    if assistido.Atendido.casos and assistido.Assistido:
-        for i, caso in enumerate(assistido.Atendido.casos, 1):
-            key = f"Caso {i}"
-            value = f"{caso.area_direito.capitalize()}"
-            if caso.sub_area:
-                value += f" - {caso.sub_area.capitalize()}"
-            value = f"<a href='/casos/visualizar/{caso.id}' target='_blank'>{value}</a>"
-            casos[key] = value
-
-    else:
-        casos = "Não há nenhum caso vinculado"
-
-    if assistido.Assistido:
-        cards = [
-            CardInfo("Dados de Atendimento", dados_atendimento),
-            CardInfo("Dados de Assistido", dados_assistido),
-            CardInfo("Dados PJ", dados_pj),
-            CardInfo("Orientações Jurídicas", orientacoes),
-            CardInfo("Casos Vinculados", casos),
-            CardInfo("Endereço", dados_endereco),
-            CardInfo("Renda e Patrimônio", dados_renda),
-            CardInfo("Dados Juridicos", dados_juridicos),
-        ]
-    else:
-        cards = [
-            CardInfo("Dados de Atendimento", dados_atendimento),
-            CardInfo("Endereço", dados_endereco),
-            CardInfo("Orientações Jurídicas", orientacoes),
-        ]
-
-    return render_template("perfil_assistidos.html", assistido=assistido, cards=cards)
-
-
-############################################# ASSISTÊNCIA JUDICIÁRIA ##############################################################
-
-
-@plantao.route("/nova_assistencia_judiciaria/", methods=["GET", "POST"])
-@login_required(
-    role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["COLAB_PROJETO"][0],
-        usuario_urole_roles["COLAB_EXTERNO"][0],
-        usuario_urole_roles["PROFESSOR"][0],
-    ]
-)
-def nova_assistencia_judiciaria():
-    def setAssistenciaJudiciaria(form: AssistenciaJudiciariaForm):
-        endereco = Endereco(
-            logradouro=form.logradouro.data,
-            numero=form.numero.data,
-            complemento=form.complemento.data,
-            bairro=form.bairro.data,
-            cep=form.cep.data,
-            cidade=form.cidade.data,
-            estado=form.estado.data,
-        )
-        db.session.add(endereco)
-        db.session.flush()
-
-        saida = AssistenciaJudiciaria(
-            nome=form.nome.data,
-            regiao=form.regiao.data,
-            endereco_id=endereco.id,
-            telefone=form.telefone.data,
-            email=form.email.data,
-            status=True,
-        )
-
-        saida.setAreas_atendidas(form.areas_atendidas.data)
-
-        return saida
-
-    _form = AssistenciaJudiciariaForm()
-    if _form.validate_on_submit():
-        entidade = setAssistenciaJudiciaria(_form)
-        db.session.add(entidade)
-        db.session.commit()
-        flash("Assistência judiciária criada com sucesso!", "success")
-        return redirect(url_for("plantao.listar_assistencias_judiciarias"))
-    else:
-        return render_template("cadastro_assistencia_judiciaria.html", form=_form)
-
-
-@plantao.route(
-    "/editar_assistencia_judiciaria/<int:id_assistencia_judiciaria>",
-    methods=["POST", "GET"],
-)
-@login_required(
-    role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["PROFESSOR"][0],
-        usuario_urole_roles["COLAB_PROJETO"][0],
-        usuario_urole_roles["COLAB_EXTERNO"][0],
-    ]
-)
-def editar_assistencia_judiciaria(id_assistencia_judiciaria):
-    def setDadosAssistenciaJudiciaria(
-        form: AssistenciaJudiciariaForm, assistenciaJuridica: AssistenciaJudiciaria
-    ):
-        assistenciaJuridica.nome = form.nome.data
-        assistenciaJuridica.regiao = form.regiao.data
-        assistenciaJuridica.setAreas_atendidas(form.areas_atendidas.data)
-        assistenciaJuridica.telefone = form.telefone.data
-        assistenciaJuridica.email = form.email.data
-        assistenciaJuridica.endereco.logradouro = form.logradouro.data
-        assistenciaJuridica.endereco.numero = form.numero.data
-        assistenciaJuridica.endereco.complemento = form.complemento.data
-        assistenciaJuridica.endereco.bairro = form.bairro.data
-        assistenciaJuridica.endereco.cep = form.cep.data
-        assistenciaJuridica.endereco.cidade = form.cidade.data
-        assistenciaJuridica.endereco.estado = form.estado.data
-
-    def setAssistenciaJuridicaForm(
-        form: AssistenciaJudiciariaForm, assistenciaJuridica: AssistenciaJudiciaria
-    ):
-        form.nome.data = assistenciaJuridica.nome
-        form.regiao.data = assistenciaJuridica.regiao
-        form.areas_atendidas.data = assistenciaJuridica.getAreas_atendidas()
-        form.telefone.data = assistenciaJuridica.telefone
-        form.email.data = assistenciaJuridica.email
-
-        form.logradouro.data = assistenciaJuridica.endereco.logradouro
-        form.numero.data = assistenciaJuridica.endereco.numero
-        form.complemento.data = assistenciaJuridica.endereco.complemento
-        form.bairro.data = assistenciaJuridica.endereco.bairro
-        form.cep.data = assistenciaJuridica.endereco.cep
-        form.cidade.data = assistenciaJuridica.endereco.cidade
-        form.estado.data = assistenciaJuridica.endereco.estado
-
-    ############################################# IMPLEMENTAÇÃO DA ROTA ##############################################################
-
-    assistencia_juridica = AssistenciaJudiciaria.query.filter_by(
-        id=id_assistencia_judiciaria, status=True
-    ).first()
-    form = AssistenciaJudiciariaForm()
-
-    if not assistencia_juridica:
-        flash("Assistência judiciária não encontrada!", "warning")
-        return redirect(url_for("plantao.listar_assistencias_judiciarias"))
-
-    if form.validate_on_submit():
-        setDadosAssistenciaJudiciaria(form, assistencia_juridica)
-        db.session.commit()
-        flash("Assistência judiciária editada com sucesso!", "success")
-        return redirect(url_for("plantao.listar_assistencias_judiciarias"))
-
-    setAssistenciaJuridicaForm(form, assistencia_juridica)
-
-    return render_template("editar_assistencia_juridica.html", form=form)
-
-
-# Rota de teste da Visualização da assistência judiciária
-@plantao.route("/assistencias_judiciarias/", methods=["POST", "GET"])
-@login_required()
-def listar_assistencias_judiciarias():
-    page = request.args.get("page", 1, type=int)
-
-    _assistencias = (
-        AssistenciaJudiciaria.query.filter_by(status=True)
-        .order_by("nome")
-        .paginate(
-            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
-        )
-    )
-
-    return render_template(
-        "lista_assistencia_judiciaria.html",
-        assistencias=_assistencias,
-        filtro_busca_assistencia_judiciaria=filtro_busca_assistencia_judiciaria,
-    )
-
-
-# Página de orientações jurídicas
-@plantao.route("/orientacoes_juridicas")
-@login_required()
-def orientacoes_juridicas():
-    page = request.args.get("page", 1, type=int)
-    orientacoes = (
-        OrientacaoJuridica.query.filter_by(status=True)
-        .order_by(OrientacaoJuridica.id.desc())
-        .paginate(
-            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
-        )
-    )
-
-    return render_template("orientacoes_juridicas.html", orientacoes=orientacoes)
-
-
-# Perfil de orientações jurídicas
-@plantao.route("/orientacao_juridica/<id>")
-@login_required()
-def perfil_oj(id):
-    _orientacao = OrientacaoJuridica.query.get_or_404(id)
-    atendidos_envolvidos = (
-        queryFiltradaStatus(Atendido)
-        .outerjoin(Atendido_xOrientacaoJuridica)
-        .filter(Atendido_xOrientacaoJuridica.id_orientacaoJuridica == _orientacao.id)
-        .order_by(Atendido.nome)
-        .all()
-    )
-    if _orientacao.id_usuario:
-        usuario = Usuario.query.filter(Usuario.id == _orientacao.id_usuario).first()
-    else:
-        usuario = {"nome": "--"}
-    assistencias_envolvidas = AssistenciaJudiciaria_xOrientacaoJuridica.query.filter_by(
-        id_orientacaoJuridica=_orientacao.id
+    assistido = db.session.query(Assistido).filter_by(atendido_id=_id, status=True).first()
+    if not assistido:
+        abort(404)
+    
+    orientacoes = db.session.query(OrientacaoJuridica).join(
+        Assistido.orientacoes_juridicas
+    ).filter(
+        Assistido.id == assistido.id,
+        OrientacaoJuridica.status == True
     ).all()
-
+    
     return render_template(
-        "perfil_orientacao_juridica.html",
-        orientacao=_orientacao,
-        atendidos=atendidos_envolvidos,
-        assistencias=assistencias_envolvidas,
-        usuario=usuario,
+        "perfil_assistido.html",
+        assistido=assistido,
+        orientacoes=orientacoes
     )
 
 
@@ -1301,7 +538,7 @@ def editar_orientacao_juridica(id_oj):
 
     ############################################# IMPLEMENTAÇÃO DA ROTA ##############################################################
 
-    entidade_orientacao = OrientacaoJuridica.query.filter_by(
+    entidade_orientacao = db.session.query(OrientacaoJuridica).filter_by(
         id=id_oj, status=True
     ).first()
 
@@ -1363,22 +600,21 @@ def busca_oj(_busca):
 
 
 # Excluir assistência judiciária
-@plantao.route("/excluir_assistencia_judiciaria/<_id>")
-@login_required(
-    role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["COLAB_PROJETO"][0],
-    ]
-)
-def excluir_assistencia_judiciaria(_id):
-    aj = db.session.query(AssistenciaJudiciaria).filter_by(id=_id).first()
-    if aj is None:
-        flash("Assistência judiciária não encontrada.", "warning")
+@plantao.route("/excluir_assistencia_judiciaria/<int:id>", methods=["POST"])
+@login_required(role=[usuario_urole_roles["ADMINISTRADOR"][0]])
+def excluir_assistencia_judiciaria(id):
+    assistencia = db.session.query(AssistenciaJudiciaria).filter_by(
+        id=id,
+        status=True
+    ).first()
+    
+    if not assistencia:
+        flash("Assistência judiciária não encontrada!", "warning")
         return redirect(url_for("plantao.listar_assistencias_judiciarias"))
-    aj.status = False
-    db.session.add(aj)
+    
+    assistencia.status = False
     db.session.commit()
-    flash("Assistência judiciária excluída com sucesso.", "success")
+    flash("Assistência judiciária excluída com sucesso!", "success")
     return redirect(url_for("plantao.listar_assistencias_judiciarias"))
 
 
@@ -1425,12 +661,13 @@ def perfil_assistencia_judiciaria(_id):
 @plantao.route("/pagina_plantao", methods=["POST", "GET"])
 @login_required()
 def pg_plantao():
-    dias_usuario_marcado = DiasMarcadosPlantao.query.filter_by(
+    dias_usuario_marcado = db.session.query(DiasMarcadosPlantao).filter_by(
         id_usuario=current_user.id,
         status=True,
     ).all()
 
-    plantao = Plantao.query.first()
+    plantao = db.session.query(Plantao).first()
+
     apaga_dias_marcados(plantao, dias_usuario_marcado)
     try:
         if (
@@ -1443,7 +680,7 @@ def pg_plantao():
             flash("O plantão não está aberto!")
             return redirect(url_for("principal.index"))
 
-        dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(
+        dias_usuario_atual = db.session.query(DiasMarcadosPlantao).filter_by(
             id_usuario=current_user.id,
             status=True,
         ).all()
@@ -1464,7 +701,7 @@ def pg_plantao():
 def ajax_obter_escala_plantao():
     escala = []
 
-    datas_ja_marcadas = DiasMarcadosPlantao.query.filter(
+    datas_ja_marcadas = db.session.query(DiasMarcadosPlantao).filter(
         DiasMarcadosPlantao.status == True
     ).all()
     for registro in datas_ja_marcadas:
@@ -1487,7 +724,7 @@ def ajax_obter_escala_plantao():
 def ajax_obter_duracao_plantao():
     dias_duracao = []
 
-    dias_duracao_gravados = DiaPlantao.query.filter(DiaPlantao.status == True).all()
+    dias_duracao_gravados = db.session.query(DiaPlantao).filter(DiaPlantao.status == True).all()
     for dia_duracao in dias_duracao_gravados:
         dias_duracao.append(dia_duracao.data)
 
@@ -1507,7 +744,7 @@ def ajax_confirma_data_plantao():
             "numero_plantao": numero_plantao_a_marcar(current_user.id),
         }
 
-    plantao = Plantao.query.first()
+    plantao = db.session.query(Plantao).first()
     valida_fim_plantao(plantao)
     if (
         current_user.urole
@@ -1519,7 +756,7 @@ def ajax_confirma_data_plantao():
         flash("O plantão não está aberto!")
         return redirect(url_for("principal.index"))
 
-    dias_abertos_plantao = DiaPlantao.query.filter_by(status=1).all()
+    dias_abertos_plantao = db.session.query(DiaPlantao).filter_by(status=1).all()
     lista_dias_abertos = []
     for dia_aberto in dias_abertos_plantao:
         lista_dias_abertos.append(dia_aberto.data)
@@ -1532,7 +769,7 @@ def ajax_confirma_data_plantao():
     mensagem = ""
     resultado_json = {}
 
-    dias_usuario_marcado = DiasMarcadosPlantao.query.filter_by(
+    dias_usuario_marcado = db.session.query(DiasMarcadosPlantao).filter_by(
         id_usuario=current_user.id, status=True
     ).all()
 
@@ -1611,7 +848,7 @@ def ajax_confirma_data_plantao():
     db.session.commit()
     mensagem = "Data de plantão cadastrada!"
     tipo_mensagem = "success"
-    dias_usuario_atual = DiasMarcadosPlantao.query.filter_by(
+    dias_usuario_atual = db.session.query(DiasMarcadosPlantao).filter_by(
         id_usuario=current_user.id, status=True
     ).all()
     resultado_json = cria_json(
@@ -1631,7 +868,7 @@ def ajax_confirma_data_plantao():
 @plantao.route("/editar_plantao", methods=["GET"])
 @login_required()
 def editar_plantao():
-    dias_marcados_plantao = DiasMarcadosPlantao.query.filter_by(
+    dias_marcados_plantao = db.session.query(DiasMarcadosPlantao).filter_by(
         id_usuario=current_user.id, status=True
     ).all()
     for dia in dias_marcados_plantao:
@@ -1653,7 +890,7 @@ def ajax_disponibilidade_de_vagas():
 
     dias = []
 
-    dias_abertos_plantao = DiaPlantao.query.filter_by(status=1).all()
+    dias_abertos_plantao = db.session.query(DiaPlantao).filter_by(status=1).all()
     lista_dias_abertos = []
 
     for dia_aberto in dias_abertos_plantao:
@@ -1681,7 +918,7 @@ def ajax_vagas_disponiveis():
     mes = request.args.get("mes")
     dia = request.args.get("dia")
 
-    dias_abertos_plantao = DiaPlantao.query.filter_by(status=1).all()
+    dias_abertos_plantao = db.session.query(DiaPlantao).filter_by(status=1).all()
     lista_dias_abertos = []
 
     for dia_aberto in dias_abertos_plantao:
@@ -1704,7 +941,7 @@ def reg_presenca():
     data_hora_atual = datetime.now(tz=pytz.timezone("America/Sao_Paulo"))
     status_presenca = "Entrada"
 
-    verifica_historico = RegistroEntrada.query.filter(
+    verifica_historico = db.session.query(RegistroEntrada).filter(
         RegistroEntrada.id_usuario == current_user.id, RegistroEntrada.status == True
     ).first()
     if verifica_historico:
@@ -1736,7 +973,7 @@ def ajax_registra_presenca():
     hora_formatada = time(int(hora_registrada[0]), int(hora_registrada[1]))
     data_hora_registrada = datetime.combine(data_atual, hora_formatada)
 
-    verifica_historico = RegistroEntrada.query.filter(
+    verifica_historico = db.session.query(RegistroEntrada).filter(
         RegistroEntrada.id_usuario == current_user.id, RegistroEntrada.status == True
     ).first()
     if verifica_historico:
@@ -1786,13 +1023,13 @@ def confirmar_presenca():
             tipo_confirmacao = dados[i][0].split("_")
 
             if tipo_confirmacao[0] == "plantao":
-                plantao = DiasMarcadosPlantao.query.get_or_404(int(tipo_confirmacao[1]))
+                plantao = db.session.query(DiasMarcadosPlantao).get_or_404(int(tipo_confirmacao[1]))
                 plantao.confirmacao = dados[i][1]
 
                 db.session.commit()
 
             else:
-                presenca = RegistroEntrada.query.get_or_404(int(tipo_confirmacao[1]))
+                presenca = db.session.query(RegistroEntrada).get_or_404(int(tipo_confirmacao[1]))
                 presenca.confirmacao = dados[i][1]
 
                 db.session.commit()
@@ -1802,7 +1039,7 @@ def confirmar_presenca():
     ):  # Se for um dia diferente de segunda, lista as presencas de ontem
         data_ontem = date.today() - timedelta(days=1)
 
-        presencas_registradas = RegistroEntrada.query.filter(
+        presencas_registradas = db.session.query(RegistroEntrada).filter(
             RegistroEntrada.status == False, RegistroEntrada.confirmacao == "aberto"
         ).all()
         presencas_ontem = [
@@ -1811,7 +1048,7 @@ def confirmar_presenca():
             if presenca.data_entrada.date() == data_ontem
         ]
 
-        plantoes_ontem = DiasMarcadosPlantao.query.filter(
+        plantoes_ontem = db.session.query(DiasMarcadosPlantao).filter(
             DiasMarcadosPlantao.data_marcada == data_ontem,
             DiasMarcadosPlantao.confirmacao == "aberto",
         ).all()
@@ -1821,7 +1058,7 @@ def confirmar_presenca():
             days=3
         )  # Se for segunda, lista as presenças
 
-        presencas_registradas = RegistroEntrada.query.filter(
+        presencas_registradas = db.session.query(RegistroEntrada).filter(
             RegistroEntrada.status == False
         ).all()
         presencas_ontem = [
@@ -1830,7 +1067,7 @@ def confirmar_presenca():
             if presenca.data_entrada.date() == data_ontem
         ]
 
-        plantoes_ontem = DiasMarcadosPlantao.query.filter(
+        plantoes_ontem = db.session.query(DiasMarcadosPlantao).filter(
             DiasMarcadosPlantao.data_marcada == data_ontem,
             DiasMarcadosPlantao.confirmacao == "aberto",
         ).all()
@@ -1871,7 +1108,7 @@ def ajax_busca_presencas_data():
         int(data_procurada_separada[2]),
     )
 
-    presencas_registradas = RegistroEntrada.query.filter(
+    presencas_registradas = db.session.query(RegistroEntrada).filter(
         RegistroEntrada.status == False, RegistroEntrada.confirmacao == "aberto"
     ).all()
     presencas = [
@@ -1880,7 +1117,7 @@ def ajax_busca_presencas_data():
         if presenca.data_entrada.date() == data_procurada
     ]
 
-    plantoes_marcados = DiasMarcadosPlantao.query.filter(
+    plantoes_marcados = db.session.query(DiasMarcadosPlantao).filter(
         DiasMarcadosPlantao.data_marcada == data_procurada,
         DiasMarcadosPlantao.confirmacao == "aberto",
     ).all()
@@ -1941,7 +1178,7 @@ def configurar_abertura():
         (data.data.year, data.data.month, data.data.day) for data in dias_plantao
     ]
 
-    plantao = Plantao.query.first()
+    plantao = db.session.query(Plantao).first()
 
     valida_fim_plantao(plantao)
     if (
@@ -1995,7 +1232,7 @@ def ajax_salva_config_plantao():
     hora_abertura = request.json["hora_abertura"]
     data_fechamento = request.json["data_fechamento"]
     hora_fechamento = request.json["hora_fechamento"]
-    plantao = Plantao.query.first()
+    plantao = db.session.query(Plantao).first()
 
     status_data_abertura = False
     status_data_fechamento = False
@@ -2021,7 +1258,7 @@ def ajax_salva_config_plantao():
         # Se dia do banco não estava no front, apagar no banco.
         for duracao in lista_duracao_banco_dados:
             if duracao[0] not in datas_duracao:
-                DiaPlantao.query.filter(DiaPlantao.id == duracao[1]).delete()
+                db.session.query(DiaPlantao).filter(DiaPlantao.id == duracao[1]).delete()
                 db.session.flush()
                 print("Se dia do banco não estava no front, apagar no banco.")
 
@@ -2215,7 +1452,7 @@ def tornar_assistido_modal():
 def verifica_assistdo(_id):
     if request.method == "POST":
         return json.dumps({"hello": "world"})
-    verificado = Assistido.query.filter(Assistido.id_atendido == _id).first()
+    verificado = db.session.query(Assistido).filter(Assistido.id_atendido == _id).first()
     return json.dumps({"assistido": True if verificado else False})
 
 
@@ -2254,7 +1491,7 @@ def gerar_senha(prioridade):
     today = datetime.now()
     senha = (
         len(
-            FilaAtendidos.query.filter(
+            db.session.query(FilaAtendidos).filter(
                 FilaAtendidos.prioridade == prioridade,
                 FilaAtendidos.data_criacao.between(
                     today.strftime("%Y-%m-%d 00:00:00"),
@@ -2274,7 +1511,7 @@ def pegar_atendimentos():
     if request.method == "PUT":
         data = request.get_json(silent=True, force=True)
         id = data["id"]
-        fila = FilaAtendidos.query.filter(FilaAtendidos.id == id).first()
+        fila = db.session.query(FilaAtendidos).filter(FilaAtendidos.id == id).first()
         fila.status = data["status"]
         try:
             db.session.commit()
@@ -2283,7 +1520,7 @@ def pegar_atendimentos():
             return json.dumps({"message": "Ocorreu um erro durante a atualização"})
 
     today = datetime.now()
-    fila = FilaAtendidos.query.filter(
+    fila = db.session.query(FilaAtendidos).filter(
         FilaAtendidos.data_criacao.between(
             today.strftime("%Y-%m-%d 00:00:00"), today.strftime("%Y-%m-%d 23:59:59")
         )
@@ -2368,3 +1605,188 @@ def ajax_cadastrar_atendido():
     db.session.add(entidade_atendido)
     db.session.commit()
     return json.dumps({"id": entidade_atendido.id, "nome": entidade_atendido.nome})
+
+
+@plantao.route("/orientacoes_juridicas")
+@login_required()
+def orientacoes_juridicas():
+    page = request.args.get("page", 1, type=int)
+    orientacoes = db.session.query(OrientacaoJuridica).filter_by(
+        status=True
+    ).order_by(
+        OrientacaoJuridica.id.desc()
+    ).paginate(
+        page=page, 
+        per_page=app.config["ATENDIDOS_POR_PAGINA"], 
+        error_out=False
+    )
+    return render_template("orientacoes_juridicas.html", orientacoes=orientacoes)
+
+
+@plantao.route("/orientacao_juridica/<id>")
+@login_required()
+def perfil_oj(id):
+    orientacao = db.session.query(OrientacaoJuridica).get_or_404(id)
+    
+    atendidos_envolvidos = db.session.query(Atendido).join(
+        Atendido_xOrientacaoJuridica
+    ).filter(
+        Atendido_xOrientacaoJuridica.id_orientacaoJuridica == orientacao.id,
+        Atendido.status == True
+    ).order_by(Atendido.nome).all()
+    
+    usuario = None
+    if orientacao.id_usuario:
+        usuario = db.session.query(Usuario).filter_by(id=orientacao.id_usuario).first()
+    
+    assistencias_envolvidas = db.session.query(AssistenciaJudiciaria_xOrientacaoJuridica).filter_by(
+        id_orientacaoJuridica=orientacao.id
+    ).all()
+    
+    return render_template(
+        "perfil_orientacao_juridica.html",
+        orientacao=orientacao,
+        atendidos=atendidos_envolvidos,
+        assistencias=assistencias_envolvidas,
+        usuario=usuario or {"nome": "--"}
+    )
+
+
+@plantao.route("/assistencias_judiciarias/", methods=["POST", "GET"])
+@login_required()
+def listar_assistencias_judiciarias():
+    page = request.args.get("page", 1, type=int)
+    assistencias = db.session.query(AssistenciaJudiciaria).filter_by(
+        status=True
+    ).order_by(
+        AssistenciaJudiciaria.nome
+    ).paginate(
+        page=page,
+        per_page=app.config["ATENDIDOS_POR_PAGINA"],
+        error_out=False
+    )
+    return render_template(
+        "lista_assistencia_judiciaria.html",
+        assistencias=assistencias,
+        filtro_busca_assistencia_judiciaria=filtro_busca_assistencia_judiciaria
+    )
+
+
+@plantao.route("/editar_assistencia_judiciaria/<int:id_assistencia_judiciaria>", methods=["POST", "GET"])
+@login_required(
+    role=[
+        usuario_urole_roles["ADMINISTRADOR"][0],
+        usuario_urole_roles["PROFESSOR"][0],
+        usuario_urole_roles["COLAB_PROJETO"][0],
+        usuario_urole_roles["COLAB_EXTERNO"][0],
+    ]
+)
+def editar_assistencia_judiciaria(id_assistencia_judiciaria):
+    assistencia_juridica = db.session.query(AssistenciaJudiciaria).filter_by(
+        id=id_assistencia_judiciaria,
+        status=True
+    ).first()
+    
+    if not assistencia_juridica:
+        flash("Assistência judiciária não encontrada!", "warning")
+        return redirect(url_for("plantao.listar_assistencias_judiciarias"))
+    
+    form = AssistenciaJudiciariaForm()
+    
+    if form.validate_on_submit():
+        assistencia_juridica.nome = form.nome.data
+        assistencia_juridica.regiao = form.regiao.data
+        assistencia_juridica.setAreas_atendidas(form.areas_atendidas.data)
+        assistencia_juridica.telefone = form.telefone.data
+        assistencia_juridica.email = form.email.data
+        assistencia_juridica.endereco.logradouro = form.logradouro.data
+        assistencia_juridica.endereco.numero = form.numero.data
+        assistencia_juridica.endereco.complemento = form.complemento.data
+        assistencia_juridica.endereco.bairro = form.bairro.data
+        assistencia_juridica.endereco.cep = form.cep.data
+        assistencia_juridica.endereco.cidade = form.cidade.data
+        assistencia_juridica.endereco.estado = form.estado.data
+        
+        db.session.commit()
+        flash("Assistência judiciária editada com sucesso!", "success")
+        return redirect(url_for("plantao.listar_assistencias_judiciarias"))
+    
+    # Pre-fill form with existing data
+    form.nome.data = assistencia_juridica.nome
+    form.regiao.data = assistencia_juridica.regiao
+    form.areas_atendidas.data = assistencia_juridica.getAreas_atendidas()
+    form.telefone.data = assistencia_juridica.telefone
+    form.email.data = assistencia_juridica.email
+    form.logradouro.data = assistencia_juridica.endereco.logradouro
+    form.numero.data = assistencia_juridica.endereco.numero
+    form.complemento.data = assistencia_juridica.endereco.complemento
+    form.bairro.data = assistencia_juridica.endereco.bairro
+    form.cep.data = assistencia_juridica.endereco.cep
+    form.cidade.data = assistencia_juridica.endereco.cidade
+    form.estado.data = assistencia_juridica.endereco.estado
+    
+    return render_template("editar_assistencia_juridica.html", form=form)
+
+
+@plantao.route("/buscar_assistencia_judiciaria", methods=["POST"])
+@login_required()
+def buscar_assistencia_judiciaria():
+    termo = request.form.get("termo", "")
+    page = request.args.get("page", 1, type=int)
+    
+    assistencias = db.session.query(AssistenciaJudiciaria).filter(
+        AssistenciaJudiciaria.status == True,
+        AssistenciaJudiciaria.nome.ilike(f"%{termo}%")
+    ).order_by(
+        AssistenciaJudiciaria.nome
+    ).paginate(
+        page=page,
+        per_page=app.config["ATENDIDOS_POR_PAGINA"],
+        error_out=False
+    )
+    
+    return render_template(
+        "lista_assistencia_judiciaria.html",
+        assistencias=assistencias,
+        filtro_busca_assistencia_judiciaria=filtro_busca_assistencia_judiciaria
+    )
+
+
+@plantao.route("/buscar_orientacao_juridica", methods=["POST"])
+@login_required()
+def buscar_orientacao_juridica():
+    termo = request.form.get("termo", "")
+    page = request.args.get("page", 1, type=int)
+    
+    orientacoes = db.session.query(OrientacaoJuridica).filter(
+        OrientacaoJuridica.status == True,
+        OrientacaoJuridica.area_direito.ilike(f"%{termo}%")
+    ).order_by(
+        OrientacaoJuridica.id.desc()
+    ).paginate(
+        page=page,
+        per_page=app.config["ATENDIDOS_POR_PAGINA"],
+        error_out=False
+    )
+    
+    return render_template("orientacoes_juridicas.html", orientacoes=orientacoes)
+
+
+@plantao.route("/buscar_atendido", methods=["POST"])
+@login_required()
+def buscar_atendido():
+    termo = request.form.get("termo", "")
+    page = request.args.get("page", 1, type=int)
+    
+    atendidos = db.session.query(Atendido).filter(
+        Atendido.status == True,
+        Atendido.nome.ilike(f"%{termo}%")
+    ).order_by(
+        Atendido.nome
+    ).paginate(
+        page=page,
+        per_page=app.config["ATENDIDOS_POR_PAGINA"],
+        error_out=False
+    )
+    
+    return render_template("lista_atendidos.html", atendidos=atendidos)

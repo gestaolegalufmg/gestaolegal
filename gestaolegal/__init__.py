@@ -313,7 +313,7 @@ def formatarTipoDeEvento(string):
 
 def formatarNomeDoUsuario(id_usuario):
     if id_usuario:
-        entidade_usuario = Usuario.query.get(int(id_usuario))
+        entidade_usuario = db.session.get(Usuario, int(id_usuario))
         return entidade_usuario.nome
     else:
         return "Não Há"
