@@ -1,0 +1,102 @@
+{% extends "base_dashboard.html" %}
+
+{% block titulo %} Atendidos e Assistidos{% endblock titulo %}
+
+{% block conteudo %}
+<nav class="d-inline-block">
+  <ul class="pagination mb-0">
+    {% for page_num in atendidos_assistidos.iter_pages(left_edge=3, right_edge=3, left_current=2, right_current=2) %}
+    {% if page_num and atendidos_assistidos.page == page_num%}
+    <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+    {% elif page_num %}
+    <li class="page-item"><a class="page-link"
+        href="{{ url_for('plantao.listar_atendidos', page=page_num) }}">{{ page_num }}</a>
+      {% else %}
+    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+</nav>
+<div class="card">
+  <div class="card-body">
+    <div class="card-title">
+      <div class="d-flex flex-row">
+        <div class="d-flex justify-content-start">
+          <input type="hidden" name="csrf_token" id="token" value="{{ csrf_token() }}">
+          <div id="table-2_filter" class="dataTables_filter"><label> <span>&shy;</span>  
+            <input type="search" id="busca" class="form-control form-control-sm" Atendido ou
+                Assistido:<input type="text" id="busca" placeholder="Buscar..." class="form-control form-control-sm"
+                aria-controls="table-2"></label></div>
+        </div>
+        
+        <div class="d-flex ml-auto" style="background-color: none;">
+          <div class="ml-auto p-2 ">
+            <select class="form-control" id="filtro" name="filtro" required="">
+              <option value="{{tipos_busca_atendidos['TODOS']}}">Todos</option>
+              <option value="{{tipos_busca_atendidos['ATENDIDOS']}}">Atendidos</option>
+              <option value="{{tipos_busca_atendidos['ASSISTIDOS']}}">Assistidos</option>
+            </select>
+            </div>
+
+            <div class= "row align-items-center"style="margin-left:5px; margin-right:2px; ">
+              <a class="btn btn-primary ml-auto p-2 px-2"
+                href="{{url_for('plantao.cadastro_na')}}">Cadastrar
+                Atendido</a>
+            </div>
+            
+        </div>
+      </div>
+    </div>
+    <div id="renderizar_atendidos">
+      {% include 'busca_atendidos.html' %}
+    </div>
+  </div>
+</div>
+{% endblock conteudo %}
+
+{% block scripts %}
+
+<script>
+  let token = document.getElementById('token').value;
+
+  $('#busca').on({
+    keyup: (event) => {
+      $.ajax({
+        method: "GET",
+        url: "{{url_for('plantao.busca_atendidos_assistidos')}}",
+        headers: {
+          'X-CSRF-Token': token
+        },
+        data: {valor_busca: $('#busca').val(),
+               tipo_busca: $('#filtro').val()}
+          ,
+        success: (result) => {
+          document.getElementById('renderizar_atendidos').innerHTML = '';
+          $('#renderizar_atendidos').append(result);
+        }
+      })
+    }
+  })
+
+  $( "#filtro" ).change(function() {
+
+    $.ajax({
+        method: "GET",
+        url: "{{url_for('plantao.busca_atendidos_assistidos')}}",
+        headers: {
+          'X-CSRF-Token': token
+        },
+        data: {valor_busca: $('#busca').val(),
+               tipo_busca: $('#filtro').val()}
+          ,
+        success: (result) => {
+          document.getElementById('renderizar_atendidos').innerHTML = '';
+          $('#renderizar_atendidos').append(result);
+        }
+      })
+  
+});
+
+</script>
+
+{% endblock scripts %}

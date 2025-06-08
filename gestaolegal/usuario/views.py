@@ -149,7 +149,7 @@ def editar_usuario(id_user):
         form.suplente.data = entidade_usuario.suplente
         form.ferias.data = entidade_usuario.ferias
         form.cert_atuacao_DAJ.data = entidade_usuario.cert_atuacao_DAJ
-        
+
         # Check if endereco exists before accessing its attributes
         if entidade_usuario.endereco:
             form.logradouro.data = entidade_usuario.endereco.logradouro

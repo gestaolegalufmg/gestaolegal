@@ -1,12 +1,14 @@
+from typing import cast
+
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
-from gestaolegal import db, login_required
+from gestaolegal import app, db, login_required
 from gestaolegal.plantao.forms import CadastroAtendidoForm
-from gestaolegal.plantao.models import Atendido
-from gestaolegal.plantao.views_util import setValoresFormAtendido
+from gestaolegal.plantao.models import Assistido, Atendido
+from gestaolegal.plantao.views_util import setValoresFormAtendido, tipos_busca_atendidos
 from gestaolegal.usuario.models import Endereco, usuario_urole_roles
 
-atendido_controller = Blueprint("atendido", __name__)
+atendido_controller = Blueprint("atendido", __name__, template_folder="templates")
 
 
 def valida_dados_form(form: CadastroAtendidoForm):
@@ -76,6 +78,44 @@ def cria_atendido(form: CadastroAtendidoForm):
     )
 
     return entidade_atendido
+
+
+@atendido_controller.route("/atendidos_assistidos", methods=["GET", "POST"])
+@login_required()
+def atendidos_assistidos():
+    page = request.args.get("page", 1, type=int)
+    per_page = cast(int, app.config["ATENDIDOS_POR_PAGINA"])
+
+    query = (
+        db.session.query(Atendido, Assistido)
+        .outerjoin(Assistido)
+        .filter(Atendido.status == True)
+        .order_by(Atendido.nome)
+    )
+
+    atendidos = db.paginate(query.selectable, page=page, per_page=per_page)
+
+    return render_template(
+        "atendidos_assistidos.html",
+        atendidos_assistidos=atendidos,
+        tipos_busca_atendidos=tipos_busca_atendidos,
+    )
+
+
+@atendido_controller.route("/busca_atendidos_assistidos", methods=["GET", "POST"])
+@login_required()
+def busca_atendidos_assistidos():
+    if request.method == "POST":
+        termo = request.form["termo"]
+        atendidos = (
+            db.session.query(Atendido)
+            .join(Assistido)
+            .filter(Atendido.nome.like(termo + "%"))
+            .all()
+        )
+        return json.dumps({"atendidos": [x.as_dict() for x in atendidos]})
+
+    return render_template("busca_atendidos_assistidos.html")
 
 
 @atendido_controller.route("/novo_atendimento", methods=["GET", "POST"])
