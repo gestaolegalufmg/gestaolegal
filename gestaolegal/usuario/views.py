@@ -95,16 +95,32 @@ def editar_usuario(id_user):
         entidade_usuario.data_saida = form.data_saida.data
         entidade_usuario.nascimento = form.nascimento.data
         entidade_usuario.estado_civil = form.estado_civil.data
-        entidade_usuario.endereco.logradouro = form.logradouro.data
-        entidade_usuario.endereco.numero = form.numero.data
-        entidade_usuario.endereco.bairro = form.bairro.data
-        entidade_usuario.endereco.cep = form.cep.data
-        entidade_usuario.endereco.complemento = form.complemento.data
         entidade_usuario.suplente = form.suplente.data
         entidade_usuario.ferias = form.ferias.data
         entidade_usuario.cert_atuacao_DAJ = form.cert_atuacao_DAJ.data
-        entidade_usuario.endereco.cidade = form.cidade.data
-        entidade_usuario.endereco.estado = form.estado.data
+
+        # Create or update endereco
+        if not entidade_usuario.endereco:
+            entidade_endereco = Endereco(
+                logradouro=form.logradouro.data,
+                numero=form.numero.data,
+                complemento=form.complemento.data,
+                bairro=form.bairro.data,
+                cep=form.cep.data,
+                cidade=form.cidade.data,
+                estado=form.estado.data,
+            )
+            db.session.add(entidade_endereco)
+            db.session.flush()
+            entidade_usuario.endereco = entidade_endereco
+        else:
+            entidade_usuario.endereco.logradouro = form.logradouro.data
+            entidade_usuario.endereco.numero = form.numero.data
+            entidade_usuario.endereco.bairro = form.bairro.data
+            entidade_usuario.endereco.cep = form.cep.data
+            entidade_usuario.endereco.complemento = form.complemento.data
+            entidade_usuario.endereco.cidade = form.cidade.data
+            entidade_usuario.endereco.estado = form.estado.data
 
         entidade_usuario.atualizaCamposModificao(usuario_logado)
 
@@ -133,13 +149,16 @@ def editar_usuario(id_user):
         form.suplente.data = entidade_usuario.suplente
         form.ferias.data = entidade_usuario.ferias
         form.cert_atuacao_DAJ.data = entidade_usuario.cert_atuacao_DAJ
-        form.logradouro.data = entidade_usuario.endereco.logradouro
-        form.numero.data = entidade_usuario.endereco.numero
-        form.bairro.data = entidade_usuario.endereco.bairro
-        form.cep.data = entidade_usuario.endereco.cep
-        form.complemento.data = entidade_usuario.endereco.complemento
-        form.cidade.data = entidade_usuario.endereco.cidade
-        form.estado.data = entidade_usuario.endereco.estado
+        
+        # Check if endereco exists before accessing its attributes
+        if entidade_usuario.endereco:
+            form.logradouro.data = entidade_usuario.endereco.logradouro
+            form.numero.data = entidade_usuario.endereco.numero
+            form.bairro.data = entidade_usuario.endereco.bairro
+            form.cep.data = entidade_usuario.endereco.cep
+            form.complemento.data = entidade_usuario.endereco.complemento
+            form.cidade.data = entidade_usuario.endereco.cidade
+            form.estado.data = entidade_usuario.endereco.estado
 
     def renderizaTemplate(
         form: EditarUsuarioForm,
@@ -200,6 +219,10 @@ def editar_usuario(id_user):
         entidade_usuario = db.session.get(Usuario, id_user)
     else:
         entidade_usuario = db.session.get(Usuario, current_user.id)
+
+    if not entidade_usuario:
+        flash("Usuário não encontrado.", "warning")
+        return redirect(url_for("principal.index"))
 
     if not validaEntidade_usuario(entidade_usuario):
         return redirect(url_for("principal.index"))
