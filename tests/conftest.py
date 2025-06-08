@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+
 @pytest.fixture(scope="session")
 def browser_context_with_auth(browser, base_url: str):
     context = browser.new_context(base_url=base_url)

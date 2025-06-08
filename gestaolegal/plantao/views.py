@@ -168,21 +168,6 @@ def busca_atendidos_assistidos():
     return render_template("busca_atendidos_assistidos.html")
 
 
-@plantao.route("/atendidos_assistidos", methods=["GET", "POST"])
-@login_required()
-def listar_atendidos():
-    page = request.args.get("page", 1, type=int)
-    atendidos = (
-        db.session.query(Atendido)
-        .join(Assistido)
-        .filter(Atendido.status == True)
-        .paginate(
-            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
-        )
-    )
-    return render_template("atendidos_assistidos.html", atendidos=atendidos)
-
-
 ### Dados do atendido
 @plantao.route("/dados_atendido/<int:id>", methods=["GET"])
 @login_required()
@@ -523,8 +508,9 @@ def excluir_oj():
 @login_required()
 def perfil_assistido(_id):
     assistido = (
-        db.session.query(Assistido).filter_by(atendido_id=_id, status=True).first()
+        db.session.query(Atendido).join(Assistido).where(Atendido.id == _id).first()
     )
+
     if not assistido:
         abort(404)
 
