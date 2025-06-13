@@ -3,8 +3,14 @@ from typing import cast
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
 from gestaolegal import app, db, login_required
-from gestaolegal.plantao.forms import CadastroAtendidoForm
-from gestaolegal.plantao.models import Assistido, Atendido
+from gestaolegal.plantao.forms.cadastro_atendido_form import CadastroAtendidoForm
+from gestaolegal.plantao.forms.tornar_assistido_form import TornarAssistidoForm
+from gestaolegal.plantao.models import (
+    Assistido,
+    AssistidoPessoaJuridica,
+    Atendido,
+)
+from gestaolegal.plantao.transforms import build_cards
 from gestaolegal.plantao.views_util import setValoresFormAtendido, tipos_busca_atendidos
 from gestaolegal.usuario.models import Endereco, usuario_urole_roles
 
@@ -86,19 +92,44 @@ def atendidos_assistidos():
     page = request.args.get("page", 1, type=int)
     per_page = cast(int, app.config["ATENDIDOS_POR_PAGINA"])
 
-    query = (
-        db.session.query(Atendido, Assistido)
-        .outerjoin(Assistido)
+    base_query = (
+        db.session.query(Atendido)
         .filter(Atendido.status == True)
         .order_by(Atendido.nome)
     )
 
-    atendidos = db.paginate(query.selectable, page=page, per_page=per_page)
+    pagination = db.paginate(base_query, page=page, per_page=per_page)
+
+    atendido_ids = [atendido.id for atendido in pagination.items]
+
+    assistidos = {
+        a.id_atendido: a
+        for a in db.session.query(Assistido)
+        .filter(Assistido.id_atendido.in_(atendido_ids))
+        .all()
+    }
+
+    atendidos_assistidos = []
+    for atendido in pagination.items:
+        assistido = assistidos.get(atendido.id)
+        atendidos_assistidos.append(
+            {
+                "id": atendido.id,
+                "nome": atendido.nome,
+                "cpf": atendido.cpf,
+                "cnpj": atendido.cnpj,
+                "telefone": atendido.telefone,
+                "id_atendido": assistido.id_atendido if assistido else None,
+                "is_assistido": assistido is not None,
+            }
+        )
 
     return render_template(
         "atendidos_assistidos.html",
-        atendidos_assistidos=atendidos,
+        atendidos_assistidos=atendidos_assistidos,
         tipos_busca_atendidos=tipos_busca_atendidos,
+        pagination=pagination,
+        iter_pages=pagination.iter_pages,
     )
 
 
@@ -138,7 +169,7 @@ def cadastro_na():
 
         flash("Atendido cadastrado!", "success")
         _id = db.session.query(Atendido).filter_by(email=form.email.data).first().id
-        return redirect(url_for("plantao.perfil_assistido", _id=_id))
+        return redirect(url_for("atendido.perfil_assistido", _id=_id))
 
     return render_template("cadastro_novo_atendido.html", form=form)
 
@@ -168,6 +199,31 @@ def excluir_atendido():
     return redirect(url_for("plantao.listar_atendidos"))
 
 
+@atendido_controller.route("/perfil_assistido/<int:_id>", methods=["GET"])
+@login_required()
+def perfil_assistido(_id: int):
+    result = (
+        db.session.query(Atendido, Assistido, AssistidoPessoaJuridica)
+        .outerjoin(Assistido, onclause=Assistido.id_atendido == Atendido.id)
+        .outerjoin(
+            AssistidoPessoaJuridica,
+            onclause=AssistidoPessoaJuridica.id_assistido == Assistido.id,
+        )
+        .where(Atendido.id == _id)
+        .first()
+    )
+
+    if not result:
+        abort(404)
+
+    atendido = result.tuple()[0]
+    assistido = result.tuple()[1]
+    assistido_pj = result.tuple()[2]
+    cards = build_cards(assistido, atendido, assistido_pj)
+
+    return render_template("perfil_assistidos.html", assistido=result, cards=cards)
+
+
 @atendido_controller.route("/editar_atendido/<id_atendido>", methods=["POST", "GET"])
 @login_required(
     role=[
@@ -177,10 +233,17 @@ def excluir_atendido():
         usuario_urole_roles["PROFESSOR"][0],
     ]
 )
-def editar_atendido(id_atendido):
-    atendido = db.session.get(Atendido, id_atendido)
+def editar_atendido(id_atendido: int):
+    atendido = (
+        db.session.query(Atendido)
+        .where(Atendido.id == id_atendido)
+        .where(Atendido.status == True)
+        .first()
+    )
+
     if not atendido:
         abort(404)
+
     form = CadastroAtendidoForm()
 
     if request.method == "POST":
@@ -217,7 +280,63 @@ def editar_atendido(id_atendido):
 
             db.session.commit()
             flash("Atendido editado com sucesso!", "success")
-            return redirect(url_for("plantao.perfil_assistido", _id=atendido.id))
+            return redirect(url_for("atendido.perfil_assistido", _id=atendido.id))
 
     setValoresFormAtendido(atendido, form)
-    return render_template("editar_atendido.html", form=form)
+    return render_template("editar_atendido.html", atendido=atendido, form=form)
+
+
+@atendido_controller.route("/tornar_assistido/<id_atendido>", methods=["POST", "GET"])
+@login_required(
+    role=[
+        usuario_urole_roles["ADMINISTRADOR"][0],
+        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
+    ]
+)
+def tornar_assistido(id_atendido: int):
+    atendido = (
+        db.session.query(Atendido)
+        .where(Atendido.id == id_atendido)
+        .where(Atendido.status == True)
+        .first()
+    )
+
+    if not atendido:
+        abort(404)
+
+    form = TornarAssistidoForm()
+    if request.method == "POST":
+        if form.validate():
+            assistido = Assistido(
+                id_atendido=atendido.id,
+                sexo=form.sexo.data,
+                raca=form.raca.data,
+                profissao=form.profissao.data,
+                rg=form.rg.data,
+                grau_instrucao=form.grau_instrucao.data,
+                salario=form.salario.data,
+                beneficio=form.qual_beneficio.data,
+                contribui_inss=form.contribui_inss.data,
+                qtd_pessoas_moradia=form.qtd_pessoas_moradia.data,
+                renda_familiar=form.renda_familiar.data,
+                participacao_renda=form.participacao_renda.data,
+                tipo_moradia=form.tipo_moradia.data,
+                possui_outros_imoveis=bool(form.possui_outros_imoveis.data),
+                quantos_imoveis=form.quantos_imoveis.data,
+                possui_veiculos=bool(form.possui_veiculos.data),
+                possui_veiculos_obs=form.possui_veiculos_obs.data,
+                quantos_veiculos=form.quantos_veiculos.data,
+                ano_veiculo=form.ano_veiculo.data,
+                doenca_grave_familia=form.doenca_grave_familia.data,
+                pessoa_doente=form.pessoa_doente.data,
+                pessoa_doente_obs=form.pessoa_doente_obs.data,
+                gastos_medicacao=form.gastos_medicacao.data,
+                obs=form.obs_assistido.data,
+                # area_direito=form.area_direito.data,
+                # observacoes=form.observacoes.data,
+            )
+            db.session.add(assistido)
+            db.session.commit()
+            return redirect(url_for("atendido.perfil_assistido", _id=atendido.id))
+
+    return render_template("tornar_assistido.html", atendido=atendido, form=form)
