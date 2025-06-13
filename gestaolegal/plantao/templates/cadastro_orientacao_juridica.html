@@ -480,7 +480,7 @@
             return;
         }
 
-        let data = await fetch("/plantao/tornar_assistido_modal/", {
+        let data = await fetch("/tornar_assistido/tornar_assistido_modal/", {
             method: "POST",
             headers: {
                 'X-CSRF-Token': "{{ csrf_token() }}"

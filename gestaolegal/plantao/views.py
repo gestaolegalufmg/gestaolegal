@@ -19,14 +19,14 @@ from gestaolegal.models.endereco import Endereco
 from gestaolegal.notificacoes.models import Notificacao, acoes
 from gestaolegal.plantao.forms import (
     AbrirPlantaoForm,
-    AssistenciaJudiciariaForm,
-    CadastroAtendidoForm,
-    CadastroOrientacaoJuridicaForm,
     FecharPlantaoForm,
-    OrientacaoJuridicaForm,
     SelecionarDuracaoPlantaoForm,
-    TornarAssistidoForm,
 )
+from gestaolegal.plantao.forms.assistencia_juridica_form import (
+    AssistenciaJudiciariaForm,
+)
+from gestaolegal.plantao.forms.orientacao_juridica_form import CadastroOrientacaoJuridicaForm, OrientacaoJuridicaForm
+from gestaolegal.plantao.forms.tornar_assistido_form import TornarAssistidoForm
 from gestaolegal.plantao.models import (
     AssistenciaJudiciaria,
     AssistenciaJudiciaria_xOrientacaoJuridica,
@@ -148,7 +148,7 @@ def cadastro_na():
 
         flash("Atendido cadastrado!", "success")
         _id = db.session.query(Atendido).filter_by(email=form.email.data).first().id
-        return redirect(url_for("plantao.perfil_assistido", _id=_id))
+        return redirect(url_for("atendido.perfil_assistido", _id=_id))
 
     return render_template("cadastro_novo_atendido.html", form=form)
 
@@ -193,89 +193,6 @@ def excluir_atendido():
     return redirect(url_for("plantao.listar_atendidos"))
 
 
-####Editar Atendido
-@plantao.route("/editar_atendido/<id_atendido>", methods=["POST", "GET"])
-@login_required(
-    role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["COLAB_PROJETO"][0],
-        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
-        usuario_urole_roles["PROFESSOR"][0],
-    ]
-)
-def editar_atendido(id_atendido):
-    atendido = db.session.query(Atendido).filter_by(id=id_atendido, status=True).first()
-    if not atendido:
-        abort(404)
-    form = CadastroAtendidoForm()
-
-    if request.method == "POST":
-        if form.validate():
-            atendido.nome = form.nome.data
-            atendido.data_nascimento = form.data_nascimento.data
-            atendido.cpf = form.cpf.data
-            atendido.cnpj = form.cnpj.data
-            atendido.telefone = form.telefone.data
-            atendido.celular = form.celular.data
-            atendido.email = form.email.data
-            atendido.estado_civil = form.estado_civil.data
-            atendido.como_conheceu = form.como_conheceu.data
-            atendido.indicacao_orgao = form.indicacao_orgao.data
-            atendido.procurou_outro_local = form.procurou_outro_local.data
-            atendido.procurou_qual_local = form.procurou_qual_local.data
-            atendido.obs = form.obs_atendido.data
-            atendido.pj_constituida = form.pj_constituida.data
-            atendido.repres_legal = form.repres_legal.data
-            atendido.nome_repres_legal = form.nome_repres_legal.data
-            atendido.cpf_repres_legal = form.cpf_repres_legal.data
-            atendido.contato_repres_legal = form.contato_repres_legal.data
-            atendido.rg_repres_legal = form.rg_repres_legal.data
-            atendido.nascimento_repres_legal = form.nascimento_repres_legal.data
-            atendido.pretende_constituir_pj = form.pretende_constituir_pj.data
-
-            atendido.endereco.logradouro = form.logradouro.data
-            atendido.endereco.numero = form.numero.data
-            atendido.endereco.complemento = form.complemento.data
-            atendido.endereco.bairro = form.bairro.data
-            atendido.endereco.cep = form.cep.data
-            atendido.endereco.cidade = form.cidade.data
-            atendido.endereco.estado = form.estado.data
-
-            db.session.commit()
-            flash("Atendido editado com sucesso!", "success")
-            return redirect(url_for("plantao.perfil_assistido", _id=atendido.id))
-
-    setValoresFormAtendido(atendido, form)
-    return render_template("editar_atendido.html", form=form)
-
-
-@plantao.route("/tornar_assistido/<id_atendido>", methods=["POST", "GET"])
-@login_required(
-    role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
-    ]
-)
-def tornar_assistido(id_atendido):
-    atendido = db.session.query(Atendido).filter_by(id=id_atendido, status=True).first()
-    if not atendido:
-        abort(404)
-    form = TornarAssistidoForm()
-    if request.method == "POST":
-        if form.validate():
-            assistido = Assistido(
-                atendido_id=atendido.id,
-                area_direito=form.area_direito.data,
-                observacoes=form.observacoes.data,
-                status=True,
-            )
-            db.session.add(assistido)
-            db.session.commit()
-            flash("Atendido transformado em assistido com sucesso!", "success")
-            return redirect(url_for("plantao.perfil_assistido", _id=atendido.id))
-    return render_template("tornar_assistido.html", form=form)
-
-
 @plantao.route("/editar_assistido/<id_atendido>/", methods=["POST", "GET"])
 @login_required(
     role=[
@@ -301,7 +218,7 @@ def editar_assistido(id_atendido):
             db.session.commit()
             flash("Assistido editado com sucesso!", "success")
             return redirect(
-                url_for("plantao.perfil_assistido", _id=assistido.atendido_id)
+                url_for("atendido.perfil_assistido", _id=assistido.atendido_id)
             )
     return render_template("editar_assistido.html", form=form)
 
@@ -502,28 +419,6 @@ def excluir_oj():
     db.session.commit()
     flash("Orientação jurídica excluída com sucesso!", "success")
     return redirect(url_for("plantao.orientacoes_juridicas"))
-
-
-@plantao.route("/perfil_assistido/<int:_id>", methods=["GET"])
-@login_required()
-def perfil_assistido(_id):
-    assistido = (
-        db.session.query(Atendido).join(Assistido).where(Atendido.id == _id).first()
-    )
-
-    if not assistido:
-        abort(404)
-
-    orientacoes = (
-        db.session.query(OrientacaoJuridica)
-        .join(Assistido.orientacoes_juridicas)
-        .filter(Assistido.id == assistido.id, OrientacaoJuridica.status == True)
-        .all()
-    )
-
-    return render_template(
-        "perfil_assistido.html", assistido=assistido, orientacoes=orientacoes
-    )
 
 
 @plantao.route("/editar_orientacao_juridica/<id_oj>", methods=["POST", "GET"])

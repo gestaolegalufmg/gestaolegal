@@ -18,7 +18,7 @@
                 <div class="form-group row justify-content-between align-items-center">
                     <h3>Dados de Atendimento</h3>
                     {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles['COLAB_PROJETO'][0]] %}
-                        <a href="{{url_for('plantao.editar_atendido',id_atendido=form.id_atendido)}}" class="btn btn-primary btn-lg">Editar dados</a>
+                        <a href="{{url_for('atendido.editar_atendido',id_atendido=form.id_atendido)}}" class="btn btn-primary btn-lg">Editar dados</a>
                     {% endif %}
                 </div>
 

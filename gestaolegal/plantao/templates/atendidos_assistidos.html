@@ -5,12 +5,12 @@
 {% block conteudo %}
 <nav class="d-inline-block">
   <ul class="pagination mb-0">
-    {% for page_num in atendidos_assistidos.iter_pages(left_edge=3, right_edge=3, left_current=2, right_current=2) %}
-    {% if page_num and atendidos_assistidos.page == page_num%}
+    {% for page_num in pagination.iter_pages(left_edge=3, right_edge=3, left_current=2, right_current=2) %}
+    {% if page_num and pagination.page == page_num%}
     <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
     {% elif page_num %}
     <li class="page-item"><a class="page-link"
-        href="{{ url_for('plantao.listar_atendidos', page=page_num) }}">{{ page_num }}</a>
+        href="{{ url_for('atendido.atendidos_assistidos', page=page_num) }}">{{ page_num }}</a>
       {% else %}
     <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
     {% endif %}
