@@ -24,32 +24,32 @@
             </tr> 
         </thead>
         <tbody>
-            {% for atendido_assistido in atendidos_assistidos.items %}
+            {% for atendido_assistido in atendidos_assistidos %}
                 <tr>
-                    <td>{{atendido_assistido[0].nome}}</td>
-                    <td>{{atendido_assistido[0].cpf or '--'}}</td>
-                    <td>{{atendido_assistido[0].cnpj or '--'}}</td>
-                    <td>{{atendido_assistido[0].telefone or '--'}}</td>
-                    <td><a href="{{url_for('plantao.perfil_assistido', _id=atendido_assistido[0].id)}}" class="btn mr-2 btn-flat btn-primary btn-sm">Visualizar</a></td>
+                    <td>{{atendido_assistido.nome}}</td>
+                    <td>{{atendido_assistido.cpf or '--'}}</td>
+                    <td>{{atendido_assistido.cnpj or '--'}}</td>
+                    <td>{{atendido_assistido.telefone or '--'}}</td>
+                    <td><a href="{{url_for('atendido.perfil_assistido', _id=atendido_assistido.id)}}" class="btn mr-2 btn-flat btn-primary btn-sm">Visualizar</a></td>
                 
                     <td>
                         {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
-                            {% if atendido_assistido[1] %}
+                            {% if atendido_assistido.is_assistido %}
                                 <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
-                                      href="{{url_for('plantao.editar_assistido', id_atendido = atendido_assistido[0].id)}}"
+                                      href="{{url_for('plantao.editar_assistido', id_atendido = atendido_assistido.id)}}"
                                       style="text-decoration: none;color: white; text-align: center;">Editar</a></button>
                             {% else %}
                                 <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
-                                      href="{{url_for('plantao.editar_atendido', id_atendido = atendido_assistido[0].id)}}"
+                                      href="{{url_for('atendido.editar_atendido', id_atendido = atendido_assistido.id)}}"
                                       style="text-decoration: none;color: white; text-align: center;">Editar</a></button>   
                             {% endif %}
                         {% endif %}
                     </td>
                     <td>
-                        {% if not atendido_assistido[1] %}
+                        {% if not atendido_assistido.id_atendido %}
                                 {% if current_user.urole == "admin" or current_user.urole == "estag_direito" %}
                                     <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
-                                      href="{{url_for('plantao.tornar_assistido', id_atendido = atendido_assistido[0].id)}}"
+                                      href="{{url_for('atendido.tornar_assistido', id_atendido = atendido_assistido.id)}}"
                                       style="text-decoration: none;color: white; text-align: center;">Tornar Assistido</a></button>
                                 {% endif %}           
                         {% endif %}
@@ -59,7 +59,7 @@
                             <form action="{{url_for('plantao.excluir_atendido')}}" method="POST">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div>
-                                  <input type="hidden" id="excl_{{atendido_assistido[0].id}}" name="id" value="{{atendido_assistido[0].id}}">
+                                  <input type="hidden" id="excl_{{atendido_assistido.id}}" name="id" value="{{atendido_assistido.id}}">
                                 </div>
                                 <button type="submit" class="btn mb-1 ml-1 btn-flat btn-danger btn-sm"
                                   onclick="return confirm('Você deseja excluir este atendido/assistido?');">Excluir</button>

@@ -5,7 +5,7 @@
     <div class="card-body">
         <h3>{{atendido.nome.capitalize()}}</h3>
         <div class= "form-validation">
-            <form class="form-valide" action="{{url_for('plantao.editar_atendido', id_atendido = atendido.id)}}" method="POST" id="form">
+            <form class="form-valide" action="{{url_for('atendido.editar_atendido', id_atendido = atendido.id)}}" method="POST" id="form">
                 <input value="{{atendido.email}}" name="emailAtual" type="hidden">
 
                 {% include "atendido_form.html" %}

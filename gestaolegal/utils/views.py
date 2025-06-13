@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
 
+
 def wtforms_debug(form: FlaskForm):
     print("#################################################")
     for fieldName, errorMessages in form.errors.items():
@@ -7,5 +8,4 @@ def wtforms_debug(form: FlaskForm):
         print("Erros:")
         for err in errorMessages:
             print(err)
-        print("----------------------------------------")    
-            
+        print("----------------------------------------")

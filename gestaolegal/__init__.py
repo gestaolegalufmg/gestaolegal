@@ -2,12 +2,12 @@ import configparser
 
 config = configparser.ConfigParser()
 import os
-from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
+
 from flask import Flask, current_app
 from flask_login import LoginManager, current_user
-from flask_migrate import Migrate
 from flask_mail import Mail
+from flask_sqlalchemy import SQLAlchemy
 
 
 class ReverseProxied(object):
@@ -31,8 +31,10 @@ app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.config["COMPANY_NAME"] = os.environ.get("COMPANY_NAME", "Gestão Legal")
 app.config["COMPANY_COLOR"] = os.environ.get("COMPANY_COLOR", "#1758ac")
 
-if flask_env == 'development':
-    config.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_test.ini"))
+if flask_env == "development":
+    config.read(
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_test.ini")
+    )
 
 app.config["SECRET_KEY"] = config["SECRET_KEY"]["key"]
 app.config["UPLOADS"] = "./static/casos"
@@ -47,16 +49,15 @@ db_password = config["MYSQL"]["password"]
 db_host = config["MYSQL"]["host"]
 db = config["MYSQL"]["db"]
 
-app.config[
-    "SQLALCHEMY_DATABASE_URI"
-] = "mysql+pymysql://{user}:{password}@{host}/{db}".format(
-    user=db_user, password=db_password, host=db_host, db=db
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    "mysql+pymysql://{user}:{password}@{host}/{db}".format(
+        user=db_user, password=db_password, host=db_host, db=db
+    )
 )
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_recycle": 10}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
-Migrate(app, db, compare_type=True)
 
 
 #############################################################
@@ -64,7 +65,11 @@ Migrate(app, db, compare_type=True)
 #############################################################
 @app.context_processor
 def inject_company_config():
-    return dict(company_name=app.config["COMPANY_NAME"], company_color=app.config["COMPANY_COLOR"])
+    return dict(
+        company_name=app.config["COMPANY_NAME"],
+        company_color=app.config["COMPANY_COLOR"],
+    )
+
 
 @app.context_processor
 def processor_tipo_classe():
@@ -278,8 +283,8 @@ else:
     app.config["MAIL_SERVER"] = "smtp.gmail.com"
     app.config["MAIL_PORT"] = 465
     app.config["MAIL_USE_SSL"] = True
-    app.config["MAIL_USERNAME"] = 'cassio@setter.global'
-    app.config["MAIL_PASSWORD"] = 'bgmxdotawlytmtvp'
+    app.config["MAIL_USERNAME"] = "cassio@setter.global"
+    app.config["MAIL_PASSWORD"] = "bgmxdotawlytmtvp"
 
 mail = Mail(app)
 
@@ -308,7 +313,7 @@ def formatarTipoDeEvento(string):
 
 def formatarNomeDoUsuario(id_usuario):
     if id_usuario:
-        entidade_usuario = Usuario.query.get(int(id_usuario))
+        entidade_usuario = db.session.get(Usuario, int(id_usuario))
         return entidade_usuario.nome
     else:
         return "Não Há"
@@ -321,7 +326,7 @@ app.jinja_env.globals.update(formatarNomeDoUsuario=formatarNomeDoUsuario)
 ################## CONFIGURA LOGIN ##########################
 #############################################################
 
-from flask import redirect, flash, url_for
+from flask import flash, redirect, url_for
 
 login_manager.init_app(app)
 login_manager.login_view = "usuario.login"
@@ -332,7 +337,6 @@ def login_required(role=["ANY"]):
     def wrapper(fn):
         @wraps(fn)
         def decorated_view(*args, **kwargs):
-
             if not current_user.is_authenticated:
                 return current_app.login_manager.unauthorized()
             urole = current_user.urole
@@ -350,19 +354,19 @@ def login_required(role=["ANY"]):
 ####################### MODELS ##############################
 #############################################################
 
-from gestaolegal.usuario.models import Usuario
+from gestaolegal.arquivos.views import arquivos
+from gestaolegal.casos.views import casos
+from gestaolegal.notificacoes.views import notificacoes
+from gestaolegal.plantao.atendido_controller import atendido_controller
+from gestaolegal.plantao.views import plantao
 
 #############################################################
 ####################### BLUEPRINTS ##########################
 #############################################################
-
 from gestaolegal.principal.views import principal
-from gestaolegal.usuario.views import usuario
-from gestaolegal.plantao.views import plantao
-from gestaolegal.casos.views import casos
-from gestaolegal.arquivos.views import arquivos
 from gestaolegal.relatorios.views import relatorios
-from gestaolegal.notificacoes.views import notificacoes
+from gestaolegal.usuario.models import Usuario
+from gestaolegal.usuario.views import usuario
 
 app.register_blueprint(principal)
 app.register_blueprint(usuario, url_prefix="/usuario")
@@ -371,3 +375,5 @@ app.register_blueprint(casos, url_prefix="/casos")
 app.register_blueprint(arquivos, url_prefix="/arquivos")
 app.register_blueprint(relatorios, url_prefix="/relatorios")
 app.register_blueprint(notificacoes, url_prefix="/notificacoes")
+
+app.register_blueprint(atendido_controller, url_prefix="/atendido")

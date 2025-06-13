@@ -1,12 +1,10 @@
-function assistido_visibilidadePjConstituida(pj_constituida){
-
-    if ((pj_constituida == '1') || (pj_constituida == 'Sim')){
-        document.getElementById("campos_pj_constituida").hidden = false;
+function assistido_visibilidadePjConstituida(pj_constituida) {
+    var campos_pj_constituida = document.getElementById("campos_pj_constituida");
+    if (pj_constituida === "true") {
+        campos_pj_constituida.style.display = "block";
+    } else {
+        campos_pj_constituida.style.display = "none";
     }
-    else{
-        document.getElementById("campos_pj_constituida").hidden =true;
-    }
-
 }
 
 function visibilidadeTem_funcionarios(){
