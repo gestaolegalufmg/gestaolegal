@@ -9,10 +9,14 @@ ensure_volumes:
 up: ensure_volumes
 	docker compose up -d
 
+run_migrations:
+	docker compose exec app_gl bash -c "alembic -c ./migrations/alembic.ini upgrade head"
+
 initialize_environment:
 	@if [ "$(ENV)" = "production" ]; then \
 		echo "This command is intended only for non-production environments"; \
 	else \
+		DC="$(DC)" COMPOSE_FILES="$(COMPOSE_FILES)" ./scripts/create_db_procedure.sh; \
 		DC="$(DC)" COMPOSE_FILES="$(COMPOSE_FILES)" ./scripts/initialize_environment.sh; \
 	fi
 
