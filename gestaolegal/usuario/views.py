@@ -1,15 +1,23 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for, json
-from flask_login import current_user, login_user, logout_user
-from flask_paginate import Pagination, get_page_args
 from datetime import datetime
+
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    json,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_bcrypt import Bcrypt
+from flask_login import current_user, login_user, logout_user
 from flask_mail import Message
 
-from gestaolegal import db, login_required, app, mail
-from gestaolegal.usuario.forms import EditarUsuarioForm, CadastrarUsuarioForm
-from gestaolegal.usuario.models import Usuario, usuario_urole_roles, Endereco
-from gestaolegal.plantao.models import Atendido
-from datetime import datetime
+from gestaolegal import app, db, login_required, mail
+from gestaolegal.models.endereco import Endereco
+from gestaolegal.usuario.forms import CadastrarUsuarioForm, EditarUsuarioForm
+from gestaolegal.usuario.models import Usuario, usuario_urole_roles
 
 usuario = Blueprint("usuario", __name__, template_folder="templates")
 
@@ -37,7 +45,9 @@ def casos_esp():
 @usuario.route("/meu_perfil", methods=["GET"])
 @login_required()
 def meu_perfil():
-    entidade_usuario = Usuario.query.get_or_404(current_user.id)
+    entidade_usuario = db.session.get(Usuario, current_user.id)
+    if not entidade_usuario:
+        abort(404)
     entidade_endereco = entidade_usuario.endereco
     return render_template(
         "perfil_usuario.html", usuario=entidade_usuario, endereco=entidade_endereco
@@ -47,7 +57,9 @@ def meu_perfil():
 @usuario.route("/perfil/<int:id_user>", methods=["GET"])
 @login_required()
 def perfil_usuario(id_user):
-    entidade_usuario = Usuario.query.get_or_404(id_user)
+    entidade_usuario = db.session.get(Usuario, id_user)
+    if not entidade_usuario:
+        abort(404)
     entidade_endereco = entidade_usuario.endereco
     return render_template(
         "perfil_usuario.html", usuario=entidade_usuario, endereco=entidade_endereco
@@ -83,16 +95,32 @@ def editar_usuario(id_user):
         entidade_usuario.data_saida = form.data_saida.data
         entidade_usuario.nascimento = form.nascimento.data
         entidade_usuario.estado_civil = form.estado_civil.data
-        entidade_usuario.endereco.logradouro = form.logradouro.data
-        entidade_usuario.endereco.numero = form.numero.data
-        entidade_usuario.endereco.bairro = form.bairro.data
-        entidade_usuario.endereco.cep = form.cep.data
-        entidade_usuario.endereco.complemento = form.complemento.data
         entidade_usuario.suplente = form.suplente.data
         entidade_usuario.ferias = form.ferias.data
         entidade_usuario.cert_atuacao_DAJ = form.cert_atuacao_DAJ.data
-        entidade_usuario.endereco.cidade = form.cidade.data
-        entidade_usuario.endereco.estado = form.estado.data
+
+        # Create or update endereco
+        if not entidade_usuario.endereco:
+            entidade_endereco = Endereco(
+                logradouro=form.logradouro.data,
+                numero=form.numero.data,
+                complemento=form.complemento.data,
+                bairro=form.bairro.data,
+                cep=form.cep.data,
+                cidade=form.cidade.data,
+                estado=form.estado.data,
+            )
+            db.session.add(entidade_endereco)
+            db.session.flush()
+            entidade_usuario.endereco = entidade_endereco
+        else:
+            entidade_usuario.endereco.logradouro = form.logradouro.data
+            entidade_usuario.endereco.numero = form.numero.data
+            entidade_usuario.endereco.bairro = form.bairro.data
+            entidade_usuario.endereco.cep = form.cep.data
+            entidade_usuario.endereco.complemento = form.complemento.data
+            entidade_usuario.endereco.cidade = form.cidade.data
+            entidade_usuario.endereco.estado = form.estado.data
 
         entidade_usuario.atualizaCamposModificao(usuario_logado)
 
@@ -121,13 +149,16 @@ def editar_usuario(id_user):
         form.suplente.data = entidade_usuario.suplente
         form.ferias.data = entidade_usuario.ferias
         form.cert_atuacao_DAJ.data = entidade_usuario.cert_atuacao_DAJ
-        form.logradouro.data = entidade_usuario.endereco.logradouro
-        form.numero.data = entidade_usuario.endereco.numero
-        form.bairro.data = entidade_usuario.endereco.bairro
-        form.cep.data = entidade_usuario.endereco.cep
-        form.complemento.data = entidade_usuario.endereco.complemento
-        form.cidade.data = entidade_usuario.endereco.cidade
-        form.estado.data = entidade_usuario.endereco.estado
+
+        # Check if endereco exists before accessing its attributes
+        if entidade_usuario.endereco:
+            form.logradouro.data = entidade_usuario.endereco.logradouro
+            form.numero.data = entidade_usuario.endereco.numero
+            form.bairro.data = entidade_usuario.endereco.bairro
+            form.cep.data = entidade_usuario.endereco.cep
+            form.complemento.data = entidade_usuario.endereco.complemento
+            form.cidade.data = entidade_usuario.endereco.cidade
+            form.estado.data = entidade_usuario.endereco.estado
 
     def renderizaTemplate(
         form: EditarUsuarioForm,
@@ -146,7 +177,7 @@ def editar_usuario(id_user):
         )
 
     def validaDadosForm(email, emailAtual):
-        emailRepetido = Usuario.query.filter_by(email=email).first()
+        emailRepetido = db.session.query(Usuario).filter_by(email=email).first()
 
         if (emailAtual != email) and emailRepetido:
             flash("Este email já existe!", "warning")
@@ -177,21 +208,21 @@ def editar_usuario(id_user):
     form = EditarUsuarioForm()
     if id_user > 0:
         if (
-            not (
-                current_user.urole
-                in [
-                    usuario_urole_roles["ADMINISTRADOR"][0],
-                    usuario_urole_roles["PROFESSOR"][0],
-                ]
-            )
+            current_user.urole
+            not in [
+                usuario_urole_roles["ADMINISTRADOR"][0],
+                usuario_urole_roles["PROFESSOR"][0],
+            ]
         ) and (current_user.id != id_user):
             flash("Você não tem permissão para editar outro usuário.", "warning")
             return redirect(url_for("principal.index"))
-        entidade_usuario = Usuario.query.filter_by(id=id_user, status=True).first()
+        entidade_usuario = db.session.get(Usuario, id_user)
     else:
-        entidade_usuario = Usuario.query.filter_by(
-            id=current_user.get_id(), status=True
-        ).first()
+        entidade_usuario = db.session.get(Usuario, current_user.id)
+
+    if not entidade_usuario:
+        flash("Usuário não encontrado.", "warning")
+        return redirect(url_for("principal.index"))
 
     if not validaEntidade_usuario(entidade_usuario):
         return redirect(url_for("principal.index"))
@@ -228,10 +259,8 @@ def editar_usuario(id_user):
 @usuario.route("/editar_senha_usuario", methods=["POST", "GET"])
 @login_required()
 def editar_senha_usuario():
-
     if request.method == "POST":
-
-        entidade_usuario = Usuario.query.filter_by(id=current_user.get_id()).first()
+        entidade_usuario = db.session.get(Usuario, current_user.id)
 
         form = request.form
         confirmacao = form["confirmacao"]
@@ -264,7 +293,6 @@ def editar_senha_usuario():
 def cadastrar_usuario():
     form = CadastrarUsuarioForm()
     if request.method == "POST":
-
         senha = form.senha.data
         confirmacao = form.confirmacao.data
         email = form.email.data
@@ -293,7 +321,7 @@ def cadastrar_usuario():
         suplente = form.suplente.data
         ferias = form.ferias.data
 
-        emailRepetido = Usuario.query.filter_by(email=email).first()
+        emailRepetido = db.session.query(Usuario).filter_by(email=email).first()
 
         if not validaSenha(senha):
             return render_template("cadastro.html", form=form)
@@ -305,11 +333,9 @@ def cadastrar_usuario():
             flash("Este email já está em uso.", "warning")
             return render_template("cadastro.html", form=form)
         else:
-
             if not (form.validate()):
                 return render_template("cadastro.html", form=form)
             else:
-
                 entidade_endereco = Endereco(
                     logradouro=form.logradouro.data,
                     numero=form.numero.data,
@@ -374,7 +400,7 @@ def login():
         login = form["login"]
         senha = form["senha"]
 
-        loginUsuario = Usuario.query.filter_by(email=login).first()
+        loginUsuario = db.session.query(Usuario).filter_by(email=login).first()
         if loginUsuario and Usuario.checa_senha(loginUsuario, senha):
             login_user(loginUsuario)
             flash("Você foi logado com sucesso!", "success")
@@ -401,9 +427,12 @@ def logout():
 @login_required()
 def listar_usuarios():
     page = request.args.get("page", 1, type=int)
-    # usuarios = Usuario.query.filter(Usuario.status != False).order_by(Usuario.nome).paginate(
-    usuarios = Usuario.query.order_by(Usuario.nome).paginate(
-        page, app.config["USUARIOS_POR_PAGINA"], False
+    usuarios = (
+        db.session.query(Usuario)
+        .order_by(Usuario.nome)
+        .paginate(
+            page=page, per_page=app.config["USUARIOS_POR_PAGINA"], error_out=False
+        )
     )
     if not usuarios:
         flash("Não há usuários cadastrados no sistema.", "info")
@@ -422,7 +451,7 @@ def inativar_usuario_lista():
     if request.method == "POST":
         form = request.form
         form_id = form["id"]
-        entidade_usuario = Usuario.query.get_or_404(form_id)
+        entidade_usuario = db.session.get(Usuario, form_id)
 
         if entidade_usuario.id == current_user.get_id():
             flash("Você não tem permissão para executar esta ação.", "warning")
@@ -450,7 +479,7 @@ def muda_senha_admin():
 @login_required(role=usuario_urole_roles["ADMINISTRADOR"][0])
 def confirma_senha():
     bcrypt = Bcrypt()
-    usuario = Usuario.query.get_or_404(int(request.form["id_usuario"]))
+    usuario = db.session.get(Usuario, int(request.form["id_usuario"]))
     if not validaSenha(request.form["senha"]):
         return render_template("nova_senha.html", id_usuario=usuario.id)
     if request.form["senha"] == request.form["confirmar_senha"]:
@@ -783,19 +812,30 @@ def validaSenha(senha):
 
 # Melhorias Setter
 
+
 @usuario.route("/listar_usuarios_ajax/", methods=["GET"])
 @login_required()
 def lista_usuario_ajax():
     def serializar(lista):
         return [x.as_dict() for x in lista]
-    if(request.args.get("funcao") and request.args.get("status")):
-        if(request.args.get("funcao") != "all"):
-            usuarios = db.session.query(Usuario).filter(Usuario.urole == request.args.get("funcao"), Usuario.status == request.args.get("status"))
+
+    if request.args.get("funcao") and request.args.get("status"):
+        if request.args.get("funcao") != "all":
+            usuarios = db.session.query(Usuario).filter(
+                Usuario.urole == request.args.get("funcao"),
+                Usuario.status == request.args.get("status"),
+            )
         else:
-            usuarios = db.session.query(Usuario).filter(Usuario.status == request.args.get("status"))
+            usuarios = db.session.query(Usuario).filter(
+                Usuario.status == request.args.get("status")
+            )
     else:
-        if(request.args.get('status')):
-            usuarios = db.session.query(Usuario).filter(Usuario.status == request.args.get('status')).all()
+        if request.args.get("status"):
+            usuarios = (
+                db.session.query(Usuario)
+                .filter(Usuario.status == request.args.get("status"))
+                .all()
+            )
         else:
             usuarios = db.session.query(Usuario).filter(Usuario.status == 1).all()
     # if urole == "all":
@@ -806,47 +846,58 @@ def lista_usuario_ajax():
     #     usuarios = db.session.query(Usuario).filter(Usuario.urole == urole).all()
     return json.dumps({"users": serializar(usuarios)})
 
+
 @usuario.route("/esqueci-a-senha", methods=["GET", "POST"])
 def esqueci_senha():
     if request.method == "POST":
         data = request.get_json(silent=True, force=True)
-        usuario = db.session.query(Usuario).filter(Usuario.email == data['email']).first()
+        usuario = (
+            db.session.query(Usuario).filter(Usuario.email == data["email"]).first()
+        )
         if not usuario:
             return json.dumps({"status": "error", "message": "E-mail não existe"})
         else:
             usuario.chave_recuperacao = True
             db.session.commit()
             titulo = "Recuperação de senha Gestão Legal"
-            token = usuario.tokenRecuperacao() # Gera o token para o usuário em questão
-            msg = Message(titulo,sender=app.config['MAIL_USERNAME'],recipients=[usuario.email]) # Constrói o corpo da mensagem
-            msg.body = f''' Solicitação de recuperação/alteração de senha.
+            token = usuario.tokenRecuperacao()  # Gera o token para o usuário em questão
+            msg = Message(
+                titulo, sender=app.config["MAIL_USERNAME"], recipients=[usuario.email]
+            )  # Constrói o corpo da mensagem
+            msg.body = f""" Solicitação de recuperação/alteração de senha.
 
             Se você solicitou este serviço, por favor, clique no link abaixo:
-            {url_for('usuario.resetar_senha',token=token, _external=True)}
+            {url_for("usuario.resetar_senha", token=token, _external=True)}
 
             Caso você não tenha solicitado este serviço, por favor ignore essa mensagem.
-            '''
+            """
             mail.send(msg)
-            return json.dumps({"status": "success", "user": {"nome": usuario.nome, "email": usuario.email}})
+            return json.dumps(
+                {
+                    "status": "success",
+                    "user": {"nome": usuario.nome, "email": usuario.email},
+                }
+            )
 
     return render_template("esqueci-a-senha.html")
+
+
 @usuario.route("/resetar-a-senha/<token>", methods=["GET", "POST"])
 def resetar_senha(token):
     usuario = Usuario.verificaToken(token)
     if usuario is None:
-        flash('Token inválido.','warning')
-        return redirect(url_for('usuario.login'))
+        flash("Token inválido.", "warning")
+        return redirect(url_for("usuario.login"))
     bcrypt = Bcrypt()
     if usuario.chave_recuperacao:
-        if request.method == 'POST':
+        if request.method == "POST":
             data = request.get_json(silent=True, force=True)
-            senha = bcrypt.generate_password_hash(data['password'])
+            senha = bcrypt.generate_password_hash(data["password"])
             usuario.senha = senha
             usuario.chave_recuperacao = False
             db.session.commit()
             return json.dumps({"status": "success"})
     else:
-        flash('Erro! Por favor refaça a operação','warning')
-        return redirect(url_for('usuario.login'))
-    return render_template('recuperar_senha.html')
-    
+        flash("Erro! Por favor refaça a operação", "warning")
+        return redirect(url_for("usuario.login"))
+    return render_template("recuperar_senha.html")
