@@ -1,8 +1,10 @@
 import os
+from operator import and_
 
 import pytz
 from flask import (
     Blueprint,
+    abort,
     current_app,
     json,
     render_template,
@@ -121,7 +123,7 @@ def novo_caso():
             return redirect(url_for("casos.novo_caso"))
 
         for id_cliente in _form.clientes.data.split(sep=","):
-            cliente = Atendido.query.get(int(id_cliente))
+            cliente = db.session.get(Atendido, int(id_cliente))
             _caso.clientes.append(cliente)
 
         db.session.add(_caso)
@@ -173,7 +175,9 @@ def novo_caso():
     ]
 )
 def excluir_arquivo_caso(id_arquivo, id_caso):
-    arquivo = db.session.query(ArquivoCaso).get_or_404(id_arquivo)
+    arquivo = db.session.get(ArquivoCaso, id_arquivo)
+    if not arquivo:
+        abort(404)
 
     db.session.delete(arquivo)
     db.session.commit()
@@ -1370,8 +1374,14 @@ def novo_processo(id_caso):
 def visualizar_processo(id_processo):
     id_caso = request.args.get("id_caso", -1, type=int)
     _processo = (
-        db.session.query(Processo).filter_by(id=id_processo, status=True).first_or_404()
+        db.session.query(Processo)
+        .filter(and_(Processo.id == id_processo, Processo.status == True))
+        .first()
     )
+
+    if not _processo:
+        abort(404)
+
     return render_template(
         "visualizar_processo.html", processo=_processo, id_caso=id_caso
     )
@@ -1383,9 +1393,10 @@ def visualizar_processo(id_processo):
 def visualizar_processo_com_numero(numero_processo):
     _processo = (
         db.session.query(Processo)
-        .filter_by(numero=numero_processo, status=True)
-        .first_or_404()
+        .filter(and_(Processo.numero == numero_processo, Processo.status == True))
+        .first()
     )
+
     return render_template(
         "visualizar_processo.html", processo=_processo, id_caso=_processo.id_caso
     )
@@ -1543,7 +1554,9 @@ def editar_processo(id_processo):
 )
 def editar_arquivo_caso(id_arquivo, id_caso):
     _form = ArquivoCasoForm()
-    _arquivo = db.session.query(ArquivoCaso).get_or_404(id_arquivo)
+    _arquivo = db.session.get(ArquivoCaso, id_arquivo)
+    if not _arquivo:
+        abort(404)
 
     try:
         arquivo = request.files.get("arquivo")
@@ -1590,7 +1603,9 @@ def editar_arquivo_caso(id_arquivo, id_caso):
 )
 def editar_arquivo_evento(id_arquivo, id_evento):
     _form = EditarArquivoDeEventoForm()
-    _arquivo = db.session.query(ArquivosEvento).get_or_404(id_arquivo)
+    _arquivo = db.session.get(ArquivosEvento, id_arquivo)
+    if not _arquivo:
+        abort(404)
 
     try:
         arquivo = request.files.get("arquivo")
@@ -1636,7 +1651,9 @@ def editar_arquivo_evento(id_arquivo, id_evento):
     ]
 )
 def excluir_arquivo_evento(id_arquivo, id_evento):
-    arquivo = db.session.query(ArquivosEvento).get_or_404(id_arquivo)
+    arquivo = db.session.get(ArquivosEvento, id_arquivo)
+    if not arquivo:
+        abort(404)
 
     db.session.delete(arquivo)
     db.session.commit()
