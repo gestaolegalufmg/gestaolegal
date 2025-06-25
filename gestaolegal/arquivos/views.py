@@ -2,6 +2,7 @@ import os
 
 from flask import (
     Blueprint,
+    abort,
     current_app,
     flash,
     redirect,
@@ -70,7 +71,10 @@ def cadastrar_arquivo():
     ]
 )
 def editar_arquivo(id):
-    _arquivo = db.session.query(Arquivo).get_or_404(id)
+    _arquivo = db.session.get(Arquivo, id)
+    if not _arquivo:
+        abort(404)
+
     _form = ArquivoForm()
 
     if _form.validate_on_submit():
@@ -105,7 +109,10 @@ def editar_arquivo(id):
 @arquivos.route("/visualizar_arquivo/<int:id>")
 @login_required()
 def visualizar_arquivo(id):
-    _arquivo = Arquivo.query.get_or_404(id)
+    _arquivo = db.session.get(Arquivo, id)
+    if not _arquivo:
+        abort(404)
+
     return render_template("visualizar_arquivo.html", arquivo=_arquivo)
 
 
@@ -118,7 +125,10 @@ def visualizar_arquivo(id):
     ]
 )
 def excluir_arquivo(id):
-    _arquivo = db.session.query(Arquivo).get_or_404(id)
+    _arquivo = db.session.get(Arquivo, id)
+    if not _arquivo:
+        abort(404)
+
     local_arquivo = os.path.join(
         current_app.root_path, "static", "arquivos", _arquivo.nome
     )
