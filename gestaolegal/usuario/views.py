@@ -449,21 +449,25 @@ def listar_usuarios():
 @login_required(role=usuario_urole_roles["ADMINISTRADOR"][0])
 def inativar_usuario_lista():
     if request.method == "POST":
-        form = request.form
-        form_id = form["id"]
-        entidade_usuario = db.session.get(Usuario, form_id)
+        try:
+            form = request.form
+            form_id = form["id"]
+            entidade_usuario = db.session.get(Usuario, form_id)
 
-        if entidade_usuario.id == current_user.get_id():
-            flash("Você não tem permissão para executar esta ação.", "warning")
-            return redirect(url_for("principal.index"))
+            if entidade_usuario.id == current_user.get_id():
+                flash("Você não tem permissão para executar esta ação.", "warning")
+                return redirect(url_for("principal.index"))
 
-        if entidade_usuario.id == app.config["ADMIN_PADRAO"]:
-            flash("O administrador padrão não pode ser inativado.", "warning")
-            return redirect(url_for("principal.index"))
+            if entidade_usuario.id == app.config["ADMIN_PADRAO"]:
+                flash("O administrador padrão não pode ser inativado.", "warning")
+                return redirect(url_for("principal.index"))
 
-        entidade_usuario.status = False
-        db.session.commit()
-        flash("Usuário inativado.", "Success")
+            entidade_usuario.status = False
+            db.session.commit()
+            flash("Usuário inativado.", "Success")
+        except Exception as e:
+            flash("Erro ao processar a solicitação. Por favor, tente novamente.", "error")
+            return redirect(url_for("usuario.listar_usuarios"))
     return redirect(url_for("principal.index"))
 
 
