@@ -113,6 +113,37 @@ def setValoresFormAtendido(entidade_atendido: Atendido, form: CadastroAtendidoFo
     )
 
 
+def setValoresFormAssistido(entidade_assistido: Assistido, form: TornarAssistidoForm):
+    form.sexo.data = entidade_assistido.sexo
+    form.profissao.data = entidade_assistido.profissao
+    form.raca.data = entidade_assistido.raca
+    form.rg.data = entidade_assistido.rg
+    form.grau_instrucao.data = entidade_assistido.grau_instrucao
+    form.salario.data = entidade_assistido.salario
+    form.beneficio.data = entidade_assistido.beneficio
+    form.qual_beneficio.data = entidade_assistido.qual_beneficio
+    form.contribui_inss.data = entidade_assistido.contribui_inss
+    form.qtd_pessoas_moradia.data = entidade_assistido.qtd_pessoas_moradia
+    form.renda_familiar.data = entidade_assistido.renda_familiar
+    form.participacao_renda.data = entidade_assistido.participacao_renda
+    form.tipo_moradia.data = entidade_assistido.tipo_moradia
+    form.possui_outros_imoveis.data = str(entidade_assistido.possui_outros_imoveis)
+    form.quantos_imoveis.data = entidade_assistido.quantos_imoveis
+    form.possui_veiculos.data = str(entidade_assistido.possui_veiculos)
+    form.doenca_grave_familia.data = entidade_assistido.doenca_grave_familia
+    form.obs_assistido.data = entidade_assistido.obs
+    
+    # Set vehicle-related fields
+    form.possui_veiculos_obs.data = entidade_assistido.possui_veiculos_obs
+    form.quantos_veiculos.data = entidade_assistido.quantos_veiculos
+    form.ano_veiculo.data = entidade_assistido.ano_veiculo
+    
+    # Set disease-related fields
+    form.pessoa_doente.data = entidade_assistido.pessoa_doente
+    form.pessoa_doente_obs.data = entidade_assistido.pessoa_doente_obs
+    form.gastos_medicacao.data = entidade_assistido.gastos_medicacao
+
+
 def validaDadosEditar_atendidoForm(form, emailAtual: str):
     emailRepetido = db.session.query(Atendido).filter_by(email=form.email.data).first()
 
