@@ -25,7 +25,10 @@ from gestaolegal.plantao.forms import (
 from gestaolegal.plantao.forms.assistencia_juridica_form import (
     AssistenciaJudiciariaForm,
 )
-from gestaolegal.plantao.forms.orientacao_juridica_form import CadastroOrientacaoJuridicaForm, OrientacaoJuridicaForm
+from gestaolegal.plantao.forms.orientacao_juridica_form import (
+    CadastroOrientacaoJuridicaForm,
+    OrientacaoJuridicaForm,
+)
 from gestaolegal.plantao.forms.tornar_assistido_form import TornarAssistidoForm
 from gestaolegal.plantao.models import (
     AssistenciaJudiciaria,
@@ -235,12 +238,46 @@ def cadastro_orientacao_juridica():
     if request.method == "POST":
         if form.validate():
             orientacao = OrientacaoJuridica(
-                data=form.data.data,
-                horario=form.horario.data,
-                duracao=form.duracao.data,
-                status=True,
+                area_direito=form.area_direito.data,
+                descricao=form.descricao.data,
+                data_criacao=datetime.now(),
+                status=1,
+                id_usuario=current_user.id,
             )
+
+            orientacao.setSubAreas(
+                form.area_direito.data,
+                form.sub_area.data,
+                form.sub_areaAdmin.data,
+            )
+
             db.session.add(orientacao)
+            db.session.flush()
+
+            lista_atendidos = request.form.get("listaAtendidos")
+            if lista_atendidos:
+                try:
+                    atendidos_data = json.loads(lista_atendidos)
+                    atendidos_ids = atendidos_data.get("id", [])
+                    for atendido_id in atendidos_ids:
+                        atendido = (
+                            db.session.query(Atendido)
+                            .filter_by(id=atendido_id, status=True)
+                            .first()
+                        )
+                        if atendido:
+                            orientacao.atendidos.append(atendido)
+                except (json.JSONDecodeError, KeyError):
+                    pass
+
+            if form.encaminhar_outras_aj.data:
+                assistencia_id = request.form.get("assistencia_judiciaria")
+                if assistencia_id:
+                    aj_oj = AssistenciaJudiciaria_xOrientacaoJuridica()
+                    aj_oj.id_orientacaoJuridica = orientacao.id
+                    aj_oj.id_assistenciaJudiciaria = int(assistencia_id)
+                    db.session.add(aj_oj)
+
             db.session.commit()
             flash("Orientação jurídica cadastrada com sucesso!", "success")
             return redirect(url_for("plantao.orientacoes_juridicas"))
