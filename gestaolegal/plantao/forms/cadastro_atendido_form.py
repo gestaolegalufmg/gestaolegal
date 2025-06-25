@@ -17,7 +17,7 @@ from gestaolegal.usuario.forms import (
     MSG_SelecioneUmaOpcaoLista,
 )
 from gestaolegal.usuario.models import estado_civilUsuario
-from gestaolegal.utils.forms import RequiredIf
+from gestaolegal.plantao.forms import RequiredIf
 
 
 class CadastroAtendidoForm(EnderecoForm):
@@ -140,9 +140,9 @@ class CadastroAtendidoForm(EnderecoForm):
         "Qual foi o órgão?",
         validators=[
             RequiredIf(
-                MSG_NaoPodeEstarEmBranco.format('"Qual foi o órgão?"'),
                 "como_conheceu",
                 como_conheceu_daj["ORGAOSPUBLICOS"][0],
+                message=MSG_NaoPodeEstarEmBranco.format('"Qual foi o órgão?"'),
             ),
             Length(
                 max=FIELD_LIMITS["indicacaoOrgao"],
@@ -167,9 +167,9 @@ class CadastroAtendidoForm(EnderecoForm):
         "Qual local?",
         validators=[
             RequiredIf(
-                MSG_NaoPodeEstarEmBranco.format('"Qual local?"'),
                 "procurou_outro_local",
                 "True",
+                message=MSG_NaoPodeEstarEmBranco.format('"Qual local?"'),
             ),
             Length(
                 max=FIELD_LIMITS["procurouOutroLocal"],
@@ -219,9 +219,9 @@ class CadastroAtendidoForm(EnderecoForm):
         "Nome do representante legal:",
         validators=[
             RequiredIf(
-                MSG_NaoPodeEstarEmBranco.format("O Nome do representante legal"),
                 "repres_legal",
                 "0",
+                message=MSG_NaoPodeEstarEmBranco.format("O Nome do representante legal"),
                 pj_constituida="1",
             ),
             Length(
