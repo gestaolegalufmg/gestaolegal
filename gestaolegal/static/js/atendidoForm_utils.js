@@ -2,41 +2,60 @@ function validarPjConstituida() {
     var elemento_selecionado = document.getElementById("pj_constituida");
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].value;
     var div_cnpj = document.getElementById("div_cnpj");
-    var div_repres_legal = document.getElementById("div_repres_legal");
 
     if (string_selecionada === "1") {
         div_cnpj.style.display = "block";
-        div_repres_legal.style.display = "block";
-        document.getElementById("cnpj").required = true;
-        document.getElementById("repres_legal").required = true;
+        document.getElementById("formcnpj").required = true;
     } else {
         div_cnpj.style.display = "none";
-        div_repres_legal.style.display = "none";
-        document.getElementById("cnpj").required = false;
-        document.getElementById("repres_legal").required = false;
+        document.getElementById("formcnpj").required = false;
     }
+    
+    // Always call validarRepresLegal to handle representative legal field visibility
+    validarRepresLegal();
 }
 
 function validarRepresLegal() {
-    var elemento_selecionado = document.getElementById('repres_legal');
-    var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].value;
     var pj_constituida = document.getElementById('pj_constituida');
     var pj_constituida_opcao = pj_constituida.options[pj_constituida.selectedIndex].value;
-
-    if (string_selecionada === "1" || pj_constituida_opcao === "0") {
+    var div_repres_legal = document.getElementById("div_repres_legal");
+    
+    // If no PJ constituted, hide all representative legal fields
+    if (pj_constituida_opcao === "0") {
+        div_repres_legal.style.display = "none";
+        document.getElementById("repres_legal").required = false;
         document.getElementById("nome_repres_legal").required = false;
         document.getElementById("div_nome_repres_legal").style.display = "none";
         document.getElementById("div_cpf_repres_legal").style.display = "none";
         document.getElementById("div_contato_repres_legal").style.display = "none";
         document.getElementById("div_nascimento_repres_legal").style.display = "none";
         document.getElementById("div_rg_repres_legal").style.display = "none";
-    } else {
+        return;
+    }
+    
+    // If PJ is constituted, show the main representative legal field
+    div_repres_legal.style.display = "block";
+    document.getElementById("repres_legal").required = true;
+    
+    // Now check the representative legal value
+    var elemento_selecionado = document.getElementById('repres_legal');
+    var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].value;
+
+    // Only show detailed representative legal fields if atendido is NOT the representative
+    if (string_selecionada === "0") {
         document.getElementById("nome_repres_legal").required = true;
         document.getElementById("div_nome_repres_legal").style.display = "block";
         document.getElementById("div_cpf_repres_legal").style.display = "block";
         document.getElementById("div_contato_repres_legal").style.display = "block";
         document.getElementById("div_nascimento_repres_legal").style.display = "block";
         document.getElementById("div_rg_repres_legal").style.display = "block";
+    } else {
+        document.getElementById("nome_repres_legal").required = false;
+        document.getElementById("div_nome_repres_legal").style.display = "none";
+        document.getElementById("div_cpf_repres_legal").style.display = "none";
+        document.getElementById("div_contato_repres_legal").style.display = "none";
+        document.getElementById("div_nascimento_repres_legal").style.display = "none";
+        document.getElementById("div_rg_repres_legal").style.display = "none";
     }
 }
 
@@ -67,15 +86,16 @@ function validarCampoProcurou_outro_local() {
 }
 
 function validarPretendeConstituirPj() {
-    var elemento_selecionado = document.getElementById('pretende_constituir_pj');
-    var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].value;
     var pj_constituida = document.getElementById('pj_constituida');
     var pj_constituida_opcao = pj_constituida.options[pj_constituida.selectedIndex].value;
 
-    if (pj_constituida_opcao === "0" && string_selecionada === "True") {
+    // Show "Pretende constituir PJ" field only when PJ is NOT constituted
+    if (pj_constituida_opcao === "0") {
         document.getElementById("div_pretende_constituir_pj").style.display = "block";
+        document.getElementById("pretende_constituir_pj").required = true;
     } else {
         document.getElementById("div_pretende_constituir_pj").style.display = "none";
+        document.getElementById("pretende_constituir_pj").required = false;
     }
 }
 
