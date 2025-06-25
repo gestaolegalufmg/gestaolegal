@@ -3,6 +3,9 @@
 {% block titulo %}Gestão de Usuários{% endblock %}
 
 {% block conteudo %}
+<!-- Hidden CSRF token for JavaScript access -->
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
 <nav class="d-inline-block">
   <ul class="pagination mb-0"></ul>
 </nav>
@@ -131,6 +134,79 @@
     colab_ext: "Colaborador externo",
     prof: "Professor",
   }
+  
+  // Function to get current CSRF token
+  function getCSRFToken() {
+    return document.querySelector('input[name="csrf_token"]').value;
+  }
+  
+  // Function to refresh CSRF token
+  async function refreshCSRFToken() {
+    try {
+      const response = await fetch('/usuario/listar_usuarios', {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const newToken = doc.querySelector('input[name="csrf_token"]').value;
+      document.querySelector('input[name="csrf_token"]').value = newToken;
+      return newToken;
+    } catch (error) {
+      console.error('Error refreshing CSRF token:', error);
+      // If refresh fails, reload the page
+      window.location.reload();
+    }
+  }
+  
+  // Global error handler for CSRF token errors
+  document.addEventListener('DOMContentLoaded', function() {
+    // Intercept form submissions to handle CSRF errors
+    document.addEventListener('submit', async function(e) {
+      if (e.target.method === 'POST') {
+        e.preventDefault();
+        
+        try {
+          const formData = new FormData(e.target);
+          const response = await fetch(e.target.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
+          
+          if (response.status === 400) {
+            const text = await response.text();
+            if (text.includes('CSRF token has expired') || text.includes('CSRF token missing')) {
+              // Refresh token and retry
+              await refreshCSRFToken();
+              // Update the form's CSRF token
+              e.target.querySelector('input[name="csrf_token"]').value = getCSRFToken();
+              // Retry the submission
+              e.target.submit();
+              return;
+            }
+          }
+          
+          // If successful, redirect or handle response
+          if (response.redirected) {
+            window.location.href = response.url;
+          } else if (response.ok) {
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error('Form submission error:', error);
+          // Fallback to normal form submission
+          e.target.submit();
+        }
+      }
+    });
+  });
+  
   function actPagination() {
     document.querySelectorAll(".pagination li").forEach(item => {
       item.addEventListener("click", () => {
@@ -155,7 +231,7 @@
                   
                   
                   <form action="/usuario/muda_senha_admin" method="POST">
-                    <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+                    <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
                     <div>
                       <input type="hidden" name="id" value="${item.id}">
                     </div>
@@ -165,7 +241,7 @@
                   
                   
                   <form action="/usuario/inativar_usuario_lista/" method="POST">
-                    <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+                    <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
                     <div>
                       <input type="hidden" name="id" value="${item.id}">
                     </div>
@@ -183,7 +259,7 @@
     const data = await fetch(`/usuario/listar_usuarios_ajax`, {
       method: "GET",
       headers: {
-        'X-CSRF-Token': "{{ csrf_token() }}"
+        'X-CSRF-Token': getCSRFToken()
       }
     })
     let res = await data.json();
@@ -228,7 +304,7 @@
             
             
             <form action="/usuario/muda_senha_admin" method="POST">
-              <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+              <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
               <div>
                 <input type="hidden" name="id" value="${item.id}">
               </div>
@@ -238,7 +314,7 @@
             
             
             <form action="/usuario/inativar_usuario_lista/" method="POST">
-              <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+              <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
               <div>
                 <input type="hidden" name="id" value="${item.id}">
               </div>
@@ -297,7 +373,7 @@
             
             
             <form action="/usuario/muda_senha_admin" method="POST">
-              <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+              <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
               <div>
                 <input type="hidden" name="id" value="${item.id}">
               </div>
@@ -307,7 +383,7 @@
             
             
             <form action="/usuario/inativar_usuario_lista/" method="POST">
-              <input type="hidden" name="csrf_token" value="Ijc3NjBlMTU0YTcyZGVkZDMwNjE0OTllZGQzMTQ2OGEzOThiYWEyM2Yi.ZVJxtA.trG7BelpZT6VEN-RHQB2rCBVOl8">
+              <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
               <div>
                 <input type="hidden" name="id" value="${item.id}">
               </div>
@@ -318,7 +394,6 @@
       </tr>`
       )
     })
-
   }
   window.onload = async () => {
     mountTable();

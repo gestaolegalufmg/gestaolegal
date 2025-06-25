@@ -40,6 +40,10 @@ app.config["SECRET_KEY"] = config["SECRET_KEY"]["key"]
 app.config["UPLOADS"] = "./static/casos"
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB limit
 
+# CSRF Configuration
+app.config["WTF_CSRF_TIME_LIMIT"] = 3600  # 1 hour in seconds
+app.config["WTF_CSRF_SSL_STRICT"] = False  # Allow HTTP in development
+
 ############################################################
 ################## BANCO DE DADOS ##########################
 ############################################################
