@@ -16,17 +16,13 @@ from gestaolegal.plantao.forms import (
     RequiredIf,
 )
 from gestaolegal.plantao.models import (
-    area_atuacao,
     beneficio,
     contribuicao_inss,
-    enquadramento,
     escolaridade,
     moradia,
-    orgao_reg,
     participacao_renda,
     qual_pessoa_doente,
     raca_cor,
-    regiao_bh,
 )
 from gestaolegal.usuario.models import sexo_usuario
 from gestaolegal.utils.forms import MyFloatField

@@ -1,7 +1,7 @@
 from flask import Blueprint, flash, redirect, render_template, request
 from sqlalchemy import and_, or_
 
-from gestaolegal import app, login_required
+from gestaolegal import app, db, login_required
 from gestaolegal.casos.models import Caso
 from gestaolegal.plantao.models import Assistido, AssistidoPessoaJuridica, Atendido
 from gestaolegal.usuario.models import Usuario
@@ -42,6 +42,22 @@ def termos():
     return render_template("termos_de_uso.html")
 
 
+from sqlalchemy import func, select
+
+
+class SimplePagination:
+    def __init__(self, items, page, per_page, total):
+        self.items = items
+        self.page = page
+        self.per_page = per_page
+        self.total = total
+        self.pages = (total + per_page - 1) // per_page if total > 0 else 0
+        self.has_next = page < self.pages if self.pages > 0 else False
+        self.has_prev = page > 1 and self.pages > 0
+        self.next_num = page + 1 if self.has_next else None
+        self.prev_num = page - 1 if self.has_prev else None
+
+
 @principal.route("/busca_geral", methods=["GET", "POST"])
 @login_required()
 def busca_geral():
@@ -55,54 +71,59 @@ def busca_geral():
     else:
         busca = request.args.get("busca_atual", "", type=str)
 
-    assistidos = (
-        Atendido.query.join(Assistido)
-        .filter(or_(Atendido.nome.contains(busca), Atendido.cpf.contains(busca)))
-        .order_by("nome")
-        .paginate(
-            page=page_assistido_pfisica,
-            per_page=app.config["ATENDIDOS_POR_PAGINA"],
-            error_out=False,
-        )
+    def create_pagination(stmt, page, per_page):
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = db.session.execute(count_stmt).scalar()
+
+        offset = (page - 1) * per_page
+        paginated_stmt = stmt.offset(offset).limit(per_page)
+        items = db.session.execute(paginated_stmt).scalars().all()
+
+        return SimplePagination(items, page, per_page, total)
+
+    assistidos_stmt = (
+        select(Atendido)
+        .join(Assistido)
+        .where(or_(Atendido.nome.contains(busca), Atendido.cpf.contains(busca)))
+        .order_by(Atendido.nome)
+    )
+    assistidos = create_pagination(
+        assistidos_stmt, page_assistido_pfisica, app.config["ATENDIDOS_POR_PAGINA"]
     )
 
-    assistidos_pjuridica = (
-        Atendido.query.join(Assistido)
+    assistidos_pjuridica_stmt = (
+        select(Assistido)
+        .join(Atendido)
         .join(AssistidoPessoaJuridica)
-        .filter(or_(Atendido.nome.contains(busca), Atendido.cpf.contains(busca)))
-        .order_by("nome")
-        .paginate(
-            page=page_assistido_pjuridica,
-            per_page=app.config["ATENDIDOS_POR_PAGINA"],
-            error_out=False,
-        )
+        .where(or_(Atendido.nome.contains(busca), Atendido.cpf.contains(busca)))
+        .order_by(Atendido.nome)
+    )
+    assistidos_pjuridica = create_pagination(
+        assistidos_pjuridica_stmt,
+        page_assistido_pjuridica,
+        app.config["ATENDIDOS_POR_PAGINA"],
     )
 
-    usuarios = (
-        db.session.query(Usuario)
-        .filter(
+    usuarios_stmt = (
+        select(Usuario)
+        .where(
             or_(
                 and_(Usuario.nome.contains(busca), Usuario.status != False),
                 and_(Usuario.cpf.contains(busca), Usuario.status != False),
             )
         )
-        .order_by("nome")
-        .paginate(
-            page=page_usuario,
-            per_page=app.config["USUARIOS_POR_PAGINA"],
-            error_out=False,
-        )
+        .order_by(Usuario.nome)
+    )
+    usuarios = create_pagination(
+        usuarios_stmt, page_usuario, app.config["USUARIOS_POR_PAGINA"]
     )
 
     casos = None
     if busca.isdigit():
-        casos = (
-            db.session.query(Caso)
-            .filter_by(status=True, id=int(busca))
-            .paginate(
-                page=page_caso, per_page=app.config["CASOS_POR_PAGINA"], error_out=False
-            )
+        casos_stmt = select(Caso).where(
+            and_(Caso.status == True, Caso.id == int(busca))
         )
+        casos = create_pagination(casos_stmt, page_caso, app.config["CASOS_POR_PAGINA"])
 
     return render_template(
         "busca_geral.html",

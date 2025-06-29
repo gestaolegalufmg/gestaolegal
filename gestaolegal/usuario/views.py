@@ -465,8 +465,10 @@ def inativar_usuario_lista():
             entidade_usuario.status = False
             db.session.commit()
             flash("Usuário inativado.", "Success")
-        except Exception as e:
-            flash("Erro ao processar a solicitação. Por favor, tente novamente.", "error")
+        except Exception:
+            flash(
+                "Erro ao processar a solicitação. Por favor, tente novamente.", "error"
+            )
             return redirect(url_for("usuario.listar_usuarios"))
     return redirect(url_for("principal.index"))
 

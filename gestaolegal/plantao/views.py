@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from operator import and_
 
 import pytz
 from flask import (

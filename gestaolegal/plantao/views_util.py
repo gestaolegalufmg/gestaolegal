@@ -132,12 +132,12 @@ def setValoresFormAssistido(entidade_assistido: Assistido, form: TornarAssistido
     form.possui_veiculos.data = str(entidade_assistido.possui_veiculos)
     form.doenca_grave_familia.data = entidade_assistido.doenca_grave_familia
     form.obs_assistido.data = entidade_assistido.obs
-    
+
     # Set vehicle-related fields
     form.possui_veiculos_obs.data = entidade_assistido.possui_veiculos_obs
     form.quantos_veiculos.data = entidade_assistido.quantos_veiculos
     form.ano_veiculo.data = entidade_assistido.ano_veiculo
-    
+
     # Set disease-related fields
     form.pessoa_doente.data = entidade_assistido.pessoa_doente
     form.pessoa_doente_obs.data = entidade_assistido.pessoa_doente_obs
