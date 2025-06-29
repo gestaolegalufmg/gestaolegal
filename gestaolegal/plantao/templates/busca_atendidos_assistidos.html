@@ -56,7 +56,7 @@
                     </td>
                     <td>
                         {% if current_user.urole == "admin" %}  
-                            <form action="{{url_for('plantao.excluir_atendido')}}" method="POST">
+                            <form action="{{url_for('atendido.excluir_atendido')}}" method="POST">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div>
                                   <input type="hidden" id="excl_{{atendido_assistido[0].id}}" name="id" value="{{atendido_assistido[0].id}}">
