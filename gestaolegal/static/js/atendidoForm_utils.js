@@ -4,14 +4,13 @@ function validarPjConstituida() {
     var div_cnpj = document.getElementById("div_cnpj");
 
     if (string_selecionada === "1") {
-        div_cnpj.style.display = "block";
+        div_cnpj.classList.remove("hidden");
         document.getElementById("formcnpj").required = true;
     } else {
-        div_cnpj.style.display = "none";
+        div_cnpj.classList.add("hidden");
         document.getElementById("formcnpj").required = false;
     }
-    
-    // Always call validarRepresLegal to handle representative legal field visibility
+
     validarRepresLegal();
 }
 
@@ -19,43 +18,39 @@ function validarRepresLegal() {
     var pj_constituida = document.getElementById('pj_constituida');
     var pj_constituida_opcao = pj_constituida.options[pj_constituida.selectedIndex].value;
     var div_repres_legal = document.getElementById("div_repres_legal");
-    
-    // If no PJ constituted, hide all representative legal fields
+
     if (pj_constituida_opcao === "0") {
-        div_repres_legal.style.display = "none";
+        div_repres_legal.classList.add("hidden");
         document.getElementById("repres_legal").required = false;
         document.getElementById("nome_repres_legal").required = false;
-        document.getElementById("div_nome_repres_legal").style.display = "none";
-        document.getElementById("div_cpf_repres_legal").style.display = "none";
-        document.getElementById("div_contato_repres_legal").style.display = "none";
-        document.getElementById("div_nascimento_repres_legal").style.display = "none";
-        document.getElementById("div_rg_repres_legal").style.display = "none";
+        document.getElementById("div_nome_repres_legal").classList.add("hidden");
+        document.getElementById("div_cpf_repres_legal").classList.add("hidden");
+        document.getElementById("div_contato_repres_legal").classList.add("hidden");
+        document.getElementById("div_nascimento_repres_legal").classList.add("hidden");
+        document.getElementById("div_rg_repres_legal").classList.add("hidden");
         return;
     }
-    
-    // If PJ is constituted, show the main representative legal field
-    div_repres_legal.style.display = "block";
+
+    div_repres_legal.classList.remove("hidden");
     document.getElementById("repres_legal").required = true;
-    
-    // Now check the representative legal value
+
     var elemento_selecionado = document.getElementById('repres_legal');
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].value;
 
-    // Only show detailed representative legal fields if atendido is NOT the representative
     if (string_selecionada === "0") {
         document.getElementById("nome_repres_legal").required = true;
-        document.getElementById("div_nome_repres_legal").style.display = "block";
-        document.getElementById("div_cpf_repres_legal").style.display = "block";
-        document.getElementById("div_contato_repres_legal").style.display = "block";
-        document.getElementById("div_nascimento_repres_legal").style.display = "block";
-        document.getElementById("div_rg_repres_legal").style.display = "block";
+        document.getElementById("div_nome_repres_legal").classList.remove("hidden");
+        document.getElementById("div_cpf_repres_legal").classList.remove("hidden");
+        document.getElementById("div_contato_repres_legal").classList.remove("hidden");
+        document.getElementById("div_nascimento_repres_legal").classList.remove("hidden");
+        document.getElementById("div_rg_repres_legal").classList.remove("hidden");
     } else {
         document.getElementById("nome_repres_legal").required = false;
-        document.getElementById("div_nome_repres_legal").style.display = "none";
-        document.getElementById("div_cpf_repres_legal").style.display = "none";
-        document.getElementById("div_contato_repres_legal").style.display = "none";
-        document.getElementById("div_nascimento_repres_legal").style.display = "none";
-        document.getElementById("div_rg_repres_legal").style.display = "none";
+        document.getElementById("div_nome_repres_legal").classList.add("hidden");
+        document.getElementById("div_cpf_repres_legal").classList.add("hidden");
+        document.getElementById("div_contato_repres_legal").classList.add("hidden");
+        document.getElementById("div_nascimento_repres_legal").classList.add("hidden");
+        document.getElementById("div_rg_repres_legal").classList.add("hidden");
     }
 }
 
@@ -64,10 +59,10 @@ function validarCampoComo_conheceu(orgaoPublicoDesc) {
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
 
     if (string_selecionada === orgaoPublicoDesc) {
-        document.getElementById("div_indicacao_orgao").style.display = "block";
+        document.getElementById("div_indicacao_orgao").classList.remove("hidden");
         document.getElementById("indicacao_orgao").required = true;
     } else {
-        document.getElementById("div_indicacao_orgao").style.display = "none";
+        document.getElementById("div_indicacao_orgao").classList.add("hidden");
         document.getElementById("indicacao_orgao").required = false;
     }
 }
@@ -75,12 +70,13 @@ function validarCampoComo_conheceu(orgaoPublicoDesc) {
 function validarCampoProcurou_outro_local() {
     var elemento_selecionado = document.getElementById('procurou_outro_local');
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].value;
+    var divElement = document.getElementById("div_procurou_qual_local");
 
     if (string_selecionada === "True") {
-        document.getElementById("div_procurou_qual_local").style.display = "block";
+        divElement.classList.remove("hidden");
         document.getElementById("procurou_qual_local").required = true;
     } else {
-        document.getElementById("div_procurou_qual_local").style.display = "none";
+        divElement.classList.add("hidden");
         document.getElementById("procurou_qual_local").required = false;
     }
 }
@@ -89,40 +85,35 @@ function validarPretendeConstituirPj() {
     var pj_constituida = document.getElementById('pj_constituida');
     var pj_constituida_opcao = pj_constituida.options[pj_constituida.selectedIndex].value;
 
-    // Show "Pretende constituir PJ" field only when PJ is NOT constituted
     if (pj_constituida_opcao === "0") {
-        document.getElementById("div_pretende_constituir_pj").style.display = "block";
+        document.getElementById("div_pretende_constituir_pj").classList.remove("hidden");
         document.getElementById("pretende_constituir_pj").required = true;
     } else {
-        document.getElementById("div_pretende_constituir_pj").style.display = "none";
+        document.getElementById("div_pretende_constituir_pj").classList.add("hidden");
         document.getElementById("pretende_constituir_pj").required = false;
     }
 }
 
-// Form validation function
 function validateForm(event) {
     var form = event.target;
     var isValid = true;
     var firstInvalidField = null;
 
-    // Get all form elements
     var elements = form.elements;
 
-    // Check each element
     for (var i = 0; i < elements.length; i++) {
         var element = elements[i];
-        
-        // Skip hidden elements
-        if (element.type === 'hidden' || element.style.display === 'none') {
+
+        if (element.type === 'hidden' ||
+            element.style.display === 'none' ||
+            element.closest('.hidden')) {
             continue;
         }
 
-        // Check if element is required and empty
         if (element.required && !element.value) {
             isValid = false;
             element.classList.add('is-invalid');
-            
-            // Store first invalid field for focus
+
             if (!firstInvalidField) {
                 firstInvalidField = element;
             }
@@ -131,7 +122,6 @@ function validateForm(event) {
         }
     }
 
-    // If form is invalid, prevent submission and focus first invalid field
     if (!isValid) {
         event.preventDefault();
         if (firstInvalidField) {
@@ -144,40 +134,34 @@ function validateForm(event) {
     return true;
 }
 
-// Add event listener for when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Get the form element
+document.addEventListener('DOMContentLoaded', function () {
     var form = document.querySelector('form');
     if (form) {
-        // Add submit event listener to the form
         form.addEventListener('submit', validateForm);
     }
 
-    // Trigger validation for all conditional fields
     validarPjConstituida();
     validarRepresLegal();
     validarCampoComo_conheceu("Órgãos públicos");
     validarCampoProcurou_outro_local();
     validarPretendeConstituirPj();
 
-    // Add change event listeners
-    document.getElementById('pj_constituida').addEventListener('change', function() {
+    document.getElementById('pj_constituida').addEventListener('change', function () {
         validarPjConstituida();
         validarRepresLegal();
         validarPretendeConstituirPj();
     });
 
     document.getElementById('repres_legal').addEventListener('change', validarRepresLegal);
-    document.getElementById('como_conheceu').addEventListener('change', function() {
+    document.getElementById('como_conheceu').addEventListener('change', function () {
         validarCampoComo_conheceu("Órgãos públicos");
     });
     document.getElementById('procurou_outro_local').addEventListener('change', validarCampoProcurou_outro_local);
     document.getElementById('pretende_constituir_pj').addEventListener('change', validarPretendeConstituirPj);
 
-    // Add input event listeners to remove invalid class when user starts typing
     var inputs = form.querySelectorAll('input, select, textarea');
-    inputs.forEach(function(input) {
-        input.addEventListener('input', function() {
+    inputs.forEach(function (input) {
+        input.addEventListener('input', function () {
             this.classList.remove('is-invalid');
         });
     });
