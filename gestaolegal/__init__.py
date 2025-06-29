@@ -265,6 +265,7 @@ app.config["ATENDIDOS_POR_PAGINA"] = 20
 app.config["ASSISTENCIA_JURIDICA_POR_PAGINA"] = 20
 app.config["CASOS_POR_PAGINA"] = 20
 app.config["ARQUIVOS_POR_PAGINA"] = 20
+app.config["EVENTOS_POR_PAGINA"] = 20
 
 ############################################################
 ######################## EMAIL #############################
