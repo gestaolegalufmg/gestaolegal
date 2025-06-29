@@ -15,21 +15,24 @@
           <h4>Casos</h4>
         </div>
         <div class="card-body">
-          {% if casos %}
+          {% if casos and casos.pages > 0 %}
             <nav class="d-inline-block">
               <ul class="pagination mb-0">
-                {% for page in casos.iter_pages() %}
-                  {% if page %}
-                    {% if page != casos.page %}
-                      <li class="page-item"><a class="page-link" href="{{ url_for('principal.busca_geral', page_caso=page, busca_atual=busca_atual) }}">{{ page }}</a>
-                    </li>
-                    {% else %}
-                      <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
-                    {% endif %}
-                    {% else %}
-                      <li class="page-item disabled"><a class="page-link" href="#">…</a></li>
-                  {% endif %}
-                {% endfor %}
+                {% if casos.has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('principal.busca_geral', page_caso=casos.prev_num, busca_atual=busca_atual) }}">← Previous</a>
+                  </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                  <span class="page-link">Page {{ casos.page }} of {{ casos.pages }}</span>
+                </li>
+                
+                {% if casos.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('principal.busca_geral', page_caso=casos.next_num, busca_atual=busca_atual) }}">Next →</a>
+                  </li>
+                {% endif %}
               </ul>
             </nav>
           {% endif %}
@@ -70,22 +73,27 @@
               <h4>Usuários do Sistema</h4>
             </div>
             <div class="card-body">
+              {% if usuarios.pages > 0 %}
               <nav class="d-inline-block">
                 <ul class="pagination mb-0">
-                  {% for page in usuarios.iter_pages() %}
-                  {% if page %}
-                  {% if page != usuarios.page %}
-                  <li class="page-item"><a class="page-link" href="{{ url_for('principal.busca_geral', page_usuario=page, busca_atual=busca_atual) }}">{{ page }}</a>
+                  {% if usuarios.has_prev %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_usuario=usuarios.prev_num, busca_atual=busca_atual) }}">← Previous</a>
+                    </li>
+                  {% endif %}
+                  
+                  <li class="page-item active">
+                    <span class="page-link">Page {{ usuarios.page }} of {{ usuarios.pages }}</span>
                   </li>
-                  {% else %}
-                  <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+                  
+                  {% if usuarios.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_usuario=usuarios.next_num, busca_atual=busca_atual) }}">Next →</a>
+                    </li>
                   {% endif %}
-                  {% else %}
-                  <li class="page-item disabled"><a class="page-link" href="#">…</a></li>
-                  {% endif %}
-                  {% endfor %}
                 </ul>
               </nav>
+              {% endif %}
 
               {% if usuarios.items %}  
               <table class="table table-hover">
@@ -125,23 +133,27 @@
 
             <div class="card-body">
             {% if assistidos.items %}
-
+            {% if assistidos.pages > 0 %}
               <nav class="d-inline-block">
                 <ul class="pagination mb-0">
-                  {% for page in assistidos.iter_pages() %}
-                  {% if page %}
-                  {% if page != assistidos.page %}
-                  <li class="page-item"><a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pfisica=page, busca_atual=busca_atual) }}">{{ page }}</a>
+                  {% if assistidos.has_prev %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pfisica=assistidos.prev_num, busca_atual=busca_atual) }}">← Previous</a>
+                    </li>
+                  {% endif %}
+                  
+                  <li class="page-item active">
+                    <span class="page-link">Page {{ assistidos.page }} of {{ assistidos.pages }}</span>
                   </li>
-                  {% else %}
-                  <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+                  
+                  {% if assistidos.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pfisica=assistidos.next_num, busca_atual=busca_atual) }}">Next →</a>
+                    </li>
                   {% endif %}
-                  {% else %}
-                  <li class="page-item disabled"><a class="page-link" href="#">…</a></li>
-                  {% endif %}
-                  {% endfor %}
                 </ul>
               </nav>
+            {% endif %}
 
               <table class="table table-hover">
                 <thead>
@@ -179,23 +191,27 @@
             </div>
             <div class="card-body">
             {% if assistidos_pjuridica.items %}
-
+            {% if assistidos_pjuridica.pages > 0 %}
               <nav class="d-inline-block">
                 <ul class="pagination mb-0">
-                  {% for page in assistidos_pjuridica.iter_pages() %}
-                  {% if page %}
-                  {% if page != assistidos_pjuridica.page %}
-                  <li class="page-item"><a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pjuridica=page, busca_atual=busca_atual) }}">{{ page }}</a>
+                  {% if assistidos_pjuridica.has_prev %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pjuridica=assistidos_pjuridica.prev_num, busca_atual=busca_atual) }}">← Previous</a>
+                    </li>
+                  {% endif %}
+                  
+                  <li class="page-item active">
+                    <span class="page-link">Page {{ assistidos_pjuridica.page }} of {{ assistidos_pjuridica.pages }}</span>
                   </li>
-                  {% else %}
-                  <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+                  
+                  {% if assistidos_pjuridica.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pjuridica=assistidos_pjuridica.next_num, busca_atual=busca_atual) }}">Next →</a>
+                    </li>
                   {% endif %}
-                  {% else %}
-                  <li class="page-item disabled"><a class="page-link" href="#">…</a></li>
-                  {% endif %}
-                  {% endfor %}
                 </ul>
               </nav>
+            {% endif %}
 
               <table class="table table-hover">
                 <thead>
@@ -230,4 +246,3 @@
 </div>
 
 {% endblock conteudo %}
-
