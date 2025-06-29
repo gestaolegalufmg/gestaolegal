@@ -6,4 +6,3 @@ class EditarAssistidoForm(CadastroAtendidoForm, TornarAssistidoForm):
     """Combined form for editing assistido data."""
 
     pass
-

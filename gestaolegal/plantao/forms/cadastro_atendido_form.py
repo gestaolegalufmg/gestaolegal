@@ -8,7 +8,7 @@ from wtforms.validators import (
     Optional,
 )
 
-from gestaolegal.plantao.forms import FIELD_LIMITS
+from gestaolegal.plantao.forms import FIELD_LIMITS, RequiredIf
 from gestaolegal.plantao.models import como_conheceu_daj
 from gestaolegal.usuario.forms import (
     EnderecoForm,
@@ -17,7 +17,6 @@ from gestaolegal.usuario.forms import (
     MSG_SelecioneUmaOpcaoLista,
 )
 from gestaolegal.usuario.models import estado_civilUsuario
-from gestaolegal.plantao.forms import RequiredIf
 
 
 class CadastroAtendidoForm(EnderecoForm):
@@ -221,7 +220,9 @@ class CadastroAtendidoForm(EnderecoForm):
             RequiredIf(
                 "repres_legal",
                 "0",
-                message=MSG_NaoPodeEstarEmBranco.format("O Nome do representante legal"),
+                message=MSG_NaoPodeEstarEmBranco.format(
+                    "O Nome do representante legal"
+                ),
                 pj_constituida="1",
             ),
             Length(
