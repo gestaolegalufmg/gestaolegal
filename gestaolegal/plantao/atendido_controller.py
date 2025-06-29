@@ -189,14 +189,32 @@ def dados_atendido(id):
 @atendido_controller.route("/excluir_atendido/", methods=["POST", "GET"])
 @login_required(role=[usuario_urole_roles["ADMINISTRADOR"][0]])
 def excluir_atendido():
-    id_atendido = request.form.get("id_atendido")
+    id_atendido = request.form.get("id")
     atendido = db.session.get(Atendido, id_atendido)
     if not atendido:
         abort(404)
     atendido.status = False
     db.session.commit()
     flash("Atendido excluído com sucesso!", "success")
-    return redirect(url_for("plantao.listar_atendidos"))
+    return redirect(url_for("atendido.atendidos_assistidos"))
+
+
+@atendido_controller.route("/buscar_atendido", methods=["POST", "GET"])
+@login_required()
+def buscar_atendido():
+    termo = request.form.get("termo", "")
+    page = request.args.get("page", 1, type=int)
+
+    atendidos = (
+        db.session.query(Atendido)
+        .filter(Atendido.status == True, Atendido.nome.ilike(f"%{termo}%"))
+        .order_by(Atendido.nome)
+        .paginate(
+            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+        )
+    )
+
+    return render_template("lista_atendidos.html", atendidos=atendidos)
 
 
 @atendido_controller.route("/perfil_assistido/<int:_id>", methods=["GET"])
