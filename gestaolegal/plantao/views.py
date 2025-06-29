@@ -183,20 +183,6 @@ def dados_atendido(id):
     return render_template("dados_atendido.html", form=_form)
 
 
-####Excluir Atendido
-@plantao.route("/excluir_atendido/", methods=["POST", "GET"])
-@login_required(role=[usuario_urole_roles["ADMINISTRADOR"][0]])
-def excluir_atendido():
-    id_atendido = request.form.get("id_atendido")
-    atendido = db.session.query(Atendido).filter_by(id=id_atendido).first()
-    if not atendido:
-        abort(404)
-    atendido.status = False
-    db.session.commit()
-    flash("Atendido excluído com sucesso!", "success")
-    return redirect(url_for("plantao.listar_atendidos"))
-
-
 @plantao.route("/editar_assistido/<id_atendido>/", methods=["POST", "GET"])
 @login_required(
     role=[
