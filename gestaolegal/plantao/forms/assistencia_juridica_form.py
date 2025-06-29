@@ -1,8 +1,16 @@
 from wtforms import SelectField, SelectMultipleField, StringField, SubmitField
 from wtforms.validators import DataRequired, Email, Length
+
 from gestaolegal.plantao.forms import FIELD_LIMITS
-from gestaolegal.plantao.models import assistencia_jud_areas_atendidas, assistencia_jud_regioes
-from gestaolegal.usuario.forms import EnderecoForm, MSG_NaoPodeEstarEmBranco, MSG_SelecioneUmaOpcaoLista
+from gestaolegal.plantao.models import (
+    assistencia_jud_areas_atendidas,
+    assistencia_jud_regioes,
+)
+from gestaolegal.usuario.forms import (
+    EnderecoForm,
+    MSG_NaoPodeEstarEmBranco,
+    MSG_SelecioneUmaOpcaoLista,
+)
 
 
 class AssistenciaJudiciariaForm(EnderecoForm):
@@ -110,4 +118,3 @@ class AssistenciaJudiciariaForm(EnderecoForm):
     )
 
     submit = SubmitField("Cadastrar")
-
