@@ -63,7 +63,7 @@
             {% endif %}
             {% if current_user.urole == "admin" or current_user.urole == "colab_proj" or current_user.urole == "estag_direito" %}
             <td><button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
-                  href="{{url_for('plantao.editar_assistido', id_atendido = assistido.id_atendido)}}"
+                  href="{{url_for('atendido.editar_assistido', id_atendido = assistido.id_atendido)}}"
                   style="text-decoration: none;color: white;">Editar Assistido</a></button></td>
             {% endif %}
             </tr>
