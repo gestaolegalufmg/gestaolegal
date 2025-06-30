@@ -40,7 +40,7 @@
 
             <div class= "row align-items-center"style="margin-left:5px; margin-right:2px; ">
               <a class="btn btn-primary ml-auto p-2 px-2"
-                href="{{url_for('plantao.cadastro_na')}}">Cadastrar
+                href="{{url_for('atendido.cadastro_na')}}">Cadastrar
                 Atendido</a>
             </div>
             
@@ -63,7 +63,7 @@
     keyup: (event) => {
       $.ajax({
         method: "GET",
-        url: "{{url_for('plantao.busca_atendidos_assistidos')}}",
+        url: "{{url_for('atendido.busca_atendidos_assistidos')}}",
         headers: {
           'X-CSRF-Token': token
         },
@@ -82,7 +82,7 @@
 
     $.ajax({
         method: "GET",
-        url: "{{url_for('plantao.busca_atendidos_assistidos')}}",
+        url: "{{url_for('atendido.busca_atendidos_assistidos')}}",
         headers: {
           'X-CSRF-Token': token
         },

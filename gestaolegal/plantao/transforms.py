@@ -2,10 +2,13 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from gestaolegal.models.atendido import Atendido
+from gestaolegal.models.endereco import Endereco
+from gestaolegal.plantao.forms.cadastro_atendido_form import CadastroAtendidoForm
+from gestaolegal.plantao.forms.tornar_assistido_form import TornarAssistidoForm
 from gestaolegal.plantao.models import (
     Assistido,
     AssistidoPessoaJuridica,
-    Atendido,
     area_atuacao,
     beneficio,
     contribuicao_inss,
@@ -17,6 +20,7 @@ from gestaolegal.plantao.models import (
     qual_pessoa_doente,
     regiao_bh,
 )
+from gestaolegal.usuario.forms import EnderecoForm
 from gestaolegal.usuario.models import sexo_usuario
 
 
@@ -273,8 +277,8 @@ def casos(atendido: Atendido, assistido: Assistido | None) -> dict[str, str] | s
 
 
 def build_cards(
-    assistido: Assistido | None,
     atendido: Atendido,
+    assistido: Assistido | None,
     assistido_pj: AssistidoPessoaJuridica | None = None,
 ) -> list[CardInfo]:
     base_cards = [
@@ -303,3 +307,231 @@ def build_cards(
     )
 
     return [*base_cards, *assistido_cards, *pj_cards]
+
+
+def build_address_from_form_data(form: EnderecoForm) -> Endereco:
+    return Endereco(
+        logradouro=form.logradouro.data,
+        numero=form.numero.data,
+        complemento=form.complemento.data,
+        bairro=form.bairro.data,
+        cep=form.cep.data,
+        cidade=form.cidade.data,
+        estado=form.estado.data,
+    )
+
+
+def build_atendido_from_form_data(
+    form: CadastroAtendidoForm, endereco: Endereco
+) -> Atendido:
+    atendido = Atendido(
+        nome=form.nome.data,
+        data_nascimento=form.data_nascimento.data,
+        cpf=form.cpf.data,
+        cnpj=form.cnpj.data,
+        telefone=form.telefone.data,
+        celular=form.celular.data,
+        email=form.email.data,
+        estado_civil=form.estado_civil.data,
+        como_conheceu=form.como_conheceu.data,
+        indicacao_orgao=form.indicacao_orgao.data,
+        procurou_outro_local=form.procurou_outro_local.data,
+        procurou_qual_local=form.procurou_qual_local.data,
+        obs=form.obs_atendido.data,
+        endereco_id=endereco.id,
+        pj_constituida=form.pj_constituida.data,
+        repres_legal=form.repres_legal.data,
+        nome_repres_legal=form.nome_repres_legal.data,
+        cpf_repres_legal=form.cpf_repres_legal.data,
+        contato_repres_legal=form.contato_repres_legal.data,
+        rg_repres_legal=form.rg_repres_legal.data,
+        nascimento_repres_legal=form.nascimento_repres_legal.data,
+        pretende_constituir_pj=form.pretende_constituir_pj.data,
+        status=1,
+    )
+
+    atendido.setIndicacao_orgao(form.indicacao_orgao.data, atendido.como_conheceu)
+
+    atendido.setCnpj(atendido.pj_constituida, form.cnpj.data, form.repres_legal.data)
+
+    atendido.setRepres_legal(
+        atendido.repres_legal,
+        atendido.pj_constituida,
+        form.nome_repres_legal.data,
+        form.cpf_repres_legal.data,
+        form.contato_repres_legal.data,
+        form.rg_repres_legal.data,
+        form.nascimento_repres_legal.data,
+    )
+
+    atendido.setProcurou_qual_local(
+        atendido.procurou_outro_local, form.procurou_qual_local.data
+    )
+
+    return atendido
+
+
+def update_atendido_from_form_data(form: CadastroAtendidoForm, atendido: Atendido):
+    atendido.nome = form.nome.data
+    atendido.data_nascimento = form.data_nascimento.data
+    atendido.cpf = form.cpf.data
+    atendido.cnpj = form.cnpj.data
+    atendido.telefone = form.telefone.data
+    atendido.celular = form.celular.data
+    atendido.email = form.email.data
+    atendido.estado_civil = form.estado_civil.data
+    atendido.como_conheceu = form.como_conheceu.data
+    atendido.indicacao_orgao = form.indicacao_orgao.data
+    atendido.procurou_outro_local = form.procurou_outro_local.data
+    atendido.procurou_qual_local = form.procurou_qual_local.data
+    atendido.obs = form.obs_atendido.data
+    atendido.pj_constituida = form.pj_constituida.data
+    atendido.repres_legal = form.repres_legal.data
+    atendido.nome_repres_legal = form.nome_repres_legal.data
+    atendido.cpf_repres_legal = form.cpf_repres_legal.data
+    atendido.contato_repres_legal = form.contato_repres_legal.data
+    atendido.rg_repres_legal = form.rg_repres_legal.data
+    atendido.nascimento_repres_legal = form.nascimento_repres_legal.data
+    atendido.pretende_constituir_pj = form.pretende_constituir_pj.data
+
+    if not atendido.endereco:
+        raise Exception()
+
+    atendido.endereco.logradouro = form.logradouro.data
+    atendido.endereco.numero = form.numero.data
+    atendido.endereco.complemento = form.complemento.data
+    atendido.endereco.bairro = form.bairro.data
+    atendido.endereco.cep = form.cep.data
+    atendido.endereco.cidade = form.cidade.data
+    atendido.endereco.estado = form.estado.data
+
+    return atendido
+
+
+def build_assistido_from_form_data(
+    form: TornarAssistidoForm, atendido: Atendido
+) -> Assistido:
+    return Assistido(
+        id_atendido=atendido.id,
+        sexo=form.sexo.data,
+        raca=form.raca.data,
+        profissao=form.profissao.data,
+        rg=form.rg.data,
+        grau_instrucao=form.grau_instrucao.data,
+        salario=form.salario.data,
+        beneficio=form.qual_beneficio.data,
+        contribui_inss=form.contribui_inss.data,
+        qtd_pessoas_moradia=form.qtd_pessoas_moradia.data,
+        renda_familiar=form.renda_familiar.data,
+        participacao_renda=form.participacao_renda.data,
+        tipo_moradia=form.tipo_moradia.data,
+        possui_outros_imoveis=bool(form.possui_outros_imoveis.data),
+        quantos_imoveis=form.quantos_imoveis.data,
+        possui_veiculos=bool(form.possui_veiculos.data),
+        possui_veiculos_obs=form.possui_veiculos_obs.data,
+        quantos_veiculos=form.quantos_veiculos.data,
+        ano_veiculo=form.ano_veiculo.data,
+        doenca_grave_familia=form.doenca_grave_familia.data,
+        pessoa_doente=form.pessoa_doente.data,
+        pessoa_doente_obs=form.pessoa_doente_obs.data,
+        gastos_medicacao=form.gastos_medicacao.data,
+        obs=form.obs_assistido.data,
+        # area_direito=form.area_direito.data,
+        # observacoes=form.observacoes.data,
+    )
+
+
+def update_assistido_from_form_data(
+    atendido: Atendido,
+    assistido: Assistido,
+    form_atendido: CadastroAtendidoForm,
+    form_assistido: TornarAssistidoForm,
+) -> tuple[Atendido, Assistido]:
+    atendido = assistido.atendido
+    atendido.nome = form_atendido.nome.data
+    atendido.data_nascimento = form_atendido.data_nascimento.data
+    atendido.cpf = form_atendido.cpf.data
+    atendido.cnpj = form_atendido.cnpj.data
+    atendido.telefone = form_atendido.telefone.data
+    atendido.celular = form_atendido.celular.data
+    atendido.email = form_atendido.email.data
+    atendido.estado_civil = form_atendido.estado_civil.data
+    atendido.como_conheceu = form_atendido.como_conheceu.data
+    atendido.indicacao_orgao = form_atendido.indicacao_orgao.data
+    atendido.procurou_outro_local = form_atendido.procurou_outro_local.data
+    atendido.procurou_qual_local = form_atendido.procurou_qual_local.data
+    atendido.obs = form_atendido.obs_atendido.data
+    atendido.pj_constituida = form_atendido.pj_constituida.data
+    atendido.repres_legal = form_atendido.repres_legal.data
+    atendido.nome_repres_legal = form_atendido.nome_repres_legal.data
+    atendido.cpf_repres_legal = form_atendido.cpf_repres_legal.data
+    atendido.contato_repres_legal = form_atendido.contato_repres_legal.data
+    atendido.rg_repres_legal = form_atendido.rg_repres_legal.data
+    atendido.nascimento_repres_legal = form_atendido.nascimento_repres_legal.data
+    atendido.pretende_constituir_pj = form_atendido.pretende_constituir_pj.data
+
+    atendido.endereco.logradouro = form_atendido.logradouro.data
+    atendido.endereco.numero = form_atendido.numero.data
+    atendido.endereco.complemento = form_atendido.complemento.data
+    atendido.endereco.bairro = form_atendido.bairro.data
+    atendido.endereco.cep = form_atendido.cep.data
+    atendido.endereco.cidade = form_atendido.cidade.data
+    atendido.endereco.estado = form_atendido.estado.data
+
+    assistido.sexo = form_assistido.sexo.data
+    assistido.profissao = form_assistido.profissao.data
+    assistido.raca = form_assistido.raca.data
+    assistido.rg = form_assistido.rg.data
+    assistido.grau_instrucao = form_assistido.grau_instrucao.data
+    assistido.salario = form_assistido.salario.data
+    assistido.beneficio = form_assistido.beneficio.data
+    assistido.qual_beneficio = form_assistido.qual_beneficio.data
+    assistido.contribui_inss = form_assistido.contribui_inss.data
+    assistido.qtd_pessoas_moradia = form_assistido.qtd_pessoas_moradia.data
+    assistido.renda_familiar = form_assistido.renda_familiar.data
+    assistido.participacao_renda = form_assistido.participacao_renda.data
+    assistido.tipo_moradia = form_assistido.tipo_moradia.data
+    assistido.possui_outros_imoveis = (
+        form_assistido.possui_outros_imoveis.data == "True"
+    )
+    assistido.quantos_imoveis = form_assistido.quantos_imoveis.data
+    assistido.possui_veiculos = form_assistido.possui_veiculos.data == "True"
+    assistido.doenca_grave_familia = form_assistido.doenca_grave_familia.data
+    assistido.obs = form_assistido.obs_assistido.data
+
+    # Set conditional fields
+    atendido.setIndicacao_orgao(
+        form_atendido.indicacao_orgao.data, atendido.como_conheceu
+    )
+    atendido.setCnpj(
+        atendido.pj_constituida,
+        form_atendido.cnpj.data,
+        form_atendido.repres_legal.data,
+    )
+    atendido.setRepres_legal(
+        atendido.repres_legal,
+        atendido.pj_constituida,
+        form_atendido.nome_repres_legal.data,
+        form_atendido.cpf_repres_legal.data,
+        form_atendido.contato_repres_legal.data,
+        form_atendido.rg_repres_legal.data,
+        form_atendido.nascimento_repres_legal.data,
+    )
+    atendido.setProcurou_qual_local(
+        atendido.procurou_outro_local, form_atendido.procurou_qual_local.data
+    )
+
+    assistido.setCamposVeiculo(
+        assistido.possui_veiculos,
+        form_assistido.possui_veiculos_obs.data,
+        form_assistido.quantos_veiculos.data,
+        form_assistido.ano_veiculo.data,
+    )
+    assistido.setCamposDoenca(
+        assistido.doenca_grave_familia,
+        form_assistido.pessoa_doente.data,
+        form_assistido.pessoa_doente_obs.data,
+        form_assistido.gastos_medicacao.data,
+    )
+
+    return atendido, assistido

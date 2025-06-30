@@ -17,9 +17,9 @@ from gestaolegal.casos.models import (
     situacao_deferimento,
 )
 from gestaolegal.casos.views_utils import *
+from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 from gestaolegal.plantao.models import (
     DiasMarcadosPlantao,
-    OrientacaoJuridica,
     RegistroEntrada,
     assistencia_jud_areas_atendidas,
 )

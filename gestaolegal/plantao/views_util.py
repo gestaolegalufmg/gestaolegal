@@ -4,6 +4,7 @@ from flask import flash, redirect, url_for
 from flask_login import current_user
 
 from gestaolegal import app, db
+from gestaolegal.models.atendido import Atendido
 from gestaolegal.plantao.forms import AbrirPlantaoForm, FecharPlantaoForm
 from gestaolegal.plantao.forms.cadastro_atendido_form import CadastroAtendidoForm
 from gestaolegal.plantao.forms.tornar_assistido_form import TornarAssistidoForm
@@ -11,7 +12,6 @@ from gestaolegal.plantao.models import (
     AssistenciaJudiciaria,
     Assistido,
     AssistidoPessoaJuridica,
-    Atendido,
     DiaPlantao,
     DiasMarcadosPlantao,
     Plantao,
