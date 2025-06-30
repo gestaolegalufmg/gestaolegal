@@ -3,7 +3,8 @@ from sqlalchemy import and_, or_
 
 from gestaolegal import app, db, login_required
 from gestaolegal.casos.models import Caso
-from gestaolegal.plantao.models import Assistido, AssistidoPessoaJuridica, Atendido
+from gestaolegal.models.atendido import Atendido
+from gestaolegal.plantao.models import Assistido, AssistidoPessoaJuridica
 from gestaolegal.usuario.models import Usuario
 
 principal = Blueprint("principal", __name__, template_folder="templates")
@@ -84,7 +85,8 @@ def busca_geral():
     assistidos_stmt = (
         select(Atendido)
         .join(Assistido)
-        .where(or_(Atendido.nome.contains(busca), Atendido.cpf.contains(busca)))
+        .where(Atendido.status == True)
+        .where(or_(Atendido.nome.ilike(f"%{busca}%"), Atendido.cpf.contains(busca)))
         .order_by(Atendido.nome)
     )
     assistidos = create_pagination(
@@ -95,6 +97,7 @@ def busca_geral():
         select(Assistido)
         .join(Atendido)
         .join(AssistidoPessoaJuridica)
+        .where(Atendido.status == True)
         .where(or_(Atendido.nome.contains(busca), Atendido.cpf.contains(busca)))
         .order_by(Atendido.nome)
     )

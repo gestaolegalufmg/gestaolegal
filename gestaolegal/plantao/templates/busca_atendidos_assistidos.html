@@ -36,7 +36,7 @@
                         {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
                             {% if atendido_assistido[1] %}
                                 <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
-                                      href="{{url_for('plantao.editar_assistido', id_atendido = atendido_assistido[0].id)}}"
+                                      href="{{url_for('atendido.editar_assistido', id_atendido = atendido_assistido[0].id)}}"
                                       style="text-decoration: none;color: white; text-align: center;">Editar</a></button>
                             {% else %}
                                 <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
@@ -73,6 +73,6 @@
 {% else %}
     <div style="margin: 15px;">
         <h3>Nenhum atendido no momento, deseja cadastrar um novo atendimento?</h3>
-        <a href="{{url_for('plantao.cadastro_na')}}" class="btn btn-primary ml-auto p-2">Cadastrar novo atendido</a>
+        <a href="{{url_for('atendido.cadastro_na')}}" class="btn btn-primary ml-auto p-2">Cadastrar novo atendido</a>
     </div>
 {% endif %}

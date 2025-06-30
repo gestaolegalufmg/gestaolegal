@@ -16,6 +16,7 @@ from flask_login import current_user
 
 from gestaolegal import app, db, login_required
 from gestaolegal.models.endereco import Endereco
+from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 from gestaolegal.notificacoes.models import Notificacao, acoes
 from gestaolegal.plantao.forms import (
     AbrirPlantaoForm,
@@ -25,22 +26,18 @@ from gestaolegal.plantao.forms import (
 from gestaolegal.plantao.forms.assistencia_juridica_form import (
     AssistenciaJudiciariaForm,
 )
-from gestaolegal.plantao.forms.cadastro_atendido_form import CadastroAtendidoForm
 from gestaolegal.plantao.forms.orientacao_juridica_form import (
     CadastroOrientacaoJuridicaForm,
     OrientacaoJuridicaForm,
 )
-from gestaolegal.plantao.forms.tornar_assistido_form import TornarAssistidoForm
 from gestaolegal.plantao.models import (
     AssistenciaJudiciaria,
     AssistenciaJudiciaria_xOrientacaoJuridica,
     Assistido,
-    Atendido,
     Atendido_xOrientacaoJuridica,
     DiaPlantao,
     DiasMarcadosPlantao,
     FilaAtendidos,
-    OrientacaoJuridica,
     Plantao,
     RegistroEntrada,
 )
@@ -62,260 +59,6 @@ class CardInfo:
 plantao = Blueprint("plantao", __name__, template_folder="templates")
 
 data_atual = datetime.now().date()
-
-
-####Cadastrar Atendido
-@plantao.route("/novo_atendimento", methods=["GET", "POST"])
-@login_required(
-    role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["COLAB_PROJETO"][0],
-        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
-    ]
-)
-def cadastro_na():
-    def valida_dados_form(form: CadastroAtendidoForm):
-        if not form.validate():
-            return False
-        return True
-
-    def cria_atendido(form: CadastroAtendidoForm):
-        entidade_endereco = Endereco(
-            logradouro=form.logradouro.data,
-            numero=form.numero.data,
-            complemento=form.complemento.data,
-            bairro=form.bairro.data,
-            cep=form.cep.data,
-            cidade=form.cidade.data,
-            estado=form.estado.data,
-        )
-        db.session.add(entidade_endereco)
-        db.session.flush()
-        entidade_atendido = Atendido(
-            nome=form.nome.data,
-            data_nascimento=form.data_nascimento.data,
-            cpf=form.cpf.data,
-            cnpj=form.cnpj.data,
-            telefone=form.telefone.data,
-            celular=form.celular.data,
-            email=form.email.data,
-            estado_civil=form.estado_civil.data,
-            como_conheceu=form.como_conheceu.data,
-            indicacao_orgao=form.indicacao_orgao.data,
-            procurou_outro_local=form.procurou_outro_local.data,
-            procurou_qual_local=form.procurou_qual_local.data,
-            obs=form.obs_atendido.data,
-            endereco_id=entidade_endereco.id,
-            pj_constituida=form.pj_constituida.data,
-            repres_legal=form.repres_legal.data,
-            nome_repres_legal=form.nome_repres_legal.data,
-            cpf_repres_legal=form.cpf_repres_legal.data,
-            contato_repres_legal=form.contato_repres_legal.data,
-            rg_repres_legal=form.rg_repres_legal.data,
-            nascimento_repres_legal=form.nascimento_repres_legal.data,
-            pretende_constituir_pj=form.pretende_constituir_pj.data,
-            status=1,
-        )
-        entidade_atendido.setIndicacao_orgao(
-            form.indicacao_orgao.data, entidade_atendido.como_conheceu
-        )
-        entidade_atendido.setCnpj(
-            entidade_atendido.pj_constituida, form.cnpj.data, form.repres_legal.data
-        )
-
-        entidade_atendido.setRepres_legal(
-            entidade_atendido.repres_legal,
-            entidade_atendido.pj_constituida,
-            form.nome_repres_legal.data,
-            form.cpf_repres_legal.data,
-            form.contato_repres_legal.data,
-            form.rg_repres_legal.data,
-            form.nascimento_repres_legal.data,
-        )
-
-        entidade_atendido.setProcurou_qual_local(
-            entidade_atendido.procurou_outro_local, form.procurou_qual_local.data
-        )
-
-        return entidade_atendido
-
-    ############################################# IMPLEMENTAÇÃO DA ROTA ##############################################################
-
-    form = CadastroAtendidoForm()
-
-    if request.method == "POST":
-        if not valida_dados_form(form):
-            return render_template("cadastro_novo_atendido.html", form=form)
-
-        db.session.add(cria_atendido(form))
-        db.session.commit()
-
-        flash("Atendido cadastrado!", "success")
-        _id = db.session.query(Atendido).filter_by(email=form.email.data).first().id
-        return redirect(url_for("atendido.perfil_assistido", _id=_id))
-
-    return render_template("cadastro_novo_atendido.html", form=form)
-
-
-@plantao.route("/busca_atendidos_assistidos", methods=["GET", "POST"])
-@login_required()
-def busca_atendidos_assistidos():
-    if request.method == "POST":
-        termo = request.form["termo"]
-        atendidos = (
-            db.session.query(Atendido)
-            .join(Assistido)
-            .filter(Atendido.nome.like(termo + "%"))
-            .all()
-        )
-        return json.dumps({"atendidos": [x.as_dict() for x in atendidos]})
-    return render_template("busca_atendidos_assistidos.html")
-
-
-### Dados do atendido
-@plantao.route("/dados_atendido/<int:id>", methods=["GET"])
-@login_required()
-def dados_atendido(id):
-    _atendido = db.session.query(Atendido).filter_by(id=id).first_or_404()
-    _form = CadastroAtendidoForm()
-    setValoresFormAtendido(_atendido, _form)
-    _form.id_atendido = _atendido.id
-    return render_template("dados_atendido.html", form=_form)
-
-
-@plantao.route("/editar_assistido/<id_atendido>/", methods=["POST", "GET"])
-@login_required(
-    role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["COLAB_PROJETO"][0],
-        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
-        usuario_urole_roles["PROFESSOR"][0],
-    ]
-)
-def editar_assistido(id_atendido):
-    assistido = (
-        db.session.query(Assistido)
-        .join(Atendido)
-        .filter(Assistido.id_atendido == id_atendido, Atendido.status == True)
-        .first()
-    )
-
-    if not assistido:
-        abort(404)
-
-    form_atendido = CadastroAtendidoForm()
-    form_assistido = TornarAssistidoForm()
-
-    if request.method == "POST":
-        if form_atendido.validate() and form_assistido.validate():
-            # Update atendido data
-            atendido = assistido.atendido
-            atendido.nome = form_atendido.nome.data
-            atendido.data_nascimento = form_atendido.data_nascimento.data
-            atendido.cpf = form_atendido.cpf.data
-            atendido.cnpj = form_atendido.cnpj.data
-            atendido.telefone = form_atendido.telefone.data
-            atendido.celular = form_atendido.celular.data
-            atendido.email = form_atendido.email.data
-            atendido.estado_civil = form_atendido.estado_civil.data
-            atendido.como_conheceu = form_atendido.como_conheceu.data
-            atendido.indicacao_orgao = form_atendido.indicacao_orgao.data
-            atendido.procurou_outro_local = form_atendido.procurou_outro_local.data
-            atendido.procurou_qual_local = form_atendido.procurou_qual_local.data
-            atendido.obs = form_atendido.obs_atendido.data
-            atendido.pj_constituida = form_atendido.pj_constituida.data
-            atendido.repres_legal = form_atendido.repres_legal.data
-            atendido.nome_repres_legal = form_atendido.nome_repres_legal.data
-            atendido.cpf_repres_legal = form_atendido.cpf_repres_legal.data
-            atendido.contato_repres_legal = form_atendido.contato_repres_legal.data
-            atendido.rg_repres_legal = form_atendido.rg_repres_legal.data
-            atendido.nascimento_repres_legal = (
-                form_atendido.nascimento_repres_legal.data
-            )
-            atendido.pretende_constituir_pj = form_atendido.pretende_constituir_pj.data
-
-            # Update endereco data
-            atendido.endereco.logradouro = form_atendido.logradouro.data
-            atendido.endereco.numero = form_atendido.numero.data
-            atendido.endereco.complemento = form_atendido.complemento.data
-            atendido.endereco.bairro = form_atendido.bairro.data
-            atendido.endereco.cep = form_atendido.cep.data
-            atendido.endereco.cidade = form_atendido.cidade.data
-            atendido.endereco.estado = form_atendido.estado.data
-
-            # Update assistido data
-            assistido.sexo = form_assistido.sexo.data
-            assistido.profissao = form_assistido.profissao.data
-            assistido.raca = form_assistido.raca.data
-            assistido.rg = form_assistido.rg.data
-            assistido.grau_instrucao = form_assistido.grau_instrucao.data
-            assistido.salario = form_assistido.salario.data
-            assistido.beneficio = form_assistido.beneficio.data
-            assistido.qual_beneficio = form_assistido.qual_beneficio.data
-            assistido.contribui_inss = form_assistido.contribui_inss.data
-            assistido.qtd_pessoas_moradia = form_assistido.qtd_pessoas_moradia.data
-            assistido.renda_familiar = form_assistido.renda_familiar.data
-            assistido.participacao_renda = form_assistido.participacao_renda.data
-            assistido.tipo_moradia = form_assistido.tipo_moradia.data
-            assistido.possui_outros_imoveis = (
-                form_assistido.possui_outros_imoveis.data == "True"
-            )
-            assistido.quantos_imoveis = form_assistido.quantos_imoveis.data
-            assistido.possui_veiculos = form_assistido.possui_veiculos.data == "True"
-            assistido.doenca_grave_familia = form_assistido.doenca_grave_familia.data
-            assistido.obs = form_assistido.obs_assistido.data
-
-            # Set conditional fields
-            atendido.setIndicacao_orgao(
-                form_atendido.indicacao_orgao.data, atendido.como_conheceu
-            )
-            atendido.setCnpj(
-                atendido.pj_constituida,
-                form_atendido.cnpj.data,
-                form_atendido.repres_legal.data,
-            )
-            atendido.setRepres_legal(
-                atendido.repres_legal,
-                atendido.pj_constituida,
-                form_atendido.nome_repres_legal.data,
-                form_atendido.cpf_repres_legal.data,
-                form_atendido.contato_repres_legal.data,
-                form_atendido.rg_repres_legal.data,
-                form_atendido.nascimento_repres_legal.data,
-            )
-            atendido.setProcurou_qual_local(
-                atendido.procurou_outro_local, form_atendido.procurou_qual_local.data
-            )
-
-            assistido.setCamposVeiculo(
-                assistido.possui_veiculos,
-                form_assistido.possui_veiculos_obs.data,
-                form_assistido.quantos_veiculos.data,
-                form_assistido.ano_veiculo.data,
-            )
-            assistido.setCamposDoenca(
-                assistido.doenca_grave_familia,
-                form_assistido.pessoa_doente.data,
-                form_assistido.pessoa_doente_obs.data,
-                form_assistido.gastos_medicacao.data,
-            )
-
-            db.session.commit()
-            flash("Assistido editado com sucesso!", "success")
-            return redirect(
-                url_for("atendido.perfil_assistido", _id=assistido.id_atendido)
-            )
-
-    setValoresFormAtendido(assistido.atendido, form_atendido)
-    setValoresFormAssistido(assistido, form_assistido)
-
-    return render_template(
-        "editar_assistido.html",
-        form=form_atendido,
-        form_assistido=form_assistido,
-        atendido=assistido.atendido,
-        assistido=assistido,
-    )
 
 
 @plantao.route("/cadastro_orientacao_juridica/", methods=["POST", "GET"])
@@ -1450,15 +1193,6 @@ def ajax_salva_config_plantao():
     )
 
 
-# ENDPOINTS DE MELHORIA
-### Retorna lista de atendidos
-@plantao.route("/todos-atendidos", methods=["GET", "POST"])
-@login_required()
-def pega_atendidos():
-    atendidos = busca_atendidos_modal()
-    return json.dumps(atendidos)
-
-
 ### Retorna lista de assistencia judiciaria
 @plantao.route("/todas-assistencias-judiciarias", methods=["GET", "POST"])
 @login_required()
@@ -1880,21 +1614,3 @@ def buscar_orientacao_juridica():
     )
 
     return render_template("orientacoes_juridicas.html", orientacoes=orientacoes)
-
-
-@plantao.route("/buscar_atendido", methods=["POST"])
-@login_required()
-def buscar_atendido():
-    termo = request.form.get("termo", "")
-    page = request.args.get("page", 1, type=int)
-
-    atendidos = (
-        db.session.query(Atendido)
-        .filter(Atendido.status == True, Atendido.nome.ilike(f"%{termo}%"))
-        .order_by(Atendido.nome)
-        .paginate(
-            page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
-        )
-    )
-
-    return render_template("lista_atendidos.html", atendidos=atendidos)
