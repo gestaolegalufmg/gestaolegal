@@ -3,11 +3,6 @@ services:
     build: .
     ports:
       - "5000:5000"
-    volumes:
-      - type: bind
-        source: /opt/docker_volumes/mysql_data
-        target: /var/lib/mysql
-    command: gunicorn --bind 0.0.0.0:5000 --workers=4 --timeout=300 gestaolegal.wsgi:app
     environment:
       - FLASK_ENV=production
       - FLASK_APP=gestaolegal.wsgi:app

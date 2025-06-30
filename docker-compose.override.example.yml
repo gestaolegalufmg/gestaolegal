@@ -1,13 +1,20 @@
 services:
   app_gl:
     build: .
-    volumes:
-      - type: bind
-        source: .
-        target: /code
-    command: flask run --host=0.0.0.0
+    entrypoint: ["flask", "run", "--host=0.0.0.0", "--port=5000", "--debug"]
     environment:
       - FLASK_ENV=development
+      - FLASK_APP=gestaolegal.wsgi:app
+    develop:
+      watch:
+        - action: sync
+          path: ./gestaolegal/
+          target: /code/gestaolegal/
+          ignore:
+            - .venv/
+
+        - action: rebuild
+          path: ./uv.lock
 
   db_gl:
     volumes:
@@ -23,3 +30,4 @@ services:
 volumes:
   mysql_data:
     driver: local 
+
