@@ -1,10 +1,15 @@
 FROM python:3.11.3-buster
-RUN apt-get update && \
-    apt-get install -y nano htop build-essential libssl-dev libffi-dev python-dev && \
-    mkdir /code
-ENV STATIC_URL /static
-ENV STATIC_PATH /code/gestaolegal
-COPY . /code
+
+COPY --from=ghcr.io/astral-sh/uv:0.7.17 /uv /uvx /bin/
+
 WORKDIR /code
-RUN pip install --upgrade pip
-RUN pip install -e .
+
+COPY ./pyproject.toml /code
+COPY ./uv.lock /code
+COPY . /code
+
+RUN uv sync --locked --no-dev
+
+ENV PATH="/code/.venv/bin:$PATH"
+
+ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:5000", "--workers=4", "--timeout=300", "gestaolegal.wsgi:app"]
