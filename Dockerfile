@@ -1,10 +1,24 @@
-FROM python:3.11.3-buster
-RUN apt-get update && \
-    apt-get install -y nano htop build-essential libssl-dev libffi-dev python-dev && \
-    mkdir /code
-ENV STATIC_URL /static
-ENV STATIC_PATH /code/gestaolegal
-COPY . /code
+# See: https://github.com/astral-sh/uv-docker-example/blob/main/Dockerfile
+
+FROM python:3.11.3-alpine
+
+COPY --from=ghcr.io/astral-sh/uv:0.7.17 /uv /uvx /bin/
+
 WORKDIR /code
-RUN pip install --upgrade pip
-RUN pip install -e .
+
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-dev
+
+COPY . /code
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev
+
+ENV PATH="/code/.venv/bin:$PATH"
+
+ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:5000", "--workers=4", "--timeout=300", "gestaolegal.wsgi:app"]
