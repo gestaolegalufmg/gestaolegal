@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["gestaolegal"]
+py-modules = []
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
