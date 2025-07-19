@@ -400,28 +400,6 @@ def vagas_restantes(dias_disponiveis: list, data: date):
         return num_max - len(vagas_no_dia)
 
 
-def query_busca_assistencia_judiciaria(query_base, busca):
-    if busca is None:
-        return query_base.filter_by(status=True).order_by(
-            AssistenciaJudiciaria.nome.asc()
-        )
-
-    return query_base.filter(
-        AssistenciaJudiciaria.nome.contains(busca)
-        & (AssistenciaJudiciaria.status == True)
-    ).order_by(AssistenciaJudiciaria.nome.asc())
-
-
-def query_filtro_assistencia_judiciaria(query_base, filtro):
-    if filtro == filtro_busca_assistencia_judiciaria["TODAS"][0]:
-        return query_base.filter_by(status=True)
-
-    return query_base.filter(
-        (AssistenciaJudiciaria.areas_atendidas.contains(filtro))
-        & (AssistenciaJudiciaria.status == True)
-    )
-
-
 def valida_fim_plantao(plantao: Plantao):
     if plantao:
         if plantao.data_fechamento:

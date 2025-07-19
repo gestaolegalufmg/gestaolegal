@@ -467,7 +467,7 @@
 <script defer>
     const lista = {}
     const atendidos = async () => {
-        let data = await fetch("{{url_for('plantao.pega_atendidos')}}", {
+        let data = await fetch("{{url_for('plantao.pegar_atendimentos')}}", {
             method: "GET",
             headers: {
                 'X-CSRF-Token': "{{ csrf_token() }}",
@@ -479,7 +479,7 @@
         return res;
     }
     const assistencia_judiciarias = async () => {
-        let data = await fetch("{{url_for('plantao.pega_assistencias_judiciarias')}}", {
+        let data = await fetch("{{url_for('assistencia_judiciaria.pega_assistencias_judiciarias')}}", {
             method: "GET",
             headers: {
                 'X-CSRF-Token': "{{ csrf_token() }}"

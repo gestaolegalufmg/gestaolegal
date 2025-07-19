@@ -2,8 +2,9 @@ from flask_wtf import FlaskForm
 from wtforms import SelectField, TextAreaField
 from wtforms.validators import AnyOf, DataRequired, InputRequired, Length, Optional
 
+from gestaolegal.common.constants import area_do_direito
 from gestaolegal.plantao.forms import FIELD_LIMITS, RequiredIf
-from gestaolegal.plantao.models import area_do_direito, se_administrativo, se_civel
+from gestaolegal.plantao.models import se_administrativo, se_civel
 from gestaolegal.usuario.forms import MSG_SelecioneUmaOpcaoLista
 
 

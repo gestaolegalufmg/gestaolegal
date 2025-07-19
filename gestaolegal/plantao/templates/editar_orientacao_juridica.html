@@ -13,7 +13,7 @@
         <div class="form-group row" ><h3>Dados da Orientação Jurídica</h3></div>
         <div style="height: 30px;"></div>
         <div class= "form-validation">
-            <form class="form-valide" action="{{url_for('plantao.editar_orientacao_juridica', id_oj = orientacao.id)}}" method="POST" id="form">
+            <form class="form-valide" action="{{url_for('orientacao_juridica.editar_orientacao_juridica', id_oj = orientacao.id)}}" method="POST" id="form">
                 
                 {% include "orientacao_juridica_form.html" %}
 

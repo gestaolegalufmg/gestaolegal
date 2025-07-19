@@ -13,8 +13,8 @@ from wtforms import (
 )
 from wtforms.validators import AnyOf, DataRequired, InputRequired, Optional
 
+from gestaolegal.common.constants import area_do_direito
 from gestaolegal.plantao.models import (
-    area_do_direito,
     assistencia_jud_areas_atendidas,
     se_administrativo,
     se_civel,
