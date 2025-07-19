@@ -242,7 +242,7 @@ def orientacoes(atendido: Atendido) -> dict[str, str] | str:
         value = f"{area} - {data}"
 
         if hasattr(orientacao, "id") and orientacao.id:
-            value = f"<a href='/plantao/orientacao_juridica/{orientacao.id}' target='_blank'>{value}</a>"
+            value = f"<a href='/orientacao_juridica/orientacao_juridica/{orientacao.id}' target='_blank'>{value}</a>"
 
         return key, value
 

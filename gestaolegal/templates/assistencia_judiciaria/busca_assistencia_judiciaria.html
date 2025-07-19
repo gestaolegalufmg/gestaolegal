@@ -61,7 +61,7 @@
       <td>
         <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm">
           <a
-            href="{{url_for('plantao.perfil_assistencia_judiciaria', _id=assistencia.id)}}"
+            href="{{url_for('assistencia_judiciaria.perfil_assistencia_judiciaria', _id=assistencia.id)}}"
             style="text-decoration: none; color: aliceblue;"
             >Visualizar</a
           >
@@ -74,7 +74,7 @@
           name="button"
         >
           <a
-            href="{{url_for('atendido.editar_assistencia_judiciaria', id_assistencia_judiciaria = assistencia.id)}}"
+            href="{{url_for('assistencia_judiciaria.editar_assistencia_judiciaria', id_assistencia_judiciaria = assistencia.id)}}"
             style="text-decoration: none; color: aliceblue;"
             >Editar</a
           >
@@ -89,7 +89,7 @@
           onclick="return confirm('Tem certeza que deseja excluir esta assistência judiciária?');"
         >
           <a
-            href="{{url_for('plantao.excluir_assistencia_judiciaria', _id=assistencia.id)}}"
+            href="{{url_for('assistencia_judiciaria.excluir_assistencia_judiciaria', id=assistencia.id)}}"
             style="text-decoration: none; color: aliceblue;"
             >Excluir</a
           >
