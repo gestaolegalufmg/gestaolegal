@@ -2,9 +2,14 @@ from flask import Blueprint, flash, redirect, render_template, request
 from sqlalchemy import and_, or_
 
 from gestaolegal import app, db, login_required
-from gestaolegal.casos.models import Caso
+from gestaolegal.casos.models import Caso, associacao_casos_atendidos
 from gestaolegal.models.atendido import Atendido
-from gestaolegal.plantao.models import Assistido, AssistidoPessoaJuridica
+from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+from gestaolegal.plantao.models import (
+    Assistido,
+    AssistidoPessoaJuridica,
+    Atendido_xOrientacaoJuridica,
+)
 from gestaolegal.usuario.models import Usuario
 
 principal = Blueprint("principal", __name__, template_folder="templates")
@@ -122,11 +127,38 @@ def busca_geral():
     )
 
     casos = None
+    orientacoes_juridicas = None
+
     if busca.isdigit():
         casos_stmt = select(Caso).where(
             and_(Caso.status == True, Caso.id == int(busca))
         )
         casos = create_pagination(casos_stmt, page_caso, app.config["CASOS_POR_PAGINA"])
+    elif busca.strip():
+        casos_stmt = (
+            select(Caso)
+            .join(associacao_casos_atendidos)
+            .join(Atendido)
+            .where(Caso.status == True)
+            .where(Atendido.status == True)
+            .where(Atendido.nome.ilike(f"%{busca}%"))
+            .order_by(Caso.id)
+        )
+        casos = create_pagination(casos_stmt, page_caso, app.config["CASOS_POR_PAGINA"])
+
+        # Busca orientações jurídicas que tenham atendidos com nome similar ao termo de busca
+        orientacoes_stmt = (
+            select(OrientacaoJuridica)
+            .join(Atendido_xOrientacaoJuridica)
+            .join(Atendido)
+            .where(OrientacaoJuridica.status == True)
+            .where(Atendido.status == True)
+            .where(Atendido.nome.ilike(f"%{busca}%"))
+            .order_by(OrientacaoJuridica.id)
+        )
+        orientacoes_juridicas = create_pagination(
+            orientacoes_stmt, page_caso, app.config["CASOS_POR_PAGINA"]
+        )
 
     return render_template(
         "busca_geral.html",
@@ -134,5 +166,6 @@ def busca_geral():
         assistidos_pjuridica=assistidos_pjuridica,
         usuarios=usuarios,
         casos=casos,
+        orientacoes_juridicas=orientacoes_juridicas,
         busca_atual=busca,
     )

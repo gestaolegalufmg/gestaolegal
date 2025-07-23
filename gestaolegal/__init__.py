@@ -1,13 +1,13 @@
-import configparser
-
-config = configparser.ConfigParser()
 import os
 from functools import wraps
+from dotenv import load_dotenv
 
 from flask import Flask, current_app
 from flask_login import LoginManager, current_user
 from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
+
+load_dotenv()
 
 
 class ReverseProxied(object):
@@ -23,7 +23,6 @@ class ReverseProxied(object):
 
 flask_env = os.environ.get("FLASK_ENV")
 login_manager = LoginManager()
-config.read("config.ini")
 
 app = Flask(__name__)
 app.wsgi_app = ReverseProxied(app.wsgi_app)
@@ -31,12 +30,11 @@ app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.config["COMPANY_NAME"] = os.environ.get("COMPANY_NAME", "Gestão Legal")
 app.config["COMPANY_COLOR"] = os.environ.get("COMPANY_COLOR", "#1758ac")
 
-if flask_env == "development":
-    config.read(
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_test.ini")
-    )
+# Security Configuration
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+if not app.config["SECRET_KEY"]:
+    raise ValueError("SECRET_KEY environment variable is required")
 
-app.config["SECRET_KEY"] = config["SECRET_KEY"]["key"]
 app.config["UPLOADS"] = "./static/casos"
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB limit
 
@@ -48,14 +46,19 @@ app.config["WTF_CSRF_SSL_STRICT"] = False  # Allow HTTP in development
 ################## BANCO DE DADOS ##########################
 ############################################################
 
-db_user = config["MYSQL"]["user"]
-db_password = config["MYSQL"]["password"]
-db_host = config["MYSQL"]["host"]
-db = config["MYSQL"]["db"]
+# Database configuration from environment variables
+db_user = os.environ.get("DB_USER")
+db_password = os.environ.get("DB_PASSWORD")
+db_host = os.environ.get("DB_HOST")
+db_name = os.environ.get("DB_NAME")
+
+# Validate required database environment variables
+if not all([db_user, db_password, db_host, db_name]):
+    raise ValueError("All database environment variables (DB_USER, DB_PASSWORD, DB_HOST, DB_NAME) are required")
 
 app.config["SQLALCHEMY_DATABASE_URI"] = (
     "mysql+pymysql://{user}:{password}@{host}/{db}".format(
-        user=db_user, password=db_password, host=db_host, db=db
+        user=db_user, password=db_password, host=db_host, db=db_name
     )
 )
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_recycle": 10}
@@ -285,11 +288,11 @@ if flask_env == "development":
     app.config["MAIL_PASSWORD"] = None
     app.config["MAIL_DEFAULT_SENDER"] = "development@gestaolegal.com"
 else:
-    app.config["MAIL_SERVER"] = "smtp.gmail.com"
-    app.config["MAIL_PORT"] = 465
-    app.config["MAIL_USE_SSL"] = True
-    app.config["MAIL_USERNAME"] = "cassio@setter.global"
-    app.config["MAIL_PASSWORD"] = "bgmxdotawlytmtvp"
+    app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", "465"))
+    app.config["MAIL_USE_SSL"] = os.environ.get("MAIL_USE_SSL", "True").lower() == "true"
+    app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
+    app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
 
 mail = Mail(app)
 
@@ -324,8 +327,16 @@ def formatarNomeDoUsuario(id_usuario):
         return "Não Há"
 
 
+def formatarSituacaoDeferimento(situacao):
+    for key in situacao_deferimento:
+        if situacao_deferimento[key][0] == situacao:
+            return situacao_deferimento[key][1]
+    return situacao
+
+
 app.jinja_env.globals.update(formatarTipoDeEvento=formatarTipoDeEvento)
 app.jinja_env.globals.update(formatarNomeDoUsuario=formatarNomeDoUsuario)
+app.jinja_env.globals.update(formatarSituacaoDeferimento=formatarSituacaoDeferimento)
 
 #############################################################
 ################## CONFIGURA LOGIN ##########################
