@@ -10,7 +10,7 @@
             <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
         {% elif page_num %}
             <li class="page-item"><a class="page-link"
-            href="{{ url_for('plantao.orientacoes_juridicas',page=page_num) }}">{{ page_num }}</a>
+            href="{{ url_for('orientacao_juridica.orientacoes_juridicas',page=page_num) }}">{{ page_num }}</a>
             {% else %}
                 <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
         {% endif %}
@@ -25,7 +25,7 @@
                 <div id="table-2_filter" class="dataTables_filter"><label>Buscar
                   <input type="text" id="busca" class="form-control form-control-sm" aria-controls="table-2"></label>
                 </div> 
-                <a class="btn mb-1 btn-flat btn-primary btn-lg ml-auto align-self-center" href="{{url_for('plantao.cadastro_orientacao_juridica')}}">Cadastrar Orientação Jurídica</a>
+                <a class="btn mb-1 btn-flat btn-primary btn-lg ml-auto align-self-center" href="{{url_for('orientacao_juridica.cadastro_orientacao_juridica')}}">Cadastrar Orientação Jurídica</a>
             </div>
         </div>
 
@@ -49,6 +49,8 @@
     </div>
 </div>
 
+{% include 'orientacao_juridica/components/modal_associar_atendido.html' %}
+
 {% endblock conteudo %}
 
 {% block scripts %}
@@ -69,5 +71,21 @@
         }
     });
 </script>
+
+<script src="{{ url_for('static', filename='js/modal_associar_atendido.js') }}"></script>
+
+<style>
+.modal-backdrop {
+    z-index: 9998 !important;
+}
+.modal {
+    z-index: 9999 !important;
+    padding-left: 250px !important;
+}
+.modal-dialog {
+    margin: 15vh auto 5vh auto !important;
+    max-height: 80vh !important;
+}
+</style>
 
 {% endblock scripts %}

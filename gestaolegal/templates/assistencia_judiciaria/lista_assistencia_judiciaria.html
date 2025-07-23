@@ -37,10 +37,9 @@ endblock %} {% block conteudo %} {% if assistencias %}
         usuario_urole_roles['PROFESSOR'][0]] %}
           <div class="d-flex flex-row p-2">
             <a
-              href="{{url_for('plantao.nova_assistencia_judiciaria')}}"
+              href="{{ url_for('assistencia_judiciaria.cadastro_assistencia_judiciaria') }}"
               class="btn btn-primary ml-auto p-2 mr-2"
-              >Cadastrar Assistência Judiciária</a
-            >
+            >Cadastrar Assistência Judiciária</a>
           </div>
         {% endif %}
 
@@ -58,17 +57,16 @@ endblock %} {% block conteudo %} {% if assistencias %}
 <div class="row">
   <h3>Nenhuma assistência judiciária no momento.</h3>
   <a
-    href="{{url_for('plantao.nova_assistencia_judiciaria')}}"
+    href="{{ url_for('assistencia_judiciaria.cadastro_assistencia_judiciaria') }}"
     class="btn btn-primary ml-auto p-2"
-    >Cadastrar nova assistência judiciária</a
-  >
+  >Cadastrar nova assistência judiciária</a>
 </div>
 {% endif %} {% endblock %} {% block scripts %}
 <script>
   function ajax_tbl_assistencia_judiciaria(page){
     $.ajax({
         method: "GET",
-        url: "{{url_for('plantao.busca_assistencia_judiciaria')}}",
+        url: "{{url_for('assistencia_judiciaria.busca_assistencia_judiciaria')}}",
         data: {
           busca: $('#busca').val(),
           opcao_filtro: $('#filtro').val(),

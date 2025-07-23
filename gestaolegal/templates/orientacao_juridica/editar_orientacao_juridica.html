@@ -13,7 +13,7 @@
         <div class="form-group row" ><h3>Dados da Orientação Jurídica</h3></div>
         <div style="height: 30px;"></div>
         <div class= "form-validation">
-            <form class="form-valide" action="{{url_for('plantao.editar_orientacao_juridica', id_oj = orientacao.id)}}" method="POST" id="form">
+            <form class="form-valide" action="{{url_for('orientacao_juridica.editar_orientacao_juridica', id_oj = orientacao.id)}}" method="POST" id="form">
                 
                 {% include "orientacao_juridica_form.html" %}
 
@@ -28,6 +28,7 @@
 {% endblock conteudo %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="{{url_for('static',filename='js/form_utils.js')}}"></script>
 <script src="{{url_for('static',filename='js/orientacao.js')}}"></script>
 <script>
@@ -46,4 +47,20 @@
      }
     });
 </script>
+
+<script src="{{ url_for('static', filename='js/modal_associar_atendido_multiple.js') }}"></script>
+
+<style>
+.modal-backdrop {
+    z-index: 9998 !important;
+}
+.modal {
+    z-index: 9999 !important;
+    padding-left: 250px !important;
+}
+.modal-dialog {
+    margin: 15vh auto 5vh auto !important;
+    max-height: 80vh !important;
+}
+</style>
 {%endblock%}
