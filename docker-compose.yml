@@ -18,10 +18,10 @@ services:
     command: --default-authentication-plugin=mysql_native_password
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: administrator
-      MYSQL_USER: gestaolegal
-      MYSQL_PASSWORD: gestaolegal
-      MYSQL_DATABASE: gestaolegal
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
     ports:
       - '3306:3306'
     expose:
