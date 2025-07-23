@@ -1,21 +1,37 @@
+import json
+from datetime import datetime
 from typing import Any
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
+from flask_login import current_user
 from sqlalchemy import Select
 
 from gestaolegal import app, db, login_required
+from gestaolegal.models.atendido import Atendido
 from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 from gestaolegal.plantao.forms.orientacao_juridica_form import (
     CadastroOrientacaoJuridicaForm,
     OrientacaoJuridicaForm,
 )
-from gestaolegal.plantao.models import AssistenciaJudiciaria_xOrientacaoJuridica
+from gestaolegal.plantao.models import (
+    AssistenciaJudiciaria_xOrientacaoJuridica,
+    Atendido_xOrientacaoJuridica,
+)
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
-from gestaolegal.usuario.models import usuario_urole_roles
+from gestaolegal.usuario.models import Usuario, usuario_urole_roles
 from gestaolegal.utils.models import queryFiltradaStatus
 
 orientacao_juridica_controller = Blueprint(
-    "orientacao_juridica", __name__, template_folder="templates"
+    "orientacao_juridica", __name__, template_folder="../templates/orientacao_juridica"
 )
 
 
@@ -157,7 +173,7 @@ def cadastro_orientacao_juridica():
 
             db.session.commit()
             flash("Orientação jurídica cadastrada com sucesso!", "success")
-            return redirect(url_for("orientacoes_juridica.orientacoes_juridicas"))
+            return redirect(url_for("orientacao_juridica.orientacoes_juridicas"))
     return render_template("cadastro_orientacao_juridica.html", form=form)
 
 
@@ -187,16 +203,75 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
         abort(404)
 
     if id_atendido:
-        atendido = (
-            db.session.query(Atendido).filter_by(id=id_atendido, status=True).first()
-        )
-        if not atendido:
-            abort(404)
-        atendido.orientacoes_juridicas.append(orientacao)
-        db.session.commit()
-        flash("Atendido associado à orientação jurídica com sucesso!", "success")
+        try:
+            atendido = (
+                db.session.query(Atendido)
+                .filter_by(id=id_atendido, status=True)
+                .first()
+            )
+            if not atendido:
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify(
+                        {"success": False, "message": "Atendido não encontrado"}
+                    ), 404
+                abort(404)
 
-    return redirect(url_for("orientacoes_juridica.perfil_oj", id=id_orientacao))
+            if orientacao in atendido.orientacoesJuridicas:
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify(
+                        {
+                            "success": False,
+                            "message": "Atendido já está associado a esta orientação jurídica",
+                        }
+                    ), 400
+                flash(
+                    "Atendido já está associado a esta orientação jurídica!", "warning"
+                )
+                return redirect(
+                    url_for("orientacao_juridica.perfil_oj", id=id_orientacao)
+                )
+
+            atendido.orientacoesJuridicas.append(orientacao)
+            db.session.commit()
+
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify(
+                    {
+                        "success": True,
+                        "message": "Atendido associado à orientação jurídica com sucesso!",
+                    }
+                )
+
+            flash("Atendido associado à orientação jurídica com sucesso!", "success")
+            return redirect(url_for("orientacao_juridica.perfil_oj", id=id_orientacao))
+        except Exception as e:
+            db.session.rollback()
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify(
+                    {
+                        "success": False,
+                        "message": f"Erro ao associar atendido: {str(e)}",
+                    }
+                ), 500
+            flash(f"Erro ao associar atendido: {str(e)}", "error")
+            return redirect(url_for("orientacao_juridica.perfil_oj", id=id_orientacao))
+
+    page = request.args.get("page", 1, type=int)
+    per_page = app.config["ATENDIDOS_POR_PAGINA"]
+
+    atendidos_query = (
+        db.session.query(Atendido).filter_by(status=True).order_by(Atendido.nome)
+    )
+    pagination = db.paginate(
+        atendidos_query, page=page, per_page=per_page, error_out=False
+    )
+
+    return render_template(
+        "associa_orientacao_juridica.html",
+        orientacao_entidade=orientacao,
+        pagination=pagination,
+        encaminhar_outras_aj=False,
+    )
 
 
 @orientacao_juridica_controller.route(
@@ -223,7 +298,7 @@ def desassociar_orientacao_juridica(id_atendido, id_orientacao):
     if not atendido:
         abort(404)
 
-    atendido.orientacoes_juridicas.remove(orientacao)
+    atendido.orientacoesJuridicas.remove(orientacao)
     db.session.commit()
     flash("Atendido desassociado da orientação jurídica com sucesso!", "success")
     return redirect(url_for("orientacao_juridica.perfil_oj", id=id_orientacao))
@@ -261,6 +336,43 @@ def perfil_oj(id):
         atendidos=atendidos_envolvidos,
         assistencias=assistencias_envolvidas,
         usuario=usuario or {"nome": "--"},
+    )
+
+
+@orientacao_juridica_controller.route("/buscar_atendidos_ajax")
+@login_required()
+def buscar_atendidos_ajax():
+    termo = request.args.get("termo", "")
+    orientacao_id = request.args.get("orientacao_id")
+    template_type = request.args.get("template", "single")
+
+    query = db.session.query(Atendido).filter(Atendido.status == True)
+
+    if orientacao_id and orientacao_id != "0":
+        query = query.outerjoin(Atendido_xOrientacaoJuridica).filter(
+            (Atendido_xOrientacaoJuridica.id_orientacaoJuridica != int(orientacao_id))
+            | (Atendido_xOrientacaoJuridica.id_orientacaoJuridica.is_(None))
+        )
+
+    if termo:
+        query = query.filter(
+            (Atendido.nome.ilike(f"%{termo}%"))
+            | (Atendido.cpf.ilike(f"%{termo}%"))
+            | (Atendido.cnpj.ilike(f"%{termo}%"))
+        )
+
+    atendidos = query.order_by(Atendido.nome).limit(20).all()
+
+    template_name = (
+        "atendidos_lista_ajax_multiple.html"
+        if template_type == "multiple"
+        else "atendidos_lista_ajax.html"
+    )
+
+    return render_template(
+        f"orientacao_juridica/{template_name}",
+        atendidos=atendidos,
+        termo=termo,
     )
 
 

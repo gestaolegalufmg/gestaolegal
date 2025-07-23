@@ -7,12 +7,12 @@
     {% endfor %}</td>
     <td><a href="{{url_for('orientacao_juridica.perfil_oj', id = orientacao.id)}}" class="btn mb-1 btn-flat btn-primary btn-sm">Visualizar</a></td>
     <td><a href="{{url_for('orientacao_juridica.editar_orientacao_juridica', id_oj = orientacao.id)}}" class="btn mb-1 btn-flat btn-primary btn-sm">Editar</a></td>
-    <td><a href="{{url_for('orientacao_juridica.associacao_orientacao_juridica',id_orientacao = orientacao.id)}}" class="btn mb-1 btn-flat btn-primary btn-sm">Associar</a></td>
+    <td><button type="button" class="btn mb-1 btn-flat btn-primary btn-sm" data-toggle="modal" data-target="#modalAssociarAtendido" data-orientacao-id="{{orientacao.id}}">Associar</button></td>
     <td>
         <form action="{{url_for('orientacao_juridica.excluir_oj')}}" method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
-              <input type="hidden" name="id" value="{{orientacao.id}}">
+              <input type="hidden" name="id_orientacao" value="{{orientacao.id}}">
             </div>
             <button type="submit" class="btn ml-1 btn-flat btn-danger btn-sm"
               onclick="return confirm('Você deseja realmente excluir essa orientação jurídica?');">Excluir</button>

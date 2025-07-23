@@ -11,6 +11,7 @@ from gestaolegal.models.atendido import (
 )
 from gestaolegal.plantao.forms.cadastro_atendido_form import CadastroAtendidoForm
 from gestaolegal.plantao.forms.tornar_assistido_form import TornarAssistidoForm
+from gestaolegal.plantao.models import Assistido
 from gestaolegal.plantao.transforms import (
     build_address_from_form_data,
     build_assistido_from_form_data,
@@ -28,7 +29,7 @@ from gestaolegal.plantao.views_util import (
 from gestaolegal.services.atendido_service import AtendidoService
 from gestaolegal.usuario.models import usuario_urole_roles
 
-atendido_controller = Blueprint("atendido", __name__, template_folder="templates")
+atendido_controller = Blueprint("atendido", __name__)
 
 
 def valida_dados_form(form: CadastroAtendidoForm):
@@ -335,13 +336,13 @@ def tornar_assistido_modal():
         entidade_assistido.participacao_renda = data["participacao_renda"]
         entidade_assistido.tipo_moradia = data["tipo_moradia"]
         entidade_assistido.possui_outros_imoveis = (
-            True if data["possui_outros_imoveis"] == "Não" else False
+            True if data["possui_outros_imoveis"] == "True" else False
         )
         entidade_assistido.quantos_imoveis = (
             0 if data["quantos_imoveis"] == "" else data["quantos_imoveis"]
         )
         entidade_assistido.possui_veiculos = (
-            True if data["possui_veiculos"] == "Não" else False
+            True if data["possui_veiculos"] == "True" else False
         )
         entidade_assistido.doenca_grave_familia = data["doenca_grave_familia"]
         entidade_assistido.obs = data["obs_assistido"]

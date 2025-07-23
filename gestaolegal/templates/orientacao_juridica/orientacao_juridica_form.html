@@ -369,7 +369,7 @@
         <div>
             <button type="button"
                 class="btn btn-outline-primary btn-lg d-flex justify-content-center align-items-center"
-                style="gap: 0.5rem" id="openModal">
+                style="gap: 0.5rem" data-toggle="modal" data-target="#modalAssociarAtendidoMultiple">
                 <span class="align-middle">Associar atendidos</span>
                 <i class="fas fa-plus"></i>
             </button>
@@ -377,53 +377,7 @@
     </div>
 </div>
 
-<!-- Modal -->
-<div class="s-container-modal ">
-    <div class="s-modal" style="overflow: hidden auto;">
-        <div class="s-modal-header position-relative">
-            <h5>Associar atendidos</h5>
-            <p>Selecione as pessoas para associar à Orientação Jurídica</p>
-            <span class="close">
-                <i class="fas fa-times"></i>
-            </span>
-        </div>
-        <div class="s-modal-body">
-            <div class="d-flex justify-content-between">
-                <div class="col-5 px-0 search">
-                    <div class="border d-flex align-items-center border rounded-lg">
-                        <label for="search" class="m-0"><i class="fas fa-search"></i></label>
-                        <input type="text" name="search" id="search" class="p-0">
-                    </div>
-                </div>
-                <div class="col-5 d-flex justify-content-end align-items-center result">
-                    <div class="d-flex">
-                        <p class="mb-0">Total de atendidos</p>
-                        <div class="d-flex align-items-center ml-2">
-                            <span class="badge-atendidos badge badge-pill bg-primary text-light">000</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="lista-atendidos">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th><input type="checkbox" id="checkall"></th>
-                            <th>Nome</th>
-                            <th>CPF</th>
-                            <th>Celular</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="s-modal-footer d-flex justify-content-end">
-            <button type="button" class="btn btn-lg btn-primary" id="associados-checked" disabled>Associar
-                Selecionados</button>
-        </div>
-    </div>
-</div>
+{% include 'orientacao_juridica/components/modal_associar_atendido_multiple.html' %}
 <div class="a-container-modal ">
     <div class="a-modal">
         <div class="s-modal-header position-relative">
@@ -512,157 +466,9 @@
             })
         })
     }
-    document.querySelector("#openModal").addEventListener("click", async () => {
-        let modal = document.querySelector(".s-container-modal");
-        modal.classList.toggle("modal-active");
-
-        if (modal.classList.value.includes("modal-active")) {
-            let data = await atendidos();
-            document.querySelector(".badge-atendidos").textContent = data.length;
-            if (data.length > 50) {
-                for (let i = 0; i < 50; i++) {
-                    document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
-                        <tr data-list="${i}">
-                            <td>
-                                <input type="checkbox" name="atendidos[]">
-                            </td>
-                            <td>${data[i].nome}</td>
-                            <td>${data[i].cpf}</td>
-                            <td>${data[i].celular}</td>
-                        </tr>
-                    `)
-                }
-            }
-            else {
-                data.map((atendido, index) => {
-                    document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
-                        <tr data-list="${index}">
-                            <td>
-                                <input type="checkbox" name="atendidos[]">
-                            </td>
-                            <td>${atendido.nome}</td>
-                            <td>${atendido.cpf}</td>
-                            <td>${atendido.celular}</td>
-                        </tr>
-                    `)
-                })
-            }
-            atendidosSelecionados()
-        }
-
-        if (lista.selected) {
-            let tableRow = document.querySelectorAll(".lista-atendidos > table > tbody > tr")
-            lista.selected.map(item => {
-                tableRow.forEach((row) => {
-                    console.log(row.children[1].textContent === item.cpf && row.children[0].children[0])
-                    row.children[2].textContent === item.cpf ? row.children[0].children[0].click() : ""
-                })
-            })
-        }
-    });
-
-    document.querySelector(".s-modal .close").addEventListener("click", () => {
-        document.querySelector(".s-container-modal").classList.remove("modal-active");
-        document.querySelector(".lista-atendidos > table > tbody").innerHTML = "";
-    })
-    document.querySelector(".a-modal .close").addEventListener("click", () => {
-        document.querySelector(".a-container-modal").classList.remove("modal-active");
-    })
-
-    document.querySelector(".s-modal .search").addEventListener("input", (e) => {
-        let search = lista.atendidos;
-        // search.map((item, index) => {
-        //     if (e.target.value !== "") {
-        //         !item.nome.toLowerCase().includes(e.target.value.toLowerCase()) ? document.querySelector(`tr[data-list='${index}']`).style.display = "none" : "";
-        //     }
-        // })
-        if (e.target.value !== "") {
-            document.querySelector(".lista-atendidos tbody").innerHTML = "";
-            search.map((item, index) => {
-                if (item.nome.toLowerCase().includes(e.target.value.toLowerCase())) {
-                    document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
-                        <tr data-list="${index}">
-                            <td>
-                                <input type="checkbox" name="atendidos[]">
-                            </td>
-                            <td>${item.nome}</td>
-                            <td>${item.cpf}</td>
-                            <td>${item.celular}</td>
-                        </tr>
-                    `)
-                }
-            })
-        }
-        else {
-            for (let i = 0; i < 50; i++) {
-                document.querySelector(".lista-atendidos > table > tbody").insertAdjacentHTML("beforeEnd", `
-                        <tr data-list="${i}">
-                            <td>
-                                <input type="checkbox" name="atendidos[]">
-                            </td>
-                            <td>${data[i].nome}</td>
-                            <td>${data[i].cpf}</td>
-                            <td>${data[i].celular}</td>
-                        </tr>
-                    `)
-            }
-        }
-        atendidosSelecionados()
-    });
-
-
-    document.querySelector("#checkall").addEventListener("click", (e) => {
-        let checkall = e.target;
-        Array.from(document.querySelectorAll("tbody input")).map(item => item.checked !== checkall.checked ? item.click() : "");
-    })
-
     document.querySelector("#encaminhar_outras_aj").addEventListener("change", (e) => {
         document.querySelector(".search-aj").style.display = e.target.value === "True" ? "block" : "none";
         if (e.target.value !== "True") document.querySelector("#assistencia_judiciaria").value = "";
-    })
-
-    document.querySelector("#associados-checked").addEventListener("click", () => {
-        let itemsSelected = document.querySelectorAll("tbody input:checked");
-        let arrayList = [];
-        Array.from(itemsSelected).map((item, index) => {
-            let element = item.parentElement.parentElement;
-            element.classList.value.includes("row-active") ? arrayList.push(lista.atendidos[element.dataset.list]) : "";
-        })
-        lista.selected = arrayList;
-
-        if (lista.selected.length > 0) {
-            const listaAtendidos = document.querySelector("#lista-atendidos");
-            const containerAtendidos = document.querySelector("#atendidos > div > p");
-            if (listaAtendidos) {
-                listaAtendidos.remove();
-            }
-            containerAtendidos.insertAdjacentHTML("afterend", `
-                <div id="lista-atendidos">
-                    <table class="table table-striped">
-                        <tbody></tbody>
-                    </table>
-                </div>
-            `)
-        }
-        const tableListaAtendidos = document.querySelector("#lista-atendidos .table tbody");
-        lista.selected.map(row => {
-            tableListaAtendidos.insertAdjacentHTML("beforeend", `
-                <tr>
-                    <td>${row.nome}</td>
-                    <td>${row.cpf}</td>
-                    <td>${row.celular}</td>
-                    <td>
-                        <a href="/atendido/perfil_assistido/${row.id}" target="_blank" class="btn btn-sm btn-info">visualizar</a>
-                    </td>
-                </tr>
-            `);
-        })
-        document.querySelector(".s-modal .close").click();
-        let obj = { id: [] };
-        lista.selected.map(item => obj.id.push(item.id))
-        document.querySelector('#form').insertAdjacentHTML("afterbegin", `
-            <input id="listaAtendidos" type="hidden" name="listaAtendidos" value=${JSON.stringify(obj)} />
-        `)
     })
     document.querySelector("#search-aj").addEventListener("input", (e) => {
         let value = e.target.value
@@ -679,3 +485,5 @@
     })
     assistencia_judiciarias();
 </script>
+
+
