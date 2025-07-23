@@ -339,6 +339,7 @@ dependencies = [
     { name = "marshmallow-sqlalchemy" },
     { name = "pymysql" },
     { name = "python-dateutil" },
+    { name = "python-dotenv" },
     { name = "python-editor" },
     { name = "pytz" },
     { name = "sqlalchemy" },
@@ -376,6 +377,7 @@ requires-dist = [
     { name = "pytest-base-url", marker = "extra == 'dev'", specifier = ">=2.1.0" },
     { name = "pytest-playwright", marker = "extra == 'dev'", specifier = "==0.7.0" },
     { name = "python-dateutil", specifier = "==2.8.1" },
+    { name = "python-dotenv", specifier = "==1.0.0" },
     { name = "python-editor", specifier = "==1.0.4" },
     { name = "pytz" },
     { name = "sqlalchemy", specifier = "==2.0.27" },
@@ -680,6 +682,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/be/ed/5bbc91f03fa4c839c4c7360375da77f9659af5f7086b7a7bdda65771c8e0/python-dateutil-2.8.1.tar.gz", hash = "sha256:73ebfe9dbf22e832286dafa60473e4cd239f8592f699aa5adaf10050e6e1823c", size = 331745, upload-time = "2019-11-03T05:42:03.923Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d4/70/d60450c3dd48ef87586924207ae8907090de0b306af2bce5d134d78615cb/python_dateutil-2.8.1-py2.py3-none-any.whl", hash = "sha256:75bb3f31ea686f1197762692a9ee6a7550b59fc6ca3a1f4b5d7e32fb98e2da2a", size = 227183, upload-time = "2019-11-03T05:42:01.643Z" },
+]
+
+[[package]]
+name = "python-dotenv"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/06/1ef763af20d0572c032fa22882cfbfb005fba6e7300715a37840858c919e/python-dotenv-1.0.0.tar.gz", hash = "sha256:a8df96034aae6d2d50a4ebe8216326c61c3eb64836776504fcca410e5937a3ba", size = 37399, upload-time = "2023-02-24T06:46:37.282Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/2f/62ea1c8b593f4e093cc1a7768f0d46112107e790c3e478532329e434f00b/python_dotenv-1.0.0-py3-none-any.whl", hash = "sha256:f5971a9226b701070a4bf2c38c89e5a3f0d64de8debda981d1db98583009122a", size = 19482, upload-time = "2023-02-24T06:46:36.009Z" },
 ]
 
 [[package]]
