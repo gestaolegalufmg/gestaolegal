@@ -9,7 +9,7 @@ description = "Sistema de Gestão Legal"
 requires-python = ">=3.11"
 dependencies = [
     "alembic==1.13.1",
-    "certifi==2019.11.28",
+    "certifi==2024.7.4",
     "email_validator==2.1.0.post1",
     "flask==3.1.0",
     "flask-bcrypt",
