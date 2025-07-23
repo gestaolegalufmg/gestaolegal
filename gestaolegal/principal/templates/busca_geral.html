@@ -76,6 +76,64 @@
         </div>
       </div>
 
+      <div class="card">
+        <div class="card-header">
+          <h4>Orientações Jurídicas</h4>
+        </div>
+        <div class="card-body">
+          {% if orientacoes_juridicas and orientacoes_juridicas.pages > 0 %}
+            <nav class="d-inline-block">
+              <ul class="pagination mb-0">
+                {% if orientacoes_juridicas.has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('principal.busca_geral', page_caso=orientacoes_juridicas.prev_num, busca_atual=busca_atual) }}">← Previous</a>
+                  </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                  <span class="page-link">Page {{ orientacoes_juridicas.page }} of {{ orientacoes_juridicas.pages }}</span>
+                </li>
+                
+                {% if orientacoes_juridicas.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('principal.busca_geral', page_caso=orientacoes_juridicas.next_num, busca_atual=busca_atual) }}">Next →</a>
+                  </li>
+                {% endif %}
+              </ul>
+            </nav>
+          {% endif %}
+
+          {% if orientacoes_juridicas and orientacoes_juridicas.items %}
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th scope="col">Número</th>
+                <th scope="col">Área do direito</th>
+                <th scope="col">Data de criação</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for orientacao in orientacoes_juridicas.items %}
+              <tr>
+                <td>{{orientacao.id}}</td>
+                <td>{{orientacao.area_direito}}</td>
+                <td>{{orientacao.data_criacao.strftime('%d/%m/%Y') if orientacao.data_criacao else '--'}}</td>
+                <td>
+                  <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                    href="{{url_for('orientacao_juridica.perfil_oj', id = orientacao.id)}}"
+                    style="text-decoration: none;color: white;">Visualizar</a></button>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <h3>Nenhuma correspondência encontrada</h3>
+          {% endif %}
+        </div>
+      </div>
+
         <div class="card">
             <div class="card-header">
               <h4>Usuários do Sistema</h4>
