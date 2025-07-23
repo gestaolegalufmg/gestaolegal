@@ -324,8 +324,16 @@ def formatarNomeDoUsuario(id_usuario):
         return "Não Há"
 
 
+def formatarSituacaoDeferimento(situacao):
+    for key in situacao_deferimento:
+        if situacao_deferimento[key][0] == situacao:
+            return situacao_deferimento[key][1]
+    return situacao
+
+
 app.jinja_env.globals.update(formatarTipoDeEvento=formatarTipoDeEvento)
 app.jinja_env.globals.update(formatarNomeDoUsuario=formatarNomeDoUsuario)
+app.jinja_env.globals.update(formatarSituacaoDeferimento=formatarSituacaoDeferimento)
 
 #############################################################
 ################## CONFIGURA LOGIN ##########################

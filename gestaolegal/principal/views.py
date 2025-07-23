@@ -2,7 +2,7 @@ from flask import Blueprint, flash, redirect, render_template, request
 from sqlalchemy import and_, or_
 
 from gestaolegal import app, db, login_required
-from gestaolegal.casos.models import Caso
+from gestaolegal.casos.models import Caso, associacao_casos_atendidos
 from gestaolegal.models.atendido import Atendido
 from gestaolegal.plantao.models import Assistido, AssistidoPessoaJuridica
 from gestaolegal.usuario.models import Usuario
@@ -125,6 +125,17 @@ def busca_geral():
     if busca.isdigit():
         casos_stmt = select(Caso).where(
             and_(Caso.status == True, Caso.id == int(busca))
+        )
+        casos = create_pagination(casos_stmt, page_caso, app.config["CASOS_POR_PAGINA"])
+    elif busca.strip():
+        casos_stmt = (
+            select(Caso)
+            .join(associacao_casos_atendidos)
+            .join(Atendido)
+            .where(Caso.status == True)
+            .where(Atendido.status == True)
+            .where(Atendido.nome.ilike(f"%{busca}%"))
+            .order_by(Caso.id)
         )
         casos = create_pagination(casos_stmt, page_caso, app.config["CASOS_POR_PAGINA"])
 

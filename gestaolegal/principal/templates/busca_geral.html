@@ -52,7 +52,15 @@
               <tr>
                 <td>{{caso.id}}</td>
                 <td>{{caso.area_direito}}</td>
-                <td>{{caso.situacao_deferimento}}</td>
+                <td>
+                  {% for key in situacao_deferimento %}
+                    {% if situacao_deferimento[key][0] == caso.situacao_deferimento %}
+                      <span class="badge badge-{{situacao_deferimento[key][2]}}">
+                        {{situacao_deferimento[key][1]}}
+                      </span>
+                    {% endif %}
+                  {% endfor %}
+                </td>
                 <td>
                   <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
                     href="{{url_for('casos.visualizar_caso', id = caso.id)}}"
