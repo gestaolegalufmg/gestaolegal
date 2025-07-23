@@ -14,7 +14,9 @@ from flask import (
 from flask_login import current_user
 
 from gestaolegal import app, db, login_required
+from gestaolegal.models.atendido import Atendido
 from gestaolegal.models.endereco import Endereco
+from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 from gestaolegal.notificacoes.models import Notificacao, acoes
 from gestaolegal.plantao.forms import (
     AbrirPlantaoForm,
@@ -58,6 +60,18 @@ data_atual = datetime.now().date()
 )
 def busca_atendidos_oj(_busca):
     page = request.args.get("page", 1, type=int)
+    id_orientacao_entidade = request.args.get("id_orientacao_entidade")
+    encaminhar_outras_aj = request.args.get("encaminhar_outras_aj", "False")
+
+    # Get the orientacao juridica
+    orientacao_entidade = None
+    if id_orientacao_entidade:
+        orientacao_entidade = (
+            db.session.query(OrientacaoJuridica)
+            .filter_by(id=id_orientacao_entidade, status=True)
+            .first()
+        )
+
     query = db.session.query(Atendido).filter(Atendido.status == True)
 
     if _busca:
@@ -71,7 +85,13 @@ def busca_atendidos_oj(_busca):
         page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
     )
 
-    return render_template("busca_atendidos_oj.html", atendidos=atendidos, busca=_busca)
+    return render_template(
+        "orientacao_juridica/busca_atendidos_oj.html",
+        atendidos=atendidos,
+        busca=_busca,
+        orientacao_entidade=orientacao_entidade,
+        encaminhar_outras_aj=encaminhar_outras_aj,
+    )
 
 
 # Página de plantao
@@ -928,6 +948,8 @@ def pegar_atendimentos():
             {
                 "id": f.id,
                 "nome": f.atendido.nome,
+                "cpf": f.atendido.cpf,
+                "celular": f.atendido.celular,
                 "senha": f.senha,
                 "hora": f.data_criacao,
                 "prioridade": f.prioridade,

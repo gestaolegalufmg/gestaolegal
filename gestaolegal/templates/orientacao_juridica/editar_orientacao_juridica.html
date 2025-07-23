@@ -28,6 +28,7 @@
 {% endblock conteudo %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="{{url_for('static',filename='js/form_utils.js')}}"></script>
 <script src="{{url_for('static',filename='js/orientacao.js')}}"></script>
 <script>
@@ -46,4 +47,20 @@
      }
     });
 </script>
+
+<script src="{{ url_for('static', filename='js/modal_associar_atendido_multiple.js') }}"></script>
+
+<style>
+.modal-backdrop {
+    z-index: 9998 !important;
+}
+.modal {
+    z-index: 9999 !important;
+    padding-left: 250px !important;
+}
+.modal-dialog {
+    margin: 15vh auto 5vh auto !important;
+    max-height: 80vh !important;
+}
+</style>
 {%endblock%}

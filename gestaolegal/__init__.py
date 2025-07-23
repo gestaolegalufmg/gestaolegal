@@ -361,14 +361,14 @@ def login_required(role=["ANY"]):
 
 from gestaolegal.arquivos.views import arquivos
 from gestaolegal.casos.views import casos
-from gestaolegal.notificacoes.views import notificacoes
-from gestaolegal.plantao.assistencia_judiciaria_controller import (
+from gestaolegal.controllers.assistencia_judiciaria_controller import (
     assistencia_judiciaria_controller,
 )
-from gestaolegal.plantao.atendido_controller import atendido_controller
-from gestaolegal.plantao.orientacao_juridica_controller import (
+from gestaolegal.controllers.atendido_controller import atendido_controller
+from gestaolegal.controllers.orientacao_juridica_controller import (
     orientacao_juridica_controller,
 )
+from gestaolegal.notificacoes.views import notificacoes
 from gestaolegal.plantao.views import plantao
 
 #############################################################

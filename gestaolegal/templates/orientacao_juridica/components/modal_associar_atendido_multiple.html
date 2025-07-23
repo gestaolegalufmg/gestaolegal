@@ -1,0 +1,42 @@
+<!-- Modal para Associar Atendido (Multiple Selection) -->
+<div class="modal fade" id="modalAssociarAtendidoMultiple" tabindex="-1" role="dialog" aria-labelledby="modalAssociarAtendidoMultipleLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalAssociarAtendidoMultipleLabel">Associar Atendidos à Orientação Jurídica</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="buscaAtendidoMultiple">Buscar Atendido:</label>
+                    <input type="text" class="form-control" id="buscaAtendidoMultiple" placeholder="Digite o nome, CPF ou CNPJ do atendido...">
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped" id="tabelaAtendidosMultiple">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="checkallMultiple"></th>
+                                <th>Nome</th>
+                                <th>CPF/CNPJ</th>
+                                <th>Celular</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyAtendidosMultiple">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="loadingAtendidosMultiple" class="text-center" style="display: none;">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Carregando...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" id="associarSelecionados" disabled>Associar Selecionados</button>
+            </div>
+        </div>
+    </div>
+</div> 

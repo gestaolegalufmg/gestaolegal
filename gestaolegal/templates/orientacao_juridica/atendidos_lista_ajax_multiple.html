@@ -1,0 +1,22 @@
+{% if atendidos %}
+    {% for atendido in atendidos %}
+    <tr>
+        <td>
+            <input type="checkbox" data-atendido-id="{{ atendido.id }}">
+        </td>
+        <td>{{ atendido.nome or '--' }}</td>
+        <td>{{ atendido.cpf or atendido.cnpj or '--' }}</td>
+        <td>{{ atendido.celular or '--' }}</td>
+    </tr>
+    {% endfor %}
+{% else %}
+    <tr>
+        <td colspan="4" class="text-center">
+            {% if termo %}
+                Nenhum atendido encontrado com o termo "{{ termo }}"
+            {% else %}
+                Nenhum atendido disponível para associação
+            {% endif %}
+        </td>
+    </tr>
+{% endif %} 

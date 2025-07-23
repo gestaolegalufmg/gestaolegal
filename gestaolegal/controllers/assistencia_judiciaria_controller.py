@@ -34,7 +34,9 @@ from gestaolegal.usuario.models import (
 )
 
 assistencia_judiciaria_controller = Blueprint(
-    "assistencia_judiciaria", __name__, template_folder="templates"
+    "assistencia_judiciaria",
+    __name__,
+    template_folder="../templates/assistencia_judiciaria",
 )
 
 
@@ -54,19 +56,56 @@ def encaminha_assistencia_judiciaria(id_orientacao: int):
 
     if not orientacao:
         abort(404)
+
+    if request.method == "GET":
+        form = AssistenciaJudiciariaForm()
+        return render_template(
+            "encaminha_assistencia_judiciaria.html",
+            form=form,
+            id_orientacao=id_orientacao,
+        )
+
     form = AssistenciaJudiciariaForm()
-    if request.method == "POST":
-        if form.validate():
-            aj_oj = AssistenciaJudiciaria_xOrientacaoJuridica()
-            aj_oj.id_orientacaoJuridica = orientacao.id
-            aj_oj.id_assistenciaJudiciaria = form.areas_atendidas.data
-            db.session.add(aj_oj)
-            db.session.commit()
-            flash("Assistência judiciária cadastrada com sucesso!", "success")
-            return redirect(
-                url_for("assistencia_judiciaria.listar_assistencias_judiciarias")
-            )
-    return render_template("cadastro_assistencia_judiciaria.html", form=form)
+
+    if form.validate():
+        endereco = Endereco(
+            logradouro=form.logradouro.data,
+            numero=form.numero.data,
+            complemento=form.complemento.data,
+            bairro=form.bairro.data,
+            cep=form.cep.data,
+            cidade=form.cidade.data,
+            estado=form.estado.data,
+        )
+        db.session.add(endereco)
+        db.session.flush()
+
+        assistencia = AssistenciaJudiciaria(
+            nome=form.nome.data,
+            regiao=form.regiao.data,
+            telefone=form.telefone.data,
+            email=form.email.data,
+            status=1,
+            endereco_id=endereco.id,
+        )
+        assistencia.setAreas_atendidas(form.areas_atendidas.data)
+        db.session.add(assistencia)
+        db.session.flush()
+
+        aj_oj = AssistenciaJudiciaria_xOrientacaoJuridica()
+        aj_oj.id_orientacaoJuridica = orientacao.id
+        aj_oj.id_assistenciaJudiciaria = assistencia.id
+        db.session.add(aj_oj)
+
+        db.session.commit()
+        flash("Assistência judiciária cadastrada e associada com sucesso!", "success")
+        return redirect(
+            url_for("assistencia_judiciaria.listar_assistencias_judiciarias")
+        )
+
+    return render_template(
+        "encaminha_assistencia_judiciaria.html", form=form, id_orientacao=id_orientacao
+    )
 
 
 @assistencia_judiciaria_controller.route(

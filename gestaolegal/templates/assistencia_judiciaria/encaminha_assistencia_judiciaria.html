@@ -1,88 +1,47 @@
-{% extends "base_dashboard.html" %}
+{% extends "base_form.html" %}
 
 {% block titulo %}
-  Encaminhar para outras Assistências Judiciárias
+  Encaminhar para Assistência Judiciária
 {% endblock titulo %}
 
 {% block css %}
+<style>
+    input[type=number]::webkit-inner-spin-button,
+    input[type=number]::webkit-outer-spin-button{
+        -webkit-appearence:none!important;
+        margin:0!important;
+    }
+    input[type=number] {
+    -moz-appearance:textfield;
+    }
+    
+</style>
 <!-- jQuery select2 -->
 <link rel="stylesheet" href="{{url_for('static', filename='temas_externos/select2.min.css')}}">
 {% endblock %}
 
 {% block conteudo %}
-<div class="card">
-  <div class="card-body">
-    <div class="card-title">
-
-      <form class="form-valide" action="" method="POST" id="form_multiselect_aj">
-        <input type="hidden" id="csrf_token" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="row" id="div_multiselect_aj">
-          <div class="col-lg-12">
-            <div class="form-group">
-              <label class="" for="id_multiselect_aj">Assistências Judiciárias: </label>
-              <select class="multiselect_aj form-control" multiple="multiple" id="id_multiselect_aj" name="multiselect_aj[]">
-               {% for aj in assistencias_judiciarias %}
-               <option value="{{aj.id}}">{{aj.nome}}</option>
-               {% endfor %}
-              </select>
-              <button type="submit" class="btn btn-flat btn-primary mt-2" name="button">
-                Confirmar associação
-              </button>
-            </div>
-          </div>
+<div class="card pessoa" id="pessoa">
+    <div class="card-body">
+        <div class="form-group row">
+            <h4>Cadastrar Nova Assistência Judiciária e Associar à Orientação</h4>
         </div>
-      </form>
-
+        <div class="form-validation">
+            <form class="form-valide" action="#" method="POST" id="form">
+                {% include "assistencia_judiciaria_form.html" %}
+                {{form.submit(class_="btn btn-primary")}}
+            </form>
+        </div>
     </div>
-  </div>
 </div>
-
-{%endblock%}
+{% endblock %}
 
 {% block scripts %}
 <!-- jQuery select2 -->
 <script src="{{url_for('static', filename='js/select2.min.js')}}"></script>
-
-<script> 
-
-  $(document).ready(function() {
-
-    //ajax do multiselect de assistências judiciárias
-    let token = document.getElementById('csrf_token').value;
-    let arr = [];
-    
-    $('.multiselect_aj').select2();
-
-    $('#id_multiselect_aj').on({
-      change: (event) => {
-       let ids = [];
-       let options = $('#id_multiselect_aj option:checked');
-       let values = $.map(options, (option) => {
-         return ids.push(option.value);
-       });
-       console.log(ids);
-       arr.push(ids);
-      }
+<script>
+    $(document).ready(() => {
+        $('#areas_atendidas').select2({});
     });
-
-    $('#form_multiselect_aj').on({
-      submit: (event) => {
-        let dado = arr[arr.length - 1];
-
-        $.ajax({
-         type: "POST",
-         url: "{{url_for('plantao.encaminha_assistencia_judiciaria',id_orientacao = id_orientacao)}}",
-         headers: {
-          'X-CSRF-Token': token
-         },
-         dataType: 'application/json',
-         data: {'dados': dado},
-       });
-  
-      }
-    });
-
-  });
 </script>
-
 {% endblock %}
