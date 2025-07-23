@@ -11,6 +11,7 @@ from gestaolegal.models.atendido import (
 )
 from gestaolegal.plantao.forms.cadastro_atendido_form import CadastroAtendidoForm
 from gestaolegal.plantao.forms.tornar_assistido_form import TornarAssistidoForm
+from gestaolegal.plantao.models import Assistido
 from gestaolegal.plantao.transforms import (
     build_address_from_form_data,
     build_assistido_from_form_data,
@@ -28,7 +29,7 @@ from gestaolegal.plantao.views_util import (
 from gestaolegal.services.atendido_service import AtendidoService
 from gestaolegal.usuario.models import usuario_urole_roles
 
-atendido_controller = Blueprint("atendido", __name__, template_folder="templates")
+atendido_controller = Blueprint("atendido", __name__)
 
 
 def valida_dados_form(form: CadastroAtendidoForm):
@@ -305,3 +306,70 @@ def editar_assistido(id_atendido: int):
         atendido=assistido.atendido,
         assistido=assistido,
     )
+
+
+@atendido_controller.route("/tornar_assistido_modal/", methods=["GET", "POST"])
+@login_required(
+    role=[
+        usuario_urole_roles["ADMINISTRADOR"][0],
+        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
+    ]
+)
+def tornar_assistido_modal():
+    if request.method == "GET":
+        return json.dumps({"hello": "world"})
+    data = request.get_json(silent=True, force=True)
+    if data["action"] == "modal":
+        entidade_assistido = Assistido()
+        entidade_assistido.id_atendido = data["id_atendido"]
+        entidade_assistido.sexo = data["sexo"]
+        entidade_assistido.raca = data["raca"]
+        entidade_assistido.profissao = data["profissao"]
+        entidade_assistido.rg = data["rg"]
+        entidade_assistido.grau_instrucao = data["grau_instrucao"]
+        entidade_assistido.salario = data["salario"]
+        entidade_assistido.beneficio = data["beneficio"]
+        entidade_assistido.qual_beneficio = data["qual_beneficio"]
+        entidade_assistido.contribui_inss = data["contribui_inss"]
+        entidade_assistido.qtd_pessoas_moradia = data["qtd_pessoas_moradia"]
+        entidade_assistido.renda_familiar = data["renda_familiar"]
+        entidade_assistido.participacao_renda = data["participacao_renda"]
+        entidade_assistido.tipo_moradia = data["tipo_moradia"]
+        entidade_assistido.possui_outros_imoveis = (
+            True if data["possui_outros_imoveis"] == "True" else False
+        )
+        entidade_assistido.quantos_imoveis = (
+            0 if data["quantos_imoveis"] == "" else data["quantos_imoveis"]
+        )
+        entidade_assistido.possui_veiculos = (
+            True if data["possui_veiculos"] == "True" else False
+        )
+        entidade_assistido.doenca_grave_familia = data["doenca_grave_familia"]
+        entidade_assistido.obs = data["obs_assistido"]
+
+        entidade_assistido.setCamposVeiculo(
+            entidade_assistido.possui_veiculos,
+            data["possui_veiculos_obs"],
+            0 if data["quantos_veiculos"] == "" else data["quantos_veiculos"],
+            data["ano_veiculo"],
+        )
+        entidade_assistido.setCamposDoenca(
+            entidade_assistido.doenca_grave_familia,
+            data["pessoa_doente"],
+            data["pessoa_doente_obs"],
+            0 if data["gastos_medicacao"] == "" else data["gastos_medicacao"],
+        )
+        db.session.add(entidade_assistido)
+        db.session.commit()
+
+        return json.dumps(
+            {
+                "status": "success",
+                "message": "Assistido cadastrado com sucesso!",
+                "id": data["id_atendido"],
+            }
+        )
+    else:
+        return json.dumps(
+            {"status": "error", "message": "Campo de ação não encontrado"}
+        )

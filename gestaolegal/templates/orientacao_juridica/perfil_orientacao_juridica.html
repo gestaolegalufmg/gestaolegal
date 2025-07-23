@@ -68,7 +68,9 @@
                 <div class="card-header">
                     <h4>Partes Envolvidas</h4>
                     <div class="card-header-action">
-                        <a href="{{url_for('plantao.associacao_orientacao_juridica',id_orientacao = orientacao.id)}}" class="btn btn-info">Associar Novo Atendido</a>
+                        <button type="button" class="btn btn-info" data-toggle="modal" data-target="#modalAssociarAtendido">
+                            Associar Novo Atendido
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -87,7 +89,7 @@
                                 </div>
 
                                 <div class="card-header-action">
-                                    <a href="{{url_for('plantao.desassociar_orientacao_juridica',id_orientacao=orientacao.id, id_atendido=atendido.id)}}" class="btn btn-danger">X</a>
+                                    <a href="{{url_for('orientacao_juridica.desassociar_orientacao_juridica',id_orientacao=orientacao.id, id_atendido=atendido.id)}}" class="btn btn-danger">X</a>
                                 </div>
         
                             </div>
@@ -96,7 +98,7 @@
                     {% else %}
                         <div class="row justify-content-between">
                             <div class="col-10"><h4>Nenhum atendido foi a associado a este caso.</h4></div>
-                            <div class="ml-auto"><a href="{{url_for('plantao.associacao_orientacao_juridica', id_orientacao = orientacao.id)}}" class="btn btn-primary">Associar</a></div>
+                            <div class="ml-auto"><button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modalAssociarAtendido">Associar</button></div>
                         </div>
                     {% endif %}
                 </div>
@@ -107,7 +109,7 @@
                 <div class="card-header">
                     <h4>Encaminhamento para outras Assistências Judiciárias</h4>
                     <div class="card-header-action">
-                        <a href="{{url_for('plantao.encaminha_assistencia_judiciaria',id_orientacao = orientacao.id)}}" class="btn btn-info">Encaminhar</a>
+                        <a href="{{url_for('assistencia_judiciaria.encaminha_assistencia_judiciaria',id_orientacao = orientacao.id)}}" class="btn btn-info">Encaminhar</a>
                     </div>
                 </div>
                 <div class="card-body">
@@ -127,7 +129,7 @@
                                                 {% endfor %}
                                     </h4>
                                     <div class="card-header-action">
-                                            <a href="{{url_for('plantao.perfil_assistencia_judiciaria', _id=assistencia.id_assistenciaJudiciaria)}}" class="btn btn-primary">Visualizar</a>
+                                            <a href="{{url_for('assistencia_judiciaria.perfil_assistencia_judiciaria', _id=assistencia.id_assistenciaJudiciaria)}}" class="btn btn-primary">Visualizar</a>
                                     </div>
                                 </div>
                             </div>
@@ -141,4 +143,26 @@
             </div>
         </div>
     </div>
+
+    {% include 'orientacao_juridica/components/modal_associar_atendido.html' %}
 {% endblock conteudo %}
+
+{% block scripts %}
+<style>
+.modal-backdrop {
+    z-index: 9998 !important;
+}
+.modal {
+    z-index: 9999 !important;
+    padding-left: 250px !important;
+}
+.modal-dialog {
+    margin: 15vh auto 5vh auto !important;
+    max-height: 80vh !important;
+}
+</style>
+<script>
+    window.currentOrientacaoId = {{ orientacao.id }};
+</script>
+<script src="{{ url_for('static', filename='js/modal_associar_atendido.js') }}"></script>
+{% endblock %}

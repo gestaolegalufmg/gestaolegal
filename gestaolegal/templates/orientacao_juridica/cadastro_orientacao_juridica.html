@@ -480,7 +480,7 @@
             return;
         }
 
-        let data = await fetch("/tornar_assistido/tornar_assistido_modal/", {
+        let data = await fetch("/atendido/tornar_assistido_modal/", {
             method: "POST",
             headers: {
                 'X-CSRF-Token': "{{ csrf_token() }}"
@@ -643,4 +643,20 @@
         }
     }
 </script>
+
+<script src="{{ url_for('static', filename='js/modal_associar_atendido_multiple.js') }}"></script>
+
+<style>
+.modal-backdrop {
+    z-index: 9998 !important;
+}
+.modal {
+    z-index: 9999 !important;
+    padding-left: 250px !important;
+}
+.modal-dialog {
+    margin: 15vh auto 5vh auto !important;
+    max-height: 80vh !important;
+}
+</style>
 {%endblock%}

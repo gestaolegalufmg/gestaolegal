@@ -16,7 +16,7 @@
                 <input type="hidden" id="url{{atendido.id}}" value="{{url_for('plantao.associacao_orientacao_juridica', id_orientacao = orientacao_entidade.id, id_atendido=atendido.id, encaminhar_outras_aj=encaminhar_outras_aj)}}">
                 <input type="hidden" id="nome{{atendido.id}}" value="{{atendido.nome}}">
             {% else %}
-              <form class="form-valide" action="{{url_for('plantao.associacao_orientacao_juridica', id_orientacao = orientacao_entidade.id, id_atendido=atendido.id)}}" method="POST">
+              <form class="form-valide" action="{{url_for('orientacao_juridica.associacao_orientacao_juridica', id_orientacao = orientacao_entidade.id, id_atendido=atendido.id)}}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button">Associar à Orientação Jurídica</button>
               </form>

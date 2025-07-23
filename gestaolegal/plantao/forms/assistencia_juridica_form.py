@@ -56,65 +56,32 @@ class AssistenciaJudiciariaForm(EnderecoForm):
         validators=[DataRequired("Escolha pelo menos uma área do Direito!")],
     )
 
-    regiao = SelectField(
-        "Região",
-        choices=[
-            (assistencia_jud_regioes["NORTE"][0], assistencia_jud_regioes["NORTE"][1]),
-            (assistencia_jud_regioes["SUL"][0], assistencia_jud_regioes["SUL"][1]),
-            (assistencia_jud_regioes["LESTE"][0], assistencia_jud_regioes["LESTE"][1]),
-            (assistencia_jud_regioes["OESTE"][0], assistencia_jud_regioes["OESTE"][1]),
-            (
-                assistencia_jud_regioes["NOROESTE"][0],
-                assistencia_jud_regioes["NOROESTE"][1],
-            ),
-            (
-                assistencia_jud_regioes["CENTRO_SUL"][0],
-                assistencia_jud_regioes["CENTRO_SUL"][1],
-            ),
-            (
-                assistencia_jud_regioes["NORDESTE"][0],
-                assistencia_jud_regioes["NORDESTE"][1],
-            ),
-            (
-                assistencia_jud_regioes["PAMPULHA"][0],
-                assistencia_jud_regioes["PAMPULHA"][1],
-            ),
-            (
-                assistencia_jud_regioes["BARREIRO"][0],
-                assistencia_jud_regioes["BARREIRO"][1],
-            ),
-            (
-                assistencia_jud_regioes["VENDA_NOVA"][0],
-                assistencia_jud_regioes["VENDA_NOVA"][1],
-            ),
-            (
-                assistencia_jud_regioes["CONTAGEM"][0],
-                assistencia_jud_regioes["CONTAGEM"][1],
-            ),
-            (assistencia_jud_regioes["BETIM"][0], assistencia_jud_regioes["BETIM"][1]),
-        ],
-        validators=[DataRequired(MSG_SelecioneUmaOpcaoLista.format('de "Região"'))],
-    )
-
     telefone = StringField(
         "Telefone",
         validators=[
             DataRequired(MSG_NaoPodeEstarEmBranco.format("O telefone")),
             Length(
-                max=FIELD_LIMITS["celular"],
-                message=f"Por favor, use no máximo {FIELD_LIMITS['celular']} caracteres para o telefone.",
+                max=FIELD_LIMITS["telefone"],
+                message=f"Por favor, use no máximo {FIELD_LIMITS['telefone']} caracteres para o telefone.",
             ),
         ],
     )
 
     email = StringField(
-        "Endereço de e-mail",
+        "Email",
         validators=[
             DataRequired(MSG_NaoPodeEstarEmBranco.format("O email")),
-            Email(
-                "Formato de e-mail inválido! Certifique-se de que ele foi digitado corretamente."
-            ),
+            Email("Por favor, insira um email válido."),
         ],
+    )
+
+    regiao = SelectField(
+        "Região",
+        choices=[
+            (assistencia_jud_regioes[key][0], assistencia_jud_regioes[key][1])
+            for key in assistencia_jud_regioes
+        ],
+        validators=[DataRequired(MSG_SelecioneUmaOpcaoLista.format("uma região"))],
     )
 
     submit = SubmitField("Cadastrar")

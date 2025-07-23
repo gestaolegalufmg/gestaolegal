@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from gestaolegal.common.constants import area_do_direito
 from gestaolegal.models.base import Base
-from gestaolegal.plantao.models import area_do_direito
 
 if TYPE_CHECKING:
+    from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
     from gestaolegal.models.atendido import Atendido
-    from gestaolegal.plantao.models import AssistenciaJudiciaria
     from gestaolegal.usuario.models import Usuario
 
 

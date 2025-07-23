@@ -12,11 +12,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from gestaolegal.common.constants import area_do_direito
+from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
 from gestaolegal.models.base import Base
 
 if TYPE_CHECKING:
     from gestaolegal.models.atendido import Atendido
-    from gestaolegal.models.endereco import Endereco
     from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
     from gestaolegal.usuario.models import Usuario
 
@@ -24,15 +25,6 @@ if TYPE_CHECKING:
 ##############################################################
 ################## CONSTANTES/ENUMS ##########################
 ##############################################################
-
-area_do_direito = {
-    "ADMINISTRATIVO": ("administrativo", "Administrativo"),
-    "AMBIENTAL": ("ambiental", "Ambiental"),
-    "CIVEL": ("civel", "Civel"),
-    "EMPRESARIAL": ("empresarial", "Empresarial"),
-    "PENAL": ("penal", "Penal"),
-    "TRABALHISTA": ("trabalhista", "Trabalhista"),
-}
 
 se_civel = {
     "CONSUMIDOR": ("consumidor", "Consumidor"),
@@ -425,48 +417,6 @@ class Atendido_xOrientacaoJuridica(Base):
     orientacaoJuridica: Mapped["OrientacaoJuridica"] = relationship(
         "OrientacaoJuridica", backref="atendido_xOrientacaoJuridica"
     )
-
-
-# ASSISTÊNCIA JUDICIÁRIA
-class AssistenciaJudiciaria(Base):
-    __tablename__ = "assistencias_judiciarias"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    nome: Mapped[str] = mapped_column(
-        String(150, collation="latin1_general_ci"), nullable=False
-    )
-    regiao: Mapped[str] = mapped_column(
-        String(80, collation="latin1_general_ci"), nullable=False
-    )
-    areas_atendidas: Mapped[str] = mapped_column(
-        String(1000, collation="latin1_general_ci"), nullable=False
-    )
-    endereco_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("enderecos.id")
-    )
-    endereco: Mapped[Optional["Endereco"]] = relationship("Endereco", lazy="joined")
-    telefone: Mapped[str] = mapped_column(
-        String(18, collation="latin1_general_ci"), nullable=False
-    )
-    email: Mapped[str] = mapped_column(
-        String(80, collation="latin1_general_ci"), unique=True, nullable=False
-    )
-    status: Mapped[int] = mapped_column(Integer, nullable=False)
-
-    orientacoesJuridicas: Mapped[list["OrientacaoJuridica"]] = relationship(
-        "OrientacaoJuridica",
-        secondary="assistenciasJudiciarias_xOrientacao_juridica",
-        backref="AssistenciaJudiciaria",
-    )
-
-    def setAreas_atendidas(self, opcoes):
-        self.areas_atendidas = ",".join(opcoes)
-
-    def getAreas_atendidas(self):
-        return self.areas_atendidas.split(",")
-
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 class AssistenciaJudiciaria_xOrientacaoJuridica(Base):
