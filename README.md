@@ -35,6 +35,29 @@ O sistema estará disponível em:
 - Adminer (gerenciador de banco de dados): http://localhost:8080
 - Mailpit (servidor de email para desenvolvimento): http://localhost:8025
 
+### Configuração de Segurança
+
+⚠️ **IMPORTANTE**: Antes de executar o sistema, configure as credenciais de segurança.
+
+#### Para Desenvolvimento
+1. Copie o arquivo de configuração de exemplo:
+```bash
+cp docker-compose.override.example.yml docker-compose.override.yml
+```
+
+2. Edite o arquivo `docker-compose.override.yml` e atualize as credenciais:
+   - `SECRET_KEY`: Chave secreta para sessões Flask
+   - `DB_PASSWORD`: Senha do banco de dados
+   - `MYSQL_ROOT_PASSWORD`: Senha root do MySQL
+
+#### Para Produção
+1. Configure as variáveis de ambiente no seu servidor:
+   - `SECRET_KEY`: Chave secreta para sessões Flask
+   - `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_NAME`: Configurações do banco de dados
+   - `MYSQL_ROOT_PASSWORD`: Senha root do MySQL
+
+2. **Nunca** commite credenciais de produção no repositório
+
 ### Instalação Manual
 
 1. Clone o repositório:
@@ -43,7 +66,13 @@ git clone https://github.com/gestaolegalufmg/gestaolegal.git
 cd gestaolegal
 ```
 
-2. Crie e ative um ambiente virtual:
+2. Configure as credenciais (veja seção "Configuração de Segurança" acima):
+```bash
+cp docker-compose.override.example.yml docker-compose.override.yml
+# Edite o arquivo docker-compose.override.yml com suas credenciais
+```
+
+3. Crie e ative um ambiente virtual:
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
@@ -51,17 +80,17 @@ source .venv/bin/activate  # Linux/Mac
 .venv\Scripts\activate  # Windows
 ```
 
-3. Instale as dependências:
+4. Instale as dependências:
 ```bash
 pip install -e ".[dev]"
 ```
 
-4. Execute as migrações:
+5. Execute as migrações:
 ```bash
 flask db upgrade
 ```
 
-5. Inicie o servidor:
+6. Inicie o servidor:
 ```bash
 flask run
 ```
