@@ -21,7 +21,7 @@
         <h2>{{atendido.nome.capitalize()}}</h2>
         <div class= "form-validation">
             <form class="form-valide" action="{{url_for('atendido.tornar_assistido', id_atendido = atendido.id)}}" method="POST" id="form">
-                {% include "assistido_form.html" %}       
+                {% include "atendido/assistido_form.html" %}       
                 
                 <button type="submit" class="btn btn-primary" id="button">Tornar Assistido</button>
             </form>

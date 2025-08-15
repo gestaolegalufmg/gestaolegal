@@ -87,7 +87,7 @@ def atendidos_assistidos():
         )
 
     return render_template(
-        "atendidos_assistidos.html",
+        "atendido/atendidos_assistidos.html",
         atendidos_assistidos=atendidos_assistidos,
         tipos_busca_atendidos=tipos_busca_atendidos,
         pagination=pagination,
@@ -121,7 +121,7 @@ def busca_atendidos_assistidos():
             pagination.items = filtered_items
 
         return render_template(
-            "busca_atendidos_assistidos.html", atendidos_assistidos=pagination
+            "atendido/busca_atendidos.html", atendidos_assistidos=pagination
         )
 
     elif request.method == "POST":
@@ -145,7 +145,7 @@ def cadastro_na():
 
     if request.method == "POST":
         if not valida_dados_form(form):
-            return render_template("cadastro_novo_atendido.html", form=form)
+            return render_template("atendido/cadastro_novo_atendido.html", form=form)
 
         db.session.add(cria_atendido(form))
         db.session.commit()
@@ -158,7 +158,7 @@ def cadastro_na():
         _id = atendido.id
         return redirect(url_for("atendido.perfil_assistido", _id=_id))
 
-    return render_template("cadastro_novo_atendido.html", form=form)
+    return render_template("atendido/cadastro_novo_atendido.html", form=form)
 
 
 @atendido_controller.route("/excluir_atendido/", methods=["POST", "GET"])
@@ -192,7 +192,7 @@ def buscar_atendido():
 
     atendidos = atendido_service.search_by_str(termo, paginator)
 
-    return render_template("lista_atendidos.html", atendidos=atendidos)
+    return render_template("atendido/lista_atendidos.html", atendidos=atendidos)
 
 
 @atendido_controller.route("/perfil_assistido/<int:_id>", methods=["GET"])
@@ -206,7 +206,7 @@ def perfil_assistido(_id: int):
 
     cards = build_cards(*result)
 
-    return render_template("perfil_assistidos.html", assistido=result, cards=cards)
+    return render_template("atendido/perfil_assistidos.html", assistido=result, cards=cards)
 
 
 @atendido_controller.route("/editar_atendido/<id_atendido>", methods=["POST", "GET"])
@@ -236,7 +236,7 @@ def editar_atendido(id_atendido: int):
             return redirect(url_for("atendido.perfil_assistido", _id=atendido.id))
 
     setValoresFormAtendido(atendido, form)
-    return render_template("editar_atendido.html", atendido=atendido, form=form)
+    return render_template("atendido/editar_atendido.html", atendido=atendido, form=form)
 
 
 @atendido_controller.route("/tornar_assistido/<id_atendido>", methods=["POST", "GET"])
@@ -261,7 +261,7 @@ def tornar_assistido(id_atendido: int):
             db.session.commit()
             return redirect(url_for("atendido.perfil_assistido", _id=atendido.id))
 
-    return render_template("tornar_assistido.html", atendido=atendido, form=form)
+    return render_template("atendido/tornar_assistido.html", atendido=atendido, form=form)
 
 
 @atendido_controller.route("/editar_assistido/<id_atendido>/", methods=["POST", "GET"])
@@ -300,7 +300,7 @@ def editar_assistido(id_atendido: int):
     setValoresFormAssistido(assistido, form_assistido)
 
     return render_template(
-        "editar_assistido.html",
+        "atendido/editar_assistido.html",
         form=form_atendido,
         form_assistido=form_assistido,
         atendido=assistido.atendido,
