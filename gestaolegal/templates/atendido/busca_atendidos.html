@@ -10,6 +10,12 @@
             tr{
                 text-align: center;
             }
+            .text-assistido {
+                color: #C19951;
+                font-weight: 600;
+                font-size: 0.9em;
+                cursor: default;
+            }
         </style>
         <thead>
             <tr>
@@ -24,34 +30,44 @@
             </tr> 
         </thead>
         <tbody>
-            {% for atendido_assistido in atendidos_assistidos.items %}
+            {% for atendido_assistido in atendidos_assistidos %}
+                {% if atendido_assistido is mapping %}
+                    {% set atendido = atendido_assistido %}
+                    {% set is_assistido = atendido_assistido.is_assistido %}
+                {% else %}
+                    {% set atendido = atendido_assistido[0] %}
+                    {% set is_assistido = atendido_assistido[1] is not none %}
+                {% endif %}
+                <!-- DEBUG: atendido_id={{atendido.id}}, is_assistido={{is_assistido}}, data_type={{atendido_assistido.__class__.__name__}} -->
                 <tr>
-                    <td>{{atendido_assistido[0].nome}}</td>
-                    <td>{{atendido_assistido[0].cpf or '--'}}</td>
-                    <td>{{atendido_assistido[0].cnpj or '--'}}</td>
-                    <td>{{atendido_assistido[0].telefone or '--'}}</td>
-                    <td><a href="{{url_for('atendido.perfil_assistido', _id=atendido_assistido[0].id)}}" class="btn mr-2 btn-flat btn-primary btn-sm">Visualizar</a></td>
+                    <td>{{atendido.nome}}</td>
+                    <td>{{atendido.cpf or '--'}}</td>
+                    <td>{{atendido.cnpj or '--'}}</td>
+                    <td>{{atendido.telefone or '--'}}</td>
+                    <td><a href="{{url_for('atendido.perfil_assistido', _id=atendido.id)}}" class="btn mr-2 btn-flat btn-primary btn-sm">Visualizar</a></td>
                 
                     <td>
                         {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
-                            {% if atendido_assistido[1] %}
+                            {% if is_assistido %}
                                 <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
-                                      href="{{url_for('atendido.editar_assistido', id_atendido = atendido_assistido[0].id)}}"
+                                      href="{{url_for('atendido.editar_assistido', id_atendido = atendido.id)}}"
                                       style="text-decoration: none;color: white; text-align: center;">Editar</a></button>
                             {% else %}
                                 <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
-                                      href="{{url_for('atendido.editar_atendido', id_atendido = atendido_assistido[0].id)}}"
+                                      href="{{url_for('atendido.editar_atendido', id_atendido = atendido.id)}}"
                                       style="text-decoration: none;color: white; text-align: center;">Editar</a></button>   
                             {% endif %}
                         {% endif %}
                     </td>
                     <td>
-                        {% if not atendido_assistido[1] %}
+                        {% if not is_assistido %}
                                 {% if current_user.urole == "admin" or current_user.urole == "estag_direito" %}
                                     <button type="submit" class="btn mr-2 btn-flat btn-primary btn-sm" name="button"><a
-                                      href="{{url_for('atendido.tornar_assistido', id_atendido = atendido_assistido[0].id)}}"
+                                      href="{{url_for('atendido.tornar_assistido', id_atendido = atendido.id)}}"
                                       style="text-decoration: none;color: white; text-align: center;">Tornar Assistido</a></button>
                                 {% endif %}           
+                        {% else %}
+                            <span class="text-assistido">Já é Assistido</span>
                         {% endif %}
                     </td>
                     <td>
@@ -59,7 +75,7 @@
                             <form action="{{url_for('atendido.excluir_atendido')}}" method="POST">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div>
-                                  <input type="hidden" id="excl_{{atendido_assistido[0].id}}" name="id" value="{{atendido_assistido[0].id}}">
+                                  <input type="hidden" id="excl_{{atendido.id}}" name="id" value="{{atendido.id}}">
                                 </div>
                                 <button type="submit" class="btn mb-1 ml-1 btn-flat btn-danger btn-sm"
                                   onclick="return confirm('Você deseja excluir este atendido/assistido?');">Excluir</button>
