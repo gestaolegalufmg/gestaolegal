@@ -25,11 +25,11 @@
                 <input value="{{atendido.email}}" name="emailAtual" type="hidden">
 
                 {% with form=form %}
-                    {% include "atendido_form.html" %}
+                    {% include "atendido/atendido_form.html" %}
                 {% endwith %}
 
                 {% with form=form_assistido %}
-                    {% include "assistido_form.html" %}
+                    {% include "atendido/assistido_form.html" %}
                 {% endwith %}
 
         
