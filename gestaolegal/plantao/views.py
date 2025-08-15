@@ -86,7 +86,7 @@ def busca_atendidos_oj(_busca):
     )
 
     return render_template(
-        "orientacao_juridica/busca_atendidos_oj.html",
+        "atendido/busca_associa_oj.html",
         atendidos=atendidos,
         busca=_busca,
         orientacao_entidade=orientacao_entidade,

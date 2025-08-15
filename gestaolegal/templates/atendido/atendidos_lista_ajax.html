@@ -1,8 +1,17 @@
 {% if atendidos %}
     {% for atendido in atendidos %}
     <tr>
+        {% if template_type == "multiple" %}
+        <td>
+            <input type="checkbox" data-atendido-id="{{ atendido.id }}">
+        </td>
+        {% endif %}
         <td>{{ atendido.nome or '--' }}</td>
         <td>{{ atendido.cpf or atendido.cnpj or '--' }}</td>
+        {% if template_type == "multiple" %}
+        <td>{{ atendido.celular or '--' }}</td>
+        {% endif %}
+        {% if template_type != "multiple" %}
         <td>
             <button type="button" 
                     class="btn btn-sm btn-primary btn-associar-atendido" 
@@ -11,11 +20,12 @@
                 Associar
             </button>
         </td>
+        {% endif %}
     </tr>
     {% endfor %}
 {% else %}
     <tr>
-        <td colspan="3" class="text-center">
+        <td colspan="{{ 4 if template_type == 'multiple' else 3 }}" class="text-center">
             {% if termo %}
                 Nenhum atendido encontrado com o termo "{{ termo }}"
             {% else %}
