@@ -10,6 +10,12 @@
             tr{
                 text-align: center;
             }
+            .text-assistido {
+                color: #C19951;
+                font-weight: 600;
+                font-size: 0.9em;
+                cursor: default;
+            }
         </style>
         <thead>
             <tr>
@@ -52,6 +58,8 @@
                                       href="{{url_for('atendido.tornar_assistido', id_atendido = atendido_assistido.id)}}"
                                       style="text-decoration: none;color: white; text-align: center;">Tornar Assistido</a></button>
                                 {% endif %}           
+                        {% else %}
+                            <span class="text-assistido">Já é Assistido</span>
                         {% endif %}
                     </td>
                     <td>
