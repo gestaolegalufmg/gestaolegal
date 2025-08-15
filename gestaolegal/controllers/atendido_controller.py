@@ -121,7 +121,7 @@ def busca_atendidos_assistidos():
             pagination.items = filtered_items
 
         return render_template(
-            "atendido/busca_atendidos_assistidos.html", atendidos_assistidos=pagination
+            "atendido/busca_atendidos.html", atendidos_assistidos=pagination
         )
 
     elif request.method == "POST":

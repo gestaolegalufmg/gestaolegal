@@ -363,16 +363,11 @@ def buscar_atendidos_ajax():
 
     atendidos = query.order_by(Atendido.nome).limit(20).all()
 
-    template_name = (
-        "atendidos_lista_ajax_multiple.html"
-        if template_type == "multiple"
-        else "atendidos_lista_ajax.html"
-    )
-
     return render_template(
-        f"orientacao_juridica/{template_name}",
+        "atendido/atendidos_lista_ajax.html",
         atendidos=atendidos,
         termo=termo,
+        template_type=template_type,
     )
 
 
