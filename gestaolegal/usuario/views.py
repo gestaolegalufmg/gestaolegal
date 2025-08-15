@@ -19,27 +19,27 @@ from gestaolegal.models.endereco import Endereco
 from gestaolegal.usuario.forms import CadastrarUsuarioForm, EditarUsuarioForm
 from gestaolegal.usuario.models import Usuario, usuario_urole_roles
 
-usuario = Blueprint("usuario", __name__, template_folder="templates")
+usuario = Blueprint("usuario", __name__)
 
 
 @usuario.route("/relatorio", methods=["GET", "POST"])
 def relatorio():
-    return render_template("relatorio.html")
+    return render_template("usuario/relatorio.html")
 
 
 @usuario.route("/arquivo", methods=["GET", "POST"])
 def arquivo():
-    return render_template("arquivo.html")
+    return render_template("usuario/arquivo.html")
 
 
 @usuario.route("/plantao", methods=["GET", "POST"])
 def plantao():
-    return render_template("plantao.html")
+    return render_template("usuario/plantao.html")
 
 
 @usuario.route("/casos_id", methods=["GET", "POST"])
 def casos_esp():
-    return render_template("meus_casos.html")
+    return render_template("usuario/meus_casos.html")
 
 
 @usuario.route("/meu_perfil", methods=["GET"])
@@ -50,7 +50,7 @@ def meu_perfil():
         abort(404)
     entidade_endereco = entidade_usuario.endereco
     return render_template(
-        "perfil_usuario.html", usuario=entidade_usuario, endereco=entidade_endereco
+        "usuario/perfil_usuario.html", usuario=entidade_usuario, endereco=entidade_endereco
     )
 
 
@@ -62,7 +62,7 @@ def perfil_usuario(id_user):
         abort(404)
     entidade_endereco = entidade_usuario.endereco
     return render_template(
-        "perfil_usuario.html", usuario=entidade_usuario, endereco=entidade_endereco
+        "usuario/perfil_usuario.html", usuario=entidade_usuario, endereco=entidade_endereco
     )
 
 
@@ -168,7 +168,7 @@ def editar_usuario(id_user):
         id_usuario_padrao: int,
     ):
         return render_template(
-            "editar_usuario.html",
+            "usuario/editar_usuario.html",
             form=form,
             entidade_usuario=entidade_usuario,
             id_user=id_user,
@@ -266,7 +266,7 @@ def editar_senha_usuario():
         confirmacao = form["confirmacao"]
         senha = form["senha"]
         if not validaSenha(senha):
-            return render_template("editar_senha_usuario.html")
+            return render_template("usuario/editar_senha_usuario.html")
 
         if not entidade_usuario:
             flash("Usuário não encontrado.", "danger")
@@ -281,9 +281,9 @@ def editar_senha_usuario():
             return redirect(url_for("principal.index"))
         else:
             flash("Confirmação de senha e senha estão diferentes.", "warning")
-            return render_template("editar_senha_usuario.html")
+            return render_template("usuario/editar_senha_usuario.html")
 
-    return render_template("editar_senha_usuario.html")
+    return render_template("usuario/editar_senha_usuario.html")
 
 
 @usuario.route("/cadastrar_usuario", methods=["POST", "GET"])
@@ -324,17 +324,17 @@ def cadastrar_usuario():
         emailRepetido = db.session.query(Usuario).filter_by(email=email).first()
 
         if not validaSenha(senha):
-            return render_template("cadastro.html", form=form)
+            return render_template("usuario/cadastro.html", form=form)
 
         if confirmacao != senha:
             flash("Confirmação de senha e senha estão diferentes.", "warning")
-            return render_template("cadastro.html", form=form)
+            return render_template("usuario/cadastro.html", form=form)
         elif emailRepetido:
             flash("Este email já está em uso.", "warning")
-            return render_template("cadastro.html", form=form)
+            return render_template("usuario/cadastro.html", form=form)
         else:
             if not (form.validate()):
-                return render_template("cadastro.html", form=form)
+                return render_template("usuario/cadastro.html", form=form)
             else:
                 entidade_endereco = Endereco(
                     logradouro=form.logradouro.data,
@@ -386,7 +386,8 @@ def cadastrar_usuario():
 
         return redirect(url_for("principal.index"))
 
-    return render_template("cadastro.html", form=form)
+    # Handle GET request - show the form
+    return render_template("usuario/cadastro.html", form=form)
 
 
 @usuario.route("/login", methods=["POST", "GET"])
@@ -410,7 +411,7 @@ def login():
         else:
             flash("Senha inválida!", "warning")
 
-    return render_template("login.html")
+    return render_template("usuario/login.html")
 
 
 @usuario.route("/logout")
@@ -439,7 +440,7 @@ def listar_usuarios():
         return redirect(url_for("principal.index"))
 
     return render_template(
-        "listar_usuarios.html",
+        "usuario/listar_usuarios.html",
         usuarios=usuarios,
         admin_padrao=app.config["ADMIN_PADRAO"],
     )
@@ -478,7 +479,7 @@ def inativar_usuario_lista():
 def muda_senha_admin():
     id_usuario = request.form["id"]
 
-    return render_template("nova_senha.html", id_usuario=id_usuario)
+    return render_template("usuario/nova_senha.html", id_usuario=id_usuario)
 
 
 @usuario.route("/confirma_senha", methods=["POST"])
@@ -487,7 +488,7 @@ def confirma_senha():
     bcrypt = Bcrypt()
     usuario = db.session.get(Usuario, int(request.form["id_usuario"]))
     if not validaSenha(request.form["senha"]):
-        return render_template("nova_senha.html", id_usuario=usuario.id)
+        return render_template("usuario/nova_senha.html", id_usuario=usuario.id)
     if request.form["senha"] == request.form["confirmar_senha"]:
         senha = bcrypt.generate_password_hash(request.form["senha"])
         usuario.senha = senha
@@ -885,7 +886,7 @@ def esqueci_senha():
                 }
             )
 
-    return render_template("esqueci-a-senha.html")
+    return render_template("usuario/esqueci-a-senha.html")
 
 
 @usuario.route("/resetar-a-senha/<token>", methods=["GET", "POST"])
@@ -906,4 +907,4 @@ def resetar_senha(token):
     else:
         flash("Erro! Por favor refaça a operação", "warning")
         return redirect(url_for("usuario.login"))
-    return render_template("recuperar_senha.html")
+    return render_template("usuario/recuperar_senha.html")
