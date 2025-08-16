@@ -36,7 +36,9 @@ class OrientacaoJuridicaService:
         return query.all()
 
     def get_all(self, paginator: Callable[..., Any] | None = None):
-        query = self.filter_active(self.session.query(OrientacaoJuridica)).order_by(OrientacaoJuridica.data_criacao.desc())
+        query = self.filter_active(self.session.query(OrientacaoJuridica)).order_by(
+            OrientacaoJuridica.data_criacao.desc()
+        )
 
         if paginator:
             return paginator(query)
