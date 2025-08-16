@@ -1,7 +1,7 @@
 import os
 from functools import wraps
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 from flask import Flask, current_app
 from flask_login import LoginManager, current_user
 from flask_mail import Mail
@@ -54,7 +54,9 @@ db_name = os.environ.get("DB_NAME")
 
 # Validate required database environment variables
 if not all([db_user, db_password, db_host, db_name]):
-    raise ValueError("All database environment variables (DB_USER, DB_PASSWORD, DB_HOST, DB_NAME) are required")
+    raise ValueError(
+        "All database environment variables (DB_USER, DB_PASSWORD, DB_HOST, DB_NAME) are required"
+    )
 
 app.config["SQLALCHEMY_DATABASE_URI"] = (
     "mysql+pymysql://{user}:{password}@{host}/{db}".format(
@@ -290,7 +292,9 @@ if flask_env == "development":
 else:
     app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
     app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", "465"))
-    app.config["MAIL_USE_SSL"] = os.environ.get("MAIL_USE_SSL", "True").lower() == "true"
+    app.config["MAIL_USE_SSL"] = (
+        os.environ.get("MAIL_USE_SSL", "True").lower() == "true"
+    )
     app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
     app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
 
