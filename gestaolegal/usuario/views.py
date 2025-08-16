@@ -389,7 +389,7 @@ def cadastrar_usuario():
                 db.session.commit()
                 flash("Usuário cadastrado!", "success")
 
-        return redirect(url_for("principal.index"))
+        return redirect(url_for("usuario.perfil_usuario", id_user=entidade_usuario.id))
 
     # Handle GET request - show the form
     return render_template("usuario/cadastro.html", form=form)
