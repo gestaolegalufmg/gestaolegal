@@ -136,6 +136,26 @@
                         </span>
                     </p>
 
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Data de inclusão
+                        </span>
+                        <span class="float-right text-muted">
+                            {{usuario.data_entrada.strftime("%d/%m/%Y") if usuario.data_entrada else 'N/A'}}
+                        </span>
+                    </p>
+
+                    {% if usuario.data_saida %}
+                    <p class="clearfix">
+                        <span class="float-left">
+                            Data de exclusão
+                        </span>
+                        <span class="float-right text-muted">
+                            {{usuario.data_saida.strftime("%d/%m/%Y")}}
+                        </span>
+                    </p>
+                    {% endif %}
+
                 </div>
             </div>
         </div>
