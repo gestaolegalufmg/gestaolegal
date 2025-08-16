@@ -27,7 +27,7 @@ class OrientacaoJuridicaService:
             self.filter_active(self.session.query(OrientacaoJuridica))
             .filter(OrientacaoJuridica.area_direito == area_do_direito)
             .filter(OrientacaoJuridica.area_direito.ilike(f"%{area_do_direito}%"))
-            .order_by(OrientacaoJuridica.id.desc())
+            .order_by(OrientacaoJuridica.data_criacao.desc())
         )
 
         if paginator:
@@ -36,7 +36,7 @@ class OrientacaoJuridicaService:
         return query.all()
 
     def get_all(self, paginator: Callable[..., Any] | None = None):
-        query = self.filter_active(self.session.query(OrientacaoJuridica))
+        query = self.filter_active(self.session.query(OrientacaoJuridica)).order_by(OrientacaoJuridica.data_criacao.desc())
 
         if paginator:
             return paginator(query)
