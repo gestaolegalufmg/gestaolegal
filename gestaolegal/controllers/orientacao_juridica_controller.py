@@ -417,7 +417,7 @@ def busca_oj(_busca):
             .filter(
                 ((Atendido.nome.contains(_busca)) | (Atendido.cpf.contains(_busca)))
             )
-            .order_by(OrientacaoJuridica.id.desc())
+            .order_by(OrientacaoJuridica.data_criacao.desc())
             .paginate(
                 page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
             )
