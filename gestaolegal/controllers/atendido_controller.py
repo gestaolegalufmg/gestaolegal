@@ -206,7 +206,9 @@ def perfil_assistido(_id: int):
 
     cards = build_cards(*result)
 
-    return render_template("atendido/perfil_assistidos.html", assistido=result, cards=cards)
+    return render_template(
+        "atendido/perfil_assistidos.html", assistido=result, cards=cards
+    )
 
 
 @atendido_controller.route("/editar_atendido/<id_atendido>", methods=["POST", "GET"])
@@ -236,7 +238,9 @@ def editar_atendido(id_atendido: int):
             return redirect(url_for("atendido.perfil_assistido", _id=atendido.id))
 
     setValoresFormAtendido(atendido, form)
-    return render_template("atendido/editar_atendido.html", atendido=atendido, form=form)
+    return render_template(
+        "atendido/editar_atendido.html", atendido=atendido, form=form
+    )
 
 
 @atendido_controller.route("/tornar_assistido/<id_atendido>", methods=["POST", "GET"])
@@ -261,7 +265,9 @@ def tornar_assistido(id_atendido: int):
             db.session.commit()
             return redirect(url_for("atendido.perfil_assistido", _id=atendido.id))
 
-    return render_template("atendido/tornar_assistido.html", atendido=atendido, form=form)
+    return render_template(
+        "atendido/tornar_assistido.html", atendido=atendido, form=form
+    )
 
 
 @atendido_controller.route("/editar_assistido/<id_atendido>/", methods=["POST", "GET"])

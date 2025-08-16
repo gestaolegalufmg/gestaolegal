@@ -5,6 +5,7 @@ from flask import (
     abort,
     flash,
     json,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -50,7 +51,9 @@ def meu_perfil():
         abort(404)
     entidade_endereco = entidade_usuario.endereco
     return render_template(
-        "usuario/perfil_usuario.html", usuario=entidade_usuario, endereco=entidade_endereco
+        "usuario/perfil_usuario.html",
+        usuario=entidade_usuario,
+        endereco=entidade_endereco,
     )
 
 
@@ -62,7 +65,9 @@ def perfil_usuario(id_user):
         abort(404)
     entidade_endereco = entidade_usuario.endereco
     return render_template(
-        "usuario/perfil_usuario.html", usuario=entidade_usuario, endereco=entidade_endereco
+        "usuario/perfil_usuario.html",
+        usuario=entidade_usuario,
+        endereco=entidade_endereco,
     )
 
 
@@ -443,7 +448,30 @@ def listar_usuarios():
         "usuario/listar_usuarios.html",
         usuarios=usuarios,
         admin_padrao=app.config["ADMIN_PADRAO"],
+        usuario_urole_roles=usuario_urole_roles,
     )
+
+
+@usuario.route("/busca_usuarios", methods=["GET"])
+@login_required()
+def busca_usuarios():
+    valor_busca = request.args.get("valor_busca", "")
+    funcao = request.args.get("funcao", "all")
+    status = request.args.get("status", "1")
+
+    if funcao != "all":
+        usuarios = db.session.query(Usuario).filter(
+            Usuario.urole == funcao, Usuario.status == (status == "1")
+        )
+    else:
+        usuarios = db.session.query(Usuario).filter(Usuario.status == (status == "1"))
+
+    if valor_busca:
+        usuarios = usuarios.filter(Usuario.nome.ilike(f"%{valor_busca}%"))
+
+    usuarios = usuarios.order_by(Usuario.nome).all()
+
+    return jsonify({"users": [x.as_dict() for x in usuarios]})
 
 
 @usuario.route("/inativar_usuario_lista/", methods=["POST", "GET"])
@@ -848,10 +876,10 @@ def lista_usuario_ajax():
     # if urole == "all":
     #     # usuarios = db.session.query(Usuario).filter(Usuario.status != False).all()
     # # elif urole == "desativado":
-    # #     usuarios = db.session.query(Usuario).filter(Usuario.status == False).all()
+    #     usuarios = db.session.query(Usuario).filter(Usuario.status == False).all()
     # else:
     #     usuarios = db.session.query(Usuario).filter(Usuario.urole == urole).all()
-    return json.dumps({"users": serializar(usuarios)})
+    return jsonify({"users": serializar(usuarios)})
 
 
 @usuario.route("/esqueci-a-senha", methods=["GET", "POST"])
