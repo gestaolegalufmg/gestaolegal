@@ -3,8 +3,9 @@ from typing import Any, Callable, TypeVar
 from sqlalchemy.orm import Query, Session, scoped_session
 
 from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
-from gestaolegal.plantao.models import Assistido, AssistidoPessoaJuridica
+from gestaolegal.plantao.models import AssistidoPessoaJuridica
 from gestaolegal.plantao.views_util import filtro_busca_assistencia_judiciaria
+from gestaolegal.schemas.assistido import AssistidoSchema as Assistido
 
 T = TypeVar("T")
 

@@ -6,10 +6,10 @@ from gestaolegal.casos.models import Caso, associacao_casos_atendidos
 from gestaolegal.models.atendido import Atendido
 from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 from gestaolegal.plantao.models import (
-    Assistido,
     AssistidoPessoaJuridica,
     Atendido_xOrientacaoJuridica,
 )
+from gestaolegal.schemas.assistido import AssistidoSchema as Assistido
 from gestaolegal.usuario.models import Usuario
 
 principal = Blueprint("principal", __name__, template_folder="templates")

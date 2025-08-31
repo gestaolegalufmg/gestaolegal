@@ -9,6 +9,7 @@ from wtforms.validators import (
 )
 
 from gestaolegal.plantao.forms import FIELD_LIMITS, RequiredIf
+from gestaolegal.plantao.forms.base_form_mixin import BaseFormMixin
 from gestaolegal.plantao.models import como_conheceu_daj
 from gestaolegal.usuario.forms import (
     EnderecoForm,
@@ -19,7 +20,7 @@ from gestaolegal.usuario.forms import (
 from gestaolegal.usuario.models import estado_civilUsuario
 
 
-class CadastroAtendidoForm(EnderecoForm):
+class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
     nome = StringField(
         "Nome",
         validators=[
@@ -275,3 +276,24 @@ class CadastroAtendidoForm(EnderecoForm):
         choices=[("True", "Sim"), ("False", "Não")],
         validators=[Optional()],
     )
+
+    def populate_from_atendido(self, atendido) -> None:
+        field_mapping = {
+            "obs_atendido": "obs",
+            "pretende_constituir_pj": "pretende_constituir_pj",
+        }
+
+        self.populate_from_entity(atendido, field_mapping)
+
+        if hasattr(atendido, "procurou_outro_local"):
+            self.procurou_outro_local.data = (
+                False if atendido.procurou_outro_local == "0" else True
+            )
+
+        if hasattr(atendido, "pretende_constituir_pj"):
+            self.pretende_constituir_pj.data = (
+                False if atendido.pretende_constituir_pj == "0" else True
+            )
+
+        if hasattr(atendido, "endereco") and atendido.endereco:
+            self.populate_from_entity(atendido.endereco)

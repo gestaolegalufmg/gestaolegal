@@ -283,13 +283,13 @@
                 {% endfor %}
 
                 <div class="form-group row" id="div_obs">
-                    <label class="col-lg-4 col-form-label" for="obs">{{form.obs_assistido.label}}</label>
+                    <label class="col-lg-4 col-form-label" for="obs">{{form.obs.label}}</label>
                     <div class="col-lg-6">
-                        {{form.obs_assistido(class_="form-control")}}
+                        {{form.obs(class_="form-control")}}
                     </div>
                 </div>
 
-                {% for error in form.obs_assistido.errors %}
+                {% for error in form.obs.errors %}
                     <div class="alert alert-danger">{{error}}</div>
                 {% endfor %}
 <!--------------------------------------------------------------------------DADOS DE PESSOA FISICA---------------------------------------------------------------------------------->

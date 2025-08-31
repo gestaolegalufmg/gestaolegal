@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from gestaolegal.models.base import Base
+from gestaolegal.schemas.base import Base
 
 
 class Arquivo(Base):

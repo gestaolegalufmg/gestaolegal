@@ -1,128 +1,144 @@
+from dataclasses import dataclass
 from datetime import date
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from gestaolegal.casos.models import associacao_casos_atendidos
-from gestaolegal.models.base import Base
 from gestaolegal.plantao.models import como_conheceu_daj
 
 if TYPE_CHECKING:
     from gestaolegal.casos.models import Caso
     from gestaolegal.models.endereco import Endereco
     from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+    from gestaolegal.schemas.atendido import AtendidoSchema
 
 
-class Atendido(Base):
-    __tablename__: Final = "atendidos"
+@dataclass(frozen=True)
+class Atendido:
+    id: int
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    orientacoes_juridicas: list["OrientacaoJuridica"]
+    casos: list["Caso"]
+    endereco: "Endereco | None"
 
-    orientacoesJuridicas: Mapped[list["OrientacaoJuridica"]] = relationship(
-        "OrientacaoJuridica", secondary="atendido_xOrientacaoJuridica"
-    )
-    casos: Mapped[list["Caso"]] = relationship(
-        "Caso", secondary=associacao_casos_atendidos, back_populates="clientes"
-    )
-    endereco: Mapped["Endereco | None"] = relationship("Endereco", lazy="joined")
+    nome: str
+    data_nascimento: date
+    cpf: str
+    cnpj: str | None
+    endereco_id: int | None
+    telefone: str | None
+    celular: str
+    email: str
+    estado_civil: str
 
-    # Dados básicos
-    nome: Mapped[str] = mapped_column(String(80, collation="latin1_general_ci"))
-    data_nascimento: Mapped[date] = mapped_column(Date)
-    cpf: Mapped[str] = mapped_column(String(14, collation="latin1_general_ci"))
-    cnpj: Mapped[str | None] = mapped_column(String(18, collation="latin1_general_ci"))
-    endereco_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("enderecos.id"))
-    telefone: Mapped[str | None] = mapped_column(
-        String(18, collation="latin1_general_ci")
-    )
-    celular: Mapped[str] = mapped_column(String(18, collation="latin1_general_ci"))
-    email: Mapped[str] = mapped_column(String(80, collation="latin1_general_ci"))
-    estado_civil: Mapped[str] = mapped_column(String(80, collation="latin1_general_ci"))
+    como_conheceu: str
+    indicacao_orgao: str | None
+    procurou_outro_local: str
+    procurou_qual_local: str | None
+    obs: str | None
+    pj_constituida: str
+    repres_legal: str | None
+    nome_repres_legal: str | None
+    cpf_repres_legal: str | None
+    contato_repres_legal: str | None
+    rg_repres_legal: str | None
+    nascimento_repres_legal: date | None
+    pretende_constituir_pj: str | None
+    status: int
 
-    # antiga Área_demanda
-    como_conheceu: Mapped[str] = mapped_column(
-        String(80, collation="latin1_general_ci")
-    )
-    indicacao_orgao: Mapped[str | None] = mapped_column(
-        String(80, collation="latin1_general_ci")
-    )
-    procurou_outro_local: Mapped[str] = mapped_column(
-        String(80, collation="latin1_general_ci")
-    )
-    procurou_qual_local: Mapped[str | None] = mapped_column(
-        String(80, collation="latin1_general_ci")
-    )
-    obs: Mapped[str | None] = mapped_column(Text(collation="latin1_general_ci"))
-    pj_constituida: Mapped[str] = mapped_column(
-        String(80, collation="latin1_general_ci")
-    )
-    repres_legal: Mapped[str | None] = mapped_column(
-        String(1, collation="latin1_general_ci")
-    )
-    nome_repres_legal: Mapped[str | None] = mapped_column(
-        String(80, collation="latin1_general_ci")
-    )
-    cpf_repres_legal: Mapped[str | None] = mapped_column(
-        String(14, collation="latin1_general_ci")
-    )
-    contato_repres_legal: Mapped[str | None] = mapped_column(
-        String(18, collation="latin1_general_ci")
-    )
-    rg_repres_legal: Mapped[str | None] = mapped_column(
-        String(50, collation="latin1_general_ci")
-    )
-    nascimento_repres_legal: Mapped[date | None] = mapped_column(Date)
-    pretende_constituir_pj: Mapped[str | None] = mapped_column(
-        String(80, collation="latin1_general_ci")
-    )
-    status: Mapped[int] = mapped_column(Integer)
+    def __post_init__(self):
+        return
+        if self.como_conheceu == como_conheceu_daj["ORGAOSPUBLICOS"][0]:
+            for field, msg in [
+                (
+                    "indicacao_orgao",
+                    "O campo 'indicacao_orgao' é obrigatório se 'como_conheceu' for 'Orgaos Públicos'",
+                ),
+                (
+                    "procurou_outro_local",
+                    "O campo 'procurou_outro_local' é obrigatório se 'como_conheceu' for 'Orgaos Públicos'",
+                ),
+                (
+                    "procurou_qual_local",
+                    "O campo 'procurou_qual_local' é obrigatório se 'como_conheceu' for 'Orgaos Públicos'",
+                ),
+                (
+                    "pj_constituida",
+                    "O campo 'pj_constituida' é obrigatório se 'como_conheceu' for 'Orgaos Públicos'",
+                ),
+            ]:
+                if getattr(self, field) is None:
+                    raise ValueError(msg)
 
-    def setIndicacao_orgao(self, indicacao_orgao, como_conheceu):
-        if como_conheceu == como_conheceu_daj["ORGAOSPUBLICOS"][0]:
-            self.indicacao_orgao = indicacao_orgao
-        else:
-            self.indicacao_orgao = None
+        if self.pj_constituida:
+            if self.cnpj is None:
+                raise ValueError(
+                    "O campo 'cnpj' é obrigatório se 'pj_constituida' for verdadeiro"
+                )
+            if self.repres_legal is None:
+                raise ValueError(
+                    "O campo 'repres_legal' é obrigatório se 'pj_constituida' for verdadeiro"
+                )
 
-    def setCnpj(self, pj_constituida, cnpj, repres_legal):
-        if pj_constituida:
-            self.cnpj = cnpj
-            self.repres_legal = repres_legal
-        else:
-            self.cnpj = None
-            self.repres_legal = None
+        if (self.repres_legal == False) and self.pj_constituida:
+            required_fields = [
+                (
+                    "nome_repres_legal",
+                    "O campo 'nome_repres_legal' é obrigatório se 'repres_legal' for falso e 'pj_constituida' for verdadeiro",
+                ),
+                (
+                    "cpf_repres_legal",
+                    "O campo 'cpf_repres_legal' é obrigatório se 'repres_legal' for falso e 'pj_constituida' for verdadeiro",
+                ),
+                (
+                    "contato_repres_legal",
+                    "O campo 'contato_repres_legal' é obrigatório se 'repres_legal' for falso e 'pj_constituida' for verdadeiro",
+                ),
+                (
+                    "rg_repres_legal",
+                    "O campo 'rg_repres_legal' é obrigatório se 'repres_legal' for falso e 'pj_constituida' for verdadeiro",
+                ),
+                (
+                    "nascimento_repres_legal",
+                    "O campo 'nascimento_repres_legal' é obrigatório se 'repres_legal' for falso e 'pj_constituida' for verdadeiro",
+                ),
+            ]
+            for field, msg in required_fields:
+                if getattr(self, field) is None:
+                    raise ValueError(msg)
 
-    def setRepres_legal(
-        self,
-        repres_legal,
-        pj_constituida,
-        nome_repres_legal,
-        cpf_repres_legal,
-        contato_repres_legal,
-        rg_repres_legal,
-        nascimento_repres_legal,
-    ):
-        if (repres_legal == False) and pj_constituida:
-            self.nome_repres_legal = nome_repres_legal
-            self.cpf_repres_legal = cpf_repres_legal
-            self.contato_repres_legal = contato_repres_legal
-            self.rg_repres_legal = rg_repres_legal
-            self.nascimento_repres_legal = nascimento_repres_legal
-        else:
-            self.nome_repres_legal = None
-            self.cpf_repres_legal = None
-            self.contato_repres_legal = None
-            self.rg_repres_legal = None
-            self.nascimento_repres_legal = None
+        if self.procurou_outro_local:
+            if self.procurou_qual_local is None:
+                raise ValueError(
+                    "O campo 'procurou_qual_local' é obrigatório se 'procurou_outro_local' for verdadeiro"
+                )
 
-    def setProcurou_qual_local(self, procurou_outro_local, procurou_qual_local):
-        if procurou_outro_local:
-            self.procurou_qual_local = procurou_qual_local
-        else:
-            self.procurou_qual_local = None
-
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
-    def __repr__(self):
-        return f"Nome:{self.nome}"
+    @staticmethod
+    def from_sqlalchemy(atendido: "AtendidoSchema") -> "Atendido":
+        return Atendido(
+            id=atendido.id,
+            orientacoes_juridicas=atendido.orientacoesJuridicas,
+            casos=atendido.casos,
+            endereco=atendido.endereco,
+            nome=atendido.nome,
+            data_nascimento=atendido.data_nascimento,
+            cpf=atendido.cpf,
+            cnpj=atendido.cnpj,
+            endereco_id=atendido.endereco_id,
+            telefone=atendido.telefone,
+            celular=atendido.celular,
+            email=atendido.email,
+            estado_civil=atendido.estado_civil,
+            como_conheceu=atendido.como_conheceu,
+            indicacao_orgao=atendido.indicacao_orgao,
+            procurou_outro_local=atendido.procurou_outro_local,
+            procurou_qual_local=atendido.procurou_qual_local,
+            obs=atendido.obs,
+            pj_constituida=atendido.pj_constituida,
+            repres_legal=atendido.repres_legal,
+            nome_repres_legal=atendido.nome_repres_legal,
+            cpf_repres_legal=atendido.cpf_repres_legal,
+            contato_repres_legal=atendido.contato_repres_legal,
+            rg_repres_legal=atendido.rg_repres_legal,
+            nascimento_repres_legal=atendido.nascimento_repres_legal,
+            pretende_constituir_pj=atendido.pretende_constituir_pj,
+            status=atendido.status,
+        )
