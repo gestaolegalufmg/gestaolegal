@@ -20,10 +20,10 @@ from wtforms.validators import (
 )
 
 from gestaolegal.usuario.models import (
+    UserRole,
     estado_civilUsuario,
     sexo_usuario,
     tipo_bolsaUsuario,
-    usuario_urole_roles,
 )
 from gestaolegal.utils.forms import RequiredIf
 
@@ -199,33 +199,11 @@ class EditarUsuarioForm(EnderecoForm):
 
     urole = SelectField(
         "Função no sistema",
-        choices=[
-            (
-                usuario_urole_roles["ADMINISTRADOR"][0],
-                usuario_urole_roles["ADMINISTRADOR"][1],
-            ),
-            (
-                usuario_urole_roles["ORIENTADOR"][0],
-                usuario_urole_roles["ORIENTADOR"][1],
-            ),
-            (
-                usuario_urole_roles["COLAB_PROJETO"][0],
-                usuario_urole_roles["COLAB_PROJETO"][1],
-            ),
-            (
-                usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
-                usuario_urole_roles["ESTAGIARIO_DIREITO"][1],
-            ),
-            (
-                usuario_urole_roles["COLAB_EXTERNO"][0],
-                usuario_urole_roles["COLAB_EXTERNO"][1],
-            ),
-            (usuario_urole_roles["PROFESSOR"][0], usuario_urole_roles["PROFESSOR"][1]),
-        ],
+        choices=UserRole.choices(),
         validators=[
             DataRequired(MSG_SelecioneUmaOpcaoLista.format("urole")),
             AnyOf(
-                [usuario_urole_roles[key][0] for key in usuario_urole_roles],
+                UserRole.codes(),
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
             ),
         ],

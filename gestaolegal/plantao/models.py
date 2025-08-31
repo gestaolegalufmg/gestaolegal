@@ -14,11 +14,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from gestaolegal.common.constants import area_do_direito
 from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
-from gestaolegal.models.base import Base
+from gestaolegal.schemas.assistido import AssistidoSchema
+from gestaolegal.schemas.base import Base
 
 if TYPE_CHECKING:
-    from gestaolegal.models.atendido import Atendido
     from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+    from gestaolegal.schemas.atendido import AtendidoSchema
     from gestaolegal.usuario.models import Usuario
 
 
@@ -235,108 +236,6 @@ meses = {
 }
 
 
-class Assistido(Base):
-    __tablename__ = "assistidos"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    id_atendido: Mapped[int] = mapped_column(
-        Integer, ForeignKey("atendidos.id", ondelete="CASCADE")
-    )
-    atendido: Mapped["Atendido"] = relationship("Atendido", lazy="joined")
-
-    # Dados pessoais
-    sexo: Mapped[str] = mapped_column(
-        String(1, collation="latin1_general_ci"), nullable=False
-    )
-    profissao: Mapped[str] = mapped_column(
-        String(80, collation="latin1_general_ci"), nullable=False
-    )
-    raca: Mapped[str] = mapped_column(
-        String(20, collation="latin1_general_ci"), nullable=False
-    )
-    rg: Mapped[str] = mapped_column(
-        String(50, collation="latin1_general_ci"), nullable=False
-    )
-
-    # Dados sociais
-    grau_instrucao: Mapped[str] = mapped_column(
-        String(100, collation="latin1_general_ci"), nullable=False
-    )
-
-    # Renda e patrimônio
-    salario: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
-    beneficio: Mapped[str] = mapped_column(
-        String(30, collation="latin1_general_ci"), nullable=False
-    )
-    qual_beneficio: Mapped[Optional[str]] = mapped_column(
-        String(30, collation="latin1_general_ci")
-    )
-    contribui_inss: Mapped[str] = mapped_column(
-        String(20, collation="latin1_general_ci"), nullable=False
-    )
-    qtd_pessoas_moradia: Mapped[int] = mapped_column(Integer, nullable=False)
-    renda_familiar: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
-    participacao_renda: Mapped[str] = mapped_column(
-        String(100, collation="latin1_general_ci"), nullable=False
-    )
-    tipo_moradia: Mapped[str] = mapped_column(
-        String(100, collation="latin1_general_ci"), nullable=False
-    )
-    possui_outros_imoveis: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    quantos_imoveis: Mapped[Optional[int]] = mapped_column(Integer)
-    possui_veiculos: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    possui_veiculos_obs: Mapped[Optional[str]] = mapped_column(
-        String(100, collation="latin1_general_ci")
-    )
-    quantos_veiculos: Mapped[Optional[int]] = mapped_column(Integer)
-    ano_veiculo: Mapped[Optional[str]] = mapped_column(
-        String(5, collation="latin1_general_ci")
-    )
-    doenca_grave_familia: Mapped[str] = mapped_column(
-        String(20, collation="latin1_general_ci"), nullable=False
-    )
-    pessoa_doente: Mapped[Optional[str]] = mapped_column(
-        String(50, collation="latin1_general_ci")
-    )
-    pessoa_doente_obs: Mapped[Optional[str]] = mapped_column(
-        String(100, collation="latin1_general_ci")
-    )
-    gastos_medicacao: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
-    obs: Mapped[Optional[str]] = mapped_column(
-        String(1000, collation="latin1_general_ci")
-    )
-
-    def setCamposVeiculo(
-        self, possui_veiculos, possui_veiculos_obs, quantos_veiculos, ano_veiculo
-    ):
-        if possui_veiculos:
-            self.possui_veiculos_obs = possui_veiculos_obs
-            self.quantos_veiculos = quantos_veiculos
-            self.ano_veiculo = ano_veiculo
-        else:
-            self.possui_veiculos_obs = None
-            self.quantos_veiculos = None
-            self.ano_veiculo = None
-
-    def setCamposDoenca(
-        self, doenca_grave_familia, pessoa_doente, pessoa_doente_obs, gastos_medicacao
-    ):
-        if doenca_grave_familia == "sim":
-            self.pessoa_doente = pessoa_doente
-            self.gastos_medicacao = gastos_medicacao
-            if pessoa_doente == "sim":
-                self.pessoa_doente_obs = pessoa_doente_obs
-            else:
-                self.pessoa_doente_obs = None
-        else:
-            self.pessoa_doente = None
-            self.pessoa_doente_obs = None
-            self.gastos_medicacao = None
-
-    def __repr__(self):
-        return f"RG:{self.rg}"
-
-
 class AssistidoPessoaJuridica(Base):
     __tablename__ = "assistidos_pessoa_juridica"
 
@@ -344,7 +243,9 @@ class AssistidoPessoaJuridica(Base):
     id_assistido: Mapped[int] = mapped_column(
         Integer, ForeignKey("assistidos.id", ondelete="CASCADE")
     )
-    assistido: Mapped["Assistido"] = relationship("Assistido", lazy="joined")
+    assistido: Mapped["AssistidoSchema"] = relationship(
+        "AssistidoSchema", lazy="joined"
+    )
 
     # Dados específicos
     socios: Mapped[Optional[str]] = mapped_column(
@@ -411,8 +312,8 @@ class Atendido_xOrientacaoJuridica(Base):
     )
     id_atendido: Mapped[int] = mapped_column(Integer, ForeignKey("atendidos.id"))
 
-    atendido: Mapped["Atendido"] = relationship(
-        "Atendido", backref="atendido_xOrientacaoJuridica"
+    atendido: Mapped["AtendidoSchema"] = relationship(
+        "AtendidoSchema", backref="atendido_xOrientacaoJuridica"
     )
     orientacaoJuridica: Mapped["OrientacaoJuridica"] = relationship(
         "OrientacaoJuridica", backref="atendido_xOrientacaoJuridica"
@@ -508,7 +409,9 @@ class FilaAtendidos(Base):
         Integer, ForeignKey("atendidos.id")
     )
 
-    atendido: Mapped["Atendido | None"] = relationship("Atendido", backref="atendidos")
+    atendido: Mapped["AtendidoSchema | None"] = relationship(
+        "AtendidoSchema", backref="atendidos"
+    )
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

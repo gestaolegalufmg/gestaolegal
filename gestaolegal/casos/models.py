@@ -1,7 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer, Table
 
 from gestaolegal import db
-from gestaolegal.models.base import Base
+from gestaolegal.schemas.base import Base
 
 associacao_casos_atendidos = Table(
     "casos_atendidos",
@@ -55,7 +55,7 @@ class Caso(Base):
     sub_area = db.Column(db.String(50, collation="latin1_general_ci"))
 
     clientes = db.relationship(
-        "Atendido", secondary=associacao_casos_atendidos, back_populates="casos"
+        "AtendidoSchema", secondary=associacao_casos_atendidos, back_populates="casos"
     )
 
     id_orientador = db.Column(db.Integer, db.ForeignKey("usuarios.id"))

@@ -15,6 +15,7 @@ from gestaolegal.plantao.forms import (
     MSG_SelecioneUmaOpcaoLista,
     RequiredIf,
 )
+from gestaolegal.plantao.forms.base_form_mixin import BaseFormMixin
 from gestaolegal.plantao.models import (
     beneficio,
     contribuicao_inss,
@@ -28,7 +29,7 @@ from gestaolegal.usuario.models import sexo_usuario
 from gestaolegal.utils.forms import MyFloatField
 
 
-class TornarAssistidoForm(FlaskForm):
+class TornarAssistidoForm(FlaskForm, BaseFormMixin):
     sexo = SelectField(
         "Sexo/Gênero",
         choices=[
@@ -415,7 +416,7 @@ class TornarAssistidoForm(FlaskForm):
         ],
     )
 
-    obs_assistido = TextAreaField(
+    obs = TextAreaField(
         "Observações adicionais",
         validators=[
             Optional(),
@@ -680,3 +681,12 @@ class TornarAssistidoForm(FlaskForm):
     #         ),
     #     ],
     # )
+
+    def populate_from_assistido(self, assistido) -> None:
+        self.populate_from_entity(assistido)
+
+        if hasattr(assistido, "possui_outros_imoveis"):
+            self.possui_outros_imoveis.data = str(assistido.possui_outros_imoveis)
+
+        if hasattr(assistido, "possui_veiculos"):
+            self.possui_veiculos.data = str(assistido.possui_veiculos)

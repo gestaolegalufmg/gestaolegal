@@ -24,7 +24,6 @@ from gestaolegal.plantao.forms import (
     SelecionarDuracaoPlantaoForm,
 )
 from gestaolegal.plantao.models import (
-    Assistido,
     DiaPlantao,
     DiasMarcadosPlantao,
     FilaAtendidos,
@@ -32,6 +31,7 @@ from gestaolegal.plantao.models import (
     RegistroEntrada,
 )
 from gestaolegal.plantao.views_util import *
+from gestaolegal.schemas.assistido import AssistidoSchema as Assistido
 from gestaolegal.usuario.models import (
     usuario_urole_inverso,
     usuario_urole_roles,

@@ -5,11 +5,11 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from gestaolegal.common.constants import area_do_direito
-from gestaolegal.models.base import Base
+from gestaolegal.schemas.base import Base
 
 if TYPE_CHECKING:
     from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
-    from gestaolegal.models.atendido import Atendido
+    from gestaolegal.schemas.atendido import AtendidoSchema
     from gestaolegal.usuario.models import Usuario
 
 
@@ -34,8 +34,8 @@ class OrientacaoJuridica(Base):
         secondary="assistenciasJudiciarias_xOrientacao_juridica",
         backref="AssistenciaJudiciaria",
     )
-    atendidos: Mapped[list["Atendido"]] = relationship(
-        "Atendido", secondary="atendido_xOrientacaoJuridica"
+    atendidos: Mapped[list["AtendidoSchema"]] = relationship(
+        "AtendidoSchema", secondary="atendido_xOrientacaoJuridica"
     )
     id_usuario: Mapped[int | None] = mapped_column(Integer, ForeignKey("usuarios.id"))
     usuario: Mapped["Usuario | None"] = relationship("Usuario", backref="usuarios")

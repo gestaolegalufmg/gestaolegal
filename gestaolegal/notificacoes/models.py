@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy import Date, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from gestaolegal.models.base import Base
+from gestaolegal.schemas.base import Base
 from gestaolegal.usuario.models import Usuario
 
 acoes = {

@@ -3,7 +3,7 @@ from typing import Final
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from gestaolegal.models.base import Base
+from gestaolegal.schemas.base import Base
 
 
 class Endereco(Base):

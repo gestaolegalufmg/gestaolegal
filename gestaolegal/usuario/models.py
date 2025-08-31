@@ -7,21 +7,23 @@ from itsdangerous import URLSafeTimedSerializer as Serializer
 from sqlalchemy import false
 
 from gestaolegal import app, db, login_manager
-from gestaolegal.models.base import Base
 from gestaolegal.models.endereco import Endereco
+from gestaolegal.schemas.base import Base
 
 ##############################################################
 ################## CONSTANTES/ENUMS ##########################
 ##############################################################
 
+
+# Backward compatibility - keep the old dict for gradual migration
 usuario_urole_roles = {
-    "USER": "user",  # DEFAULT PARA NAO DAR ERRO, DEPOIS TIRA
-    "ADMINISTRADOR": ("admin", "Administrador"),
-    "ORIENTADOR": ("orient", "Orientador"),
-    "COLAB_PROJETO": ("colab_proj", "Colaborador de projeto"),
-    "ESTAGIARIO_DIREITO": ("estag_direito", "Estagiário de Direito"),
-    "COLAB_EXTERNO": ("colab_ext", "Colaborador externo"),
-    "PROFESSOR": ("prof", "Professor"),
+    "USER": UserRole.USER.value,
+    "ADMINISTRADOR": UserRole.ADMINISTRADOR.value,
+    "ORIENTADOR": UserRole.ORIENTADOR.value,
+    "COLAB_PROJETO": UserRole.COLAB_PROJETO.value,
+    "ESTAGIARIO_DIREITO": UserRole.ESTAGIARIO_DIREITO.value,
+    "COLAB_EXTERNO": UserRole.COLAB_EXTERNO.value,
+    "PROFESSOR": UserRole.PROFESSOR.value,
 }
 
 usuario_urole_inverso = {
@@ -174,7 +176,7 @@ def create_user(nome, email, senha):
 
     entidade_usuario = Usuario(
         senha=senha,
-        urole=usuario_urole_roles["ADMINISTRADOR"][0],
+        urole=usuario_urole_roles["ADMINISTRADOR"],
         nome=nome,
         email=email,
         sexo="M",
