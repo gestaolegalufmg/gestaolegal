@@ -3,10 +3,6 @@
 {% block titulo %}Gestão de Usuários{% endblock %}
 
 {% block conteudo %}
-<nav class="d-inline-block">
-  <ul class="pagination mb-0"></ul>
-</nav>
-
 <div class="card">
   <div class="card-body">
     <div class="card-title">
@@ -42,12 +38,12 @@
           </div>
           <div class="ml-3 d-flex align-items-center">
             <span class="me-2">Total:</span>
-            <span class="badge badge-primary count-users">0</span>
+            <span class="badge badge-primary">{{ usuarios.total }}</span>
           </div>
         </div>
         
         <div class="d-flex ml-auto">
-          {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0]] %}
+          {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value] %}
           <a class="btn btn-primary ml-auto p-2 px-2" href="{{url_for('usuario.cadastrar_usuario')}}">
             Cadastrar Usuário
           </a>
@@ -63,74 +59,23 @@
             <th class="bg-white">E-mail</th>
             <th class="bg-white">Função</th>
             <th class="bg-white">Status</th>
-            <th class="bg-white">Ações</th>
+            <th class="bg-white text-right">Ações</th>
           </tr>
         </thead>
-        <tbody>
-          {% for usuario in usuarios.items %}
-          <tr>
-            <td>{{usuario.nome}}</td>
-            <td>{{usuario.email}}</td>
-            {% for key in usuario_urole_roles %}
-            {% if usuario_urole_roles[key][0] == usuario.urole %}
-            <td><span>{{usuario_urole_roles[key][1]}}</span></td>
-            {% endif %}
-            {% endfor %}
-            <td>
-              {% if usuario.status %}
-                <span class="badge badge-success">Ativo</span>
-              {% else %}
-                <span class="badge badge-danger">Inativo</span>
-              {% endif %}
-            </td>
-            <td>
-              <div class="row">
-                <button type="submit" class="btn mx-0 btn-flat btn-outline-primary btn-sm" name="button"><a
-                    href="{{url_for('usuario.perfil_usuario', id_user = usuario.id)}}"
-                    style="text-decoration: none; color: inherit;">Visualizar!! <i
-                      class="fas fa-external-link-alt"></i></a></button>
-                {% if current_user.urole in
-                [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['PROFESSOR'][0]] and (usuario.id !=
-                admin_padrao or current_user.id == admin_padrao)%}
-                <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a
-                    href="{{url_for('usuario.editar_usuario', id_user = usuario.id)}}"
-                    style="text-decoration: none;color: white;">Editar</a></button>
-                {% endif %}
-                {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] and usuario.id != admin_padrao %}
-                <form action="{{url_for('usuario.muda_senha_admin')}}" method="POST">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <div>
-                    <input type="hidden" name="id" value="{{usuario.id}}">
-                  </div>
-                  <button type="submit" class="btn mx-0 btn-flat btn-warning btn-sm"
-                    onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
-                    Senha</button>
-                </form>
-                {% endif %}
-                {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] and usuario.id != admin_padrao %}
-                <form action="{{url_for('usuario.inativar_usuario_lista')}}" method="POST">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <div>
-                    <input type="hidden" name="id" value="{{usuario.id}}">
-                  </div>
-                  <button type="submit" class="btn mx-0 btn-flat btn-outline-danger btn-sm"
-                    onclick="return confirm('Você deseja realmente inativar este usuário?');"><i
-                      class="fas fa-trash"></i></button>
-                </form>
-                {% endif %}
-
-              </div>
-            </td>
-          </tr>
-
-          {% endfor %}
+        <tbody id="users-table-body">
+          {% include 'usuario/partials/usuarios_table_rows.html' %}
         </tbody>
       </table>
+    </div>
+    
+    <div id="pagination-container">
+      {% if usuarios.pages > 1 %}
+        {% include 'usuario/partials/usuarios_pagination.html' %}
+      {% endif %}
     </div>
   </div>
 </div>
 {% endblock %}
-
 
 {% block scripts %}
 <style>
@@ -204,495 +149,246 @@
     background-color: #dc3545;
     color: white;
   }
+  
+  /* Action buttons - icon only */
+  .table td .btn-sm {
+    padding: 0.375rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+  }
+  
+  .table td .btn-sm i {
+    font-size: 0.875rem;
+  }
+  
+  .table td .d-flex {
+    gap: 0.25rem;
+  }
+  
+  /* Actions column alignment */
+  .table th.text-right,
+  .table td.text-right {
+    text-align: right !important;
+  }
+  
+  .table td.text-right .d-flex {
+    justify-content: flex-end;
+  }
+  
+  /* Loading state */
+  #users-table-body {
+    transition: opacity 0.3s ease;
+  }
 </style>
 
-<script defer>
-  const users = [];
-  const roles = {
-    admin: "Administrador",
-    orient: "Orientador",
-    colab_proj: "Colaborador de projeto",
-    estag_direito: "Estagiário de Direito",
-    colab_ext: "Colaborador externo",
-    prof: "Professor",
-  }
-  
-  function getCSRFToken() {
-    return document.querySelector('input[name="csrf_token"]').value;
-  }
-  
-  async function refreshCSRFToken() {
-    try {
-      const response = await fetch('/usuario/listar_usuarios', {
-        method: 'GET',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      });
-      const html = await response.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      const newToken = doc.querySelector('input[name="csrf_token"]').value;
-      document.querySelector('input[name="csrf_token"]').value = newToken;
-      return newToken;
-    } catch (error) {
-      console.error('Error refreshing CSRF token:', error);
-      window.location.reload();
-    }
-  }
-  
-  document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('submit', async function(e) {
-      if (e.target.method === 'POST') {
-        e.preventDefault();
-        
-        try {
-          const formData = new FormData(e.target);
-          const response = await fetch(e.target.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-              'X-Requested-With': 'XMLHttpRequest'
-            }
-          });
-          
-          if (response.status === 400) {
-            const text = await response.text();
-            if (text.includes('CSRF token has expired') || text.includes('CSRF token missing')) {
-              await refreshCSRFToken();
-              e.target.querySelector('input[name="csrf_token"]').value = getCSRFToken();
-              e.target.submit();
-              return;
-            }
-          }
-          
-          if (response.redirected) {
-            window.location.href = response.url;
-          } else if (response.ok) {
-            window.location.reload();
-          }
-        } catch (error) {
-          console.error('Form submission error:', error);
-          e.target.submit();
-        }
-      }
-    });
-  });
-  
-  function actPagination() {
-    document.querySelectorAll(".pagination li").forEach(item => {
-      item.addEventListener("click", () => {
-        document.querySelector(".pagination .active").classList.remove('active');
-        sessionStorage.setItem("page-active", item.textContent)
-        item.classList.add("active");
-        let tbody = document.querySelector(".table tbody");
-        tbody.innerHTML = "";
-        
-        if (users.length > 0) {
-          // Sort users alphabetically by name
-          const sortedUsers = [...users].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-          let usersTable = paginator(sortedUsers, item.textContent, 20);
-          usersTable.forEach(tableItem => {
-            if (tableItem && tableItem.nome && tableItem.email && tableItem.urole && tableItem.id) {
-              const statusBadge = tableItem.status ? 
-                '<span class="badge badge-success">Ativo</span>' : 
-                '<span class="badge badge-danger">Inativo</span>';
-              
-              tbody.insertAdjacentHTML("beforeend", `
-                <tr>
-                  <td>${tableItem.nome}</td>
-                  <td>${tableItem.email}</td>
-                  <td><span>${roles[tableItem.urole] || 'N/A'}</span></td>
-                  <td>${statusBadge}</td>
-                  <td>
-                    <div class="row justify-content-end" style="gap: 0.2rem;">
-                      <button type="submit" class="btn ml-2 mr-2 btn-flat btn-outline-primary btn-sm" name="button"><a href="/usuario/perfil/${tableItem.id}" style="text-decoration: none; color: inherit;">Visualizar <i class="fas fa-external-link-alt"></i></a></button>
-                      
-                      <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${tableItem.id}" style="text-decoration: none;color: white;">Editar</a></button>
-                      
-                      
-                      <form action="/usuario/muda_senha_admin" method="POST">
-                        <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
-                        <div>
-                          <input type="hidden" name="id" value="${tableItem.id}">
-                        </div>
-                        <button type="submit" class="btn ml-1 btn-flat btn-warning btn-sm" onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
-                          Senha</button>
-                      </form>
-                      
-                      
-                      <form action="/usuario/inativar_usuario_lista/" method="POST">
-                        <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
-                        <div>
-                          <input type="hidden" name="id" value="${tableItem.id}">
-                        </div>
-                        <button type="submit" class="btn ml-1 btn-flat btn-outline-danger btn-sm" onclick="return confirm('Você deseja realmente inativar este usuário?');"><i class="fas fa-trash"></i></button>
-                      </form>                
-                    </div>
-                  </td>
-                </tr>`
-              );
-            } else {
-              console.warn("Skipping invalid user item in pagination:", tableItem);
-            }
-          });
-        } else {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="5" class="text-center text-muted">
-                <i class="fas fa-users"></i> Nenhum usuário encontrado
-              </td>
-            </tr>
-          `;
-        }
-      })
-    })
-  }
-  async function getUsers() {
-    try {
-      const url = `/usuario/busca_usuarios?funcao=all&status=1`;
-      const data = await fetch(url, {
-        method: "GET",
-        headers: {
-          'X-CSRF-Token': getCSRFToken()
-        }
-      });
-      
-      if (!data.ok) {
-        throw new Error(`HTTP error! status: ${data.status}`);
-      }
-      
-      const responseText = await data.text();
-      let res;
-      try {
-        res = JSON.parse(responseText);
-      } catch (parseError) {
-        throw new Error("Invalid JSON response from server");
-      }
-      
-      if (res && res.users && Array.isArray(res.users)) {
-        users.length = 0;
-        res.users.forEach(item => {
-          if (item && item.nome && item.email && item.urole && item.id) {
-            users.push(item);
-          }
-        });
-      } else {
-        users.length = 0;
-        res = { users: [] };
-      }
-      
-      return res;
-    } catch (error) {
-      users.length = 0;
-      return { users: [] };
-    }
-  }
-  async function getUsersByFilter(){
-    try {
-      const funcao = document.querySelector("#urole").value;
-      const status = document.querySelector("#desativados").value === "ativos" ? 1 : 0;
-      const searchTerm = document.querySelector("#searchUser").value;
-      
-      let url = `/usuario/busca_usuarios?funcao=${funcao}&status=${status}`;
-      if (searchTerm) {
-        url += `&valor_busca=${encodeURIComponent(searchTerm)}`;
-      }
-      
-      const res = await fetch(url);
-      
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      
-      const responseText = await res.text();
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        throw new Error("Invalid JSON response from server");
-      }
-      
-      users.length = 0;
-      
-      if (data && data.users && Array.isArray(data.users)) {
-        data.users.forEach(item => {
-          if (item && item.nome && item.email && item.urole && item.id) {
-            users.push(item);
-          }
-        });
-      } else {
-        users.length = 0;
-      }
-      
-      let totalPage = Math.ceil(users.length / 20);
-
-      let pagination = document.querySelector(".pagination");
-      pagination.innerHTML = "";
-      sessionStorage.setItem("page-active", 1);
-      document.querySelector(".count-users").textContent = users.length;
-      let active = sessionStorage.getItem("page-active");
-      
-      for (let i = 1; i <= totalPage; i++) {
-        pagination.insertAdjacentHTML('beforeend', `<li class="page-item ${active == i ? "active" : ""}"><a class="page-link" href="#">${i}</a></li>`);
-        actPagination();
-      }
-      
-      let tbody = document.querySelector(".table tbody");
-      tbody.innerHTML = "";
-      
-      if (users.length > 0) {
-        // Sort users alphabetically by name
-        const sortedUsers = [...users].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-        let usersTable = paginator(sortedUsers, active, 20);
-        usersTable.forEach(item => {
-          if (item && item.nome && item.email && item.urole && item.id) {
-            const statusBadge = item.status ? 
-              '<span class="badge badge-success">Ativo</span>' : 
-              '<span class="badge badge-danger">Inativo</span>';
-            
-            tbody.insertAdjacentHTML("beforeend", `
-            <tr>
-              <td>${item.nome}</td>
-              <td>${item.email}</td>
-              <td><span>${roles[item.urole] || 'N/A'}</span></td>
-              <td>${statusBadge}</td>
-              <td>
-                <div class="row justify-content-end" style="gap: 0.2rem">
-                  <button type="submit" class="btn mx-0 btn-flat btn-outline-primary btn-sm" name="button"><a href="/usuario/perfil/${item.id}" style="text-decoration: none; color: inherit;">Visualizar <i class="fas fa-external-link-alt"></i></a></button>
-                  
-                  <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${item.id}" style="text-decoration: none;color: white;">Editar</a></button>
-                  
-                  
-                  <form action="/usuario/muda_senha_admin" method="POST">
-                    <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
-                    <div>
-                      <input type="hidden" name="id" value="${item.id}">
-                    </div>
-                    <button type="submit" class="btn mx-0 btn-flat btn-warning btn-sm" onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
-                      Senha</button>
-                  </form>
-                  
-                  
-                  <form action="/usuario/inativar_usuario_lista/" method="POST">
-                    <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
-                    <div>
-                      <input type="hidden" name="id" value="${item.id}">
-                    </div>
-                    <button type="submit" class="btn mx-0 btn-flat btn-outline-danger btn-sm" onclick="return confirm('Você deseja realmente inativar este usuário?');"><i class="fas fa-trash"></i></button>
-                  </form>                
-                </div>
-              </td>
-            </tr>`
-            );
-          }
-        });
-      } else {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5" class="text-center text-muted py-4">
-              <div>
-                <i class="fas fa-search fa-2x mb-2"></i>
-                <p class="mb-1">Nenhum usuário encontrado</p>
-                <small class="text-muted">Tente usar termos diferentes ou verificar a ortografia</small>
-              </div>
-            </td>
-          </tr>
-        `;
-      }
-    } catch (error) {
-      console.error('Error in getUsersByFilter:', error);
-      users.length = 0;
-      document.querySelector(".count-users").textContent = "0";
-      document.querySelector(".pagination").innerHTML = "";
-      document.querySelector(".table tbody").innerHTML = `
-        <tr>
-          <td colspan="5" class="text-center text-danger">
-            <i class="fas fa-exclamation-triangle"></i> Erro ao buscar usuários
-          </td>
-        </tr>
-      `;
-    }
-  }
-  const paginator = (items, pageActual, limitItems) => {
-    let result = [];
-    let totalPage = Math.ceil(items.length / limitItems);
-    let count = (pageActual * limitItems) - limitItems;
-    let delimiter = count + limitItems;
-
-    if (pageActual <= totalPage) {
-      for (let i = count; i < delimiter; i++) {
-        result.push(items[i]);
-        count++;
-      }
-    }
-    return result;
-  }
-
-  async function mountTable() {
-    try {
-      const res = await getUsers();
-      
-      if (res && res.users && Array.isArray(res.users)) {
-        let totalPage = Math.ceil(res.users.length / 20);
-
-        let pagination = document.querySelector(".pagination");
-        pagination.innerHTML = "";
-        sessionStorage.setItem("page-active", 1);
-        document.querySelector(".count-users").textContent = res.users.length;
-        let active = sessionStorage.getItem("page-active");
-        
-        for (let i = 1; i <= totalPage; i++) {
-          pagination.insertAdjacentHTML('beforeend', `<li class="page-item ${active == i ? "active" : ""}"><a class="page-link" href="#">${i}</a></li>`);
-          actPagination();
-        }
-        
-        let tbody = document.querySelector(".table tbody");
-        tbody.innerHTML = "";
-        
-        if (res.users.length > 0) {
-          // Sort users alphabetically by name
-          const sortedUsers = [...res.users].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-          let usersTable = paginator(sortedUsers, active, 20);
-          usersTable.forEach(item => {
-            if (item && item.nome && item.email && item.urole && item.id) {
-              const statusBadge = item.status ? 
-                '<span class="badge badge-success">Ativo</span>' : 
-                '<span class="badge badge-danger">Inativo</span>';
-              
-              tbody.insertAdjacentHTML("beforeend", `
-              <tr>
-                <td>${item.nome}</td>
-                <td>${item.email}</td>
-                <td><span>${roles[item.urole] || 'N/A'}</span></td>
-                <td>${statusBadge}</td>
-                <td>
-                  <div class="row justify-content-end" style="gap: 0.2rem">
-                    <button type="submit" class="btn mx-0 btn-flat btn-outline-primary btn-sm" name="button"><a href="/usuario/perfil/${item.id}" style="text-decoration: none; color: inherit;">Visualizar <i class="fas fa-external-link-alt"></i></a></button>
-                    
-                    <button type="submit" class="btn mx-0 btn-flat btn-primary btn-sm" name="button"><a href="/usuario/editar_usuario/${item.id}" style="text-decoration: none;color: white;">Editar</a></button>
-                    
-                    
-                    <form action="/usuario/muda_senha_admin" method="POST">
-                      <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
-                      <div>
-                        <input type="hidden" name="id" value="${item.id}">
-                      </div>
-                      <button type="submit" class="btn mx-0 btn-flat btn-warning btn-sm" onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">Mudar
-                        Senha</button>
-                    </form>
-                    
-                    
-                    <form action="/usuario/inativar_usuario_lista/" method="POST">
-                      <input type="hidden" name="csrf_token" value="${getCSRFToken()}">
-                      <div>
-                        <input type="hidden" name="id" value="${item.id}">
-                      </div>
-                      <button type="submit" class="btn mx-0 btn-flat btn-outline-danger btn-sm" onclick="return confirm('Você deseja realmente inativar este usuário?');"><i class="fas fa-trash"></i></button>
-                    </form>                
-                  </div>
-                </td>
-              </tr>`
-              );
-            }
-          });
-        } else {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="5" class="text-center text-muted py-4">
-                <div>
-                  <i class="fas fa-users fa-2x mb-2"></i>
-                  <p class="mb-1">Nenhum usuário cadastrado</p>
-                  <small class="text-muted">Não há usuários no sistema ou todos estão inativos</small>
-                </div>
-              </td>
-            </tr>
-          `;
-        }
-      } else {
-        document.querySelector(".count-users").textContent = "0";
-        document.querySelector(".pagination").innerHTML = "";
-        document.querySelector(".table tbody").innerHTML = `
-          <tr>
-            <td colspan="5" class="text-center text-muted py-4">
-              <div>
-                <i class="fas fa-users fa-2x mb-2"></i>
-                <p class="mb-1">Nenhum usuário cadastrado</p>
-                <small class="text-muted">Não há usuários no sistema ou todos estão inativos</small>
-              </div>
-            </td>
-          </tr>
-        `;
-      }
-    } catch (error) {
-      document.querySelector(".count-users").textContent = "0";
-      document.querySelector(".pagination").innerHTML = "";
-      document.querySelector(".table tbody").innerHTML = `
-        <tr>
-          <td colspan="5" class="text-center text-danger">
-            <i class="fas fa-exclamation-triangle"></i> Erro ao carregar usuários
-          </td>
-        </tr>
-      `;
-    }
-  }
-  window.onload = async () => {
-    mountTable();
-    const userLength = document.querySelectorAll(".table tbody tr").length;
-    const usersTable = document.querySelectorAll(".table tbody tr");
-
-
-
-
+<script>
+document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.querySelector("#searchUser");
     const clearSearchButton = document.querySelector("#clearSearch");
-    let searchTimeout;
-    searchInput.addEventListener("input", async (e) => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(async () => {
-        try {
-          const searchTerm = e.target.value.trim();
-          
-          if (searchTerm.length === 0) {
-            await getUsers();
-            await mountTable();
-            clearSearchButton.classList.add('d-none');
-            return;
-          }
-          
-          document.querySelector("#searchLoading").classList.remove("d-none");
-          await getUsersByFilter();
-          document.querySelector(".count-users").textContent = users.length;
-          clearSearchButton.classList.remove('d-none');
-        } catch (error) {
-          console.error('Error during search:', error);
-        } finally {
-          document.querySelector("#searchLoading").classList.add("d-none");
-        }
-      }, 300);
-    });
-
-    clearSearchButton.addEventListener("click", async () => {
-      searchInput.value = "";
-      await getUsers();
-      await mountTable();
-      clearSearchButton.classList.add('d-none');
-      document.querySelector(".count-users").textContent = users.length;
-    });
+    const searchLoadingIndicator = document.querySelector("#searchLoading");
+    const uroleSelect = document.querySelector("#urole");
+    const statusSelect = document.querySelector("#desativados");
+    const usersTableBody = document.querySelector("#users-table-body");
+    const paginationContainer = document.querySelector("#pagination-container");
+    const totalBadge = document.querySelector(".badge-primary");
     
+    let searchTimeout;
+    let lastSearchTerm = '';
+    let lastFuncao = 'all';
+    let lastStatus = '1';
+    let currentPage = 1;
+    const DEBOUNCE_DELAY = 300;
+    const MIN_SEARCH_LENGTH = 2;
 
-    const status = document.querySelector("#desativados");
-    status.onchange = async (e) => {
-      await getUsersByFilter();
-      document.querySelector(".count-users").textContent = users.length;
+    function showLoading() {
+        if (searchLoadingIndicator) {
+            searchLoadingIndicator.classList.remove('d-none');
+        }
+        if (usersTableBody) {
+            usersTableBody.style.opacity = '0.6';
+        }
     }
 
-    const urole = document.querySelector("#urole");
-    urole.onchange = async (e) => {
-      await getUsersByFilter();
-      document.querySelector(".count-users").textContent = users.length;
+    function hideLoading() {
+        if (searchLoadingIndicator) {
+            searchLoadingIndicator.classList.add('d-none');
+        }
+        if (usersTableBody) {
+            usersTableBody.style.opacity = '1';
+        }
     }
-  };
+
+    function updateClearButton() {
+        const hasValue = searchInput.value.trim().length > 0;
+        if (clearSearchButton) {
+            clearSearchButton.classList.toggle('d-none', !hasValue);
+        }
+    }
+
+    function updateFilters(page = 1, immediate = false) {
+        const searchTerm = searchInput.value.trim();
+        const funcao = uroleSelect.value;
+        const status = statusSelect.value === "ativos" ? "1" : "0";
+        
+        if (searchTerm.length > 0 && searchTerm.length < MIN_SEARCH_LENGTH && !immediate) {
+            hideLoading();
+            return;
+        }
+
+        if (searchTerm === lastSearchTerm && funcao === lastFuncao && 
+            status === lastStatus && page === currentPage && !immediate) {
+            hideLoading();
+            return;
+        }
+
+        lastSearchTerm = searchTerm;
+        lastFuncao = funcao;
+        lastStatus = status;
+        currentPage = page;
+
+        showLoading();
+
+        const params = new URLSearchParams();
+        if (searchTerm && searchTerm.length >= MIN_SEARCH_LENGTH) {
+            params.set('search', searchTerm);
+        }
+        if (funcao && funcao !== 'all') {
+            params.set('funcao', funcao);
+        }
+        if (status !== "1") {
+            params.set('status', status);
+        }
+        if (page > 1) {
+            params.set('page', page);
+        }
+
+        const ajaxUrl = '/usuario/busca_usuarios_ajax?' + params.toString();
+
+        fetch(ajaxUrl, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                usersTableBody.innerHTML = data.table_html;
+                paginationContainer.innerHTML = data.pagination_html;
+                
+                if (totalBadge) {
+                    totalBadge.textContent = data.total;
+                }
+                
+                attachPaginationListeners();
+                updateBrowserURL(searchTerm, funcao, status, page);
+            }
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+            window.location.reload();
+        })
+        .finally(() => {
+            hideLoading();
+        });
+    }
+
+    function updateBrowserURL(searchTerm, funcao, status, page) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('search');
+        url.searchParams.delete('funcao');
+        url.searchParams.delete('status');
+        url.searchParams.delete('page');
+        
+        if (searchTerm && searchTerm.length >= MIN_SEARCH_LENGTH) {
+            url.searchParams.set('search', searchTerm);
+        }
+        if (funcao && funcao !== 'all') {
+            url.searchParams.set('funcao', funcao);
+        }
+        if (status !== "1") {
+            url.searchParams.set('status', status);
+        }
+        if (page > 1) {
+            url.searchParams.set('page', page);
+        }
+        
+        window.history.replaceState({}, '', url);
+    }
+
+    function attachPaginationListeners() {
+        const paginationLinks = document.querySelectorAll('.pagination-link');
+        paginationLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = parseInt(this.dataset.page);
+                if (page) {
+                    updateFilters(page, true);
+                }
+            });
+        });
+    }
+
+    function debouncedSearch() {
+        clearTimeout(searchTimeout);
+        updateClearButton();
+        
+        searchTimeout = setTimeout(() => {
+            updateFilters(1);
+        }, DEBOUNCE_DELAY);
+    }
+
+    searchInput.addEventListener("input", debouncedSearch);
+
+    searchInput.addEventListener("paste", () => {
+        setTimeout(() => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => updateFilters(1), 100);
+        }, 10);
+    });
+
+    clearSearchButton.addEventListener("click", () => {
+        searchInput.value = "";
+        lastSearchTerm = '';
+        hideLoading();
+        updateClearButton();
+        
+        uroleSelect.value = 'all';
+        statusSelect.value = 'ativos';
+        
+        updateFilters(1, true);
+    });
+
+    searchInput.addEventListener("keydown", (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(searchTimeout);
+            updateFilters(1, true);
+        }
+        
+        if (e.key === 'Escape') {
+            searchInput.value = "";
+            lastSearchTerm = '';
+            hideLoading();
+            updateClearButton();
+            
+            uroleSelect.value = 'all';
+            statusSelect.value = 'ativos';
+            
+            updateFilters(1, true);
+        }
+    });
+
+    uroleSelect.addEventListener("change", () => updateFilters(1, true));
+    statusSelect.addEventListener("change", () => updateFilters(1, true));
+
+    updateClearButton();
+    attachPaginationListeners();
+});
 </script>
-
 {% endblock %}

@@ -18,17 +18,261 @@
 </head>
 
 <style>
-  .card .card-header-auth {
-    background: linear-gradient(135deg, #38B5FD, 100%, #583a63 100%) !important;
+  body {
+    overflow-x: hidden;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    animation: fadeIn 0.8s ease-in;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideUp {
+    from { 
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+
+  
+  .login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 1rem 0;
+  }
+  
+  .login-brand-custom {
+    text-align: center;
+    margin-bottom: 0.75rem;
+    animation: slideUp 1s ease-out 0.2s both;
+  }
+  
+  .login-brand-custom .logo img {
+    max-width: 200px;
+    height: auto;
+    max-height: 200px;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15));
   }
 
-  .card .card-header-auth h4 {
+  .login-card-header-custom {
+    background: linear-gradient(135deg, {{ company_color }} 0%, color-mix(in srgb, {{ company_color }} 70%, #000000) 100%) !important;
     color: #ffffff !important;
+    border: none !important;
+    border-radius: 15px 15px 0 0 !important;
+    padding: 0.75rem 1rem !important;
+    position: relative;
+    overflow: hidden;
+  }
+  
+
+
+  .login-card-header-custom h4 {
+    color: #ffffff !important;
+    margin: 0 !important;
+    font-size: 1.25rem;
+  }
+  
+  .login-card-custom {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+    animation: slideUp 1s ease-out 0.4s both;
+  }
+  
+  .login-card-custom .card-body {
+    padding: 1rem;
+  }
+  
+  .login-form-group {
+    margin-bottom: 0.75rem;
+    position: relative;
+  }
+  
+  .login-form-group .form-control {
+    border: 2px solid #e1e5e9;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+  }
+  
+  .login-form-group .form-control:focus {
+    border-color: {{ company_color }};
+    box-shadow: 0 0 0 3px color-mix(in srgb, {{ company_color }} 20%, transparent);
+    background: rgba(255, 255, 255, 1);
+  }
+  
+  .login-form-group label {
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 8px;
+    transition: color 0.3s ease;
+  }
+  
+  .login-form-group:focus-within label {
+    color: {{ company_color }};
   }
 
-  .btn-auth-color {
-    background: linear-gradient(135deg, #38B5FD, 100%, #583a63 100%) !important;
+  .login-btn-custom {
+    background: linear-gradient(135deg, {{ company_color }} 0%, color-mix(in srgb, {{ company_color }} 70%, #000000) 100%) !important;
     color: #ffffff !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.625rem 1rem;
+    font-weight: 600;
+    font-size: 16px;
+    box-shadow: 0 4px 15px color-mix(in srgb, {{ company_color }} 30%, transparent);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .login-btn-custom:hover,
+  .login-btn-custom:focus {
+    background: linear-gradient(135deg, color-mix(in srgb, {{ company_color }} 85%, #ffffff) 0%, color-mix(in srgb, {{ company_color }} 60%, #000000) 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 6px 20px color-mix(in srgb, {{ company_color }} 35%, transparent) !important;
+    transform: translateY(-1px);
+  }
+  
+  .login-btn-custom:active,
+  .login-btn-custom:not(:disabled):not(.disabled):active {
+    background: linear-gradient(135deg, color-mix(in srgb, {{ company_color }} 90%, #000000) 0%, color-mix(in srgb, {{ company_color }} 70%, #000000) 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 2px 8px color-mix(in srgb, {{ company_color }} 40%, transparent) !important;
+    transform: translateY(1px);
+    transition: all 0.1s ease;
+  }
+  
+  /* Ripple effect for click feedback */
+  .login-btn-custom::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+  
+  .login-btn-custom:active::after {
+    width: 300px;
+    height: 300px;
+    transition: width 0.1s, height 0.1s;
+  }
+  
+  /* Forgot password link styling */
+  .login-form-group a {
+    color: {{ company_color }};
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .login-form-group a:hover {
+    color: color-mix(in srgb, {{ company_color }} 80%, #000000);
+    text-decoration: underline;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-height: 800px) {
+    .login-brand-custom .logo img {
+      max-width: 170px;
+      max-height: 170px;
+    }
+    
+    .login-brand-custom {
+      margin-bottom: 0.625rem;
+    }
+    
+    .login-card-custom .card-body {
+      padding: 0.875rem;
+    }
+    
+    .login-form-group {
+      margin-bottom: 0.625rem;
+    }
+    
+    .login-card-header-custom {
+      padding: 0.625rem 1rem !important;
+    }
+  }
+  
+  @media (max-height: 700px) {
+    .login-brand-custom .logo img {
+      max-width: 140px;
+      max-height: 140px;
+    }
+    
+    .login-brand-custom {
+      margin-bottom: 0.5rem;
+    }
+    
+    .login-card-custom .card-body {
+      padding: 0.75rem;
+    }
+    
+    .login-form-group {
+      margin-bottom: 0.5rem;
+    }
+    
+    .login-card-header-custom {
+      padding: 0.5rem 1rem !important;
+    }
+  }
+  
+  @media (max-height: 600px) {
+    .login-brand-custom .logo img {
+      max-width: 110px;
+      max-height: 110px;
+    }
+    
+    .login-brand-custom {
+      margin-bottom: 0.375rem;
+    }
+    
+    .login-card-custom .card-body {
+      padding: 0.625rem;
+    }
+    
+    .login-form-group {
+      margin-bottom: 0.375rem;
+    }
+  }
+  
+  @media (max-height: 500px) {
+    .login-brand-custom .logo img {
+      max-width: 80px;
+      max-height: 80px;
+    }
+    
+    .login-brand-custom {
+      margin-bottom: 0.25rem;
+    }
+    
+    .login-card-custom .card-body {
+      padding: 0.5rem;
+    }
+    
+    .login-form-group {
+      margin-bottom: 0.25rem;
+    }
   }
 </style>
 
@@ -48,28 +292,28 @@
   </div>
   <div id="app">
     <section class="section">
-      <div class="container mt-5">
-        <div class="row">
-          <div class="col-12 col-sm-8 offset-sm-2 col-md-6 offset-md-3 col-lg-6 offset-lg-3 col-xl-4 offset-xl-4">
-            <div class="login-brand login-brand-color">
-              <div class="logo"><img alt="image" width="177" height="200"
+      <div class="container login-container">
+        <div class="row justify-content-center w-100">
+          <div class="col-12 col-sm-8 col-md-6 col-lg-5 col-xl-4">
+            <div class="login-brand-custom">
+              <div class="logo"><img alt="image"
                   src="{{url_for('static', filename='imgs_daj/gestao_legal_teste.png')}}"></div>
             </div>
-            <div class="card">
-              <div class="card-header card-header-auth">
+            <div class="card login-card-custom">
+              <div class="login-card-header-custom">
                 <h4>Login</h4>
               </div>
               <div class="card-body">
                 <form method="POST" action="{{url_for('usuario.login')}}" class="needs-validation" novalidate="">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <div class="form-group">
+                  <div class="login-form-group">
                     <label for="email">Email</label>
                     <input id="login" name="login" type="email" class="form-control" tabindex="1" required autofocus>
                     <div class="invalid-feedback">
                       Por favor preencha seu email
                     </div>
                   </div>
-                  <div class="form-group">
+                  <div class="login-form-group">
                     <div class="d-block">
                       <label for="password" class="control-label">Senha</label>
                     </div>
@@ -78,17 +322,11 @@
                       Por favor preecha sua senha
                     </div>
                   </div>
-                  <!-- <div class="form-group">
-                    <div class="custom-control custom-checkbox">
-                      <input type="checkbox" name="remember" class="custom-control-input" tabindex="3" id="remember-me">
-                      <label class="custom-control-label" for="remember-me">Manter sessão</label>
-                    </div>
-                  </div> -->
-                  <div class="form-group">
+                  <div class="login-form-group">
                     <a href="{{url_for('usuario.esqueci_senha')}}"><u>esqueci minha senha</u></a>
                   </div>
-                  <div class="form-group">
-                    <button type="submit" class="btn btn-lg btn-block btn-auth-color" tabindex="4">
+                  <div class="login-form-group">
+                    <button type="submit" class="btn btn-lg btn-block login-btn-custom" tabindex="4">
                       Login
                     </button>
                   </div>

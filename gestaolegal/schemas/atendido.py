@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING, Final
 from sqlalchemy import Date, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from gestaolegal.casos.models import associacao_casos_atendidos
+from gestaolegal.schemas import associacao_casos_atendidos
 from gestaolegal.schemas.base import Base
 
 if TYPE_CHECKING:
-    from gestaolegal.casos.models import Caso
-    from gestaolegal.models.endereco import Endereco
-    from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+    from gestaolegal.schemas.caso import CasoSchema
+    from gestaolegal.schemas.endereco import EnderecoSchema
+    from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
 
 
 class AtendidoSchema(Base):
@@ -18,13 +18,17 @@ class AtendidoSchema(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    orientacoesJuridicas: Mapped[list["OrientacaoJuridica"]] = relationship(
-        "OrientacaoJuridica", secondary="atendido_xOrientacaoJuridica"
+    orientacoesJuridicas: Mapped[list["OrientacaoJuridicaSchema"]] = relationship(
+        "OrientacaoJuridicaSchema",
+        secondary="atendido_xOrientacaoJuridica",
+        back_populates="atendidos",
     )
-    casos: Mapped[list["Caso"]] = relationship(
-        "Caso", secondary=associacao_casos_atendidos, back_populates="clientes"
+    casos: Mapped[list["CasoSchema"]] = relationship(
+        "CasoSchema", secondary=associacao_casos_atendidos, back_populates="clientes"
     )
-    endereco: Mapped["Endereco | None"] = relationship("Endereco", lazy="joined")
+    endereco: Mapped["EnderecoSchema | None"] = relationship(
+        "EnderecoSchema", lazy="joined", back_populates="atendidos"
+    )
 
     # Dados básicos
     nome: Mapped[str] = mapped_column(String(80, collation="latin1_general_ci"))

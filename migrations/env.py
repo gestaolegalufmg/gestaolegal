@@ -21,13 +21,11 @@ fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
 
 # Import your models here
-from gestaolegal import app, db
-from gestaolegal.casos.models import *
-from gestaolegal.plantao.models import *
-from gestaolegal.usuario.models import *
+from gestaolegal import db
+from gestaolegal.models import *
 
 # Get the database URL from your Flask app config
-config.set_main_option("sqlalchemy.url", app.config["SQLALCHEMY_DATABASE_URI"])
+config.set_main_option("sqlalchemy.url", current_app.config["SQLALCHEMY_DATABASE_URI"])
 target_metadata = db.metadata
 
 

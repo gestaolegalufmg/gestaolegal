@@ -5,6 +5,7 @@ from typing import Any
 from flask import (
     Blueprint,
     abort,
+    current_app,
     flash,
     jsonify,
     redirect,
@@ -15,19 +16,23 @@ from flask import (
 from flask_login import current_user
 from sqlalchemy import Select
 
-from gestaolegal import app, db, login_required
-from gestaolegal.models.atendido import Atendido
-from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
-from gestaolegal.plantao.forms.orientacao_juridica_form import (
+from gestaolegal.common.constants import UserRole
+from gestaolegal.database import get_db
+from gestaolegal.forms.plantao.orientacao_juridica_form import (
     CadastroOrientacaoJuridicaForm,
     OrientacaoJuridicaForm,
 )
-from gestaolegal.plantao.models import (
-    AssistenciaJudiciaria_xOrientacaoJuridica,
-    Atendido_xOrientacaoJuridica,
+from gestaolegal.schemas.assistencia_judiciaria_x_orientacao_juridica import (
+    AssistenciaJudiciaria_xOrientacaoJuridicaSchema,
 )
+from gestaolegal.schemas.atendido import AtendidoSchema
+from gestaolegal.schemas.atendido_x_orientacao_juridica import (
+    Atendido_xOrientacaoJuridicaSchema,
+)
+from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
+from gestaolegal.schemas.usuario import UsuarioSchema
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
-from gestaolegal.usuario.models import Usuario, usuario_urole_roles
+from gestaolegal.utils.decorators import login_required
 from gestaolegal.utils.models import queryFiltradaStatus
 
 orientacao_juridica_controller = Blueprint(
@@ -36,9 +41,10 @@ orientacao_juridica_controller = Blueprint(
 
 
 @orientacao_juridica_controller.route("/excluir_orientacao_juridica/", methods=["POST"])
-@login_required(role=[usuario_urole_roles["ADMINISTRADOR"][0]])
+@login_required(role=[UserRole.ADMINISTRADOR])
 def excluir_oj():
-    orientacao_juridica_service = OrientacaoJuridicaService(db.session)
+    db = get_db()
+    orientacao_juridica_service = OrientacaoJuridicaService()
 
     id_orientacao = request.form.get("id_orientacao")
     orientacao = orientacao_juridica_service.find_by_id(id_orientacao)
@@ -53,14 +59,14 @@ def excluir_oj():
 @orientacao_juridica_controller.route(
     "/editar_orientacao_juridica/<id_oj>", methods=["POST", "GET"]
 )
-@login_required(
-    role=[usuario_urole_roles["ADMINISTRADOR"][0], usuario_urole_roles["PROFESSOR"][0]]
-)
+@login_required(role=[UserRole.ADMINISTRADOR, UserRole.PROFESSOR])
 def editar_orientacao_juridica(id_oj: int):
-    orientacao_juridica_service = OrientacaoJuridicaService(db.session)
+    db = get_db()
+
+    orientacao_juridica_service = OrientacaoJuridicaService()
 
     def setDadosOrientacaoJuridica(
-        entidade_orientacao: OrientacaoJuridica, form: OrientacaoJuridicaForm
+        entidade_orientacao: OrientacaoJuridicaSchema, form: OrientacaoJuridicaForm
     ):
         entidade_orientacao.area_direito = form.area_direito.data
         entidade_orientacao.descricao = form.descricao.data
@@ -71,7 +77,7 @@ def editar_orientacao_juridica(id_oj: int):
         )
 
     def setOrientacaoJuridicaForm(
-        entidade_orientacao: OrientacaoJuridica, form: OrientacaoJuridicaForm
+        entidade_orientacao: OrientacaoJuridicaSchema, form: OrientacaoJuridicaForm
     ):
         form.area_direito.data = entidade_orientacao.area_direito
         form.sub_area.data = entidade_orientacao.sub_area
@@ -83,7 +89,7 @@ def editar_orientacao_juridica(id_oj: int):
 
     if not entidade_orientacao:
         flash("Essa orientação não existe!", "warning")
-        return redirect(url_for("orientacoes_juridica.orientacoes_juridicas"))
+        return redirect(url_for("orientacao_juridica.orientacoes_juridicas"))
 
     form = OrientacaoJuridicaForm()
     if request.method == "POST":
@@ -104,10 +110,13 @@ def editar_orientacao_juridica(id_oj: int):
 @orientacao_juridica_controller.route("/buscar_orientacao_juridica", methods=["POST"])
 @login_required()
 def buscar_orientacao_juridica():
-    orientacao_juridica_service = OrientacaoJuridicaService(db.session)
+    db = get_db()
+
+    orientacao_juridica_service = OrientacaoJuridicaService()
 
     termo = request.form.get("termo", "")
     page = request.args.get("page", 1, type=int)
+    per_page = current_app.config["ATENDIDOS_POR_PAGINA"]
 
     def paginator(query: Select[Any]):
         return db.paginate(query, page=page, per_page=per_page)
@@ -122,15 +131,17 @@ def buscar_orientacao_juridica():
 )
 @login_required(
     role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
+        UserRole.ADMINISTRADOR,
+        UserRole.ESTAGIARIO_DIREITO,
     ]
 )
 def cadastro_orientacao_juridica():
+    db = get_db()
+
     form = CadastroOrientacaoJuridicaForm()
     if request.method == "POST":
         if form.validate():
-            orientacao = OrientacaoJuridica(
+            orientacao = OrientacaoJuridicaSchema(
                 area_direito=form.area_direito.data,
                 descricao=form.descricao.data,
                 data_criacao=datetime.now(),
@@ -154,7 +165,7 @@ def cadastro_orientacao_juridica():
                     atendidos_ids = atendidos_data.get("id", [])
                     for atendido_id in atendidos_ids:
                         atendido = (
-                            db.session.query(Atendido)
+                            db.session.query(AtendidoSchema)
                             .filter_by(id=atendido_id, status=True)
                             .first()
                         )
@@ -166,7 +177,7 @@ def cadastro_orientacao_juridica():
             if form.encaminhar_outras_aj.data:
                 assistencia_id = request.form.get("assistencia_judiciaria")
                 if assistencia_id:
-                    aj_oj = AssistenciaJudiciaria_xOrientacaoJuridica()
+                    aj_oj = AssistenciaJudiciaria_xOrientacaoJuridicaSchema()
                     aj_oj.id_orientacaoJuridica = orientacao.id
                     aj_oj.id_assistenciaJudiciaria = int(assistencia_id)
                     db.session.add(aj_oj)
@@ -188,14 +199,16 @@ def cadastro_orientacao_juridica():
 )
 @login_required(
     role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
-        usuario_urole_roles["PROFESSOR"][0],
+        UserRole.ADMINISTRADOR,
+        UserRole.ESTAGIARIO_DIREITO,
+        UserRole.PROFESSOR,
     ]
 )
 def associacao_orientacao_juridica(id_orientacao, id_atendido):
+    db = get_db()
+
     orientacao = (
-        db.session.query(OrientacaoJuridica)
+        db.session.query(OrientacaoJuridicaSchema)
         .filter_by(id=id_orientacao, status=True)
         .first()
     )
@@ -205,7 +218,7 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
     if id_atendido:
         try:
             atendido = (
-                db.session.query(Atendido)
+                db.session.query(AtendidoSchema)
                 .filter_by(id=id_atendido, status=True)
                 .first()
             )
@@ -257,10 +270,12 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
             return redirect(url_for("orientacao_juridica.perfil_oj", id=id_orientacao))
 
     page = request.args.get("page", 1, type=int)
-    per_page = app.config["ATENDIDOS_POR_PAGINA"]
+    per_page = current_app.config["ATENDIDOS_POR_PAGINA"]
 
     atendidos_query = (
-        db.session.query(Atendido).filter_by(status=True).order_by(Atendido.nome)
+        db.session.query(AtendidoSchema)
+        .filter_by(status=True)
+        .order_by(AtendidoSchema.nome)
     )
     pagination = db.paginate(
         atendidos_query, page=page, per_page=per_page, error_out=False
@@ -280,21 +295,25 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
 )
 @login_required(
     role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
-        usuario_urole_roles["PROFESSOR"][0],
+        UserRole.ADMINISTRADOR,
+        UserRole.ESTAGIARIO_DIREITO,
+        UserRole.PROFESSOR,
     ]
 )
 def desassociar_orientacao_juridica(id_atendido, id_orientacao):
+    db = get_db()
+
     orientacao = (
-        db.session.query(OrientacaoJuridica)
+        db.session.query(OrientacaoJuridicaSchema)
         .filter_by(id=id_orientacao, status=True)
         .first()
     )
     if not orientacao:
         abort(404)
 
-    atendido = db.session.query(Atendido).filter_by(id=id_atendido, status=True).first()
+    atendido = (
+        db.session.query(AtendidoSchema).filter_by(id=id_atendido, status=True).first()
+    )
     if not atendido:
         abort(404)
 
@@ -307,25 +326,29 @@ def desassociar_orientacao_juridica(id_atendido, id_orientacao):
 @orientacao_juridica_controller.route("/orientacao_juridica/<id>")
 @login_required()
 def perfil_oj(id):
-    orientacao = db.session.query(OrientacaoJuridica).get_or_404(id)
+    db = get_db()
+
+    orientacao = db.session.query(OrientacaoJuridicaSchema).get_or_404(id)
 
     atendidos_envolvidos = (
-        db.session.query(Atendido)
-        .join(Atendido_xOrientacaoJuridica)
+        db.session.query(AtendidoSchema)
+        .join(Atendido_xOrientacaoJuridicaSchema)
         .filter(
-            Atendido_xOrientacaoJuridica.id_orientacaoJuridica == orientacao.id,
-            Atendido.status == True,
+            Atendido_xOrientacaoJuridicaSchema.id_orientacaoJuridica == orientacao.id,
+            AtendidoSchema.status == True,
         )
-        .order_by(Atendido.nome)
+        .order_by(AtendidoSchema.nome)
         .all()
     )
 
     usuario = None
     if orientacao.id_usuario:
-        usuario = db.session.query(Usuario).filter_by(id=orientacao.id_usuario).first()
+        usuario = (
+            db.session.query(UsuarioSchema).filter_by(id=orientacao.id_usuario).first()
+        )
 
     assistencias_envolvidas = (
-        db.session.query(AssistenciaJudiciaria_xOrientacaoJuridica)
+        db.session.query(AssistenciaJudiciaria_xOrientacaoJuridicaSchema)
         .filter_by(id_orientacaoJuridica=orientacao.id)
         .all()
     )
@@ -342,26 +365,31 @@ def perfil_oj(id):
 @orientacao_juridica_controller.route("/buscar_atendidos_ajax")
 @login_required()
 def buscar_atendidos_ajax():
+    db = get_db()
+
     termo = request.args.get("termo", "")
     orientacao_id = request.args.get("orientacao_id")
     template_type = request.args.get("template", "single")
 
-    query = db.session.query(Atendido).filter(Atendido.status == True)
+    query = db.session.query(AtendidoSchema).filter(AtendidoSchema.status == True)
 
     if orientacao_id and orientacao_id != "0":
-        query = query.outerjoin(Atendido_xOrientacaoJuridica).filter(
-            (Atendido_xOrientacaoJuridica.id_orientacaoJuridica != int(orientacao_id))
-            | (Atendido_xOrientacaoJuridica.id_orientacaoJuridica.is_(None))
+        query = query.outerjoin(Atendido_xOrientacaoJuridicaSchema).filter(
+            (
+                Atendido_xOrientacaoJuridicaSchema.id_orientacaoJuridica
+                != int(orientacao_id)
+            )
+            | (Atendido_xOrientacaoJuridicaSchema.id_orientacaoJuridica.is_(None))
         )
 
     if termo:
         query = query.filter(
-            (Atendido.nome.ilike(f"%{termo}%"))
-            | (Atendido.cpf.ilike(f"%{termo}%"))
-            | (Atendido.cnpj.ilike(f"%{termo}%"))
+            (AtendidoSchema.nome.ilike(f"%{termo}%"))
+            | (AtendidoSchema.cpf.ilike(f"%{termo}%"))
+            | (AtendidoSchema.cnpj.ilike(f"%{termo}%"))
         )
 
-    atendidos = query.order_by(Atendido.nome).limit(20).all()
+    atendidos = query.order_by(AtendidoSchema.nome).limit(20).all()
 
     return render_template(
         "atendido/atendidos_lista_ajax.html",
@@ -374,10 +402,12 @@ def buscar_atendidos_ajax():
 @orientacao_juridica_controller.route("/orientacoes_juridicas")
 @login_required()
 def orientacoes_juridicas():
-    orientacao_juridica_service = OrientacaoJuridicaService(db.session)
+    db = get_db()
+
+    orientacao_juridica_service = OrientacaoJuridicaService()
 
     page = request.args.get("page", 1, type=int)
-    per_page = app.config["ATENDIDOS_POR_PAGINA"]
+    per_page = current_app.config["ATENDIDOS_POR_PAGINA"]
 
     def paginator(query: Select[Any]):
         return db.paginate(query, page=page, per_page=per_page)
@@ -391,10 +421,12 @@ def orientacoes_juridicas():
 @orientacao_juridica_controller.route("/busca_oj/<_busca>", methods=["GET"])
 @login_required()
 def busca_oj(_busca):
-    orientacao_juridica_service = OrientacaoJuridicaService(db.session)
+    db = get_db()
+
+    orientacao_juridica_service = OrientacaoJuridicaService()
 
     page = request.args.get("page", 1, type=int)
-    per_page = app.config["ATENDIDOS_POR_PAGINA"]
+    per_page = current_app.config["ATENDIDOS_POR_PAGINA"]
 
     def paginator(query: Select[Any]):
         return db.paginate(query, page=page, per_page=per_page)
@@ -405,21 +437,27 @@ def busca_oj(_busca):
         orientacoes = orientacao_juridica_service.get_all(paginator)
     else:
         orientacoes = (
-            queryFiltradaStatus(OrientacaoJuridica)
+            queryFiltradaStatus(OrientacaoJuridicaSchema)
             .outerjoin(
-                Atendido_xOrientacaoJuridica,
-                OrientacaoJuridica.id
-                == Atendido_xOrientacaoJuridica.id_orientacaoJuridica,
+                Atendido_xOrientacaoJuridicaSchema,
+                OrientacaoJuridicaSchema.id
+                == Atendido_xOrientacaoJuridicaSchema.id_orientacaoJuridica,
             )
             .outerjoin(
-                Atendido, Atendido.id == Atendido_xOrientacaoJuridica.id_atendido
+                AtendidoSchema,
+                AtendidoSchema.id == Atendido_xOrientacaoJuridicaSchema.id_atendido,
             )
             .filter(
-                ((Atendido.nome.contains(_busca)) | (Atendido.cpf.contains(_busca)))
+                (
+                    (AtendidoSchema.nome.contains(_busca))
+                    | (AtendidoSchema.cpf.contains(_busca))
+                )
             )
-            .order_by(OrientacaoJuridica.data_criacao.desc())
+            .order_by(OrientacaoJuridicaSchema.data_criacao.desc())
             .paginate(
-                page=page, per_page=app.config["ATENDIDOS_POR_PAGINA"], error_out=False
+                page=page,
+                per_page=current_app.config["ATENDIDOS_POR_PAGINA"],
+                error_out=False,
             )
         )
 
