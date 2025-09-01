@@ -1,0 +1,68 @@
+{% extends "base_dashboard.html" %}
+
+{% block titulo %}Notificações{% endblock %}
+
+{% block conteudo %}
+
+<div class="card">
+  <div class="card-body">
+    <div class="container table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Caráter da Notificação</th>
+                    <th>Data</th>
+                    <th>Criador</th>
+                    <th><center>Página de Origem</center></th>
+                    
+                </tr>
+            </thead>
+            <tbody>
+                {% include "lista_notificacoes.html" %}
+            </tbody>
+      </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if notificacoes and notificacoes.pages is defined and notificacoes.pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+      <ul class="pagination justify-content-center">
+        {% if notificacoes.has_prev %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('notificacoes.index', page=notificacoes.prev_num) }}" aria-label="Previous">
+            <span aria-hidden="true">&laquo;</span>
+          </a>
+        </li>
+        {% endif %}
+        
+        {% for page_num in notificacoes.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+          {% if page_num %}
+            {% if page_num == notificacoes.page %}
+              <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+              </li>
+            {% else %}
+              <li class="page-item">
+                <a class="page-link" href="{{ url_for('notificacoes.index', page=page_num) }}">{{ page_num }}</a>
+              </li>
+            {% endif %}
+          {% else %}
+            <li class="page-item disabled">
+              <span class="page-link">...</span>
+            </li>
+          {% endif %}
+        {% endfor %}
+        
+        {% if notificacoes.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('notificacoes.index', page=notificacoes.next_num) }}" aria-label="Next">
+            <span aria-hidden="true">&raquo;</span>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

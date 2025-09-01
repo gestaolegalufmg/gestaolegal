@@ -1,33 +1,35 @@
 from typing import Any, Callable, TypeVar
 
-from sqlalchemy.orm import Query, Session, scoped_session
+from sqlalchemy.orm import Query
 
 from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
+from gestaolegal.services.base_service import BaseService
 
 T = TypeVar("T")
 
 
-class OrientacaoJuridicaService:
-    session: Session | scoped_session[Session]
+class OrientacaoJuridicaService(
+    BaseService[OrientacaoJuridicaSchema, OrientacaoJuridica]
+):
+    def __init__(self):
+        super().__init__(OrientacaoJuridicaSchema)
 
-    def __init__(self, db_session: Session | scoped_session[Session]):
-        self.session = db_session
-
-    def find_by_id(self, id: int) -> OrientacaoJuridica | None:
+    def find_by_id(self, id: int) -> OrientacaoJuridicaSchema | None:
         return (
-            self.filter_active(self.session.query(OrientacaoJuridica))
-            .filter(OrientacaoJuridica.id == id)
+            self.filter_active(self.session.query(OrientacaoJuridicaSchema))
+            .filter(OrientacaoJuridicaSchema.id == id)
             .first()
         )
 
     def get_by_area_do_direito(
         self, area_do_direito: str, paginator: Callable[..., Any] | None = None
-    ) -> list[OrientacaoJuridica]:
+    ) -> list[OrientacaoJuridicaSchema]:
         query = (
-            self.filter_active(self.session.query(OrientacaoJuridica))
-            .filter(OrientacaoJuridica.area_direito == area_do_direito)
-            .filter(OrientacaoJuridica.area_direito.ilike(f"%{area_do_direito}%"))
-            .order_by(OrientacaoJuridica.id.desc())
+            self.filter_active(self.session.query(OrientacaoJuridicaSchema))
+            .filter(OrientacaoJuridicaSchema.area_direito == area_do_direito)
+            .filter(OrientacaoJuridicaSchema.area_direito.ilike(f"%{area_do_direito}%"))
+            .order_by(OrientacaoJuridicaSchema.data_criacao.desc())
         )
 
         if paginator:
@@ -36,7 +38,9 @@ class OrientacaoJuridicaService:
         return query.all()
 
     def get_all(self, paginator: Callable[..., Any] | None = None):
-        query = self.filter_active(self.session.query(OrientacaoJuridica))
+        query = self.filter_active(
+            self.session.query(OrientacaoJuridicaSchema)
+        ).order_by(OrientacaoJuridicaSchema.data_criacao.desc())
 
         if paginator:
             return paginator(query)
@@ -44,4 +48,4 @@ class OrientacaoJuridicaService:
         return query.all()
 
     def filter_active(self, query: Query[T]) -> Query[T]:
-        return query.filter(OrientacaoJuridica.status == True)
+        return query.filter(OrientacaoJuridicaSchema.status == True)

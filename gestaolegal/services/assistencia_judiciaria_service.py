@@ -1,33 +1,38 @@
 from typing import Any, Callable, TypeVar
 
-from sqlalchemy.orm import Query, Session, scoped_session
+from sqlalchemy.orm import Query
 
 from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
-from gestaolegal.plantao.models import Assistido, AssistidoPessoaJuridica
-from gestaolegal.plantao.views_util import filtro_busca_assistencia_judiciaria
+from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
+from gestaolegal.schemas.assistido import AssistidoSchema as Assistido
+from gestaolegal.schemas.assistido_pessoa_juridica import (
+    AssistidoPessoaJuridicaSchema as AssistidoPessoaJuridica,
+)
+from gestaolegal.services.base_service import BaseService
+from gestaolegal.utils.plantao_utils import filtro_busca_assistencia_judiciaria
 
 T = TypeVar("T")
 
 
-class AssistenciaJudiciariaService:
-    session: Session | scoped_session[Session]
+class AssistenciaJudiciariaService(
+    BaseService[AssistenciaJudiciariaSchema, AssistenciaJudiciaria]
+):
+    def __init__(self):
+        super().__init__(AssistenciaJudiciariaSchema)
 
-    def __init__(self, db_session: Session | scoped_session[Session]):
-        self.session = db_session
-
-    def find_by_id(self, id: int) -> AssistenciaJudiciaria | None:
+    def find_by_id(self, id: int) -> AssistenciaJudiciariaSchema | None:
         return (
-            self.filter_active(self.session.query(AssistenciaJudiciaria))
-            .filter(AssistenciaJudiciaria.id == id)
+            self.filter_active(self.session.query(AssistenciaJudiciariaSchema))
+            .filter(AssistenciaJudiciariaSchema.id == id)
             .first()
         )
 
     def get_by_area_do_direito(
         self, area_do_direito: str
-    ) -> AssistenciaJudiciaria | None:
+    ) -> AssistenciaJudiciariaSchema | None:
         return (
-            self.filter_active(self.session.query(AssistenciaJudiciaria))
-            .filter(AssistenciaJudiciaria.area_direito == area_do_direito)
+            self.filter_active(self.session.query(AssistenciaJudiciariaSchema))
+            .filter(AssistenciaJudiciariaSchema.area_direito == area_do_direito)
             .first()
         )
 
@@ -37,18 +42,22 @@ class AssistenciaJudiciariaService:
         nome: str | None = None,
         paginator: Callable[..., Any] | None = None,
     ):
-        query = self.session.query(AssistenciaJudiciaria)
+        query = self.session.query(AssistenciaJudiciariaSchema)
 
         if nome:
-            query = query.filter(AssistenciaJudiciaria.nome == nome)
+            query = query.filter(AssistenciaJudiciariaSchema.nome == nome)
 
         if area_atendida == filtro_busca_assistencia_judiciaria["TODAS"][0]:
-            query = self.filter_active(query).order_by(AssistenciaJudiciaria.nome.asc())
+            query = self.filter_active(query).order_by(
+                AssistenciaJudiciariaSchema.nome.asc()
+            )
 
         query = (
             self.filter_active(query)
-            .filter((AssistenciaJudiciaria.areas_atendidas.contains(area_atendida)))
-            .order_by(AssistenciaJudiciaria.nome.asc())
+            .filter(
+                (AssistenciaJudiciariaSchema.areas_atendidas.contains(area_atendida))
+            )
+            .order_by(AssistenciaJudiciariaSchema.nome.asc())
         )
 
         if paginator:
@@ -58,9 +67,9 @@ class AssistenciaJudiciariaService:
 
     def get_by_name(self, name: str, paginator: Callable[..., Any] | None = None):
         query = (
-            self.filter_active(self.session.query(AssistenciaJudiciaria))
-            .filter(AssistenciaJudiciaria.nome == name)
-            .order_by(AssistenciaJudiciaria.nome)
+            self.filter_active(self.session.query(AssistenciaJudiciariaSchema))
+            .filter(AssistenciaJudiciariaSchema.nome == name)
+            .order_by(AssistenciaJudiciariaSchema.nome)
         )
 
         if paginator:
@@ -70,10 +79,12 @@ class AssistenciaJudiciariaService:
 
     def find_atendido_assistido_by_id(
         self, id_atendido: int
-    ) -> tuple[AssistenciaJudiciaria, Assistido] | None:
+    ) -> tuple[AssistenciaJudiciariaSchema, Assistido] | None:
         result = (
-            self.filter_active(self.session.query(AssistenciaJudiciaria, Assistido))
-            .where(AssistenciaJudiciaria.id == id_atendido)
+            self.filter_active(
+                self.session.query(AssistenciaJudiciariaSchema, Assistido)
+            )
+            .where(AssistenciaJudiciariaSchema.id == id_atendido)
             .first()
         )
 
@@ -82,23 +93,28 @@ class AssistenciaJudiciariaService:
     def get_atendido_with_assistido_data(
         self, atendido_id: int
     ) -> (
-        tuple[AssistenciaJudiciaria, Assistido | None, AssistidoPessoaJuridica | None]
+        tuple[
+            AssistenciaJudiciariaSchema,
+            Assistido | None,
+            AssistidoPessoaJuridica | None,
+        ]
         | None
     ):
         result = (
             self.filter_active(
                 self.session.query(
-                    AssistenciaJudiciaria, Assistido, AssistidoPessoaJuridica
+                    AssistenciaJudiciariaSchema, Assistido, AssistidoPessoaJuridica
                 )
             )
             .outerjoin(
-                Assistido, onclause=Assistido.id_atendido == AssistenciaJudiciaria.id
+                Assistido,
+                onclause=Assistido.id_atendido == AssistenciaJudiciariaSchema.id,
             )
             .outerjoin(
                 AssistidoPessoaJuridica,
                 onclause=AssistidoPessoaJuridica.id_assistido == Assistido.id,
             )
-            .filter(AssistenciaJudiciaria.id == atendido_id)
+            .filter(AssistenciaJudiciariaSchema.id == atendido_id)
             .first()
         )
 
@@ -108,9 +124,9 @@ class AssistenciaJudiciariaService:
         return result.tuple()
 
     def get_all(self, paginator: Callable[..., Any] | None = None):
-        query = self.filter_active(self.session.query(AssistenciaJudiciaria)).order_by(
-            AssistenciaJudiciaria.nome
-        )
+        query = self.filter_active(
+            self.session.query(AssistenciaJudiciariaSchema)
+        ).order_by(AssistenciaJudiciariaSchema.nome)
 
         if paginator:
             return paginator(query)
@@ -126,9 +142,9 @@ class AssistenciaJudiciariaService:
 
     def search_by_str(self, string: str, paginator: Callable[..., Any] | None = None):
         result = (
-            self.session.query(AssistenciaJudiciaria)
-            .filter(AssistenciaJudiciaria.nome.ilike(f"%{string}%"))
-            .order_by(AssistenciaJudiciaria.nome)
+            self.session.query(AssistenciaJudiciariaSchema)
+            .filter(AssistenciaJudiciariaSchema.nome.ilike(f"%{string}%"))
+            .order_by(AssistenciaJudiciariaSchema.nome)
         )
 
         if paginator:
@@ -137,4 +153,4 @@ class AssistenciaJudiciariaService:
         return result.all()
 
     def filter_active(self, query: Query[T]) -> Query[T]:
-        return query.filter(AssistenciaJudiciaria.status == True)
+        return query.filter(AssistenciaJudiciariaSchema.status == True)

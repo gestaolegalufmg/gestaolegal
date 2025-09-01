@@ -35,8 +35,8 @@
                     <tr>
                         <th>Área do Direito</th>
                         <th>Partes Envolvidas</th>
+                        <th>Data/Hora de Criação</th>
                         <th>Ações</th>
-                        <th> </th>
                         <th> </th>
                         <th> </th>
                     </tr>
@@ -62,7 +62,7 @@
         keyup: (event) => {
             $.ajax({
                 method: "GET",
-                url: `${window.origin}/plantao/busca_oj/${busca.value}`,
+                url: `${window.origin}/orientacao_juridica/busca_oj/${busca.value}`,
                 success: (result) => {
                     document.getElementById('tbody_orientacoes_juridicas').innerHTML = '';
                     $('tbody').append(result);

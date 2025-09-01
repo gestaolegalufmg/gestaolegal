@@ -5,7 +5,7 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=production
-      - FLASK_APP=gestaolegal.wsgi:app
+      - FLASK_APP=gestaolegal.app:app
 
       # Uncomment the lines below and tweak its values to customize the app
       # - COMPANY_NAME=Custom Name

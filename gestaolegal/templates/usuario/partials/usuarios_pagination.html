@@ -1,0 +1,25 @@
+<nav aria-label="Page navigation" class="mt-4">
+  <ul class="pagination justify-content-center">
+    {% if usuarios.has_prev %}
+    <li class="page-item">
+      <a class="page-link pagination-link" href="#" data-page="{{ usuarios.prev_num }}" aria-label="Previous">
+        <span aria-hidden="true">&laquo;</span>
+      </a>
+    </li>
+    {% endif %}
+    
+    {% for page_num in range(1, usuarios.pages + 1) %}
+    <li class="page-item {% if page_num == usuarios.page %}active{% endif %}">
+      <a class="page-link pagination-link" href="#" data-page="{{ page_num }}">{{ page_num }}</a>
+    </li>
+    {% endfor %}
+    
+    {% if usuarios.has_next %}
+    <li class="page-item">
+      <a class="page-link pagination-link" href="#" data-page="{{ usuarios.next_num }}" aria-label="Next">
+        <span aria-hidden="true">&raquo;</span>
+      </a>
+    </li>
+    {% endif %}
+  </ul>
+</nav>

@@ -1,45 +1,41 @@
-from sqlalchemy import ForeignKey, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from gestaolegal.models.base import Base
-from gestaolegal.models.endereco import Endereco
-from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+if TYPE_CHECKING:
+    from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+    from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
+    from gestaolegal.schemas.endereco import EnderecoSchema
 
 
-class AssistenciaJudiciaria(Base):
-    __tablename__ = "assistencias_judiciarias"
+@dataclass(frozen=True)
+class AssistenciaJudiciaria:
+    id: int
+    nome: str
+    regiao: str
+    areas_atendidas: str
+    endereco_id: int | None
+    endereco: "EnderecoSchema | None"
+    telefone: str
+    email: str
+    status: int
+    orientacoes_juridicas: list["OrientacaoJuridica"]
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    nome: Mapped[str] = mapped_column(
-        String(150, collation="latin1_general_ci"), nullable=False
-    )
-    regiao: Mapped[str] = mapped_column(
-        String(80, collation="latin1_general_ci"), nullable=False
-    )
-    areas_atendidas: Mapped[str] = mapped_column(
-        String(1000, collation="latin1_general_ci"), nullable=False
-    )
-    endereco_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("enderecos.id"))
-    endereco: Mapped[Endereco | None] = relationship("Endereco", lazy="joined")
-    telefone: Mapped[str] = mapped_column(
-        String(18, collation="latin1_general_ci"), nullable=False
-    )
-    email: Mapped[str] = mapped_column(
-        String(80, collation="latin1_general_ci"), unique=True, nullable=False
-    )
-    status: Mapped[int] = mapped_column(Integer, nullable=False)
+    def __post_init__(self):
+        return
 
-    orientacoesJuridicas: Mapped[list[OrientacaoJuridica]] = relationship(
-        "OrientacaoJuridica",
-        secondary="assistenciasJudiciarias_xOrientacao_juridica",
-        backref="AssistenciaJudiciaria",
-    )
-
-    def setAreas_atendidas(self, opcoes):
-        self.areas_atendidas = ",".join(opcoes)
-
-    def getAreas_atendidas(self):
-        return self.areas_atendidas.split(",")
-
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+    @staticmethod
+    def from_sqlalchemy(
+        assistencia_judiciaria: "AssistenciaJudiciariaSchema",
+    ) -> "AssistenciaJudiciaria":
+        return AssistenciaJudiciaria(
+            id=assistencia_judiciaria.id,
+            nome=assistencia_judiciaria.nome,
+            regiao=assistencia_judiciaria.regiao,
+            areas_atendidas=assistencia_judiciaria.areas_atendidas,
+            endereco_id=assistencia_judiciaria.endereco_id,
+            endereco=assistencia_judiciaria.endereco,
+            telefone=assistencia_judiciaria.telefone,
+            email=assistencia_judiciaria.email,
+            status=assistencia_judiciaria.status,
+            orientacoes_juridicas=assistencia_judiciaria.orientacoesJuridicas,
+        )
