@@ -19,15 +19,20 @@ from gestaolegal.common.constants import (
     tipo_bolsaUsuario,
     tipo_evento,
 )
+from gestaolegal.utils.color_system import generate_color_palette
 
 
 def inject_company_config():
     """Inject company configuration into template context."""
     from flask import current_app
-
+    
+    company_color = current_app.config["COMPANY_COLOR"]
+    color_palette = generate_color_palette(company_color)
+    
     return dict(
         company_name=current_app.config["COMPANY_NAME"],
-        company_color=current_app.config["COMPANY_COLOR"],
+        company_color=company_color,
+        color_palette=color_palette,
     )
 
 

@@ -1,0 +1,58 @@
+/* Background Colors */
+.bg-primary { background-color: var(--color-primary) !important; }
+.bg-primary-light { background-color: var(--color-primary-light) !important; }
+.bg-primary-dark { background-color: var(--color-primary-dark) !important; }
+.bg-primary-muted { background-color: var(--color-primary-muted) !important; }
+
+/* Text Colors */
+.text-primary { color: var(--color-primary) !important; }
+.text-primary-light { color: var(--color-primary-light) !important; }
+.text-primary-dark { color: var(--color-primary-dark) !important; }
+
+/* Border Colors */
+.border-primary { border-color: var(--color-primary) !important; }
+.border-primary-light { border-color: var(--color-primary-light) !important; }
+
+/* Hover States */
+.hover\:bg-primary-dark:hover { background-color: var(--color-primary-dark) !important; }
+.hover\:text-primary-dark:hover { color: var(--color-primary-dark) !important; }
+
+/* Button Variants */
+.btn-primary {
+    color: var(--color-white);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    color: var(--color-white);
+    background-color: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+}
+
+.btn-primary-light {
+    color: var(--color-primary);
+    background-color: var(--color-primary-light);
+    border-color: var(--color-primary-light);
+}
+
+.btn-primary-light:hover,
+.btn-primary-light:focus,
+.btn-primary-light:active {
+    color: var(--color-white);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+/* Semantic Color Utilities */
+.bg-success { background-color: var(--color-success) !important; }
+.bg-warning { background-color: var(--color-warning) !important; }
+.bg-danger { background-color: var(--color-danger) !important; }
+.bg-info { background-color: var(--color-info) !important; }
+
+.text-success { color: var(--color-success) !important; }
+.text-warning { color: var(--color-warning) !important; }
+.text-danger { color: var(--color-danger) !important; }
+.text-info { color: var(--color-info) !important; }
