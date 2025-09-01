@@ -200,7 +200,7 @@
                             <ul class="dropdown-menu" style="display: none;">
                                 <li><a href="{{url_for('plantao.pg_plantao')}}">Página do Plantão</a></li>
                                 <li><a href="{{url_for('plantao.reg_presenca')}}">Registro de Presença</a></li>
-                                {% if current_user.urole in [ usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_PROJETO'][0] ] %}
+                                {% if current_user.urole in [ UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.COLAB_PROJETO.value ] %}
                                 <li><a href="{{url_for('plantao.confirmar_presenca')}}">Confirmar Presença</a></li>
                                 {% endif %}
                                 <li><a href="{{url_for('atendido.atendidos_assistidos')}}">Atendidos e Assistidos</a></li>
@@ -214,12 +214,12 @@
                                 <i class="fas fa-briefcase"></i><span>Casos</span></a>
 
                             <ul class="dropdown-menu" style="display: none;">
-                                {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0], usuario_urole_roles['ORIENTADOR'][0]] %}
+                                {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.ESTAGIARIO_DIREITO.value, UserRole.ORIENTADOR.value] %}
                                     <li><a href="{{url_for('casos.novo_caso')}}">Cadastrar Novo Caso</a></li>
                                     <li><a href="{{url_for('casos.meus_casos')}}">Meus Casos</a></li>
                                 {% endif %}
                                 <li><a href="{{url_for('casos.index')}}">Gestão de Casos</a></li>
-                                {% if current_user.urole in [ usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0] ] %}
+                                {% if current_user.urole in [ UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.COLAB_EXTERNO.value ] %}
                                 <li><a href="{{url_for('casos.editar_roteiro')}}">Gerenciar Roteiros</a></li>
                                 {% endif %}
                                
@@ -236,7 +236,7 @@
                                 <i class="fas fa-file-alt"></i><span>Arquivos</span></a>
                             <ul class="dropdown-menu" style="display: none;">
                                 <li><a href="{{url_for('arquivos.index')}}">Ver Arquivos</a></li>
-                                {% if current_user.urole in [ usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_EXTERNO'][0], usuario_urole_roles['COLAB_PROJETO'][0] ] %}
+                                {% if current_user.urole in [ UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.COLAB_EXTERNO.value, UserRole.COLAB_PROJETO.value ] %}
                                 <li><a href="{{url_for('arquivos.cadastrar_arquivo')}}">Cadastrar Arquivo</a></li>
                                 {% endif %}
                             </ul>

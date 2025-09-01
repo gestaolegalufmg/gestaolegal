@@ -3,6 +3,7 @@ from typing import Any
 from flask import (
     Blueprint,
     abort,
+    current_app,
     flash,
     json,
     redirect,
@@ -12,25 +13,24 @@ from flask import (
 )
 from sqlalchemy import Select
 
-from gestaolegal import app, db, login_required
-from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
-from gestaolegal.models.endereco import Endereco
-from gestaolegal.plantao.forms.assistencia_juridica_form import (
+from gestaolegal.common.constants import UserRole
+from gestaolegal.database import get_db
+from gestaolegal.forms.plantao.assistencia_juridica_form import (
     AssistenciaJudiciariaForm,
 )
-from gestaolegal.plantao.models import (
-    AssistenciaJudiciaria_xOrientacaoJuridica,
+from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
+from gestaolegal.schemas.assistencia_judiciaria_x_orientacao_juridica import (
+    AssistenciaJudiciaria_xOrientacaoJuridicaSchema,
 )
-from gestaolegal.plantao.views_util import (
-    busca_assistencias_judiciarias_modal,
-    filtro_busca_assistencia_judiciaria,
-)
+from gestaolegal.schemas.endereco import EnderecoSchema
 from gestaolegal.services.assistencia_judiciaria_service import (
     AssistenciaJudiciariaService,
 )
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
-from gestaolegal.usuario.models import (
-    usuario_urole_roles,
+from gestaolegal.utils.decorators import login_required
+from gestaolegal.utils.plantao_utils import (
+    busca_assistencias_judiciarias_modal,
+    filtro_busca_assistencia_judiciaria,
 )
 
 assistencia_judiciaria_controller = Blueprint(
@@ -45,13 +45,14 @@ assistencia_judiciaria_controller = Blueprint(
 )
 @login_required(
     role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
-        usuario_urole_roles["PROFESSOR"][0],
+        UserRole.ADMINISTRADOR,
+        UserRole.ESTAGIARIO_DIREITO,
+        UserRole.PROFESSOR,
     ]
 )
 def encaminha_assistencia_judiciaria(id_orientacao: int):
-    orientacao_juridica_service = OrientacaoJuridicaService(db.session)
+    db = get_db()
+    orientacao_juridica_service = OrientacaoJuridicaService()
     orientacao = orientacao_juridica_service.find_by_id(id_orientacao)
 
     if not orientacao:
@@ -68,7 +69,7 @@ def encaminha_assistencia_judiciaria(id_orientacao: int):
     form = AssistenciaJudiciariaForm()
 
     if form.validate():
-        endereco = Endereco(
+        endereco = EnderecoSchema(
             logradouro=form.logradouro.data,
             numero=form.numero.data,
             complemento=form.complemento.data,
@@ -80,7 +81,7 @@ def encaminha_assistencia_judiciaria(id_orientacao: int):
         db.session.add(endereco)
         db.session.flush()
 
-        assistencia = AssistenciaJudiciaria(
+        assistencia = AssistenciaJudiciariaSchema(
             nome=form.nome.data,
             regiao=form.regiao.data,
             telefone=form.telefone.data,
@@ -92,7 +93,7 @@ def encaminha_assistencia_judiciaria(id_orientacao: int):
         db.session.add(assistencia)
         db.session.flush()
 
-        aj_oj = AssistenciaJudiciaria_xOrientacaoJuridica()
+        aj_oj = AssistenciaJudiciaria_xOrientacaoJuridicaSchema()
         aj_oj.id_orientacaoJuridica = orientacao.id
         aj_oj.id_assistenciaJudiciaria = assistencia.id
         db.session.add(aj_oj)
@@ -113,23 +114,25 @@ def encaminha_assistencia_judiciaria(id_orientacao: int):
 )
 @login_required(
     role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["ESTAGIARIO_DIREITO"][0],
-        usuario_urole_roles["PROFESSOR"][0],
+        UserRole.ADMINISTRADOR,
+        UserRole.ESTAGIARIO_DIREITO,
+        UserRole.PROFESSOR,
     ]
 )
 def ajax_multiselect_associa_aj_oj(orientacao_id: int):
-    orientacao_juridica_service = OrientacaoJuridicaService(db.session)
+    db = get_db()
+
+    orientacao_juridica_service = OrientacaoJuridicaService()
     orientacao = orientacao_juridica_service.find_by_id(orientacao_id)
 
     if not orientacao:
         abort(404)
 
     assistencias = (
-        db.session.query(AssistenciaJudiciaria)
+        db.session.query(AssistenciaJudiciariaSchema)
         .filter(
-            AssistenciaJudiciaria.area_direito == orientacao.area_direito,
-            AssistenciaJudiciaria.status == True,
+            AssistenciaJudiciariaSchema.area_direito == orientacao.area_direito,
+            AssistenciaJudiciariaSchema.status == True,
         )
         .all()
     )
@@ -141,9 +144,11 @@ def ajax_multiselect_associa_aj_oj(orientacao_id: int):
 @assistencia_judiciaria_controller.route(
     "/excluir_assistencia_judiciaria/<int:id>", methods=["POST"]
 )
-@login_required(role=[usuario_urole_roles["ADMINISTRADOR"][0]])
+@login_required(role=[UserRole.ADMINISTRADOR])
 def excluir_assistencia_judiciaria(id: int):
-    assistencia_judiciaria_service = AssistenciaJudiciariaService(db.session)
+    db = get_db()
+
+    assistencia_judiciaria_service = AssistenciaJudiciariaService()
 
     assistencia = assistencia_judiciaria_service.find_by_id(id)
 
@@ -165,10 +170,12 @@ def excluir_assistencia_judiciaria(id: int):
 )
 @login_required()
 def busca_assistencia_judiciaria():
-    assistencia_judiciaria_service = AssistenciaJudiciariaService(db.session)
+    db = get_db()
+
+    assistencia_judiciaria_service = AssistenciaJudiciariaService()
 
     page = request.args.get("page", 1, type=int)
-    per_page = app.config["ATENDIDOS_POR_PAGINA"]
+    per_page = current_app.config["ATENDIDOS_POR_PAGINA"]
     _busca = request.args.get("busca", "", type=str)
     filtro = request.args.get(
         "opcao_filtro", filtro_busca_assistencia_judiciaria["TODAS"][0], type=str
@@ -190,11 +197,13 @@ def busca_assistencia_judiciaria():
 @assistencia_judiciaria_controller.route("/perfil_assistencia_judiciaria/<_id>")
 @login_required()
 def perfil_assistencia_judiciaria(_id: int):
+    db = get_db()
+
     aj = (
-        db.session.query(AssistenciaJudiciaria, Endereco)
-        .select_from(AssistenciaJudiciaria)
-        .join(Endereco)
-        .filter((AssistenciaJudiciaria.id == _id))
+        db.session.query(AssistenciaJudiciariaSchema, EnderecoSchema)
+        .select_from(AssistenciaJudiciariaSchema)
+        .join(EnderecoSchema)
+        .filter((AssistenciaJudiciariaSchema.id == _id))
         .first()
     )
     if aj is None:
@@ -211,6 +220,8 @@ def perfil_assistencia_judiciaria(_id: int):
 )
 @login_required()
 def pega_assistencias_judiciarias():
+    db = get_db()
+
     assistencias_judiciarias = busca_assistencias_judiciarias_modal()
     return json.dumps(assistencias_judiciarias)
 
@@ -220,10 +231,12 @@ def pega_assistencias_judiciarias():
 )
 @login_required()
 def listar_assistencias_judiciarias():
-    assistencia_judiciaria_service = AssistenciaJudiciariaService(db.session)
+    db = get_db()
+
+    assistencia_judiciaria_service = AssistenciaJudiciariaService()
 
     page = request.args.get("page", 1, type=int)
-    per_page = app.config["ATENDIDOS_POR_PAGINA"]
+    per_page = current_app.config["ATENDIDOS_POR_PAGINA"]
 
     def paginator(query: Select[Any]):
         return db.paginate(query, page=page, per_page=per_page)
@@ -243,14 +256,16 @@ def listar_assistencias_judiciarias():
 )
 @login_required(
     role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["PROFESSOR"][0],
-        usuario_urole_roles["COLAB_PROJETO"][0],
-        usuario_urole_roles["COLAB_EXTERNO"][0],
+        UserRole.ADMINISTRADOR,
+        UserRole.PROFESSOR,
+        UserRole.COLAB_PROJETO,
+        UserRole.COLAB_EXTERNO,
     ]
 )
 def editar_assistencia_judiciaria(id_assistencia_judiciaria: int):
-    assistencia_judiciaria_service = AssistenciaJudiciariaService(db.session)
+    db = get_db()
+
+    assistencia_judiciaria_service = AssistenciaJudiciariaService()
     assistencia_juridica = assistencia_judiciaria_service.find_by_id(
         id_assistencia_judiciaria
     )
@@ -305,17 +320,19 @@ def editar_assistencia_judiciaria(id_assistencia_judiciaria: int):
 )
 @login_required(
     role=[
-        usuario_urole_roles["ADMINISTRADOR"][0],
-        usuario_urole_roles["PROFESSOR"][0],
-        usuario_urole_roles["COLAB_PROJETO"][0],
-        usuario_urole_roles["COLAB_EXTERNO"][0],
+        UserRole.ADMINISTRADOR,
+        UserRole.PROFESSOR,
+        UserRole.COLAB_PROJETO,
+        UserRole.COLAB_EXTERNO,
     ]
 )
 def cadastro_assistencia_judiciaria():
+    db = get_db()
+
     form = AssistenciaJudiciariaForm()
     if form.validate_on_submit():
         # Create Endereco
-        endereco = Endereco(
+        endereco = EnderecoSchema(
             logradouro=form.logradouro.data,
             numero=form.numero.data,
             complemento=form.complemento.data,
@@ -328,7 +345,7 @@ def cadastro_assistencia_judiciaria():
         db.session.flush()  # get endereco.id
 
         # Create AssistenciaJudiciaria
-        assistencia = AssistenciaJudiciaria(
+        assistencia = AssistenciaJudiciariaSchema(
             nome=form.nome.data,
             regiao=form.regiao.data,
             telefone=form.telefone.data,
@@ -351,11 +368,13 @@ def cadastro_assistencia_judiciaria():
 )
 @login_required()
 def buscar_assistencia_judiciaria():
-    assisistencia_judiciaria_service = AssistenciaJudiciariaService(db.session)
+    db = get_db()
+
+    assisistencia_judiciaria_service = AssistenciaJudiciariaService()
 
     termo = request.form.get("termo", "")
     page = request.args.get("page", 1, type=int)
-    per_page = app.config["ATENDIDOS_POR_PAGINA"]
+    per_page = current_app.config["ATENDIDOS_POR_PAGINA"]
 
     def paginator(query: Select[Any]):
         return db.paginate(query, page=page, per_page=per_page)

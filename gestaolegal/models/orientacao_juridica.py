@@ -1,52 +1,43 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
-
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from gestaolegal.common.constants import area_do_direito
-from gestaolegal.models.base import Base
 
 if TYPE_CHECKING:
     from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
     from gestaolegal.models.atendido import Atendido
-    from gestaolegal.usuario.models import Usuario
+    from gestaolegal.models.usuario import Usuario
+    from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
 
 
-class OrientacaoJuridica(Base):
-    __tablename__ = "orientacao_juridica"
+@dataclass(frozen=True)
+class OrientacaoJuridica:
+    id: int
+    area_direito: str
+    sub_area: str | None
+    descricao: str
+    data_criacao: datetime | None
+    status: int
+    assistencias_judiciarias: list["AssistenciaJudiciaria"]
+    atendidos: list["Atendido"]
+    id_usuario: int | None
+    usuario: "Usuario | None"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    area_direito: Mapped[str] = mapped_column(
-        String(50, collation="latin1_general_ci"), nullable=False
-    )
-    sub_area: Mapped[str | None] = mapped_column(
-        String(50, collation="latin1_general_ci")
-    )
-    descricao: Mapped[str] = mapped_column(
-        Text(collation="latin1_general_ci"), nullable=False
-    )
-    data_criacao: Mapped[datetime | None] = mapped_column(DateTime)
-    status: Mapped[int] = mapped_column(Integer, nullable=False)
+    def __post_init__(self):
+        return
 
-    assistenciasJudiciarias: Mapped[list["AssistenciaJudiciaria"]] = relationship(
-        "AssistenciaJudiciaria",
-        secondary="assistenciasJudiciarias_xOrientacao_juridica",
-        backref="AssistenciaJudiciaria",
-    )
-    atendidos: Mapped[list["Atendido"]] = relationship(
-        "Atendido", secondary="atendido_xOrientacaoJuridica"
-    )
-    id_usuario: Mapped[int | None] = mapped_column(Integer, ForeignKey("usuarios.id"))
-    usuario: Mapped["Usuario | None"] = relationship("Usuario", backref="usuarios")
-
-    def setSubAreas(self, area_direito, sub_area, sub_areaAdmin):
-        if area_direito == area_do_direito["CIVEL"][0]:
-            self.sub_area = sub_area
-        elif area_direito == area_do_direito["ADMINISTRATIVO"][0]:
-            self.sub_area = sub_areaAdmin
-        else:
-            self.sub_area = None
-
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+    @staticmethod
+    def from_sqlalchemy(
+        orientacao_juridica: "OrientacaoJuridicaSchema",
+    ) -> "OrientacaoJuridica":
+        return OrientacaoJuridica(
+            id=orientacao_juridica.id,
+            area_direito=orientacao_juridica.area_direito,
+            sub_area=orientacao_juridica.sub_area,
+            descricao=orientacao_juridica.descricao,
+            data_criacao=orientacao_juridica.data_criacao,
+            status=orientacao_juridica.status,
+            assistencias_judiciarias=orientacao_juridica.assistenciasJudiciarias,
+            atendidos=orientacao_juridica.atendidos,
+            id_usuario=orientacao_juridica.id_usuario,
+            usuario=orientacao_juridica.usuario,
+        )

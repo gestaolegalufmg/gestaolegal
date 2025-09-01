@@ -1,0 +1,52 @@
+{% for usuario in usuarios.items %}
+<tr>
+  <td>{{usuario.nome}}</td>
+  <td>{{usuario.email}}</td>
+  <td><span>{{UserRole.get_display_name(usuario.urole)}}</span></td>
+  <td>
+    {% if usuario.status %}
+      <span class="badge badge-success">Ativo</span>
+    {% else %}
+      <span class="badge badge-danger">Inativo</span>
+    {% endif %}
+  </td>
+  <td class="text-right">
+    <div class="d-flex gap-1 align-items-center justify-content-end">
+      <a href="{{url_for('usuario.perfil_usuario', id_user = usuario.id)}}" 
+         class="btn btn-flat btn-outline-primary btn-sm" 
+         title="Visualizar usuário"
+         style="text-decoration: none;">
+        <i class="fas fa-eye"></i>
+      </a>
+      {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value] and (usuario.id != admin_padrao or current_user.id == admin_padrao)%}
+      <a href="{{url_for('usuario.editar_usuario', id_user = usuario.id)}}" 
+         class="btn btn-flat btn-primary btn-sm" 
+         title="Editar usuário"
+         style="text-decoration: none;">
+        <i class="fas fa-edit"></i>
+      </a>
+      {% endif %}
+      {% if current_user.urole == UserRole.ADMINISTRADOR.value and usuario.id != admin_padrao %}
+      <form action="{{url_for('usuario.muda_senha_admin')}}" method="POST" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="id" value="{{usuario.id}}">
+        <button type="submit" class="btn btn-flat btn-warning btn-sm" 
+                title="Mudar senha"
+                onclick="return confirm('Você deseja realmente trocar a senha deste usuário?');">
+          <i class="fas fa-key"></i>
+        </button>
+      </form>
+      <form action="{{url_for('usuario.inativar_usuario_lista')}}" method="POST" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="id" value="{{usuario.id}}">
+        <button type="submit" class="btn btn-flat btn-outline-danger btn-sm" 
+                title="Inativar usuário"
+                onclick="return confirm('Você deseja realmente inativar este usuário?');">
+          <i class="fas fa-trash"></i>
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </td>
+</tr>
+{% endfor %}

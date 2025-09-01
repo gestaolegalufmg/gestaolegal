@@ -81,7 +81,7 @@
         </button>
       </td>
 
-      {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['COLAB_PROJETO'][0]] %}
+      {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value] %}
       <td>
         <form method="POST" action="{{url_for('assistencia_judiciaria.excluir_assistencia_judiciaria', id=assistencia.id)}}" style="display: inline;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>

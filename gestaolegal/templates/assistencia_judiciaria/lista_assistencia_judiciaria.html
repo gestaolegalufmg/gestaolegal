@@ -31,10 +31,10 @@ endblock %} {% block conteudo %} {% if assistencias %}
           </div>
         </div>
         
-        {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],
-        usuario_urole_roles['COLAB_EXTERNO'][0],
-        usuario_urole_roles['COLAB_PROJETO'][0],
-        usuario_urole_roles['PROFESSOR'][0]] %}
+        {% if current_user.urole in [UserRole.ADMINISTRADOR.value,
+        UserRole.COLAB_EXTERNO.value,
+        UserRole.COLAB_PROJETO.value,
+        UserRole.PROFESSOR.value] %}
           <div class="d-flex flex-row p-2">
             <a
               href="{{ url_for('assistencia_judiciaria.cadastro_assistencia_judiciaria') }}"

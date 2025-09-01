@@ -1,4 +1,4 @@
-from gestaolegal import db
+from gestaolegal.database import get_db
 
 # EXEMPLO 1: atendidos = queryFiltradaStatus(Atendido).all()
 
@@ -31,6 +31,8 @@ from gestaolegal import db
 def queryFiltradaStatus(
     entidade_principal, outras_entidades: list = [], status: bool = True
 ):
+    db = get_db()
+
     query_final = db.session.query(entidade_principal).filter(
         entidade_principal.status == status
     )
