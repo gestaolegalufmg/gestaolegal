@@ -7,15 +7,9 @@
     <div class="col-12">
         <div class="card card-primary">
             <div class="card-header">
-                <h4>Função:
-                    {% for key in usuario_urole_roles %}
-                        {% if usuario_urole_roles[key][0] == usuario.urole %}
-                        <span>{{usuario_urole_roles[key][1]|upper}}</span>
-                        {% endif %}
-                    {% endfor %}
-                </h4>
+                <h4>Função: <span>{{UserRole.get_display_name(usuario.urole)|upper}}</span></h4>
                 <div class="card-header-action">
-                    {% if eh_perfil_proprio or current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0],usuario_urole_roles['PROFESSOR'][0]] %}
+                    {% if eh_perfil_proprio or current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value] %}
                         <a href="{{url_for('usuario.editar_usuario', id_user=usuario.id)}}" class="btn btn-primary">Editar</a>
                     {% else %}
                         <a href="#" class="btn btn-disabled">Editar</a>
@@ -27,7 +21,7 @@
 </div>
 <div class="row my-4">
     <div class="col-md-6 col-xs-12">
-        {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] %}
+        {% if current_user.urole == UserRole.ADMINISTRADOR.value %}
         <div class="card">
             <div class="card-header">
                 <h4>Dados Pessoais</h4>
@@ -178,7 +172,7 @@
         </div>
     </div>
     <div class="col-md-6 col-xs-12">
-        {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] %}
+        {% if current_user.urole == UserRole.ADMINISTRADOR.value %}
         <div class="card">
             <div class="card-header">
                 <h4>Endereço</h4>
@@ -237,7 +231,7 @@
             </div>
         </div>
         {% endif %}
-        {% if current_user.urole == usuario_urole_roles['ADMINISTRADOR'][0] %}
+        {% if current_user.urole == UserRole.ADMINISTRADOR.value %}
         <div class="card">
             <div class="card-header">
                 <h4>Dados Acadêmicos</h4>

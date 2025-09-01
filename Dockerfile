@@ -21,4 +21,4 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 ENV PATH="/code/.venv/bin:$PATH"
 
-ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:5000", "--workers=4", "--timeout=300", "gestaolegal.wsgi:app"]
+ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:5000", "--workers=4", "--timeout=300", "gestaolegal.app:app"]

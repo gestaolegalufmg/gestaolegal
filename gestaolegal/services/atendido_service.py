@@ -1,14 +1,12 @@
-from typing import Any, Callable, Literal, TypedDict, TypeVar
+from typing import Any, Callable, Literal, Optional, TypedDict, TypeVar
 
-from sqlalchemy.orm import Query, Session, scoped_session
-
-from gestaolegal.models.assistido import Assistido as AssistidoModel
-from gestaolegal.models.atendido import Atendido as AtendidoModel
-from gestaolegal.models.endereco import Endereco
-from gestaolegal.plantao.models import AssistidoPessoaJuridica
-from gestaolegal.schemas.assistido import AssistidoSchema as Assistido
-from gestaolegal.schemas.atendido import AtendidoSchema as Atendido
-from gestaolegal.usuario.forms import EnderecoForm
+from gestaolegal.models.atendido import Atendido
+from gestaolegal.schemas.assistido import AssistidoSchema
+from gestaolegal.schemas.assistido_pessoa_juridica import AssistidoPessoaJuridicaSchema
+from gestaolegal.schemas.atendido import AtendidoSchema
+from gestaolegal.services.assistido_service import AssistidoService
+from gestaolegal.services.base_service import BaseService
+from gestaolegal.services.endereco_service import EnderecoService
 
 T = TypeVar("T")
 
@@ -18,234 +16,228 @@ class PageParams(TypedDict):
     per_page: int
 
 
-class AtendidoService:
-    session: Session | scoped_session[Session]
+class AtendidoService(BaseService[AtendidoSchema, Atendido]):
+    def __init__(self):
+        super().__init__(AtendidoSchema)
+        self.endereco_service = EnderecoService()
+        self.assistido_service = AssistidoService()
 
-    def __init__(self, db_session: Session | scoped_session[Session]):
-        self.session = db_session
+    def _to_model(self, schema_instance: AtendidoSchema) -> Atendido:
+        return Atendido.from_sqlalchemy(schema_instance)
 
-    def find_by_id(self, id: int) -> Atendido | None:
-        return (
-            self.filter_active(self.session.query(Atendido))
-            .filter(Atendido.id == id)
-            .first()
-        )
-
-    def find_by_email(self, email: str) -> Atendido | None:
-        return (
-            self.filter_active(self.session.query(Atendido))
-            .filter(Atendido.email == email)
-            .first()
-        )
-
-    def find_atendido_assistido_by_id(
-        self, id_atendido: int
-    ) -> tuple[AtendidoModel, AssistidoModel] | None:
-        result = (
-            self.filter_active(self.session.query(Atendido, Assistido))
-            .where(Atendido.id == id_atendido)
-            .first()
-        )
-
-        if not result:
-            return None
-
-        atendido_model = AtendidoModel.from_sqlalchemy(result[0]) if result[0] else None
-        assistido_model = (
-            AssistidoModel.from_sqlalchemy(result[1]) if result[1] else None
-        )
-
-        return atendido_model, assistido_model
+    def find_by_email(self, email: str) -> Optional[Atendido]:
+        return self.find_by_field("email", email)
 
     def get_atendido_with_assistido_data(
         self, atendido_id: int
-    ) -> (
-        tuple[AtendidoModel, AssistidoModel | None, AssistidoPessoaJuridica | None]
-        | None
-    ):
+    ) -> Optional[
+        tuple[
+            Atendido, Optional[AssistidoSchema], Optional[AssistidoPessoaJuridicaSchema]
+        ]
+    ]:
         result = (
-            self.filter_active(
-                self.session.query(Atendido, Assistido, AssistidoPessoaJuridica)
+            self.session.query(
+                AtendidoSchema, AssistidoSchema, AssistidoPessoaJuridicaSchema
             )
-            .outerjoin(Assistido, onclause=Assistido.id_atendido == Atendido.id)
             .outerjoin(
-                AssistidoPessoaJuridica,
-                onclause=AssistidoPessoaJuridica.id_assistido == Assistido.id,
+                AssistidoSchema, AssistidoSchema.id_atendido == AtendidoSchema.id
             )
-            .filter(Atendido.id == atendido_id)
+            .outerjoin(
+                AssistidoPessoaJuridicaSchema,
+                AssistidoPessoaJuridicaSchema.id_assistido == AssistidoSchema.id,
+            )
+            .filter(AtendidoSchema.id == atendido_id)
             .first()
         )
 
         if not result:
             return None
 
-        atendido_model = AtendidoModel.from_sqlalchemy(result[0]) if result[0] else None
-        assistido_model = (
-            AssistidoModel.from_sqlalchemy(result[1]) if result[1] else None
-        )
+        atendido_model = self._to_model(result[0]) if result[0] else None
+        assistido_model = result[1] if result[1] else None
         assistido_pj = result[2] if result[2] else None
 
         return atendido_model, assistido_model, assistido_pj
 
-    def get_all(
+    def create_with_endereco(
+        self, atendido_data: dict, endereco_data: dict
+    ) -> Atendido:
+        endereco = self.endereco_service.create(endereco_data)
+
+        atendido_data["endereco_id"] = endereco.id
+        atendido_data["status"] = 1
+
+        return self.create(atendido_data)
+
+    def update_with_endereco(
+        self, atendido_id: int, atendido_data: dict, endereco_data: dict
+    ) -> Atendido:
+        atendido = self.ensure_exists(atendido_id)
+
+        if atendido.endereco_id:
+            self.endereco_service.update(atendido.endereco_id, endereco_data)
+        else:
+            endereco = self.endereco_service.create(endereco_data)
+            atendido_data["endereco_id"] = endereco.id
+
+        return self.update(atendido_id, atendido_data)
+
+    def validate_email_uniqueness(
+        self, email: str, exclude_id: Optional[int] = None
+    ) -> tuple[bool, str]:
+        existing_atendido = self.find_by_email(email)
+        if existing_atendido and (
+            exclude_id is None or existing_atendido.id != exclude_id
+        ):
+            return False, "Email já cadastrado no sistema"
+        return True, ""
+
+    def get_search_results_with_pagination(
         self,
+        valor_busca: str,
+        tipo_busca: str,
         paginator: Callable[..., Any] | None = None,
-        include_inactive: bool = False,
-    ) -> list[AtendidoModel] | Any:
-        query = self.session.query(Atendido).order_by(Atendido.nome)
-        if not include_inactive:
-            query = self.filter_active(query)
-
-        if paginator:
-            return paginator(query)
-
-        results = query.all()
-        return [AtendidoModel.from_sqlalchemy(result) for result in results]
-
-    def get_all_atendidos(
-        self, paginator: Callable[..., Any] | None = None
-    ) -> list[AtendidoModel] | Any:
-        query = self.session.query(Atendido).order_by(Atendido.nome)
-        if paginator:
-            return paginator(query)
-
-        results = query.all()
-        return [AtendidoModel.from_sqlalchemy(result) for result in results]
-
-    def get_all_assistidos(
-        self, paginator: Callable[..., Any] | None = None
-    ) -> list[AssistidoModel] | Any:
-        query = self.session.query(Assistido)
-        if paginator:
-            return paginator(query)
-
-        results = query.all()
-        return [AssistidoModel.from_sqlalchemy(result) for result in results]
-
-    def get_inactive(
-        self, paginator: Callable[..., Any] | None = None
-    ) -> list[AtendidoModel]:
-        query = self.session.query(Atendido).order_by(Atendido.nome)
-
-        if paginator:
-            return paginator(query)
-
-        results = query.all()
-        return [AtendidoModel.from_sqlalchemy(result) for result in results]
-
-    def get_assistidos_by_id_atendido(
-        self, atendido_ids: list[int]
-    ) -> list[AssistidoModel]:
-        results = (
-            self.filter_active(self.session.query(Assistido))
-            .where(Assistido.id_atendido.in_(atendido_ids))
-            .all()
+    ):
+        search_type = tipo_busca if tipo_busca in ["atendidos", "assistidos"] else None
+        return self.search_with_assistido_status_paginated(
+            valor_busca, search_type, paginator
         )
 
-        return [AssistidoModel.from_sqlalchemy(result) for result in results]
-
-    def search_by_str(
+    def search_with_assistido_status_paginated(
         self,
-        string: str,
+        search_term: str = "",
         search_type: Literal["atendidos", "assistidos"] | None = None,
-        page_params: PageParams | None = None,
-    ) -> list[tuple[AtendidoModel, AssistidoModel | None]]:
-        query = self.session.query(Atendido, Assistido)
+        paginator: Callable[..., Any] | None = None,
+    ):
+        """Search with assistido status using new pagination system
 
-        if string:
+        Args:
+            search_term: Search term to filter by name, CPF, or CNPJ
+            search_type: Filter by type ('atendidos', 'assistidos', or None for all)
+            paginator: Optional pagination function
+
+        Returns:
+            Paginated results or list of tuples (Atendido, AssistidoSchema)
+        """
+        # Build the query
+        query = self.session.query(AtendidoSchema, AssistidoSchema).outerjoin(
+            AssistidoSchema, AssistidoSchema.id_atendido == AtendidoSchema.id
+        )
+
+        # Apply search filter
+        if search_term:
             query = query.filter(
-                Atendido.nome.ilike(f"%{string}%")
-                | Atendido.cpf.ilike(f"%{string}%")
-                | Atendido.cnpj.ilike(f"%{string}%")
+                AtendidoSchema.nome.ilike(f"%{search_term}%")
+                | AtendidoSchema.cpf.ilike(f"%{search_term}%")
+                | AtendidoSchema.cnpj.ilike(f"%{search_term}%")
             )
 
+        # Apply type filter
         if search_type == "assistidos":
-            query = query.filter(Assistido.id.isnot(None))
+            query = query.filter(AssistidoSchema.id.isnot(None))
         elif search_type == "atendidos":
-            query = query.filter(Assistido.id.is_(None))
+            query = query.filter(AssistidoSchema.id.is_(None))
 
-        query = (
-            query.order_by(Atendido.nome)
-            .offset(page_params["page"] * page_params["per_page"])
-            .limit(page_params["per_page"])
-        )
+        # Apply active filter and ordering
+        query = self.filter_active(query)
+        query = query.order_by(AtendidoSchema.nome)
 
+        # Apply pagination if provided
+        if paginator:
+            result = paginator(query)
+            if hasattr(result, "items"):
+                # Convert the items to our model format
+                result.items = [
+                    (
+                        self._to_model(atendido),
+                        assistido if assistido else None,
+                    )
+                    for atendido, assistido in result.items
+                ]
+                return result
+            else:
+                # Handle case where paginator returns list directly
+                return [
+                    (
+                        self._to_model(atendido),
+                        assistido if assistido else None,
+                    )
+                    for atendido, assistido in result
+                ]
+
+        # Return all results if no pagination
         results = query.all()
         return [
             (
-                AtendidoModel.from_sqlalchemy(atendido),
-                AssistidoModel.from_sqlalchemy(assistido) if assistido else None,
+                self._to_model(atendido),
+                assistido if assistido else None,
             )
             for atendido, assistido in results
         ]
 
-    def create_endereco(self, form: EnderecoForm) -> Endereco:
-        endereco = Endereco(
-            logradouro=form.logradouro.data,
-            numero=form.numero.data,
-            complemento=form.complemento.data,
-            bairro=form.bairro.data,
-            cep=form.cep.data,
-            cidade=form.cidade.data,
-            estado=form.estado.data,
+    def search_with_assistido_status(
+        self,
+        search_term: str,
+        search_type: Literal["atendidos", "assistidos"] | None = None,
+        page_params: Optional[dict] = None,
+    ) -> list[tuple[Atendido, Optional[AssistidoSchema]]]:
+        query = self.session.query(AtendidoSchema, AssistidoSchema).outerjoin(
+            AssistidoSchema, AssistidoSchema.id_atendido == AtendidoSchema.id
         )
 
-        self.session.add(endereco)
-        self.session.commit()
-        return endereco
+        if search_term:
+            query = query.filter(
+                AtendidoSchema.nome.ilike(f"%{search_term}%")
+                | AtendidoSchema.cpf.ilike(f"%{search_term}%")
+                | AtendidoSchema.cnpj.ilike(f"%{search_term}%")
+            )
 
-    def create_atendido(self, atendido: AtendidoModel) -> AtendidoModel:
-        db_endereco = self.create_endereco(atendido.endereco)
-        atendido.endereco_id = db_endereco.id
+        if search_type == "assistidos":
+            query = query.filter(AssistidoSchema.id.isnot(None))
+        elif search_type == "atendidos":
+            query = query.filter(AssistidoSchema.id.is_(None))
 
-        db_atendido = Atendido(**atendido.__dict__)
-        self.session.add(db_atendido)
-        self.session.commit()
+        query = self.filter_active(query)
+        query = query.order_by(AtendidoSchema.nome)
 
-        return AtendidoModel.from_sqlalchemy(db_atendido)
+        if page_params:
+            query = query.offset(page_params["page"] * page_params["per_page"]).limit(
+                page_params["per_page"]
+            )
 
-    def create_assistido(self, assistido: AssistidoModel) -> AssistidoModel:
-        db_assistido = Assistido(**assistido.__dict__)
-        self.session.add(db_assistido)
-        self.session.commit()
+        results = query.all()
+        return [
+            (
+                self._to_model(atendido),
+                assistido if assistido else None,
+            )
+            for atendido, assistido in results
+        ]
 
-        return AssistidoModel.from_sqlalchemy(db_assistido)
+    def get_paginated_search_results(
+        self, termo: str, page: int, per_page: int, paginator_func
+    ):
+        query = self.session.query(AtendidoSchema, AssistidoSchema).outerjoin(
+            AssistidoSchema, AssistidoSchema.id_atendido == AtendidoSchema.id
+        )
 
-    def delete_atendido(self, atendido_id: int) -> None:
-        atendido = self.find_by_id(atendido_id)
-        if not atendido:
-            raise ValueError("Atendido não encontrado")
+        if termo:
+            query = query.filter(
+                AtendidoSchema.nome.ilike(f"%{termo}%")
+                | AtendidoSchema.cpf.ilike(f"%{termo}%")
+                | AtendidoSchema.cnpj.ilike(f"%{termo}%")
+            )
 
-        atendido.status = False
-        self.session.commit()
+        query = query.order_by(AtendidoSchema.nome)
+        return paginator_func(query)
 
-    def update_atendido(
-        self, atendido_id: int, atendido_data: AtendidoModel
-    ) -> AtendidoModel:
-        db_atendido = self.find_by_id(atendido_id)
-        if not db_atendido:
-            raise ValueError("Atendido não encontrado")
+    def ensure_atendido_assistido_exists(
+        self, atendido_id: int
+    ) -> tuple[Atendido, AssistidoSchema]:
+        atendido = self.ensure_exists(atendido_id)
+        assistido = self.assistido_service.find_by_atendido_id(atendido_id)
 
-        for field in atendido_data.__dict__.keys():
-            if hasattr(atendido_data, field):
-                setattr(db_atendido, field, getattr(atendido_data, field))
+        if not assistido:
+            raise ValueError("Assistido não encontrado para este atendido")
 
-        self.session.commit()
-        return AtendidoModel.from_sqlalchemy(db_atendido)
-
-    def update_assistido(
-        self, assistido_id: int, assistido_data: AssistidoModel
-    ) -> AssistidoModel:
-        db_assistido = self.find_by_id(assistido_id)
-        if not db_assistido:
-            raise ValueError("Assistido não encontrado")
-
-        for field in assistido_data.__dict__.keys():
-            if hasattr(assistido_data, field):
-                setattr(db_assistido, field, getattr(assistido_data, field))
-
-        self.session.commit()
-        return AssistidoModel.from_sqlalchemy(db_assistido)
-
-    def filter_active(self, query: Query[T]) -> Query[T]:
-        return query.filter(Atendido.status == True)
+        return atendido, assistido

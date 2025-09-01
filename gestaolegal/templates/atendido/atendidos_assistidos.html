@@ -11,20 +11,31 @@
           <form method="GET" action="{{ url_for('atendido.atendidos_assistidos') }}" class="d-flex align-items-center">
             <div class="mr-3">
               <label class="mr-2">Buscar:</label>
-              <input type="text" name="valor_busca" value="{{ request.args.get('valor_busca', '') }}" 
+              <input type="text" name="valor_busca" value="{{ valor_busca }}" 
                      placeholder="Nome, CPF, CNPJ..." class="form-control form-control-sm">
             </div>
             
             <div class="mr-3">
               <select name="tipo_busca" class="form-control form-control-sm">
-                <option value="todos" {% if request.args.get('tipo_busca') == 'todos' %}selected{% endif %}>Todos</option>
-                <option value="atendidos" {% if request.args.get('tipo_busca') == 'atendidos' %}selected{% endif %}>Atendidos</option>
-                <option value="assistidos" {% if request.args.get('tipo_busca') == 'assistidos' %}selected{% endif %}>Assistidos</option>
+                <option value="todos" {% if tipo_busca == 'todos' %}selected{% endif %}>Todos</option>
+                <option value="atendidos" {% if tipo_busca == 'atendidos' %}selected{% endif %}>Atendidos</option>
+                <option value="assistidos" {% if tipo_busca == 'assistidos' %}selected{% endif %}>Assistidos</option>
               </select>
             </div>
             
             <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
           </form>
+          
+          <div class="ml-3 d-flex align-items-center">
+            <span class="me-2">Total:</span>
+            <span class="badge badge-primary">
+              {% if atendidos_assistidos.total is defined %}
+                {{ atendidos_assistidos.total }}
+              {% else %}
+                {{ atendidos_assistidos|length if atendidos_assistidos else 0 }}
+              {% endif %}
+            </span>
+          </div>
         </div>
         
         <div class="ml-auto">
@@ -35,53 +46,8 @@
       </div>
     </div>
 
-    {% if atendidos_assistidos|length > 0 %}
-      <nav class="d-inline-block">
-        <ul class="pagination mb-0">
-          {% if page > 1 %}
-            <li class="page-item">
-              <a class="page-link" href="{{ url_for('atendido.atendidos_assistidos', 
-                page=page-1, 
-                valor_busca=request.args.get('valor_busca', ''), 
-                tipo_busca=request.args.get('tipo_busca', 'todos')) }}">
-                Anterior
-              </a>
-            </li>
-          {% endif %}
-          
-          {% for page_num in range(1, (atendidos_assistidos|length + per_page - 1) // per_page + 1) %}
-            {% if page_num == page %}
-              <li class="page-item active">
-                <span class="page-link">{{ page_num }}</span>
-              </li>
-            {% else %}
-              <li class="page-item">
-                <a class="page-link" href="{{ url_for('atendido.atendidos_assistidos', 
-                  page=page_num, 
-                  valor_busca=request.args.get('valor_busca', ''), 
-                  tipo_busca=request.args.get('tipo_busca', 'todos')) }}">
-                  {{ page_num }}
-                </a>
-              </li>
-            {% endif %}
-          {% endfor %}
-          
-          {% if page < (atendidos_assistidos|length + per_page - 1) // per_page %}
-            <li class="page-item">
-              <a class="page-link" href="{{ url_for('atendido.atendidos_assistidos', 
-                page=page+1, 
-                valor_busca=request.args.get('valor_busca', ''), 
-                tipo_busca=request.args.get('tipo_busca', 'todos')) }}">
-                Próximo
-              </a>
-            </li>
-          {% endif %}
-        </ul>
-      </nav>
-    {% endif %}
-
     <!-- Results Table -->
-    {% if atendidos_assistidos %}
+    {% if atendidos_assistidos and ((atendidos_assistidos.items and atendidos_assistidos.items|length > 0) or (atendidos_assistidos|length > 0 and not atendidos_assistidos.items)) %}
       <div class="table-responsive">
         <table class="table table-striped">
           <thead>
@@ -97,7 +63,8 @@
             </tr> 
           </thead>
           <tbody>
-            {% for atendido, assistido in atendidos_assistidos %}
+            {% set items = atendidos_assistidos.items if atendidos_assistidos.items is defined else atendidos_assistidos %}
+            {% for atendido, assistido in items %}
               <tr>
                 <td>{{ atendido.nome }}</td>
                 <td>{{ atendido.cpf or '--' }}</td>
@@ -110,7 +77,7 @@
                 </td>
                 
                 <td>
-                  {% if current_user.urole in [usuario_urole_roles['ADMINISTRADOR'][0], usuario_urole_roles['PROFESSOR'][0], usuario_urole_roles['COLAB_PROJETO'][0], usuario_urole_roles['ESTAGIARIO_DIREITO'][0]] %}
+                  {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.COLAB_PROJETO.value, UserRole.ESTAGIARIO_DIREITO.value] %}
                     {% if assistido %}
                       <a href="{{ url_for('atendido.editar_assistido', id_atendido=atendido.id) }}" 
                          class="btn btn-primary btn-sm">Editar</a>
@@ -150,8 +117,69 @@
         </table>
       </div>
       
+      <!-- Pagination Info and Controls -->
+      {% if atendidos_assistidos.pages is defined %}
+      <div class="mt-4">
+        <!-- Results Info -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="text-muted">
+            Mostrando 
+            <strong>{{ atendidos_assistidos.first_item }}</strong> 
+            até 
+            <strong>{{ atendidos_assistidos.last_item }}</strong> 
+            de 
+            <strong>{{ atendidos_assistidos.total }}</strong> 
+            registros
+          </span>
+          
+          {% if atendidos_assistidos.pages > 1 %}
+          <span class="text-muted">
+            Página {{ atendidos_assistidos.page }} de {{ atendidos_assistidos.pages }}
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Pagination Controls (only show if more than 1 page) -->
+        {% if atendidos_assistidos.pages > 1 %}
+        <nav aria-label="Page navigation">
+          <ul class="pagination justify-content-center">
+            {% if atendidos_assistidos.has_prev %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('atendido.atendidos_assistidos', 
+                  page=atendidos_assistidos.prev_num, 
+                  valor_busca=valor_busca, 
+                  tipo_busca=tipo_busca) }}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in range(1, atendidos_assistidos.pages + 1) %}
+            <li class="page-item {% if page_num == atendidos_assistidos.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('atendido.atendidos_assistidos', 
+                  page=page_num, 
+                  valor_busca=valor_busca, 
+                  tipo_busca=tipo_busca) }}">{{ page_num }}</a>
+            </li>
+            {% endfor %}
+            
+            {% if atendidos_assistidos.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('atendido.atendidos_assistidos', 
+                  page=atendidos_assistidos.next_num, 
+                  valor_busca=valor_busca, 
+                  tipo_busca=tipo_busca) }}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+      </div>
+      {% endif %}
+      
     {% else %}
-      <!-- No Results -->
       <div class="text-center py-4">
         <h4>Nenhum atendido encontrado</h4>
         <p class="text-muted">
@@ -169,3 +197,46 @@
   </div>
 </div>
 {% endblock conteudo %}
+
+{% block scripts %}
+<style>
+  .pagination .page-link {
+    cursor: pointer;
+  }
+  
+  .pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+  }
+  
+  .badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+  }
+  
+  .badge-primary {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .table tbody tr td {
+    vertical-align: middle;
+  }
+  
+  .form-control-sm {
+    font-size: 0.875rem;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoSelect = document.querySelector('select[name="tipo_busca"]');
+    if (tipoSelect) {
+        tipoSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+});
+</script>
+{% endblock %}

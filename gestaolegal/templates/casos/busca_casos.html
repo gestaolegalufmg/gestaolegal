@@ -1,0 +1,200 @@
+<nav class="d-inline-block">
+    <ul class="pagination mb-0">
+        {% for page_num in casos.iter_pages(left_edge=3, right_edge=3, left_current=2, right_current=2) %} 
+            {% if page_num and casos.page == page_num%}
+                <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+            {% elif page_num %}
+                {% if opcao_filtro %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for(rota_paginacao, page=page_num, opcao_filtro=opcao_filtro) }}">{{ page_num }}</a>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for(rota_paginacao, page=page_num) }}">{{ page_num }}</a>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+            {% endif %} 
+        {% endfor %}
+    </ul>
+</nav>
+
+<div class="col-12 mt-4">
+    <h3>{{titulo_total}}</h3>   
+</div>
+{% for caso in casos.items %}
+    <div class="col-12 col-md-6 col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            <h4>Caso {{caso.id}}</h4>
+            {% for key in situacao_deferimento %}
+            {% if situacao_deferimento[key][0] == caso.situacao_deferimento %}
+
+            <div class="card-header-action">
+                <span class="float-right badge badge-{{situacao_deferimento[key][2]}}">
+                    {{situacao_deferimento[key][1]}} 
+                </span>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+          <div class="card-body">
+            <p class="clearfix">
+                <span class="float-left">
+                    Estagiário de direito:
+                </span>
+                <span class="float-right text-muted">
+                    {{caso.estagiario.nome or '--'}}  
+                </span>
+            </p>
+            <p class="clearfix">
+                <span class="float-left">
+                    Assistido(s):
+                </span>
+                <span class="float-right text-muted">
+                  {% for cliente in caso.clientes %}
+                    {{cliente.nome}}
+                    <br>
+                  {% endfor %}
+                  <a href="#" data-toggle="modal" data-target="#modalExemplo{{caso.id}}">Gerenciar assistidos</a>
+                  {%block modal %}
+
+                    {% for caso in casos.items %}
+                    <div class="modal fade" id="modalExemplo{{caso.id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="exampleModalLabel">Gerenciar Assistidos</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="container-fluid">
+                                        <table class="table table-striped">
+                                            <tbody>
+                                                <form action="{{url_for('casos.adicionar_assistido_caso', id_caso = caso.id)}}" method="POST" id="form">
+                                                    <input type="hidden" name="csrf_token"  value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="adicao_assistido{{caso.id}}"  id="adicao_assistido{{caso.id}}">
+                                                    <input type="hidden" id="apiCasosBuscarAtendido" value="{{url_for('casos.api_casos_buscar_assistido', _external=True)}}">
+                                                    <div class="form-row align-items-center">
+                                                        <div class="form-group col-md-3">
+                                                            <label class="col-form-label" for="clientes-js">Adicionar Assistidos</label>
+                                                        </div>
+                                                        <div class="form-group col-md-5">
+                                                            <select class="form-control" id="clientes-js{{caso.id}}" name="clientes-js{{caso.id}}" multiple="multiple"></select>
+                                                        </div>
+                                                        <div class="form-group col-md-auto">
+                                                            <button class="btn btn-flat btn-primary">
+                                                                Adicionar
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                                <div class="row">
+                                                    {% for cliente in caso.clientes %}
+                                                    <tr>
+                                                        <td>
+                                                            <label>
+                                                                {{cliente.nome}}   
+                                                            </label>
+                                                        </td>
+                                                        <td>
+                                                            <form action="{{url_for('casos.excluir_assistido_caso', id_caso = caso.id, id_assistido = cliente.id)}}" method="POST">
+                                                                <input type="hidden" name="csrf_token"  value="{{ csrf_token() }}"> 
+                                                                <button class="btn ml-1 btn-flat btn-danger mr-2">
+                                                                    Excluir
+                                                                </button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </div>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                  {% endblock %}
+                </span>
+            </p>
+            <p class="clearfix">
+                <span class="float-left">
+                    Orientador:
+                </span>
+                <span class="float-right text-muted">
+                    {{caso.orientador.nome or '--'}}  
+                </span>
+            </p>
+            <p class="clearfix">
+                <span class="float-left">
+                    Criado em:
+                </span>
+                <span class="float-right text-muted">
+                    {{caso.data_criacao.strftime("%d/%m/%Y %H:%M:%S")}}
+                </span>
+            </p>
+            <p class="clearfix">
+                <span class="float-left">
+                    Última modificação:
+                </span>
+                <span class="float-right text-muted">
+                    {{caso.data_modificacao.strftime("%d/%m/%Y %H:%M:%S")}}
+                </span>
+            </p>
+            <p class="clearfix">
+                <span class="float-left">
+                    Último processo:
+                </span>
+                <span class="float-right text-muted">
+                    {% if caso.numero_ultimo_processo is not none%}
+                    <a href="{{url_for('casos.visualizar_processo_com_numero', numero_processo = caso.numero_ultimo_processo)}}">{{caso.numero_ultimo_processo}}</a>
+                    {% else %}
+                        --
+                    {%endif %}  
+                </span>
+            </p>
+
+          </div>
+          <div class="card-footer d-inline-flex justify-content-center">
+
+            <input type="hidden" value="{{url_for('casos.excluir_caso', id_caso=caso.id)}}" id="url_excluir_caso{{caso.id}}">
+
+            {% if current_user.urole in [UserRole.ADMINISTRADOR.value,UserRole.PROFESSOR.value,UserRole.ORIENTADOR.value,UserRole.COLAB_EXTERNO.value, UserRole.ESTAGIARIO_DIREITO.value] %}
+            <a href="{{url_for('casos.editar_caso', id_caso = caso.id)}}" class="btn btn-primary mr-2">Editar</a>
+            {% endif %}
+            {% if current_user.urole in [UserRole.PROFESSOR.value, UserRole.ADMINISTRADOR.value] %}
+                {% if caso.situacao_deferimento == 'aguardando_deferimento' %}
+                    <input type="hidden" value="{{url_for('casos.deferir_caso', id_caso=caso.id)}}" id="url_deferir_caso{{caso.id}}">
+                    <input type="hidden" value="{{url_for('casos.indeferir_caso', id_caso=caso.id)}}" id="url_indeferir_caso{{caso.id}}">
+                    <button  class="btn btn-warning mr-2" data-toggle="modal" data-target="indeferir">
+                        <a id_caso="{{caso.id}}" id="a_indeferir"
+                            onclick="indeferir_caso(document.getElementById('url_indeferir_caso{{caso.id}}').value)">
+                            Indeferir
+                        </a>
+                    </button>
+                    <button class="btn btn-success mr-2" data-toggle="modal" data-target="deferir">
+                        <a id_caso="{{caso.id}}" id="a_deferir{{caso.id}}"
+                            onclick="deferir_caso(document.getElementById('url_deferir_caso{{caso.id}}').value)">
+                            Deferir
+                        </a>
+                    </button>
+                {% endif %}
+            {% endif %}
+            
+            <a href="{{url_for('casos.visualizar_caso', id=caso.id)}}" class="btn btn-primary mr-2">Visualizar</a>
+
+            {% if current_user.urole == UserRole.ADMINISTRADOR.value %}
+                <button class="btn ml-1 btn-flat btn-danger mr-2" data-toggle="modal" data-target="excluir">
+                    <a id_caso="{{caso.id}}" id="a_excluir{{caso.id}}"
+                        onclick="excluir_caso(document.getElementById('url_excluir_caso{{caso.id}}').value)">
+                        Excluir
+                    </a>
+                </button>
+            {% endif %}
+            
+          </div>
+        </div>
+    </div>
+{% endfor %}

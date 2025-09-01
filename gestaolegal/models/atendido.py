@@ -2,13 +2,13 @@ from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
-from gestaolegal.plantao.models import como_conheceu_daj
+from gestaolegal.common.constants import como_conheceu_daj
 
 if TYPE_CHECKING:
-    from gestaolegal.casos.models import Caso
-    from gestaolegal.models.endereco import Endereco
     from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
     from gestaolegal.schemas.atendido import AtendidoSchema
+    from gestaolegal.schemas.caso import Caso
+    from gestaolegal.schemas.endereco import EnderecoSchema
 
 
 @dataclass(frozen=True)
@@ -17,7 +17,7 @@ class Atendido:
 
     orientacoes_juridicas: list["OrientacaoJuridica"]
     casos: list["Caso"]
-    endereco: "Endereco | None"
+    endereco: "EnderecoSchema | None"
 
     nome: str
     data_nascimento: date

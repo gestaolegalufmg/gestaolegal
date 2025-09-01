@@ -17,7 +17,6 @@ dependencies = [
     "flask-mail",
     "flask-marshmallow",
     "flask-paginate",
-    "flask-sqlalchemy",
     "flask-wtf",
     "gunicorn==20.0.4",
     "pymysql",
