@@ -1,10 +1,9 @@
 services:
   app_gl:
     build: .
-    entrypoint: ["flask", "run", "--host=0.0.0.0", "--port=5000", "--debug"]
+    entrypoint: ["flask", "--app", "gestaolegal", "run", "--host=0.0.0.0", "--port=5000", "--debug"]
     environment:
       - FLASK_ENV=development
-      - FLASK_APP=gestaolegal.app:app
       - SECRET_KEY=abcdefghijklmnopqrstuvwxyz0123456789
       - DB_USER=gestaolegal
       - DB_PASSWORD=gestaolegal
