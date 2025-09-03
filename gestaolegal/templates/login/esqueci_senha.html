@@ -1,0 +1,159 @@
+{% extends "login/base_login.html" %}
+
+{% block title %}Recuperação de Senha{% endblock %}
+{% block page_title %}Recuperação de Senha{% endblock %}
+
+{% block modal_content %}
+<div class="container-modal" style="display: none;">
+  <div class="message-modal">
+    <div class="message-body">
+      <div class="d-flex flex-column">
+        <div class="col-12 text-center">
+          <span class="bg-icons">
+            <i class="fas fa-envelope"></i>
+          </span>
+        </div>
+        <div class="col-12">
+          <p class="title">Enviamos para o seu e-mail o link para você recuperar sua senha</p>
+          <p>Verifique sua caixa da entrada, spam e lixeira</p>
+        </div>
+      </div>
+    </div>
+    <div class="message-footer">
+      <a class="btn btn-lg btn-block btn-primary" href="{{url_for('usuario.login')}}">Entendi</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block form_content %}
+<form method="POST" action="{{url_for('usuario.esqueci_senha')}}" class="needs-validation" novalidate="" role="form" aria-labelledby="forgot-password-title">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  
+  <fieldset>
+    <legend class="sr-only">Informações de recuperação de senha</legend>
+    
+    <div class="form-group">
+      <label for="email" id="email-label">Email</label>
+      <input 
+        id="email" 
+        name="email" 
+        type="email" 
+        class="form-control" 
+        required 
+        autocomplete="email"
+        aria-labelledby="email-label"
+        aria-describedby="email-error"
+        aria-invalid="false"
+        autofocus>
+      <div id="email-error" class="invalid-feedback" role="alert" aria-live="polite">
+        Por favor preencha seu email
+      </div>
+    </div>
+  </fieldset>
+  
+  <div class="form-group">
+    <button 
+      type="submit" 
+      class="btn btn-primary btn-lg btn-block" 
+      id="submit"
+      aria-describedby="submit-description">
+      <span class="btn-text">Receber Link de Recuperação</span>
+      <span class="sr-only" id="submit-description">Pressione Enter para receber o link de recuperação</span>
+    </button>
+  </div>
+  
+  <div class="form-group">
+    <a 
+      href="{{url_for('usuario.login')}}" 
+      class="btn btn-secondary btn-lg btn-block"
+      aria-label="Voltar para o login">
+      Voltar para o Login
+    </a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector("form");
+    const emailInput = document.getElementById('email');
+    const submitButton = document.getElementById('submit');
+    const btnText = submitButton.querySelector('.btn-text');
+    
+    // Loading state management
+    const setLoading = (isLoading) => {
+      if (isLoading) {
+        submitButton.disabled = true;
+        btnText.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Enviando...';
+      } else {
+        submitButton.disabled = false;
+        btnText.textContent = 'Receber Link de Recuperação';
+      }
+    };
+
+    const validateForm = () => {
+      let isValid = true;
+      
+      document.querySelectorAll('.alert-danger').forEach(alert => alert.remove());
+      emailInput.classList.remove('is-invalid');
+      
+      if (!emailInput.value.trim()) {
+        emailInput.classList.add('is-invalid');
+        isValid = false;
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value)) {
+        emailInput.classList.add('is-invalid');
+        emailInput.parentElement.insertAdjacentHTML('afterend', 
+          '<div class="alert alert-danger mt-2">Por favor, insira um email válido</div>');
+        isValid = false;
+      }
+      
+      return isValid;
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      if (!validateForm()) {
+        return;
+      }
+      
+      setLoading(true);
+      
+      try {
+        const response = await fetch("{{url_for('usuario.esqueci_senha')}}", {
+          method: "POST",
+          headers: {
+            'X-CSRF-Token': "{{ csrf_token() }}",
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email: emailInput.value })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === "error") {
+          emailInput.parentElement.insertAdjacentHTML('afterend', 
+            '<div class="alert alert-danger mt-2">Usuário incorreto ou inexistente</div>');
+        } else {
+          document.querySelector(".container-modal").style.display = "flex";
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        emailInput.parentElement.insertAdjacentHTML('afterend', 
+          '<div class="alert alert-danger mt-2">Erro ao processar solicitação. Tente novamente.</div>');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    emailInput.addEventListener('blur', validateForm);
+    emailInput.addEventListener('input', () => {
+      if (emailInput.classList.contains('is-invalid')) {
+        validateForm();
+      }
+    });
+  });
+</script>
+{% endblock %}
