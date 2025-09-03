@@ -1,59 +1,141 @@
-{% extends "base_dashboard.html" %} {% block titulo %} Home {% endblock %} {% block css %}
+{% extends "base_dashboard.html" %}
+
+{% block css %}
 <style>
-    .dynamic-text {
-        font-size: 2em;
+    .title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .home-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 1rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        min-height: 60vh;
+        align-items: center;
+        justify-items: center;
     }
     
-    .cfa-4x {
-        font-size: 2em;
+    .home-button {
+        width: 250px;
+        height: 125px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+        background-color: var(--color-primary);
+        color: var(--color-white);
+        text-decoration: none;
+        text-align: center;
+
+        gap: 0.5rem;
     }
     
-    @media (min-width: 576px) {
-        .dynamic-text {
-            font-size: 3.2vw;
+    .home-button i {
+        width: 32px;
+        height: 32px;
+        color: var(--color-white);
+    }
+
+    .home-button:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .home-button i {
+        font-size: 1.6rem;
+        margin-bottom: 0.2rem;
+    }
+    
+    .home-button span {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    /* Mobile: 2 columns, 3 rows */
+    @media (max-width: 768px) {
+        .home-grid {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 0.75rem;
+            padding: 1rem;
         }
-        .cfa-4x {
-            font-size: 3.2vw;
+        
+        .home-button {
+            height: 80px;
+        }
+        
+        .home-button i {
+            font-size: 1.4rem;
+        }
+        
+        .home-button span {
+            font-size: 0.9rem;
         }
     }
     
-    @media (min-width: 992px) {
-        .dynamic-text {
-            font-size: 1.7vw;
+    /* Small mobile: 1 column, 6 rows */
+    @media (max-width: 480px) {
+        .home-grid {
+            grid-template-columns: 1fr;
+            grid-template-rows: repeat(6, 1fr);
+            gap: 0.5rem;
         }
-        .cfa-4x {
-            font-size: 1.7vw;
+        
+        .home-button {
+            height: 70px;
         }
-    }
-    
-    @media (min-width: 1200px) {
-        .dynamic-text {
-            font-size: 1.5vw;
+        
+        .home-button i {
+            font-size: 1.2rem;
         }
-        .cfa-4x {
-            font-size: 2.5vw;
+        
+        .home-button span {
+            font-size: 0.85rem;
         }
     }
 </style>
-{% endblock %} {% block conteudo %}
-<div class="row align-items-center justify-content-center">
-    <div class="my-3 col-12 col-md-6 col-lg-4 ">
-        <a href="{{url_for('casos.index')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-1"><i class="fas my-1 fa-briefcase cfa-4x mr-3"></i><span class="dynamic-text">Casos</span></a>
-    </div>
-    <div class="my-3 col-12 col-md-6 col-lg-4 ">
-        <a href="{{url_for('casos.meus_casos')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-2"><i class="fas my-1 fa-user cfa-4x mr-3"></i><span class="dynamic-text">Meus Casos</span></a>
-    </div>
-    <div class="my-3 col-12 col-md-6 col-lg-4 ">
-        <a href="{{url_for('plantao.pg_plantao')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-3"><i class="fas my-1 fa-globe cfa-4x mr-3"></i><span class="dynamic-text">Plantão</span></a>
-    </div>
-    <div class="my-3 col-12 col-md-6 col-lg-4 ">
-        <a href="{{url_for('notificacoes.index')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-4"><i class="fas my-1 fa-bell cfa-4x mr-3"></i><span class="dynamic-text">Notificações</span></a>
-    </div>
-    <div class="my-3 col-12 col-md-6 col-lg-4 ">
-        <a href="{{url_for('relatorios.index')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-5"><i class="fas my-1 fa-chart-bar cfa-4x mr-3"></i><span class="dynamic-text">Relatórios</span></a>
-    </div>
-    <div class="my-3 col-12 col-md-6 col-lg-4 ">
-        <a href="{{url_for('arquivos.index')}}" class="btn btn-primary btn-lg btn-block pt-5 pb-5 order-md-6"><i class="fas my-1 fa-file-alt cfa-4x mr-3"></i><span class="dynamic-text">Arquivos</span></a>
-    </div>
+{% endblock %}
+
+{% block page_title %}Home{% endblock %}
+
+{% block titulo %}
+<h1 class="title">Home</h1>
+{% endblock %}
+
+{% block conteudo %}
+<div class="home-grid">
+    <a href="{{url_for('casos.index')}}" class="home-button">
+        <i class="icon icon-briefcase"></i>
+        <span>Casos</span>
+    </a>
+    <a href="{{url_for('casos.meus_casos')}}" class="home-button">
+        <i class="icon icon-user"></i>
+        <span>Meus Casos</span>
+    </a>
+    <a href="{{url_for('plantao.pg_plantao')}}" class="home-button">
+        <i class="icon icon-globe"></i>
+        <span>Plantão</span>
+    </a>
+    <a href="{{url_for('notificacoes.index')}}" class="home-button">
+        <i class="icon icon-bell"></i>
+        <span>Notificações</span>
+    </a>
+    <a href="{{url_for('relatorios.index')}}" class="home-button">
+        <i class="icon icon-chart"></i>
+        <span>Relatórios</span>
+    </a>
+    <a href="{{url_for('arquivos.index')}}" class="home-button">
+        <i class="icon icon-file"></i>
+        <span>Arquivos</span>
+    </a>
 </div>
 {% endblock %}

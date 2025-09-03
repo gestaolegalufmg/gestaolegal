@@ -269,7 +269,7 @@ def login():
             else:
                 flash("Email inválido!", "warning")
 
-    return render_template("login.html")
+    return render_template("login/login.html")
 
 
 @usuario_controller.route("/logout")
@@ -420,7 +420,7 @@ def inativar_usuario_lista():
 def muda_senha_admin():
     id_usuario = request.form["id"]
 
-    return render_template("nova_senha.html", id_usuario=id_usuario)
+    return render_template("login/nova_senha.html", id_usuario=id_usuario)
 
 
 @usuario_controller.route("/confirma_senha", methods=["POST"])
@@ -434,7 +434,7 @@ def confirma_senha():
     is_valid, error_message = usuario_service.validate_password(senha)
     if not is_valid:
         flash(error_message, "warning")
-        return render_template("nova_senha.html", id_usuario=id_usuario)
+        return render_template("login/nova_senha.html", id_usuario=id_usuario)
 
     if senha != confirmar_senha:
         flash("As senhas não são iguais", "warning")
@@ -495,7 +495,7 @@ def esqueci_senha():
                 }
             )
 
-    return render_template("esqueci-a-senha.html")
+    return render_template("login/esqueci_senha.html")
 
 
 @usuario_controller.route("/resetar-a-senha/<token>", methods=["GET", "POST"])

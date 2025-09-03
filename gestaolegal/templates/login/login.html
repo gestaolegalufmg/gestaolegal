@@ -1,0 +1,178 @@
+{% extends "login/base_login.html" %}
+
+{% block title %}Login{% endblock %}
+{% block page_title %}Login no {{ company_name }}{% endblock %}
+
+{% block form_content %}
+<form method="POST" action="{{url_for('usuario.login')}}" class="needs-validation" novalidate="" role="form" aria-labelledby="login-title">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  
+  <fieldset>
+    <legend class="sr-only">Informações de login</legend>
+    
+    <div class="form-group">
+      <label for="login" id="email-label">Email</label>
+      <input 
+        id="login" 
+        name="login" 
+        type="email" 
+        class="form-control" 
+        required 
+        autocomplete="email"
+        aria-labelledby="email-label"
+        aria-describedby="email-error"
+        aria-invalid="false"
+        autofocus>
+      <div id="email-error" class="invalid-feedback" role="alert" aria-live="polite">
+        Por favor preencha seu email
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="senha" id="password-label">Senha</label>
+      <input 
+        id="senha" 
+        name="senha" 
+        type="password" 
+        class="form-control" 
+        required 
+        autocomplete="current-password"
+        aria-labelledby="password-label"
+        aria-describedby="password-error"
+        aria-invalid="false">
+      <div id="password-error" class="invalid-feedback" role="alert" aria-live="polite">
+        Por favor preencha sua senha
+      </div>
+    </div>
+  </fieldset>
+  
+  <div class="form-group">
+    <a 
+      href="{{url_for('usuario.esqueci_senha')}}" 
+      class="forgot-link"
+      aria-label="Esqueci minha senha - abrir página de recuperação">
+      Esqueci minha senha
+    </a>
+  </div>
+  
+  <div class="form-group">
+    <button 
+      type="submit" 
+      class="btn btn-primary btn-lg btn-block" 
+      aria-describedby="submit-description">
+      <span class="btn-text">Entrar</span>
+      <span class="sr-only" id="submit-description">Pressione Enter para fazer login</span>
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.needs-validation');
+    const inputs = form.querySelectorAll('.form-control');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const btnText = submitButton.querySelector('.btn-text');
+    
+    inputs.forEach(input => {
+      const errorElement = input.nextElementSibling;
+      
+      input.addEventListener('blur', function() {
+        validateField(this);
+      });
+      
+      input.addEventListener('input', function() {
+        if (this.classList.contains('is-invalid')) {
+          validateField(this);
+        }
+      });
+      
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.type !== 'password') {
+          e.preventDefault();
+          const nextInput = this.parentElement.nextElementSibling?.querySelector('input');
+          if (nextInput) {
+            nextInput.focus();
+          }
+        }
+      });
+    });
+
+    function validateField(field) {
+      const errorElement = field.nextElementSibling;
+      
+      if (field.value.trim() === '') {
+        field.classList.remove('is-invalid');
+        field.setAttribute('aria-invalid', 'false');
+        if (errorElement) {
+          errorElement.textContent = '';
+        }
+      } else if (!field.checkValidity()) {
+        field.classList.add('is-invalid');
+        field.setAttribute('aria-invalid', 'true');
+        if (errorElement) {
+          errorElement.textContent = field.type === 'email' ? 
+            'Por favor preencha um email válido' : 
+            'Por favor preencha sua senha';
+        }
+      } else {
+        field.classList.remove('is-invalid');
+        field.setAttribute('aria-invalid', 'false');
+        if (errorElement) {
+          errorElement.textContent = '';
+        }
+      }
+    }
+
+    form.addEventListener('submit', function(event) {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        inputs.forEach(input => {
+          if (!input.checkValidity()) {
+            input.classList.add('is-invalid');
+            input.setAttribute('aria-invalid', 'true');
+          }
+        });
+        
+        const firstInvalidInput = form.querySelector('.is-invalid');
+        if (firstInvalidInput) {
+          firstInvalidInput.focus();
+          const errorMessage = firstInvalidInput.nextElementSibling?.textContent;
+          if (errorMessage) {
+            announceToScreenReader('Erro de validação: ' + errorMessage);
+          }
+        }
+      } else {
+        submitButton.classList.add('btn-loading');
+        btnText.textContent = 'Entrando...';
+        submitButton.disabled = true;
+      }
+      
+      form.classList.add('was-validated');
+    });
+
+    function announceToScreenReader(message) {
+      const announcement = document.createElement('div');
+      announcement.setAttribute('aria-live', 'polite');
+      announcement.setAttribute('aria-atomic', 'true');
+      announcement.className = 'sr-only';
+      announcement.textContent = message;
+      document.body.appendChild(announcement);
+      
+      setTimeout(() => {
+        document.body.removeChild(announcement);
+      }, 1000);
+    }
+
+    if (document.activeElement === document.body) {
+      const firstInput = form.querySelector('input[autofocus]') || form.querySelector('input');
+      if (firstInput) {
+        firstInput.focus();
+      }
+    }
+  });
+</script>
+{% endblock %}
