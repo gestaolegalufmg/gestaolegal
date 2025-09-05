@@ -20,13 +20,11 @@ config = context.config
 fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
 
-# Import your models here
-from gestaolegal import db
-from gestaolegal.models import *
+from gestaolegal.database import get_database_uri
+from gestaolegal.schemas.base import Base
 
-# Get the database URL from your Flask app config
-config.set_main_option("sqlalchemy.url", current_app.config["SQLALCHEMY_DATABASE_URI"])
-target_metadata = db.metadata
+config.set_main_option("sqlalchemy.url", get_database_uri())
+target_metadata = Base.metadata
 
 
 def run_migrations_offline():
