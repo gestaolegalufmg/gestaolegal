@@ -65,7 +65,7 @@ def atendidos_assistidos():
         "tipo_busca": tipo_busca,
     }
 
-    return render_template("atendidos_assistidos.html", **template_data)
+    return render_template("lista_atendidos_assistidos.html", **template_data)
 
 
 @atendido_controller.route("/novo_atendimento", methods=["GET"])

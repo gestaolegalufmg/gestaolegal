@@ -1,16 +1,16 @@
 {% macro card_field(title=none, value=none, message=none, field_class="") %}
-<div class="d-flex flex-wrap {{ field_class }}">
+<div class="field-container {{ field_class }}">
   {% if message %}
   {# Display full-width message when no key-value pair is needed #}
-  <div class="text-left text-muted" style="flex: 0 0 100%">
+  <div class="field-message">
     {{ message | safe }}
   </div>
   {% else %}
   {# Display traditional key-value pair #}
-  <div class="text-left" style="flex: 0 0 40%">
+  <div class="field-label">
     {{ title | safe }}:
   </div>
-  <div class="text-right text-muted" style="flex: 0 0 60%">
+  <div class="field-value">
     {{ value or '--' | safe }}
   </div>
   {% endif %}
