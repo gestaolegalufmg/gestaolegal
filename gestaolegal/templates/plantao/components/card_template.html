@@ -1,10 +1,10 @@
 {% macro card(header, body, footer=None, card_class='') %}
-  <div class="card {{ card_class }}">
+  <div class="component-card {{ card_class }}">
     <div class="card-header">
       <h4>{{ header | safe }}</h4>
     </div>
     <div class="card-body">
-      <div class="py-2">
+      <div class="card-content">
         {{ body | safe }}
       </div>
     </div>

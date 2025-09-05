@@ -4,16 +4,168 @@
 {% extends 'base_dashboard.html' %}
 {% block css %}
 <style>
+    /* Profile Container */
+    .profile-container {
+        padding: 24px;
+    }
+
+    .profile-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+        align-items: start;
+    }
+
+    .profile-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .field-spacing {
+        margin-bottom: 16px;
+    }
+
+    /* Card Component Styles */
+    .component-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        border: 1px solid #e9ecef;
+    }
+
+    .component-card .card-header {
+        background-color: color-mix(in srgb, var(--color-primary) 10%, white 90%);
+        padding: 16px 20px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .component-card .card-header h4 {
+        cursor: default;
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: black;
+    }
+
+    .component-card .card-body {
+        padding: 20px;
+    }
+
+    .component-card .card-content {
+        padding: 8px 0;
+    }
+
+    .component-card .card-footer {
+        background-color: #f8f9fa;
+        padding: 16px 20px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    /* Field Component Styles */
+    .field-container {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .field-message {
+        flex: 0 0 100%;
+        text-align: left;
+        color: #6c757d;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .field-label {
+        flex: 0 0 40%;
+        text-align: left;
+        font-weight: 500;
+        color: #333;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .field-value {
+        flex: 0 0 60%;
+        text-align: right;
+        color: #6c757d;
+        font-size: 14px;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+
+    /* Section Header */
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding: 0 24px;
+    }
+
+    /* Profile Header Actions */
+    .profile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .profile-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    /* Buttons */
+    .btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary {
+        background-color: var(--color-primary);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--color-primary-dark);
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #545b62;
+    }
+
+    /* Badge */
     .badge-custom {
         background-color: #DBF2FF;
         color: #0062B8;
-        font-size: 12px !important;
-        line-height: 16px !important;
+        font-size: 12px;
+        line-height: 16px;
         margin-left: 12px;
-        padding: 3px 12px 4px 12px !important;
+        padding: 3px 12px 4px 12px;
+        border-radius: 12px;
+        display: inline-block;
     }
 
-    .container-modal-queue {
+    /* Modal Styles */
+    .modal-overlay {
         position: fixed;
         inset: 0;
         width: 100%;
@@ -25,168 +177,287 @@
         z-index: 999;
     }
 
-    .modal-queue {
-        padding: 2rem;
+    .modal-hidden {
+        display: none;
     }
 
-    .modal-queue h1 {
+    .modal-content {
+        background: white;
+        border-radius: 8px;
+        max-width: 680px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+        padding: 24px 24px 0 24px;
+    }
+
+    .modal-header h1 {
         font-size: 18px;
         text-align: center;
         line-height: 25px;
         font-weight: 600;
         color: #142129;
+        margin: 0;
     }
 
-    .modal-queue label {
+    .modal-body {
+        padding: 24px;
+        display: flex;
+        gap: 24px;
+        align-items: stretch;
+    }
+
+    .modal-main-content {
+        flex: 1;
+    }
+
+    .radio-option {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .radio-option input[type="radio"] {
+        width: 20px;
+        height: 20px;
+        margin-right: 12px;
+        margin-top: 2px;
+    }
+
+    .radio-content {
+        flex: 1;
+    }
+
+    .radio-content label {
         font-size: 1rem;
         font-weight: 600;
         line-height: 22px;
         color: #1A1E21;
+        margin: 0;
+        display: block;
     }
 
-    .modal-queue label+p {
+    .radio-content p {
         font-size: 14px;
         font-weight: 400;
         line-height: 19px;
         color: #3F5059;
+        margin: 4px 0 0 0;
     }
 
-    .queue-body {
-        padding: 2rem;
-        gap: 2rem;
+    .modal-separator {
+        width: 1px;
+        background-color: #EAEEF0;
+        margin: 0 12px;
     }
 
-    .modal-queue .separator {
-        overflow: hidden;
-        height: 226px;
-        flex-basis: 1px;
-        border: 1px solid #EAEEF0;
-        margin: auto 0;
-    }
-
-    .modal-queue .content {
-        flex: 1
-    }
-
-    .modal-queue .password-queue {
+    .modal-password-section {
         flex-basis: 186px;
-    }
-
-    .setor {
         display: flex;
+        justify-content: center;
+        align-items: center;
         flex-direction: column;
-        gap: 2rem;
     }
 
-    .senha-atendido {
+    .loading-spinner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 80px;
+        height: 80px;
+        border: 10px solid #f3f3f3;
+        border-top: 10px solid var(--color-primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    .loading-spinner span {
+        font-size: 12px;
+        color: #666;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .password-display {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-    }
-    .senha-atendido > p{
         text-align: center;
     }
-    .senha-atendido>p:first-child {
+
+    .password-display p:first-child {
         font-size: 18px;
         line-height: 28px;
         color: #283A45;
-        margin-bottom: 0;
+        margin: 0 0 8px 0;
     }
 
-    .senha-atendido>.senha {
+    .password-number {
         font-size: 48px;
         line-height: 57px;
         color: #0062B8;
         font-weight: 600;
+        margin: 0;
     }
 
+    .modal-footer {
+        padding: 0 24px 24px 24px;
+    }
+
+    .modal-options {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .checkbox-option {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .checkbox-option input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin-right: 12px;
+    }
+
+    .checkbox-option label {
+        font-size: 14px;
+        color: #333;
+        margin: 0;
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .profile-cards {
+            grid-template-columns: 1fr;
+        }
+
+        .profile-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .modal-body {
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-separator {
+            width: 100%;
+            height: 1px;
+            margin: 12px 0;
+        }
+
+        .modal-password-section {
+            flex-basis: auto;
+        }
+
+        .modal-buttons {
+            flex-direction: column;
+        }
+    }
 </style>
 {% endblock %}
 {% block titulo %} Perfil {{assistido.Atendido.nome}} {% endblock titulo %}
 
 {% block conteudo %}
 
-<div class="row row-cols-1 row-cols-md-2">
-    {% for card_item in cards %}
-        {% if card_item.body is defined and card_item.body is not none %}
-            {% set body_content %}
-            {% if card_item.body is string %}
-                {{ card_field(message=card_item.body, field_class="mb-4") }}
-            {% else %}
-                {% for key, value in card_item.body.items() %}
-                    {{ card_field(
-                            title=key,
-                            value=value | safe,
-                            field_class="mb-4"
-                        )
-                    }}
-                {% endfor %}
+<div class="profile-container">
+    <div class="profile-cards">
+        {% for card_item in cards %}
+            {% if card_item.body is defined and card_item.body is not none %}
+                {% set body_content %}
+                {% if card_item.body is string %}
+                    {{ card_field(message=card_item.body, field_class="field-spacing") }}
+                {% else %}
+                    {% for key, value in card_item.body.items() %}
+                        {{ card_field(
+                                title=key,
+                                value=value | safe,
+                                field_class="field-spacing"
+                            )
+                        }}
+                    {% endfor %}
+                {% endif %}
+                {% endset %}
+                <div class="profile-card">
+                    {{ card(header=card_item.title, body=body_content) }}
+                </div>
             {% endif %}
-            {% endset %}
-            <div class="col">
-                {{ card(header=card_item.title, body=body_content) }}
-            </div>
-        {% endif %}
-    {% endfor %}
+        {% endfor %}
+    </div>
 </div>
 
 {% endblock %}
 
 {% block modal %}
-<div class="container-modal-queue border d-none">
-    <div class="modal-queue bg-white text-dark" style="max-width: 680px;">
-        <div class="queue-header">
+<div class="modal-overlay modal-hidden">
+    <div class="modal-content">
+        <div class="modal-header">
             <h1>Escolha o tipo de senha</h1>
         </div>
-        <div class="queue-body d-flex flex-row align-items-stretch">
-            <div class="content">
-                <div class="row-input d-flex align-items-start mb-4">
-                    <input style="width: 20px; height: 20px;" type="radio" name="senha" value="N" id="senhaNormal">
-                    <div class="col p-0 ml-2">
-                        <label class="m-0" for="senhaNormal">Normal</label>
-                        <p class="m-0">Público em geral</p>
+        <div class="modal-body">
+            <div class="modal-main-content">
+                <div class="radio-option">
+                    <input type="radio" name="senha" value="N" id="senhaNormal">
+                    <div class="radio-content">
+                        <label for="senhaNormal">Normal</label>
+                        <p>Público em geral</p>
                     </div>
                 </div>
-                <div class="row-input d-flex align-items-start mb-4">
-                    <input style="width: 20px; height: 20px;" type="radio" name="senha" value="P" id="senhaPrioridade">
-                    <div class="col p-0 ml-2">
-                        <label class="m-0" for="senhaPrioridade">Prioridade</label>
-                        <p class="m-0">Idosos até 80 anos; pessoas com deficiência; gestantes; lactantes; pessoas com
+                <div class="radio-option">
+                    <input type="radio" name="senha" value="P" id="senhaPrioridade">
+                    <div class="radio-content">
+                        <label for="senhaPrioridade">Prioridade</label>
+                        <p>Idosos até 80 anos; pessoas com deficiência; gestantes; lactantes; pessoas com
                             crianças de colo e obesos</p>
                     </div>
                 </div>
-                <div class="row-input d-flex align-items-start mb-4">
-                    <input style="width: 20px; height: 20px;" type="radio" name="senha" value="S"
-                        id="senhaSuperPrioridade">
-                    <div class="col p-0 ml-2">
-                        <label class="m-0" for="senhaSuperPrioridade">Super Prioridade</label>
-                        <p class="m-0">Idosos acima de 80 anos.</p>
+                <div class="radio-option">
+                    <input type="radio" name="senha" value="S" id="senhaSuperPrioridade">
+                    <div class="radio-content">
+                        <label for="senhaSuperPrioridade">Super Prioridade</label>
+                        <p>Idosos acima de 80 anos.</p>
                     </div>
                 </div>
             </div>
-            <div class="separator"></div>
-            <div class="password-queue d-flex justify-content-center align-items-center">
-                <div class="spinner-border text-primary d-none" style="width: 80px; height: 80px; border-width: 10px;"
-                    role="status">
-                    <span class="sr-only">Loading...</span>
+            <div class="modal-separator"></div>
+            <div class="modal-password-section">
+                <div class="loading-spinner modal-hidden">
+                    <span>Carregando...</span>
                 </div>
-                <div class="senha-atendido d-none">
+                <div class="password-display modal-hidden">
                     <p>Senha do atendido</p>
-                    <p class="senha"></p>
+                    <p class="password-number"></p>
                 </div>
             </div>
         </div>
-        <div class="queue-footer">
-            <div class="setor">
-                <div class="col p-0 d-flex justify-content-center align-items-center">
-                    <input style="width: 20px; height: 20px;" type="checkbox" name="setor" value="1" id="psicologia">
-                    <label class="m-0 ml-2" for="psicologia">Há atendimento da psicologia</label>
+        <div class="modal-footer">
+            <div class="modal-options">
+                <div class="checkbox-option">
+                    <input type="checkbox" name="setor" value="1" id="psicologia">
+                    <label for="psicologia">Há atendimento da psicologia</label>
                 </div>
-                <div class="col d-flex justify-content-center align-items-center">
-                    <button id="closeModal" type="button" class="btn btn-outline-primary">Voltar</button>
-                    <button id="createQueue" type="button" class="btn btn-primary" style="margin-left: 12px;">Cadastrar e Incluir na
-                        Fila</button>
+                <div class="modal-buttons">
+                    <button id="closeModal" type="button" class="btn btn-secondary">Voltar</button>
+                    <button id="createQueue" type="button" class="btn btn-primary">Cadastrar e Incluir na Fila</button>
                 </div>
             </div>
         </div>
@@ -196,12 +467,12 @@
 
 {% block scripts %}
 <script defer>
-    const radios = document.querySelectorAll(".queue-body input[type=radio]");
+    const radios = document.querySelectorAll(".modal-main-content input[type=radio]");
     const criarAtendimento = async () => {
         let prioridade;
-        let radio = document.querySelector(".queue-body input[type=radio]:checked");
-        let psicologia = document.querySelector(".queue-footer input[type=checkbox]").checked;
-        let senha = document.querySelector("p.senha").textContent;
+        let radio = document.querySelector(".modal-main-content input[type=radio]:checked");
+        let psicologia = document.querySelector(".modal-footer input[type=checkbox]").checked;
+        let senha = document.querySelector(".password-number").textContent;
         let id_atendido = window.location.pathname.split("/");
         id_atendido = id_atendido[id_atendido.length - 1]
         
@@ -234,8 +505,8 @@
         }
     }
     const gerarSenha = async (prioridadeStr) => {
-        document.querySelector(".spinner-border").classList.toggle("d-none");
-        document.querySelector(".senha-atendido").classList.add("d-none");
+        document.querySelector(".loading-spinner").classList.toggle("modal-hidden");
+        document.querySelector(".password-display").classList.add("modal-hidden");
         let prioridade;
         switch (prioridadeStr) {
             case "N":
@@ -255,23 +526,36 @@
         })
         let data = await res.json();
         setTimeout(() => {
-            document.querySelector(".spinner-border").classList.toggle("d-none");
-            document.querySelector(".senha-atendido").classList.toggle("d-none");
-            document.querySelector(".senha-atendido .senha").textContent = `${prioridadeStr}${data.senha}`
+            document.querySelector(".loading-spinner").classList.toggle("modal-hidden");
+            document.querySelector(".password-display").classList.toggle("modal-hidden");
+            document.querySelector(".password-number").textContent = `${prioridadeStr}${data.senha}`
         }, 1000)
 
     }
-    document.querySelector(".section-header").insertAdjacentHTML("beforeend", `
-    <div class="d-flex justify-content-end align-items-center" style="gap: 12px;">
-        <button id="addQueue" type="button" class="btn btn-sm btn-outline-primary">Incluir na Fila de Atendimento</button>
-        <a class="btn btn-sm btn-primary" href="/atendido/editar_atendido/{{assistido.Atendido.id}}">
-            <span>Editar</span> <span><i class="fas fa-edit"></i></span>
-        </a>
-    </div>
-    `);
-    document.querySelector(".section-header").classList.add("justify-content-between");
+    // Create a section header if it doesn't exist
+    let sectionHeader = document.querySelector(".section-header");
+    if (!sectionHeader) {
+        const pageTitle = document.querySelector(".page__title");
+        if (pageTitle) {
+            sectionHeader = document.createElement("div");
+            sectionHeader.className = "section-header";
+            pageTitle.parentNode.insertBefore(sectionHeader, pageTitle.nextSibling);
+        }
+    }
+    
+    if (sectionHeader) {
+        sectionHeader.insertAdjacentHTML("beforeend", `
+        <div class="profile-actions">
+            <button id="addQueue" type="button" class="btn btn-secondary">Incluir na Fila de Atendimento</button>
+            <a class="btn btn-primary" href="/atendido/editar_atendido/{{assistido.Atendido.id}}">
+                <span>Editar</span> <span><i class="fas fa-edit"></i></span>
+            </a>
+        </div>
+        `);
+        sectionHeader.classList.add("profile-header");
+    }
     document.querySelector("#addQueue").addEventListener("click", () => {
-        document.querySelector(".container-modal-queue").classList.toggle("d-none")
+        document.querySelector(".modal-overlay").classList.toggle("modal-hidden")
     });
     Array.from(radios).map((item) => {
         item.onclick = async () => {
@@ -279,7 +563,7 @@
         }
     })
     document.querySelector("#closeModal").addEventListener("click", () => {
-        document.querySelector(".container-modal-queue").classList.toggle("d-none")
+        document.querySelector(".modal-overlay").classList.toggle("modal-hidden")
     });
     document.querySelector("#createQueue").addEventListener("click", criarAtendimento)
 </script>

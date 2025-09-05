@@ -93,6 +93,27 @@
     filter: brightness(1.1);
 }
 
+.btn-danger {
+    color: var(--color-white);
+    background-color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+.btn-danger:hover {
+    filter: brightness(1.1);
+}
+
+.btn-secondary {
+    color: var(--color-white);
+    background-color: var(--color-secondary);
+    border-color: var(--color-secondary);
+}
+
+.btn-secondary:hover {
+    filter: brightness(1.1);
+}
+
+
 .btn-lg {
     padding: 0.5rem 1rem;
     font-size: 1.25rem;
