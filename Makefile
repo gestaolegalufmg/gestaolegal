@@ -10,7 +10,7 @@ up: ensure_volumes
 	docker compose up -d
 
 run_migrations:
-	docker compose exec app_gl bash -c "alembic -c ./migrations/alembic.ini upgrade head"
+	docker compose exec app_gl sh -c "alembic -c ./migrations/alembic.ini upgrade head"
 
 initialize_environment:
 	@if [ "$(ENV)" = "production" ]; then \
