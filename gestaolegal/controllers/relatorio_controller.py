@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from flask import (
@@ -23,6 +24,8 @@ from gestaolegal.schemas.usuario import UsuarioSchema
 from gestaolegal.utils.casos_utils import *
 from gestaolegal.utils.decorators import login_required
 from gestaolegal.utils.plantao_utils import *
+
+logger = logging.getLogger(__name__)
 
 relatorios_controller = Blueprint(
     "relatorios", __name__, template_folder="../static/templates"
@@ -106,7 +109,7 @@ def casos_orientacao_juridica(inicio, final, areas):
         OrientacaoJuridicaSchema.area_direito,
         func.count(OrientacaoJuridicaSchema.area_direito),
     ).filter(
-        OrientacaoJuridicaSchema.status == True,
+        OrientacaoJuridicaSchema.status,
         OrientacaoJuridicaSchema.data_criacao >= inicio,
         OrientacaoJuridicaSchema.data_criacao <= final,
     )
@@ -152,7 +155,7 @@ def casos_cadastrados(inicio, final, areas):
                 CasoSchema.area_direito, func.count(CasoSchema.area_direito)
             )
             .filter(
-                CasoSchema.status == True,
+                CasoSchema.status,
                 CasoSchema.data_criacao >= inicio,
                 CasoSchema.data_criacao <= final,
             )
@@ -166,7 +169,7 @@ def casos_cadastrados(inicio, final, areas):
                 CasoSchema.area_direito, func.count(CasoSchema.area_direito)
             )
             .filter(
-                CasoSchema.status == True,
+                CasoSchema.status,
                 CasoSchema.data_criacao >= inicio,
                 CasoSchema.data_criacao <= final,
                 CasoSchema.area_direito.in_(area_direito),
@@ -205,7 +208,7 @@ def relatorio_horarios(inicio, final, usuarios):
             .select_from(RegistroEntradaSchema)
             .join(UsuarioSchema)
             .filter(
-                RegistroEntradaSchema.status == False,
+                not RegistroEntradaSchema.status,
                 RegistroEntradaSchema.data_saida >= inicio,
                 RegistroEntradaSchema.data_saida <= final,
             )
@@ -227,7 +230,7 @@ def relatorio_horarios(inicio, final, usuarios):
         horarios = (
             db.session.query(RegistroEntradaSchema)
             .filter(
-                RegistroEntradaSchema.status == False,
+                not RegistroEntradaSchema.status,
                 RegistroEntradaSchema.data_saida >= inicio,
                 RegistroEntradaSchema.data_saida <= final,
                 RegistroEntradaSchema.id_usuario.in_(usuarios),
@@ -276,7 +279,7 @@ def casos_arq_sol_ativ(inicio, final, areas):
         casos = (
             db.session.query(CasoSchema)
             .filter(
-                CasoSchema.status == True,
+                CasoSchema.status,
                 CasoSchema.data_criacao >= inicio,
                 CasoSchema.data_criacao <= final,
                 CasoSchema.situacao_deferimento.in_(
@@ -294,7 +297,7 @@ def casos_arq_sol_ativ(inicio, final, areas):
         casos = (
             db.session.query(CasoSchema)
             .filter(
-                CasoSchema.status == True,
+                CasoSchema.status,
                 CasoSchema.area_direito.in_(area_direito),
                 CasoSchema.data_criacao >= inicio,
                 CasoSchema.data_criacao <= final,
@@ -414,7 +417,7 @@ def api_relatorios_buscar_area_direito():
 def relatorio_plantao():
     db = get_db()
 
-    horarios_plantao = (
+    (
         db.session.query(DiasMarcadosPlantaoSchema)
         .filter(
             DiasMarcadosPlantaoSchema.data >= data_inicio,
@@ -429,7 +432,7 @@ def relatorio_plantao():
 def relatorio_casos():
     db = get_db()
 
-    casos = (
+    (
         db.session.query(CasoSchema)
         .filter(
             CasoSchema.data_criacao >= data_inicio,

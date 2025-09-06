@@ -1,3 +1,4 @@
+import logging
 import os
 
 from flask import (
@@ -19,6 +20,8 @@ from gestaolegal.models.arquivo import Arquivo
 from gestaolegal.schemas.arquivo import ArquivoSchema
 from gestaolegal.utils.decorators import login_required
 
+logger = logging.getLogger(__name__)
+
 arquivo_controller = Blueprint(
     "arquivos", __name__, template_folder="../static/templates"
 )
@@ -27,6 +30,7 @@ arquivo_controller = Blueprint(
 @arquivo_controller.route("/")
 @login_required()
 def index():
+    logger.info("Entering arquivo index route")
     db = get_db()
 
     page = request.args.get("page", 1, type=int)
@@ -104,17 +108,20 @@ def index():
     ]
 )
 def cadastrar_arquivo():
+    logger.info("Entering cadastrar_arquivo route - Starting file upload process")
     db = get_db()
     _form = ArquivoForm()
     if _form.validate_on_submit():
         arquivo = request.files.get(_form.arquivo.name)
         if not arquivo or arquivo.filename == "":
+            logger.warning("No file provided for upload")
             flash("Você precisa adicionar um arquivo.", "warning")
             return redirect(url_for("arquivos.cadastrar_arquivo"))
         # Ensure the arquivos directory exists
         arquivos_dir = os.path.join(current_app.root_path, "static", "arquivos")
         os.makedirs(arquivos_dir, exist_ok=True)
 
+        logger.info(f"Uploading file: {arquivo.filename}")
         _arquivo_schema = ArquivoSchema(
             titulo=_form.titulo.data,
             descricao=_form.descricao.data,
@@ -123,6 +130,7 @@ def cadastrar_arquivo():
         arquivo.save(os.path.join(arquivos_dir, arquivo.filename))
         db.session.add(_arquivo_schema)
         db.session.commit()
+        logger.info(f"File uploaded successfully: {arquivo.filename}")
         flash("Arquivo adicionado", "success")
         return redirect(url_for("arquivos.index"))
 

@@ -35,6 +35,7 @@ atendido_controller = Blueprint(
 @atendido_controller.route("/atendidos_assistidos", methods=["GET"])
 @login_required()
 def atendidos_assistidos():
+    logger.info("Entering atendidos_assistidos route")
     db = get_db()
     atendido_service = AtendidoService()
 
@@ -80,6 +81,7 @@ def atendidos_assistidos():
     ]
 )
 def cadastro_na_form():
+    logger.info("Entering cadastro_na_form route")
     form = CadastroAtendidoForm()
     return render_template("atendidos/cadastrar_atendido.html", form=form)
 
@@ -93,10 +95,12 @@ def cadastro_na_form():
     ]
 )
 def cadastro_na():
+    logger.info("Entering cadastro_na route - Starting atendido registration process")
     atendido_service = AtendidoService()
     form = CadastroAtendidoForm()
 
     if not form.validate():
+        logger.warning("Form validation failed for atendido registration")
         flash("Dados do formulário inválidos", "warning")
         return render_template("atendidos/cadastrar_atendido.html", form=form)
 
@@ -104,18 +108,22 @@ def cadastro_na():
         form.email.data
     )
     if not is_valid:
+        logger.warning(f"Email validation failed: {error_message}")
         flash(error_message, "warning")
         return render_template("atendidos/cadastrar_atendido.html", form=form)
 
     try:
+        logger.info(f"Creating atendido with email: {form.email.data}")
         atendido_data = CadastroAtendidoForm.to_dict(form)
         endereco_data = EnderecoForm.to_dict(form)
 
         atendido = atendido_service.create_with_endereco(atendido_data, endereco_data)
+        logger.info(f"Atendido created successfully with ID: {atendido.id}")
         flash("Atendido cadastrado!", "success")
         return redirect(url_for("atendido.perfil_assistido", _id=atendido.id))
     except Exception as e:
         logger.error(f"Error in cadastro_na: {str(e)}", exc_info=True)
+        flash("Erro interno. Tente novamente.", "danger")
         return render_template("atendidos/cadastrar_atendido.html", form=form)
 
 
@@ -294,7 +302,7 @@ def tornar_assistido(id_atendido: int):
             assistido_data = TornarAssistidoForm.to_dict(form)
 
             assistido_data["id_atendido"] = atendido.id
-            assistido = assistido_service.create(assistido_data)
+            assistido_service.create(assistido_data)
             flash("Assistido criado com sucesso!", "success")
             return redirect(url_for("atendido.perfil_assistido", _id=atendido.id))
         else:
@@ -371,7 +379,7 @@ def editar_assistido(id_atendido: int):
             endereco_data = EnderecoForm.to_dict(form_atendido)
             assistido_data = TornarAssistidoForm.to_dict(form_assistido)
 
-            updated_atendido = atendido_service.update_with_endereco(
+            atendido_service.update_with_endereco(
                 id_atendido, atendido_data, endereco_data
             )
             updated_assistido = assistido_service.update(assistido.id, assistido_data)

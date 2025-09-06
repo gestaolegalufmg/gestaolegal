@@ -1,3 +1,5 @@
+import logging
+
 from flask import (
     Blueprint,
     abort,
@@ -20,6 +22,8 @@ from gestaolegal.forms.usuario import CadastrarUsuarioForm, EditarUsuarioForm
 from gestaolegal.models.usuario import Usuario
 from gestaolegal.services.usuario_service import UsuarioService
 from gestaolegal.utils.decorators import login_required
+
+logger = logging.getLogger(__name__)
 
 usuario_controller = Blueprint(
     "usuario", __name__, template_folder="../static/templates"
@@ -219,6 +223,7 @@ def editar_senha_usuario():
 @usuario_controller.route("/cadastrar_usuario", methods=["POST", "GET"])
 @login_required(role=[UserRole.ADMINISTRADOR, UserRole.PROFESSOR])
 def cadastrar_usuario():
+    logger.info("Entering cadastrar_usuario route")
     usuario_service = UsuarioService()
     form = CadastrarUsuarioForm()
 
@@ -259,6 +264,7 @@ def cadastrar_usuario():
 
 @usuario_controller.route("/login", methods=["POST", "GET"])
 def login():
+    logger.info("Entering login route - Login attempt initiated")
     usuario_service = UsuarioService()
 
     if request.method == "POST":
@@ -266,12 +272,15 @@ def login():
         login = form["login"]
         senha = form["senha"]
 
+        logger.info(f"Login attempt for user: {login}")
         loginUsuario = usuario_service.authenticate_user(login, senha)
         if loginUsuario:
             login_user(loginUsuario)
+            logger.info(f"User {login} logged in successfully")
             flash("Você foi logado com sucesso!", "success")
             return redirect(url_for("principal.index"))
         else:
+            logger.warning(f"Failed login attempt for user: {login}")
             if usuario_service.find_by_email_with_inactive(login):
                 flash("Senha inválida!", "warning")
             else:
@@ -282,6 +291,7 @@ def login():
 
 @usuario_controller.route("/logout")
 def logout():
+    logger.info("Entering logout route")
     if current_user:
         flash("Logout feito com sucesso!", "info")
         logout_user()

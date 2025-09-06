@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -34,6 +35,8 @@ from gestaolegal.schemas.usuario import UsuarioSchema
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
 from gestaolegal.utils.decorators import login_required
 from gestaolegal.utils.models import queryFiltradaStatus
+
+logger = logging.getLogger(__name__)
 
 orientacao_juridica_controller = Blueprint(
     "orientacao_juridica", __name__, template_folder="../static/templates"
@@ -341,7 +344,7 @@ def perfil_oj(id):
         .join(Atendido_xOrientacaoJuridicaSchema)
         .filter(
             Atendido_xOrientacaoJuridicaSchema.id_orientacaoJuridica == orientacao.id,
-            AtendidoSchema.status == True,
+            AtendidoSchema.status,
         )
         .order_by(AtendidoSchema.nome)
         .all()
@@ -377,7 +380,7 @@ def buscar_atendidos_ajax():
     orientacao_id = request.args.get("orientacao_id")
     template_type = request.args.get("template", "single")
 
-    query = db.session.query(AtendidoSchema).filter(AtendidoSchema.status == True)
+    query = db.session.query(AtendidoSchema).filter(AtendidoSchema.status)
 
     if orientacao_id and orientacao_id != "0":
         query = query.outerjoin(Atendido_xOrientacaoJuridicaSchema).filter(

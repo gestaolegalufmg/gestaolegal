@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Callable, TypeVar
 
 from sqlalchemy.orm import Query
@@ -7,6 +8,8 @@ from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
 from gestaolegal.services.base_service import BaseService
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
 
 
 class OrientacaoJuridicaService(
@@ -48,4 +51,4 @@ class OrientacaoJuridicaService(
         return query.all()
 
     def filter_active(self, query: Query[T]) -> Query[T]:
-        return query.filter(OrientacaoJuridicaSchema.status == True)
+        return query.filter(OrientacaoJuridicaSchema.status)

@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Callable, TypeVar
 
 from gestaolegal.common.constants import UserRole
@@ -6,6 +7,8 @@ from gestaolegal.schemas.notificacao import NotificacaoSchema
 from gestaolegal.services.base_service import BaseService
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
 
 
 class NotificacaoService(BaseService[NotificacaoSchema, Notificacao]):
@@ -29,7 +32,7 @@ class NotificacaoService(BaseService[NotificacaoSchema, Notificacao]):
         if user_role in [UserRole.ORIENTADOR, UserRole.ESTAGIARIO_DIREITO]:
             query = query.filter(
                 (NotificacaoSchema.id_usu_notificar == user_id)
-                | (NotificacaoSchema.id_usu_notificar == None)
+                | (NotificacaoSchema.id_usu_notificar is None)
             )
         else:
             query = query.filter(NotificacaoSchema.id_usu_notificar == user_id)

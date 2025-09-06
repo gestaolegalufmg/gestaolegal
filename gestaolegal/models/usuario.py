@@ -113,7 +113,7 @@ class Usuario(UserMixin):
 
     def setCamposBolsista(self, bolsista, tipo_bolsa, inicio_bolsa, fim_bolsa):
         self.bolsista = bolsista
-        if self.bolsista == True:
+        if self.bolsista:
             self.inicio_bolsa = inicio_bolsa
             self.fim_bolsa = fim_bolsa
             self.tipo_bolsa = tipo_bolsa
