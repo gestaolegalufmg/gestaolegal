@@ -2,33 +2,34 @@
 {% block titulo %}Caso #{{caso.id}}{%endblock %}
 {%block modal %}
 
-            <div class="modal fade" id="modalExemplo" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                  <div class="modal-content d-flex justify-content-center">
+            <div class="modal-overlay modal-hidden" 
+                 id="modalExemplo" 
+                 role="dialog" 
+                 aria-modal="true" 
+                 aria-labelledby="modalExemplo_title"
+                 aria-describedby="modalExemplo_body">
+                <div class="modal-content modal-md" tabindex="-1">
                     <div class="modal-header">
-                      <h5 class="modal-title mx-auto" id="exampleModalLabel">Processos</h5>
-                      <div class="row">
-                        <button type="button" class="close mr-1" data-dismiss="modal" aria-label="Fechar">
-                          <span aria-hidden="true">&times;</span>
+                        <h2 class="modal-title" id="modalExemplo_title">Processos</h2>
+                        <button type="button" class="modal-close" onclick="ModalManager.close('modalExemplo')" aria-label="Fechar modal">
+                            <span aria-hidden="true">&times;</span>
                         </button>
-                      </div>
                     </div>
-                    <div class="modal-body d-flex justify-content-center">
-                      <table class="table table-striped">
-                        <tbody>
-                          {% for processo in processos %}
-                          <tr class="text-center">
-                            <td>
-                              <a href="{{url_for('casos.visualizar_processo', id_processo = processo.id, id_caso = caso.id)}}">
-                                {{processo.numero}}<br>
-                              </a>
-                            </td>
-                          </tr>
-                          {% endfor %}
-                        </tbody>
-                      </table>
-                  </div>
-                  </div>
+                    <div class="modal-body" id="modalExemplo_body">
+                        <table class="table table-striped">
+                            <tbody>
+                                {% for processo in processos %}
+                                <tr class="text-center">
+                                    <td>
+                                        <a href="{{url_for('casos.visualizar_processo', id_processo = processo.id, id_caso = caso.id)}}">
+                                            {{processo.numero}}<br>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -114,7 +115,7 @@
                   Processos judiciais vinculados:
                 </span>
                 <span class="float-right text-muted">
-                  <a href="#" data-toggle="modal" data-target="#modalExemplo">Ver Processos</a>
+                  <a href="#" onclick="ModalManager.open('modalExemplo'); return false;">Ver Processos</a>
                 </span>
               </p>
               <p class="clearfix">

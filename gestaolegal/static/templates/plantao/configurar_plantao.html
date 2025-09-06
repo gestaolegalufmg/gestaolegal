@@ -90,7 +90,7 @@
     <div class="row">
         <div class="col-sm"></div>
         <div class="col-sm">
-            <button class="button btn-block" id="escolhe_data" data-toggle="modal" data-target="#confirmacao">Salvar
+            <button class="button btn-block" id="escolhe_data" onclick="ModalManager.open('confirmacao')">Salvar
             </button>
         </div>
         <div class="col-sm"></div>
@@ -98,29 +98,31 @@
 {% endblock conteudo %}
 {% block modal %}
     <!-- Modal -->
-    <div class="modal fade" id="confirmacao" tabindex="-1" role="dialog" aria-labelledby="confirmacao"
-         aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Deseja confirmar a duração do plantão?</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body" id="id_body_modal">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    {{ form.hidden_tag() }}
-                    <input type="hidden" id="hdnAjaxDuracao"
-                           value="{{ url_for('plantao.ajax_obter_duracao_plantao') }}">
-                    <input type="hidden" id="hdnAjaxSalvaConfig"
-                           value="{{ url_for('plantao.ajax_salva_config_plantao') }}">
-                    <button type="button" id="salva_configuracoes" class="btn btn-primary" data-dismiss="modal">
-                        Confirmar
-                    </button>
-                </div>
+    <div class="modal-overlay modal-hidden" 
+         id="confirmacao" 
+         role="dialog" 
+         aria-modal="true" 
+         aria-labelledby="confirmacao_title"
+         aria-describedby="confirmacao_body">
+        <div class="modal-content modal-md" tabindex="-1">
+            <div class="modal-header">
+                <h2 class="modal-title" id="confirmacao_title">Deseja confirmar a duração do plantão?</h2>
+                <button type="button" class="modal-close" onclick="ModalManager.close('confirmacao')" aria-label="Fechar modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="confirmacao_body">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="ModalManager.close('confirmacao')">Cancelar</button>
+                {{ form.hidden_tag() }}
+                <input type="hidden" id="hdnAjaxDuracao"
+                       value="{{ url_for('plantao.ajax_obter_duracao_plantao') }}">
+                <input type="hidden" id="hdnAjaxSalvaConfig"
+                       value="{{ url_for('plantao.ajax_salva_config_plantao') }}">
+                <button type="button" id="salva_configuracoes" class="btn btn-primary" onclick="ModalManager.close('confirmacao')">
+                    Confirmar
+                </button>
             </div>
         </div>
     </div>

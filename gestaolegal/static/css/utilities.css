@@ -144,6 +144,23 @@
     border-color: var(--color-primary);
 }
 
+.btn-outline-white {
+    color: var(--color-white);
+    background-color: transparent;
+    border-color: var(--color-white);
+}
+
+.btn-outline-white:hover {
+    color: var(--color-primary);
+    background-color: var(--color-white);
+    border-color: var(--color-white);
+}
+
+.btn-outline-white:hover .icon {
+    color: var(--color-primary);
+    background-color: var(--color-primary);
+}
+
 .btn-lg {
     padding: 0.5rem 1rem;
     font-size: 1.25rem;

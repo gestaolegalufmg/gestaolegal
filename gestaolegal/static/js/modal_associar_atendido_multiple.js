@@ -2,8 +2,11 @@ $(document).ready(function() {
     let searchTimeout;
     let selectedAtendidos = [];
     
-    $('#modalAssociarAtendidoMultiple').on('show.bs.modal', function (event) {
-        carregarAtendidos('');
+    // Listen for modal open events
+    document.addEventListener('modal:open', function(event) {
+        if (event.detail.modalId === 'modalAssociarAtendidoMultiple') {
+            carregarAtendidos('');
+        }
     });
     
     $('#buscaAtendidoMultiple').on('input', function() {
@@ -91,7 +94,7 @@ $(document).ready(function() {
         
         if (selectedAtendidos.length > 0) {
             updateFormWithSelectedAtendidos();
-            $('#modalAssociarAtendidoMultiple').modal('hide');
+            ModalManager.close('modalAssociarAtendidoMultiple');
         }
     });
     
@@ -127,10 +130,13 @@ $(document).ready(function() {
         `);
     }
     
-    $('#modalAssociarAtendidoMultiple').on('hidden.bs.modal', function () {
-        $('#buscaAtendidoMultiple').val('');
-        $('#tbodyAtendidosMultiple').empty();
-        $('#checkallMultiple').prop('checked', false).prop('indeterminate', false);
-        $('#associarSelecionados').prop('disabled', true).text('Associar Selecionados');
+    // Listen for modal close events
+    document.addEventListener('modal:close', function(event) {
+        if (event.detail.modalId === 'modalAssociarAtendidoMultiple') {
+            $('#buscaAtendidoMultiple').val('');
+            $('#tbodyAtendidosMultiple').empty();
+            $('#checkallMultiple').prop('checked', false).prop('indeterminate', false);
+            $('#associarSelecionados').prop('disabled', true).text('Associar Selecionados');
+        }
     });
 }); 

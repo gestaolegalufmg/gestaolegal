@@ -14,47 +14,7 @@
         color: black;
     }
 
-    /* Modal improvements */
-    .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
-
-    .modal-hidden {
-        display: none !important;
-    }
-
-    .modal-content {
-        background: white;
-        border-radius: 8px;
-        max-width: 500px;
-        width: 90%;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-
-    .modal-header {
-        padding: 1.5rem;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .modal-header h1 {
-        margin: 0;
-        font-size: 1.25rem;
-        font-weight: 600;
-    }
-
-    .modal-body {
-        padding: 1.5rem;
-    }
+    /* Modal styles are now handled by the unified modal system */
 
     .radio-option {
         display: flex;
@@ -168,12 +128,20 @@
 </div>
 {% endblock %}
 {% block modal %}
-<div class="modal-overlay modal-hidden">
-    <div class="modal-content">
+<div class="modal-overlay modal-hidden" 
+     id="senhaModal" 
+     role="dialog" 
+     aria-modal="true" 
+     aria-labelledby="senhaModal_title"
+     aria-describedby="senhaModal_body">
+    <div class="modal-content modal-lg" tabindex="-1">
         <div class="modal-header">
-            <h1>Escolha o tipo de senha</h1>
+            <h2 class="modal-title" id="senhaModal_title">Escolha o tipo de senha</h2>
+            <button type="button" class="modal-close" onclick="ModalManager.close('senhaModal')" aria-label="Fechar modal">
+                <span aria-hidden="true">&times;</span>
+            </button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" id="senhaModal_body">
             <div class="modal-main-content">
                 <div class="radio-option">
                     <input type="radio" name="senha" value="N" id="senhaNormal">
@@ -216,7 +184,7 @@
                     <label for="psicologia">Há atendimento da psicologia</label>
                 </div>
                 <div class="modal-buttons">
-                    <button id="closeModal" type="button" class="btn btn-secondary">Voltar</button>
+                    <button id="closeModal" type="button" class="btn btn-secondary" onclick="ModalManager.close('senhaModal')">Voltar</button>
                     <button id="createQueue" type="button" class="btn btn-primary">Cadastrar e Incluir na Fila</button>
                 </div>
             </div>
@@ -287,14 +255,11 @@
     };
 
     const showModal = () => {
-        const modal = document.querySelector('.modal-overlay');
-        modal.classList.remove('modal-hidden');
-        modal.querySelector('.modal-content').focus();
+        ModalManager.open('senhaModal');
     };
 
     const hideModal = () => {
-        const modal = document.querySelector('.modal-overlay');
-        modal.classList.add('modal-hidden');
+        ModalManager.close('senhaModal');
     };
 
     // API functions

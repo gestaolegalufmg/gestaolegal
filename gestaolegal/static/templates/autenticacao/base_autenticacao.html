@@ -12,6 +12,10 @@
   {% include 'componentes/color_system.html' %}
   <link rel="stylesheet" href="{{url_for('static', filename='css/color_utilities.css')}}">
   <link rel="stylesheet" href="{{url_for('static', filename='css/notifications.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/modal_styles.css')}}">
+  
+  <!-- Modal Manager - Load early to ensure availability -->
+  <script src="{{url_for('static',filename='js/modal_manager.js')}}"></script>
 </head>
 
 <style>
