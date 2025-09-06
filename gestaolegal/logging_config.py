@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import datetime
 
+
 def setup_logging():
     log_dir = os.path.join(os.path.dirname(__file__), "..", "logs")
     os.makedirs(log_dir, exist_ok=True)
@@ -54,4 +55,3 @@ def setup_logging():
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
     logging.getLogger("flask").setLevel(logging.WARNING)
-

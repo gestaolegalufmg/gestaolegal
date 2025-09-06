@@ -12,6 +12,7 @@ from flask import (
 from flask_login import current_user
 from sqlalchemy import func
 
+from gestaolegal import csrf
 from gestaolegal.common.constants import UserRole, situacao_deferimento
 from gestaolegal.forms.relatorio import RelatorioForm
 from gestaolegal.schemas.caso import CasoSchema
@@ -335,6 +336,7 @@ def casos_arq_sol_ativ(inicio, final, areas):
 
 
 @relatorios_controller.route("/api/buscar_usuarios", methods=["GET"])
+@csrf.exempt
 @login_required()
 def api_relatorios_buscar_usuarios():
     termo = request.args.get("q", type=str)
@@ -369,6 +371,7 @@ def api_relatorios_buscar_usuarios():
 
 
 @relatorios_controller.route("/api/buscar_area_direito", methods=["GET"])
+@csrf.exempt
 @login_required()
 def api_relatorios_buscar_area_direito():
     termo = request.args.get("q", type=str)

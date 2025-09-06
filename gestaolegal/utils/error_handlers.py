@@ -16,3 +16,12 @@ def error_413(error):
 
 def error_500(error):
     return render_template("erros/500.html"), 500
+
+
+def error_csrf(error):
+    """Handle CSRF token errors"""
+    flash(
+        "Token de segurança inválido ou expirado. Por favor, tente novamente.",
+        "warning",
+    )
+    return redirect(request.url or "/"), 400
