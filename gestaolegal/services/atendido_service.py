@@ -29,6 +29,7 @@ class AtendidoService(BaseService[AtendidoSchema, Atendido]):
         return Atendido.from_sqlalchemy(schema_instance)
 
     def find_by_email(self, email: str) -> Optional[Atendido]:
+        logger.info(f"AtendidoService.find_by_email called for: {email}")
         return self.find_by_field("email", email)
 
     def get_atendido_with_assistido_data(
@@ -65,12 +66,18 @@ class AtendidoService(BaseService[AtendidoSchema, Atendido]):
     def create_with_endereco(
         self, atendido_data: dict, endereco_data: dict
     ) -> Atendido:
+        logger.info(
+            f"AtendidoService.create_with_endereco called for: {atendido_data.get('nome', 'Unknown')}"
+        )
         endereco = self.endereco_service.create(endereco_data)
+        logger.debug(f"Endereco created with ID: {endereco.id}")
 
         atendido_data["endereco_id"] = endereco.id
         atendido_data["status"] = 1
 
-        return self.create(atendido_data)
+        atendido = self.create(atendido_data)
+        logger.info(f"Atendido created successfully with ID: {atendido.id}")
+        return atendido
 
     def update_with_endereco(
         self, atendido_id: int, atendido_data: dict, endereco_data: dict
@@ -237,12 +244,6 @@ class AtendidoService(BaseService[AtendidoSchema, Atendido]):
     def create_atendido_from_json(self, data: dict) -> dict:
         """Create atendido from JSON data with proper field conversion"""
         try:
-            # Force immediate logging to console
-            print(
-                f"[ATENDIDO_SERVICE] Starting create_atendido_from_json with data keys: {list(data.keys())}"
-            )
-            print(f"[ATENDIDO_SERVICE] Full input data: {data}")
-
             logger.info(
                 f"Starting create_atendido_from_json with data keys: {list(data.keys())}"
             )

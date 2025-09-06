@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from flask import (
@@ -32,6 +33,8 @@ from gestaolegal.utils.plantao_utils import (
     busca_assistencias_judiciarias_modal,
     filtro_busca_assistencia_judiciaria,
 )
+
+logger = logging.getLogger(__name__)
 
 assistencia_judiciaria_controller = Blueprint(
     "assistencia_judiciaria",
@@ -134,7 +137,7 @@ def ajax_multiselect_associa_aj_oj(orientacao_id: int):
         db.session.query(AssistenciaJudiciariaSchema)
         .filter(
             AssistenciaJudiciariaSchema.area_direito == orientacao.area_direito,
-            AssistenciaJudiciariaSchema.status == True,
+            AssistenciaJudiciariaSchema.status,
         )
         .all()
     )
@@ -222,7 +225,7 @@ def perfil_assistencia_judiciaria(_id: int):
 )
 @login_required()
 def pega_assistencias_judiciarias():
-    db = get_db()
+    get_db()
 
     assistencias_judiciarias = busca_assistencias_judiciarias_modal()
     return json.dumps(assistencias_judiciarias)

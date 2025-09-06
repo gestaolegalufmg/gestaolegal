@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime
 from operator import and_
@@ -45,6 +46,8 @@ from gestaolegal.utils.decorators import login_required
 from gestaolegal.utils.models import queryFiltradaStatus
 from gestaolegal.utils.plantao_utils import *
 
+logger = logging.getLogger(__name__)
+
 casos_controller = Blueprint("casos", __name__, template_folder="../static/templates")
 
 
@@ -91,6 +94,7 @@ def index():
 @casos_controller.route("/ajax_filtro_casos")
 @login_required()
 def ajax_filtro_casos():
+    logger.info("Entering ajax_filtro_casos route")
     page = request.args.get("page", 1, type=int)
     opcao_filtro = request.args.get(
         "opcao_filtro", opcoes_filtro_casos["TODOS"][0], type=str
@@ -120,10 +124,12 @@ def ajax_filtro_casos():
     ]
 )
 def novo_caso():
+    logger.info("Entering novo_caso route - Starting new case creation process")
     db = get_db()
 
     _form = NovoCasoForm()
     if _form.validate_on_submit():
+        logger.info(f"Creating new case in area: {_form.area_direito.data}")
         _caso = CasoSchema(
             area_direito=_form.area_direito.data,
             id_usuario_responsavel=current_user.id,
@@ -141,6 +147,7 @@ def novo_caso():
         )
 
         if len(_caso.descricao) > 2000:
+            logger.warning("Case description too long")
             flash("A descrição do caso não pode ter mais de 2000 caracteres", "warning")
             return redirect(url_for("casos.novo_caso"))
 
@@ -150,10 +157,12 @@ def novo_caso():
 
         db.session.add(_caso)
         db.session.commit()
+        logger.info(f"Case created successfully with ID: {_caso.id}")
 
         try:
             arquivo = request.files.get("arquivo")
         except RequestEntityTooLarge:
+            logger.warning("File too large during case creation")
             flash("Tamanho de arquivo muito longo.")
             return render_template("casos/editar_caso.html", form=_form)
 
@@ -221,7 +230,7 @@ def visualizar_caso(id):
 
     _caso = db.session.query(CasoSchema).filter_by(status=True, id=id).first()
 
-    if _caso == None:
+    if _caso is None:
         flash("Caso inexistente!", "warning")
         return redirect(url_for("casos.index"))
 
@@ -870,11 +879,11 @@ def lembretes(id_caso):
     )
 
     caso = db.session.query(CasoSchema).get(id_caso)
-    if (caso == None) or (caso.status == False):
+    if (caso is None) or (not caso.status):
         flash("Caso inexistente!", "warning")
         return redirect(url_for("casos.index", id_caso=id_caso))
 
-    if (num_lembrete is not None) and (_lembrete.status == False):
+    if (num_lembrete is not None) and (not _lembrete.status):
         flash("Lembrete inexistente!", "warning")
 
     return render_template(
@@ -1045,7 +1054,8 @@ def cadastrar_historico(id_usuario, id_caso):
         db.session.commit()
     except SQLAlchemyError as e:
         erro = str(e.__dict__["orig"])
-        flash(erro, "danger")
+        logger.error(f"Database error in historico creation: {erro}", exc_info=True)
+        flash("Erro interno. Tente novamente.", "danger")
         return False
 
     return True
@@ -1369,7 +1379,7 @@ def excluir_evento(id_evento):
         if entidade_evento.id_criado_por == entidade_usuario.id:
             entidade_evento.status = False
 
-            if entidade_evento.arquivo != None:
+            if entidade_evento.arquivo is not None:
                 local_arquivo = os.path.join(
                     current_app.root_path,
                     "static",
@@ -1390,7 +1400,7 @@ def excluir_evento(id_evento):
     else:
         entidade_evento.status = False
 
-        if entidade_evento.arquivo != None:
+        if entidade_evento.arquivo is not None:
             local_arquivo = os.path.join(
                 current_app.root_path,
                 "static",
@@ -1420,11 +1430,11 @@ def visualizar_evento(num_evento):
         .first()
     )
     caso = db.session.query(CasoSchema).get(id_caso)
-    if (caso == None) or (caso.status == False):
+    if (caso is None) or (not caso.status):
         flash("Caso inexistente!", "warning")
         return redirect(url_for("casos.index", id_caso=id_caso))
 
-    if (not entidade_evento) or (entidade_evento.status == False):
+    if (not entidade_evento) or (not entidade_evento.status):
         flash("Evento inexistente!", "warning")
         return redirect(url_for("casos.eventos", id_caso=id_caso))
 
@@ -1500,10 +1510,15 @@ def novo_processo(id_caso):
         try:
             db.session.add(entidade_processo)
             db.session.commit()
+            logger.info(f"Processo associado com sucesso ao caso {id_caso}")
             flash("Processo associado com sucesso!", "success")
         except SQLAlchemyError as error:
             db.session.rollback()
             error_message = error.args[0]
+            logger.error(
+                f"Database error in processo association: {error_message}",
+                exc_info=True,
+            )
             if (
                 "Out of range value for column 'numero_ultimo_processo' at row 1"
                 in error_message
@@ -1530,7 +1545,7 @@ def visualizar_processo(id_processo):
     id_caso = request.args.get("id_caso", -1, type=int)
     _processo = (
         db.session.query(ProcessoSchema)
-        .filter(and_(ProcessoSchema.id == id_processo, ProcessoSchema.status == True))
+        .filter(and_(ProcessoSchema.id == id_processo, ProcessoSchema.status))
         .first()
     )
 
@@ -1552,11 +1567,7 @@ def visualizar_processo_com_numero(numero_processo):
 
     _processo = (
         db.session.query(ProcessoSchema)
-        .filter(
-            and_(
-                ProcessoSchema.numero == numero_processo, ProcessoSchema.status == True
-            )
-        )
+        .filter(and_(ProcessoSchema.numero == numero_processo, ProcessoSchema.status))
         .first()
     )
 
@@ -1582,7 +1593,7 @@ def excluir_caso(id_caso):
     caso.status = False
 
     for arquivo in arquivos:
-        if arquivo != None:
+        if arquivo is not None:
             local_arquivo = os.path.join(
                 current_app.root_path, "static", "casos", arquivo.link_arquivo or ""
             )

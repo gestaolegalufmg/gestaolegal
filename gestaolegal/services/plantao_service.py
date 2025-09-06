@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime, time, timedelta
 from typing import List, Optional, TypeVar
 
@@ -15,6 +16,8 @@ from gestaolegal.schemas.usuario import UsuarioSchema
 from gestaolegal.services.base_service import BaseService
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
 
 
 class PlantaoService(BaseService[PlantaoSchema, Plantao]):
@@ -140,7 +143,7 @@ class PlantaoService(BaseService[PlantaoSchema, Plantao]):
             self.session.query(RegistroEntradaSchema)
             .filter(
                 RegistroEntradaSchema.id_usuario == user_id,
-                RegistroEntradaSchema.status == True,
+                RegistroEntradaSchema.status,
             )
             .first()
         )
@@ -177,13 +180,17 @@ class PlantaoService(BaseService[PlantaoSchema, Plantao]):
             return False
 
     def filter_active(self, query: Query[T]) -> Query[T]:
-        return query.filter(PlantaoSchema.status == True)
+        return query.filter(PlantaoSchema.status)
 
     def get_plantao_ativo(self) -> Plantao | None:
+        logger.info("PlantaoService.get_plantao_ativo called")
         plantao_schema = self._get_active_plantao()
         return Plantao.from_sqlalchemy(plantao_schema) if plantao_schema else None
 
     def get_dias_usuario_marcado(self, user_id: int) -> list[DiasMarcadosPlantao]:
+        logger.info(
+            f"PlantaoService.get_dias_usuario_marcado called for user: {user_id}"
+        )
         dias_marcados = self._get_dias_marcados_by_user(user_id, active_only=True)
         return [DiasMarcadosPlantao.from_sqlalchemy(dia) for dia in dias_marcados]
 
@@ -194,7 +201,7 @@ class PlantaoService(BaseService[PlantaoSchema, Plantao]):
     def get_escala_plantao(self) -> list[dict]:
         datas_ja_marcadas = (
             self.session.query(DiasMarcadosPlantaoSchema)
-            .filter(DiasMarcadosPlantaoSchema.status == True)
+            .filter(DiasMarcadosPlantaoSchema.status)
             .all()
         )
 
@@ -521,7 +528,7 @@ class PlantaoService(BaseService[PlantaoSchema, Plantao]):
         presencas_registradas = (
             self.session.query(RegistroEntradaSchema)
             .filter(
-                RegistroEntradaSchema.status == False,
+                not RegistroEntradaSchema.status,
                 RegistroEntradaSchema.confirmacao == "aberto",
             )
             .all()
@@ -569,7 +576,7 @@ class PlantaoService(BaseService[PlantaoSchema, Plantao]):
         presencas_registradas = (
             self.session.query(RegistroEntradaSchema)
             .filter(
-                RegistroEntradaSchema.status == False,
+                not RegistroEntradaSchema.status,
                 RegistroEntradaSchema.confirmacao == "aberto",
             )
             .all()
@@ -620,7 +627,7 @@ class PlantaoService(BaseService[PlantaoSchema, Plantao]):
 
         dias_plantao = (
             self.session.query(DiaPlantaoSchema.data)
-            .filter(DiaPlantaoSchema.status == True)
+            .filter(DiaPlantaoSchema.status)
             .all()
         )
 

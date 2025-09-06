@@ -28,6 +28,8 @@
     background: none;
     border: none;
     padding: 0;
+    will-change: transform;
+    transform: translateZ(0);
   }
 
   .dias:hover {
@@ -58,18 +60,117 @@
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    will-change: transform;
+    transform: translateZ(0); 
   }
 
   .events-container {
     min-height: 200px;
+    height: 200px; 
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s ease-in-out;
+    position: relative;
+    overflow: hidden;
   }
 
   .events-container .card {
     width: 100%;
     border: 1px solid #e9ecef;
+    transition: all 0.2s ease-in-out;
+    min-height: 200px; 
+    display: flex;
+    flex-direction: column;
+  }
+
+  .events-container .card .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .events-container > div {
+    width: 100%;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .events-container .card-enter {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .events-container .card-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.2s ease-in-out;
+  }
+
+  .events-container .card-exit {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .events-container .card-exit-active {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.15s ease-in-out;
+  }
+
+  .events-container.loading {
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px; 
+  }
+
+  .events-container.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--color-primary);
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .events-container .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 200px;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .table-date {
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .table-row {
+    will-change: transform;
+    transform: translateZ(0);
+  }
+
+  .tbody {
+    will-change: transform;
+    transform: translateZ(0);
   }
 
   .calendar-section {
@@ -441,7 +542,7 @@
           </h5>
         </header>
         <div class="card-body events-container p-3">
-          <div class="text-center text-muted">
+          <div class="text-center text-muted empty-state">
             <i class="icon icon-calendar-plus mb-2 text-muted" style="font-size: 2rem;"></i>
             <p>Selecione uma data para ver os usuários escalados</p>
           </div>
@@ -546,6 +647,8 @@
       this.selectedMonth = new Date().getMonth();
       this.selectedYear = new Date().getFullYear();
       this.selectedShift = '1';
+      this.lastSelectedDate = null;
+      this.lastVagasData = null; 
     }
 
     setEvents(events) {
@@ -590,6 +693,20 @@
     calendarState.setSelectedShift(shiftNumber);
   }
 
+  const domCache = {
+    yearElement: null,
+    eventsContainer: null,
+    tbody: null,
+    activeDate: null,
+    activeMonth: null
+  };
+
+  function initializeDOMCache() {
+    domCache.yearElement = document.querySelector('.year');
+    domCache.eventsContainer = document.querySelector('.events-container');
+    domCache.tbody = document.querySelector('.tbody');
+  }
+
   function setupEventDelegation() {
     document.addEventListener('click', (e) => {
       if (e.target.matches('#numero_plantao_1, #numero_plantao_2')) {
@@ -599,68 +716,108 @@
       }
       
       if (e.target.matches('.table-date:not(.nil)')) {
-        const day = parseInt(e.target.textContent);
-        const month = calendarState.selectedMonth + 1;
-        const year = calendarState.selectedYear;
-        const events = calendarState.getEventsForDate(day, month, year);
-        
-        document.querySelectorAll('.active-date').forEach(el => {
-          el.classList.remove('active-date');
-        });
-        e.target.classList.add('active-date');
-        
-        calendarState.setSelectedDate(day);
-        showEvents(events, monthsArray[calendarState.selectedMonth], day);
-        vagasDisponiveis();
+        handleDateClick(e.target);
         return;
       }
       
       if (e.target.matches('.month')) {
-        const monthIndex = Array.from(e.target.parentElement.children).indexOf(e.target);
-        const date = new Date(calendarState.selectedYear, monthIndex);
-        
-        document.querySelectorAll('.active-month').forEach(el => {
-          el.classList.remove('active-month');
-        });
-        e.target.classList.add('active-month');
-        
-        calendarState.setSelectedMonth(monthIndex);
-        date.setMonth(monthIndex);
-        initCalendar(date);
-        coloreCalendario();
-        vagasDisponiveis();
+        handleMonthClick(e.target);
         return;
       }
       
       if (e.target.matches('#prev, .left-button, .left-button i')) {
-        const newYear = calendarState.selectedYear - 1;
-        calendarState.setSelectedYear(newYear);
-        const yearElement = document.querySelector('.year');
-        if (yearElement) yearElement.textContent = newYear;
-        
-        const date = new Date(newYear, calendarState.selectedMonth);
-        initCalendar(date);
-        coloreCalendario();
-        vagasDisponiveis();
+        handleYearChange(-1);
         return;
       }
       
       if (e.target.matches('#next, .right-button, .right-button i')) {
-        const newYear = calendarState.selectedYear + 1;
-        calendarState.setSelectedYear(newYear);
-        const yearElement = document.querySelector('.year');
-        if (yearElement) yearElement.textContent = newYear;
-        
-        const date = new Date(newYear, calendarState.selectedMonth);
-        initCalendar(date);
-        coloreCalendario();
-        vagasDisponiveis();
+        handleYearChange(1);
         return;
       }
     });
   }
 
+  function handleDateClick(target) {
+    const day = parseInt(target.textContent);
+    const month = calendarState.selectedMonth + 1;
+    const year = calendarState.selectedYear;
+    const dateKey = `${day}-${month}-${year}`;
+    
+    if (calendarState.lastSelectedDate === dateKey) {
+      return; 
+    }
+    
+    const events = calendarState.getEventsForDate(day, month, year);
+    
+    if (domCache.activeDate) {
+      domCache.activeDate.classList.remove('active-date');
+    }
+    target.classList.add('active-date');
+    domCache.activeDate = target;
+    
+    calendarState.setSelectedDate(day);
+    calendarState.lastSelectedDate = dateKey; 
+    
+    showEvents(events, monthsArray[calendarState.selectedMonth], day);
+    
+    debounce(() => {
+      vagasDisponiveis();
+    }, 100)();
+  }
+
+  function handleMonthClick(target) {
+    const monthIndex = Array.from(target.parentElement.children).indexOf(target);
+    const date = new Date(calendarState.selectedYear, monthIndex);
+    
+    if (domCache.activeMonth) {
+      domCache.activeMonth.classList.remove('active-month');
+    }
+    target.classList.add('active-month');
+    domCache.activeMonth = target;
+    
+    calendarState.setSelectedMonth(monthIndex);
+    calendarState.lastSelectedDate = null; 
+    date.setMonth(monthIndex);
+    initCalendar(date);
+    
+    debounce(() => {
+      coloreCalendario();
+      vagasDisponiveis();
+    }, 100)();
+  }
+
+  function handleYearChange(direction) {
+    const newYear = calendarState.selectedYear + direction;
+    calendarState.setSelectedYear(newYear);
+    calendarState.lastSelectedDate = null; 
+    
+    if (domCache.yearElement) {
+      domCache.yearElement.textContent = newYear;
+    }
+    
+    const date = new Date(newYear, calendarState.selectedMonth);
+    initCalendar(date);
+    
+    debounce(() => {
+      coloreCalendario();
+      vagasDisponiveis();
+    }, 100)();
+  }
+
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
+    initializeDOMCache();
     updateSelectedShift('{{numero_plantao}}');
     setupEventDelegation();
     initializeCalendar();
@@ -710,25 +867,31 @@
       const monthsRow = document.querySelector('.months-row');
       if (monthsRow && monthsRow.children[date.getMonth()]) {
         monthsRow.children[date.getMonth()].classList.add('active-month');
+        domCache.activeMonth = monthsRow.children[date.getMonth()];
       }
 
       initCalendar(date);
       const eventos_dia = calendarState.getEventsForDate(today, date.getMonth()+1, date.getFullYear());
       showEvents(eventos_dia, monthsArray[date.getMonth()], today);
-      vagasDisponiveis();
-      coloreCalendario();
+      
+      debounce(() => {
+        vagasDisponiveis();
+        coloreCalendario();
+      }, 100)();
     })
     .catch(error => {
       console.error('Error loading calendar data:', error);
-      showNotification('Erro!', 'Erro ao carregar dados do calendário', 'danger');
+      alert('Erro ao carregar dados do calendário');
     });
   }
 
   function initCalendar(date) {
-    const tbody = document.querySelector('.tbody');
-    const eventsContainer = document.querySelector('.events-container');
+    if (!domCache.tbody) return;
     
-    if (tbody) tbody.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+    const eventsContainer = domCache.eventsContainer;
+    
+    domCache.tbody.innerHTML = '';
     if (eventsContainer) eventsContainer.innerHTML = '';
     
     const month = date.getMonth();
@@ -746,7 +909,7 @@
       const day = i - firstDay + 1;
       
       if(i % 7 === 0) {
-        tbody.appendChild(row);
+        fragment.appendChild(row);
         row = document.createElement('tr');
         row.className = 'table-row';
       }
@@ -761,8 +924,9 @@
         currDate.textContent = day;
         
         const events = calendarState.getEventsForDate(day, month + 1, year);
-        if(today === day && !document.querySelector('.active-date')) {
+        if(today === day && !domCache.activeDate) {
           currDate.classList.add('active-date');
+          domCache.activeDate = currDate;
           showEvents(events, monthsArray[month], day);
         }
         
@@ -770,9 +934,12 @@
       }
     }
     
-    tbody.appendChild(row);
-    const yearElement = document.querySelector('.year');
-    if (yearElement) yearElement.textContent = year;
+    fragment.appendChild(row);
+    domCache.tbody.appendChild(fragment);
+    
+    if (domCache.yearElement) {
+      domCache.yearElement.textContent = year;
+    }
   }
 
   function daysInMonth(month, year) {
@@ -787,12 +954,10 @@
     
     if (events.length === 0) {
       template.innerHTML = `
-        <div class="card border-warning">
-          <div class="card-body text-center p-4">
-            <i class="icon icon-exclamation-triangle text-warning mb-3"></i>
-            <h6 class="card-title text-warning">Nenhum usuário escalado</h6>
-            <p class="card-text text-muted mb-0">Não há escalados para ${day} de ${month}.</p>
-          </div>
+        <div class="text-center text-muted empty-state">
+          <i class="icon icon-exclamation-triangle text-warning mb-3" style="font-size: 2rem;"></i>
+          <h6 class="text-warning">Nenhum usuário escalado</h6>
+          <p class="text-muted mb-0">Não há escalados para ${day} de ${month}.</p>
         </div>
       `;
     } else {
@@ -811,14 +976,14 @@
       `).join('');
       
       template.innerHTML = `
-        <div class="card border-primary">
-          <div class="card-header bg-primary text-white text-center">
+        <div class="w-100">
+          <div class="bg-primary text-white text-center p-3 mb-3 rounded">
             <h6 class="mb-0">
               <i class="icon icon-user me-2 text-white"></i>
               Usuários Escalados - ${day}/${month}
             </h6>
           </div>
-          <div class="card-body p-3">
+          <div class="p-3">
             ${eventsList}
           </div>
         </div>
@@ -829,16 +994,59 @@
   }
 
   function showEvents(events, month, day) {
-    const eventsContainer = document.querySelector('.events-container');
-    if (!eventsContainer) return;
+    if (!domCache.eventsContainer) return;
     
-    eventsContainer.replaceChildren();
-    eventsContainer.style.display = 'flex';
-    eventsContainer.style.alignItems = 'center';
-    eventsContainer.style.justifyContent = 'center';
+    const newEventCard = createEventCard(events, month, day);
+    const newContent = newEventCard.innerHTML;
     
-    const eventCard = createEventCard(events, month, day);
-    eventsContainer.appendChild(eventCard);
+    const existingContent = domCache.eventsContainer.firstElementChild;
+    const existingContentHTML = existingContent ? existingContent.innerHTML : '';
+    
+    if (newContent === existingContentHTML) {
+      return;
+    }
+    
+    domCache.eventsContainer.classList.add('loading');
+    
+    requestAnimationFrame(() => {
+      if (existingContent) {
+        existingContent.classList.add('card-exit');
+        
+        setTimeout(() => {
+          domCache.eventsContainer.replaceChildren();
+          domCache.eventsContainer.style.display = 'flex';
+          domCache.eventsContainer.style.alignItems = 'center';
+          domCache.eventsContainer.style.justifyContent = 'center';
+          
+          const eventCard = createEventCard(events, month, day);
+          eventCard.classList.add('card-enter');
+          domCache.eventsContainer.appendChild(eventCard);
+          
+          domCache.eventsContainer.classList.remove('loading');
+          
+          requestAnimationFrame(() => {
+            eventCard.classList.remove('card-enter');
+            eventCard.classList.add('card-enter-active');
+          });
+        }, 150);
+      } else {
+        domCache.eventsContainer.replaceChildren();
+        domCache.eventsContainer.style.display = 'flex';
+        domCache.eventsContainer.style.alignItems = 'center';
+        domCache.eventsContainer.style.justifyContent = 'center';
+        
+        const eventCard = createEventCard(events, month, day);
+        eventCard.classList.add('card-enter');
+        domCache.eventsContainer.appendChild(eventCard);
+        
+        domCache.eventsContainer.classList.remove('loading');
+        
+        requestAnimationFrame(() => {
+          eventCard.classList.remove('card-enter');
+          eventCard.classList.add('card-enter-active');
+        });
+      }
+    });
   }
 
 
@@ -848,15 +1056,11 @@
   ];
 
   function vagasDisponiveis() {
-    const yearElement = document.querySelector('.year');
-    const activeMonth = document.querySelector('.active-month');
-    const activeDate = document.querySelector('.active-date');
+    if (!domCache.yearElement || !domCache.activeMonth || !domCache.activeDate) return;
     
-    if (!yearElement || !activeMonth || !activeDate) return;
-    
-    const ano = yearElement.textContent;
-    const mes = activeMonth.id.substring(5);
-    const dia = activeDate.textContent;
+    const ano = domCache.yearElement.textContent;
+    const mes = domCache.activeMonth.id.substring(5);
+    const dia = domCache.activeDate.textContent;
     
     const url = new URL("{{url_for('plantao.ajax_vagas_disponiveis')}}", window.location.origin);
     url.searchParams.append('ano', ano);
@@ -876,29 +1080,51 @@
       return response.json();
     })
     .then(result => {
-      const eventsContainer = document.querySelector('.events-container');
-      if (eventsContainer) {
-        const existingVagas = eventsContainer.querySelector('.vagas-info');
+      if (!domCache.eventsContainer) return;
+      
+      const newVagasContent = `
+        <div class="d-flex align-items-center">
+          <i class="icon icon-info-circle text-info me-2"></i>
+          <span class="fw-bold text-info">Vagas disponíveis: ${result.NumeroVagas}</span>
+        </div>
+      `;
+      
+      const existingVagas = domCache.eventsContainer.querySelector('.vagas-info');
+      const existingVagasContent = existingVagas ? existingVagas.innerHTML : '';
+      
+      if (newVagasContent === existingVagasContent) {
+        return;
+      }
+      
+      requestAnimationFrame(() => {
         if (existingVagas) {
-          existingVagas.remove();
+          existingVagas.style.opacity = '0';
+          existingVagas.style.transform = 'translateY(-5px)';
+          
+          setTimeout(() => {
+            existingVagas.remove();
+          }, 150);
         }
         
         const vagasInfo = document.createElement('div');
         vagasInfo.className = 'vagas-info mt-3 p-3 bg-info bg-opacity-10 border border-info rounded';
-        vagasInfo.innerHTML = `
-          <div class="d-flex align-items-center">
-            <i class="icon icon-info-circle text-info me-2"></i>
-            <span class="fw-bold text-info">Vagas disponíveis: ${result.NumeroVagas}</span>
-          </div>
-        `;
+        vagasInfo.style.opacity = '0';
+        vagasInfo.style.transform = 'translateY(5px)';
+        vagasInfo.style.transition = 'all 0.2s ease-in-out';
+        vagasInfo.innerHTML = newVagasContent;
         
-        const existingCard = eventsContainer.querySelector('.card');
-        if (existingCard) {
-          existingCard.appendChild(vagasInfo);
+        const existingContent = domCache.eventsContainer.firstElementChild;
+        if (existingContent) {
+          existingContent.appendChild(vagasInfo);
         } else {
-          eventsContainer.appendChild(vagasInfo);
+          domCache.eventsContainer.appendChild(vagasInfo);
         }
-      }
+        
+        requestAnimationFrame(() => {
+          vagasInfo.style.opacity = '1';
+          vagasInfo.style.transform = 'translateY(0)';
+        });
+      });
     })
     .catch(error => {
       console.error('Error loading available slots:', error);
@@ -906,13 +1132,10 @@
   }
 
   function coloreCalendario() {
-    const yearElement = document.querySelector('.year');
-    const activeMonth = document.querySelector('.active-month');
+    if (!domCache.yearElement || !domCache.activeMonth) return;
     
-    if (!yearElement || !activeMonth) return;
-    
-    const ano = yearElement.textContent;
-    const mes = activeMonth.id.substring(5);
+    const ano = domCache.yearElement.textContent;
+    const mes = domCache.activeMonth.id.substring(5);
     
     const url = new URL("{{url_for('plantao.ajax_disponibilidade_de_vagas')}}", window.location.origin);
     url.searchParams.append('ano', ano);
@@ -931,27 +1154,29 @@
       return response.json();
     })
     .then(result => {
-      const elementos = document.getElementsByClassName('table-date');
-      const elementosNulos = document.getElementsByClassName('nil');
+      const elementos = domCache.tbody?.querySelectorAll('.table-date:not(.nil)') || [];
+      const elementosNulos = domCache.tbody?.querySelectorAll('.nil') || [];
       
-      Array.from(elementos).forEach(el => {
+      const fragment = document.createDocumentFragment();
+      
+      elementos.forEach(el => {
         el.classList.remove('disponivel', 'indisponivel');
       });
       
       result.forEach(item => {
-        for (let i = 0; i < elementos.length; i++) {
-          if (elementos[i].textContent == item.Dia) {
+        elementos.forEach(el => {
+          if (el.textContent == item.Dia) {
             if (item.Vagas === true) {
-              elementos[i].classList.add('disponivel');
+              el.classList.add('disponivel');
             } else {
-              elementos[i].classList.add('indisponivel');
+              el.classList.add('indisponivel');
             }
           }
-        }
+        });
       });
       
-      Array.from(elementosNulos).forEach(el => {
-        el.classList.remove('disponivel');
+      elementosNulos.forEach(el => {
+        el.classList.remove('disponivel', 'indisponivel');
       });
     })
     .catch(error => {
@@ -964,14 +1189,10 @@
     if (escolheDataBtn) {
       escolheDataBtn.addEventListener('click', function() {
         coloreCalendario();
-        const yearElement = document.querySelector('.year');
-        const activeMonth = document.querySelector('.active-month');
-        const activeDate = document.querySelector('.active-date');
-        
-        if (yearElement && activeMonth && activeDate) {
-          const ano = yearElement.textContent;
-          const mes = activeMonth.id.substring(5);
-          const dia = activeDate.textContent;
+        if (domCache.yearElement && domCache.activeMonth && domCache.activeDate) {
+          const ano = domCache.yearElement.textContent;
+          const mes = domCache.activeMonth.id.substring(5);
+          const dia = domCache.activeDate.textContent;
           
           const modalBody = document.getElementById('id_body_modal');
           if (modalBody) {
@@ -984,15 +1205,11 @@
     const confirmBtn = document.getElementById('id_botao_confirmar_modal');
     if (confirmBtn) {
       confirmBtn.addEventListener('click', function() {
-        const yearElement = document.querySelector('.year');
-        const activeMonth = document.querySelector('.active-month');
-        const activeDate = document.querySelector('.active-date');
+        if (!domCache.yearElement || !domCache.activeMonth || !domCache.activeDate) return;
         
-        if (!yearElement || !activeMonth || !activeDate) return;
-        
-        const ano = yearElement.textContent;
-        const mes = activeMonth.id.substring(5);
-        const dia = activeDate.textContent;
+        const ano = domCache.yearElement.textContent;
+        const mes = domCache.activeMonth.id.substring(5);
+        const dia = domCache.activeDate.textContent;
         
         const url = new URL("{{url_for('plantao.ajax_confirma_data_plantao')}}", window.location.origin);
         url.searchParams.append('ano', ano);
@@ -1025,16 +1242,28 @@
           
           switch(result.tipo_mensagem) {
             case 'success':
-              showNotification('Sucesso!', result.mensagem, 'success');
+              if (typeof showNotification === 'function') {
+                showNotification('Sucesso!', result.mensagem, 'success');
+              } else {
+                alert('Sucesso! ' + result.mensagem);
+              }
               break;
             case 'warning':
-              showNotification('Atenção:', result.mensagem, 'warning');
+              if (typeof showNotification === 'function') {
+                showNotification('Atenção:', result.mensagem, 'warning');
+              } else {
+                alert('Atenção: ' + result.mensagem);
+              }
               break;
           }
         })
         .catch(error => {
           console.error('Error confirming plantão:', error);
-          showNotification('Erro!', 'Erro ao confirmar plantão', 'danger');
+          if (typeof showNotification === 'function') {
+            showNotification('Erro!', 'Erro ao confirmar plantão', 'danger');
+          } else {
+            alert('Erro ao confirmar plantão');
+          }
         });
       });
     }

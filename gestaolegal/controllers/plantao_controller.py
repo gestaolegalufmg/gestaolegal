@@ -44,6 +44,7 @@ data_atual = datetime.now().date()
 @plantao_controller.route("/pagina_plantao", methods=["POST", "GET"])
 @login_required()
 def pg_plantao():
+    logger.info("Entering pg_plantao route")
     plantao_service = PlantaoService()
 
     dias_usuario_marcado = plantao_service.get_dias_usuario_marcado(current_user.id)
@@ -57,7 +58,7 @@ def pg_plantao():
                 UserRole.ADMINISTRADOR,
                 UserRole.COLAB_PROJETO,
             ]
-        ) and (plantao and plantao.data_abertura == None):
+        ) and (plantao and plantao.data_abertura is None):
             flash("O plantão não está aberto!")
             return redirect(url_for("principal.index"))
 
@@ -117,7 +118,7 @@ def ajax_confirma_data_plantao():
             UserRole.ADMINISTRADOR,
             UserRole.COLAB_PROJETO,
         ]
-    ) and (plantao and plantao.data_abertura == None):
+    ) and (plantao and plantao.data_abertura is None):
         flash("O plantão não está aberto!")
         return redirect(url_for("principal.index"))
 
@@ -324,7 +325,7 @@ def configurar_abertura():
             UserRole.ADMINISTRADOR,
             UserRole.COLAB_PROJETO,
         ]
-    ) and (config_data["plantao"] and config_data["plantao"].data_abertura == None):
+    ) and (config_data["plantao"] and config_data["plantao"].data_abertura is None):
         flash("O plantão não está aberto!")
         return redirect(url_for("principal.index"))
 
@@ -392,6 +393,7 @@ def criar_fila():
 @plantao_controller.route("/fila-atendimento/hoje", methods=["GET", "PUT"])
 @login_required()
 def pegar_atendimentos():
+    logger.info("Entering pegar_atendimentos route")
     plantao_service = PlantaoService()
 
     if request.method == "PUT":
@@ -407,10 +409,7 @@ def pegar_atendimentos():
 @login_required()
 def ajax_cadastrar_atendido():
     try:
-        # Force immediate logging to console
-        print("[PLANTAO_CONTROLLER] Starting ajax_cadastrar_atendido endpoint")
-
-        logger.info("Starting ajax_cadastrar_atendido endpoint")
+        logger.info("Entering ajax_cadastrar_atendido route")
         atendido_service = AtendidoService()
         data = request.get_json(silent=True, force=True)
 
