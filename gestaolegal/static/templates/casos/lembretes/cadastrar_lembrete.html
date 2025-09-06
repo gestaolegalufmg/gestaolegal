@@ -1,0 +1,48 @@
+{% extends "base/painel_principal.html" %}
+{%block titulo%}Novo Lembrete{%endblock%}
+{% block css %} 
+<link rel="stylesheet" href="{{url_for('static',filename='temas_externos/select2.min.css')}}">
+{% endblock css %}
+{% block conteudo %}
+<div class="card">
+    <div class="card-body">
+        <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
+            {{form.hidden_tag()}}
+            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('casos.api_casos_buscar_usuario', _external=True)}}">
+            <input type="hidden" id="apiCasosBuscarCasos" value="{{url_for('casos.api_casos_buscar_casos', _external=True)}}">
+
+            
+            <div class="form-group row">
+                <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="usuario-js">Usuário a ser notificado<span class="text-danger">*</span></label>
+                <div class="col-12 col-lg-6 offset-lg-1">
+                    <select class="form-control" id="usuario-js" name="usuario-js" ></select>
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="lembrete">Lembrete<span class="text-danger">*</span></label>
+                <div class="col-12 col-lg-6 offset-lg-1">
+                    {{form.lembrete(class="w-100", rows="10", placeholder="Insira aqui o texto do seu lembrete.")}} 
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-6 offset-lg-1">
+                {{form.data.label(class_="font-weight-bold")}}<span class="text-danger">*</span>
+                {{form.data(type="date", class_="form-control")}}
+                {% for error in form.data.errors %}
+                <div class="alert alert-danger">{{error}}</div>
+                {% endfor %}
+                <br>
+                {{form.submit(class_='btn btn-flat btn-primary')}}
+            </div>
+        </form>
+    </div>
+    <div class="card-footer">
+        
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/novo_lembrete.js')}}"></script>
+{% endblock scripts %}

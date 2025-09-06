@@ -314,6 +314,8 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
             "cep",
             "cidade",
             "estado",
+            "id_cidade",
+            "id_estado",
             "submit",
             "csrf_token",
         }
@@ -321,6 +323,21 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
         atendido_data = {}
         for field_name, field in form_instance._fields.items():
             if field_name not in exclude_fields and hasattr(field, "data"):
-                atendido_data[field_name] = field.data
+                value = field.data
+
+                # Convert boolean fields to string format expected by database
+                if field_name in [
+                    "procurou_outro_local",
+                    "pj_constituida",
+                    "repres_legal",
+                    "pretende_constituir_pj",
+                ]:
+                    value = "1" if value else "0"
+
+                # Map obs_atendido to obs
+                if field_name == "obs_atendido":
+                    field_name = "obs"
+
+                atendido_data[field_name] = value
 
         return atendido_data

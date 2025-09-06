@@ -1,0 +1,36 @@
+{% extends "base/painel_principal.html" %}
+
+{% block titulo %}
+  Encaminhar para Assistência Judiciária
+{% endblock titulo %}
+
+{% block css %}
+<style>
+    input[type=number]::webkit-inner-spin-button,
+    input[type=number]::webkit-outer-spin-button{
+        -webkit-appearence:none!important;
+        margin:0!important;
+    }
+    input[type=number] {
+    -moz-appearance:textfield;
+    appearance:textfield;
+    }
+    
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="card pessoa" id="pessoa">
+    <div class="card-body">
+        <div class="form-group row">
+            <h4>Cadastrar Nova Assistência Judiciária e Associar à Orientação</h4>
+        </div>
+        <div class="form-validation">
+            <form class="form-valide" action="#" method="POST" id="form">
+                {% include "assistencia_judiciaria/formularios/assistencia_judiciaria_form.html" %}
+                {{form.submit(class_="btn btn-primary")}}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

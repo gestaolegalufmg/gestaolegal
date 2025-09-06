@@ -24,7 +24,7 @@ from gestaolegal.utils.decorators import login_required
 from gestaolegal.utils.plantao_utils import *
 
 relatorios_controller = Blueprint(
-    "relatorios", __name__, template_folder="../templates/relatorios"
+    "relatorios", __name__, template_folder="../static/templates"
 )
 
 
@@ -85,7 +85,7 @@ def index():  # vai listar os dados como o select2 entende
                     areas=areas,
                 )
             )
-    return render_template("relatorios.html", form=form)
+    return render_template("relatorios/pagina_relatorios.html", form=form)
 
 
 @relatorios_controller.route("/casos_orientacao_juridica/<inicio>/<final>/<areas>")
@@ -123,7 +123,7 @@ def casos_orientacao_juridica(inicio, final, areas):
     usuario = current_user.nome
 
     return render_template(
-        "casos_orientacao_juridica.html",
+        "relatorios/relatorio_casos_orientacao.html",
         orientacoes_juridicas=orientacoes_juridicas,
         data_emissao=data_emissao,
         usuario=usuario,
@@ -176,7 +176,7 @@ def casos_cadastrados(inicio, final, areas):
     data_emissao = datetime.now().date().strftime("%d/%m/%Y")
     usuario = current_user.nome
     return render_template(
-        "casos_cadastrados.html",
+        "relatorios/relatorio_casos_cadastrados.html",
         casos=casos,
         data_emissao=data_emissao,
         usuario=usuario,
@@ -246,7 +246,7 @@ def relatorio_horarios(inicio, final, usuarios):
     data_emissao = datetime.now().date().strftime("%d/%m/%Y")
     usuario = current_user.nome
     return render_template(
-        "relatorio_horarios.html",
+        "relatorios/relatorio_horarios.html",
         data_emissao=data_emissao,
         usuario=usuario,
         horarios=horarios,
@@ -326,7 +326,7 @@ def casos_arq_sol_ativ(inicio, final, areas):
     data_emissao = datetime.now().date().strftime("%d/%m/%Y")
     usuario = current_user.nome
     return render_template(
-        "casos_arq_sol_ativ.html",
+        "relatorios/relatorio_casos_status.html",
         casos=casos_por_area,
         data_emissao=data_emissao,
         usuario=usuario,

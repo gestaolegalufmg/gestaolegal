@@ -16,19 +16,19 @@ from gestaolegal.schemas.usuario import UsuarioSchema
 from gestaolegal.utils.decorators import login_required
 
 principal_controller = Blueprint(
-    "principal", __name__, template_folder="../templates/principal"
+    "principal", __name__, template_folder="../static/templates"
 )
 
 
 @principal_controller.route("/")
 @login_required()
 def index():
-    return render_template("home.html")
+    return render_template("principal/home.html")
 
 
 @principal_controller.errorhandler(404)
 def error_404(error):
-    return render_template("erros/404.html"), 404
+    return render_template("principal/erros/404.html"), 404
 
 
 @principal_controller.errorhandler(413)
@@ -39,18 +39,18 @@ def error_413(error):
 
 @principal_controller.errorhandler(403)
 def error_403(error):
-    return render_template("erros/403.html"), 403
+    return render_template("principal/erros/403.html"), 403
 
 
 @principal_controller.errorhandler(500)
 def error_500(error):
-    return render_template("erros/500.html"), 403
+    return render_template("principal/erros/500.html"), 403
 
 
 @principal_controller.route("/termos_de_uso")
 @login_required()
 def termos():
-    return render_template("termos_de_uso.html")
+    return render_template("principal/termos_uso.html")
 
 
 from sqlalchemy import func, select
@@ -181,7 +181,7 @@ def busca_geral():
         )
 
     return render_template(
-        "busca_geral.html",
+        "principal/busca_geral.html",
         assistidos=assistidos,
         assistidos_pjuridica=assistidos_pjuridica,
         usuarios=usuarios,

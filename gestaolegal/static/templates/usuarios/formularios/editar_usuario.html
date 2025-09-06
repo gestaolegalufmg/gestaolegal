@@ -1,0 +1,58 @@
+{% extends "base/painel_principal.html" %}
+{% set eh_perfil_proprio = current_user.id == id_user %}
+{%block titulo%}Edição de Usuário{%endblock%}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/form_styles.css') }}">
+{% endblock %}
+
+{% block conteudo %}
+
+<div class="card pessoa" id = "pessoa">
+    <div class="card-body">
+        <div class="row justify-content-between">
+            <h3>Editar {{'meu perfil' if eh_perfil_proprio else 'Usuário'}}</h3>
+            {% if id_user == id_usuario_logado %}
+                <form action="{{url_for('usuario.editar_senha_usuario')}}">
+                    <button type="submit" class="btn btn-primary btn-block" >Alterar senha</button>
+                </form>
+            {% endif %}
+        </div>
+
+        <div class= "form-validation">
+            <form class="form-valide" action="#" method="POST" id="form">
+                <input type="hidden" id="emailAtual" name="emailAtual" value="{{entidade_usuario.email}}">
+                {% include "usuarios/formularios/formulario_base_usuario.html" %}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+<script src="{{url_for('static', filename='js/jquery.min.js')}}"></script>
+{% block scripts %}
+<script src="{{url_for('static',filename='js/form_utils.js')}}"></script>
+<script src="{{url_for('static',filename='js/usuarioForm_utils.js')}}"></script>
+<script>
+    trataBotaoForm();
+
+    //CHAMO A VALIDACAO
+    validarCampoBolsista();
+
+    //LINKO A VALIDACAO AO CAMPO bolsista
+    document.getElementById('bolsista').onchange = function() {validarCampoBolsista()};
+
+    if (("{{id_usuario_logado}}" == "{{id_usuario_padrao}}") && ("{{id_user}}" == "{{id_usuario_padrao}}")){
+        document.getElementById('urole').disabled = true;
+    }
+</script>
+<script>
+    $(document).ready(function($){
+        $("#formcpf").mask('000.000.000-00');
+        $("#formcel").mask('(00) 00000-0000');
+        $("#formtel").mask('(00) 0000-0000');
+        $("#formcep").mask('00000-000');
+    })
+</script>
+{%endblock%}

@@ -1,0 +1,46 @@
+{% extends "base/painel_principal.html" %}
+
+{% block titulo %}{{arquivo.titulo}}{%endblock %}
+
+{% block conteudo %}
+<div class="row">
+    <div class="col-12 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Dados do Arquivo:</h4>
+            </div>
+            <div class="card-body">
+                <p class="clearfix">
+                    <span class="float-left">
+                        Título:
+                    </span>
+                    <span class="float-right text-muted">
+                        {{arquivo.titulo}}
+                    </span>
+                </p>
+                <p class="clearfix">
+                    <span class="float-left">
+                        Download:
+                    </span>
+                    <span class="float-right text-muted">
+                        <a class="" href="{{url_for('static', filename='arquivos/'+arquivo.nome)}}">Baixar</a>
+                    </span>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Descrição:</h4>
+            </div>
+            <div class="card-body">
+                <p>
+                    {{arquivo.descricao}}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock conteudo %}

@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any, cast
 
 from flask import (
@@ -24,8 +25,10 @@ from gestaolegal.services.atendido_service import AtendidoService
 from gestaolegal.utils.decorators import login_required
 from gestaolegal.utils.transforms import build_cards
 
+logger = logging.getLogger(__name__)
+
 atendido_controller = Blueprint(
-    "atendido", __name__, template_folder="../templates/atendido"
+    "atendido", __name__, template_folder="../static/templates"
 )
 
 
@@ -65,7 +68,7 @@ def atendidos_assistidos():
         "tipo_busca": tipo_busca,
     }
 
-    return render_template("lista_atendidos_assistidos.html", **template_data)
+    return render_template("atendidos/listagem_atendidos.html", **template_data)
 
 
 @atendido_controller.route("/novo_atendimento", methods=["GET"])
@@ -78,7 +81,7 @@ def atendidos_assistidos():
 )
 def cadastro_na_form():
     form = CadastroAtendidoForm()
-    return render_template("cadastro_novo_atendido.html", form=form)
+    return render_template("atendidos/cadastrar_atendido.html", form=form)
 
 
 @atendido_controller.route("/novo_atendimento", methods=["POST"])
@@ -95,14 +98,14 @@ def cadastro_na():
 
     if not form.validate():
         flash("Dados do formulário inválidos", "warning")
-        return render_template("cadastro_novo_atendido.html", form=form)
+        return render_template("atendidos/cadastrar_atendido.html", form=form)
 
     is_valid, error_message = atendido_service.validate_email_uniqueness(
         form.email.data
     )
     if not is_valid:
         flash(error_message, "warning")
-        return render_template("cadastro_novo_atendido.html", form=form)
+        return render_template("atendidos/cadastrar_atendido.html", form=form)
 
     try:
         atendido_data = CadastroAtendidoForm.to_dict(form)
@@ -112,8 +115,8 @@ def cadastro_na():
         flash("Atendido cadastrado!", "success")
         return redirect(url_for("atendido.perfil_assistido", _id=atendido.id))
     except Exception as e:
-        flash(f"Erro ao cadastrar atendido: {str(e)}", "error")
-        return render_template("cadastro_novo_atendido.html", form=form)
+        logger.error(f"Error in cadastro_na: {str(e)}", exc_info=True)
+        return render_template("atendidos/cadastrar_atendido.html", form=form)
 
 
 @atendido_controller.route("/excluir_atendido/", methods=["POST"])
@@ -155,7 +158,7 @@ def buscar_atendido():
         termo, page, current_app.config["ATENDIDOS_POR_PAGINA"], paginator
     )
 
-    return render_template("lista_atendidos.html", atendidos=atendidos)
+    return render_template("atendidos/listagem_atendidos.html", atendidos=atendidos)
 
 
 @atendido_controller.route("/perfil_assistido/<int:_id>", methods=["GET"])
@@ -179,7 +182,7 @@ def perfil_assistido(_id: int):
         cards = build_cards(atendido_model, assistido_model, assistido_pj)
 
         return render_template(
-            "perfil_assistidos.html", assistido=template_data, cards=cards
+            "atendidos/perfil_atendido.html", assistido=template_data, cards=cards
         )
     except Exception as e:
         flash(f"Erro ao carregar perfil: {str(e)}", "error")
@@ -203,7 +206,9 @@ def editar_atendido_form(id_atendido: int):
         form = CadastroAtendidoForm()
         form.populate_from_atendido(atendido)
 
-        return render_template("editar_atendido.html", atendido=atendido, form=form)
+        return render_template(
+            "atendidos/editar_atendido.html", atendido=atendido, form=form
+        )
     except ValueError:
         abort(404)
 
@@ -236,12 +241,16 @@ def editar_atendido(id_atendido: int):
                 url_for("atendido.perfil_assistido", _id=updated_atendido.id)
             )
         else:
-            return render_template("editar_atendido.html", atendido=atendido, form=form)
+            return render_template(
+                "atendidos/editar_atendido.html", atendido=atendido, form=form
+            )
     except ValueError:
         abort(404)
     except Exception as e:
         flash(f"Erro ao editar atendido: {str(e)}", "error")
-        return render_template("editar_atendido.html", atendido=atendido, form=form)
+        return render_template(
+            "atendidos/editar_atendido.html", atendido=atendido, form=form
+        )
 
 
 @atendido_controller.route("/tornar_assistido/<id_atendido>", methods=["GET"])
@@ -258,7 +267,9 @@ def tornar_assistido_form(id_atendido: int):
         atendido = atendido_service.find_by_id(id_atendido)
         form = TornarAssistidoForm()
 
-        return render_template("tornar_assistido.html", atendido=atendido, form=form)
+        return render_template(
+            "atendidos/tornar_assistido.html", atendido=atendido, form=form
+        )
     except ValueError:
         abort(404)
 
@@ -288,13 +299,15 @@ def tornar_assistido(id_atendido: int):
             return redirect(url_for("atendido.perfil_assistido", _id=atendido.id))
         else:
             return render_template(
-                "tornar_assistido.html", atendido=atendido, form=form
+                "atendidos/tornar_assistido.html", atendido=atendido, form=form
             )
     except ValueError:
         abort(404)
     except Exception as e:
         flash(f"Erro ao criar assistido: {str(e)}", "error")
-        return render_template("tornar_assistido.html", atendido=atendido, form=form)
+        return render_template(
+            "atendidos/tornar_assistido.html", atendido=atendido, form=form
+        )
 
 
 @atendido_controller.route("/editar_assistido/<id_atendido>/", methods=["GET"])
@@ -321,7 +334,7 @@ def editar_assistido_form(id_atendido: int):
         form_assistido.populate_from_assistido(assistido)
 
         return render_template(
-            "editar_assistido.html",
+            "atendidos/editar_assistido.html",
             form=form_atendido,
             form_assistido=form_assistido,
             atendido=atendido,
@@ -372,7 +385,7 @@ def editar_assistido(id_atendido: int):
             form_assistido.populate_from_assistido(assistido)
 
             return render_template(
-                "editar_assistido.html",
+                "atendidos/editar_assistido.html",
                 form=form_atendido,
                 form_assistido=form_assistido,
                 atendido=atendido,
@@ -383,7 +396,7 @@ def editar_assistido(id_atendido: int):
     except Exception as e:
         flash(f"Erro ao editar assistido: {str(e)}", "error")
         return render_template(
-            "editar_assistido.html",
+            "atendidos/editar_assistido.html",
             form=form_atendido,
             form_assistido=form_assistido,
             atendido=atendido,
