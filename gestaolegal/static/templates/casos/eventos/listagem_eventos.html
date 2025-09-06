@@ -1,0 +1,65 @@
+{% extends "base/painel_principal.html" %}
+
+{% block titulo %}Eventos - Caso #{{ caso_id }}{% endblock %}
+
+{% block conteudo %}
+<div class="card">
+  <div class="card-body">
+    <div class="card-title">
+      <div class="d-flex ml-auto">
+        <div class="ml-auto p-2">
+          <select class="form-control" id="filtro" name="filtro">
+            <option value="{{opcoes_filtro_eventos['TODOS'][0]}}"             >{{opcoes_filtro_eventos['TODOS'][1]}}             </option>
+            <option value="{{opcoes_filtro_eventos['AUDIENCIA'][0]}}"         >{{opcoes_filtro_eventos['AUDIENCIA'][1]}}         </option>
+            <option value="{{opcoes_filtro_eventos['CONTATO'][0]}}"           >{{opcoes_filtro_eventos['CONTATO'][1]}}           </option>
+            <option value="{{opcoes_filtro_eventos['CONCILIACAO'][0]}}"       >{{opcoes_filtro_eventos['CONCILIACAO'][1] }}      </option>
+            <option value="{{opcoes_filtro_eventos['DECISAO_JUDICIAL'][0]}}"  >{{opcoes_filtro_eventos['DECISAO_JUDICIAL'][1]}}  </option>
+            <option value="{{opcoes_filtro_eventos['DILIGENCIA_EXTERNA'][0]}}">{{opcoes_filtro_eventos['DILIGENCIA_EXTERNA'][1]}}</option>
+            <option value="{{opcoes_filtro_eventos['ENCERRAMENTO_CASO'][0]}}" >{{opcoes_filtro_eventos['ENCERRAMENTO_CASO'][1]}} </option>
+            <option value="{{opcoes_filtro_eventos['PROTOCOLO_PETICAO'][0]}}" >{{opcoes_filtro_eventos['PROTOCOLO_PETICAO'][1]}} </option>
+            <option value="{{opcoes_filtro_eventos['REDIST_CASO'][0]}}"       >{{opcoes_filtro_eventos['REDIST_CASO'][1]}}       </option>
+            <option value="{{opcoes_filtro_eventos['REUNIAO'][0]}}"           >{{opcoes_filtro_eventos['REUNIAO'][1]}}           </option>
+            <option value="{{opcoes_filtro_eventos['DOCUMENTOS'][0]}}"           >{{opcoes_filtro_eventos['DOCUMENTOS'][1]}}           </option>
+            <option value="{{opcoes_filtro_eventos['OUTROS'][0]}}"            >{{opcoes_filtro_eventos['OUTROS'][1]}}            </option>
+          </select>
+        </div>
+        <div class="d-flex flex-row p-2">
+          <a href="{{url_for('casos.novo_evento', id_caso = caso_id)}}" class="btn btn-primary ml-auto p-2">Criar Evento</a>
+        </div>
+      </div>
+    </div>
+    <div id="div_eventos">
+      {% include 'busca_eventos.html' %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+
+    $(document).ready(function() {
+
+        $("#filtro").change(function() {
+
+            $.ajax({
+                method: "GET",
+                url: "{{url_for('casos.ajax_filtro_eventos', id_caso = caso_id)}}",
+                data: {
+                    opcao_filtro: $('#filtro').val()
+                },
+                success: (result) => {
+                    document.getElementById('div_eventos').innerHTML = '';
+                    $('#div_eventos').append(result);
+                }
+            })
+
+        });
+
+        document.getElementById('filtro').value = "{{opcao_filtro}}"
+    });
+
+    
+</script>
+{% endblock %}

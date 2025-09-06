@@ -1,3 +1,4 @@
+import logging
 import os
 
 from flask import (
@@ -5,6 +6,7 @@ from flask import (
     abort,
     current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -18,18 +20,29 @@ from gestaolegal.models.arquivo import Arquivo
 from gestaolegal.schemas.arquivo import ArquivoSchema
 from gestaolegal.utils.decorators import login_required
 
+logger = logging.getLogger(__name__)
+
 arquivo_controller = Blueprint(
-    "arquivos", __name__, template_folder="../templates/arquivos"
+    "arquivos", __name__, template_folder="../static/templates"
 )
 
 
 @arquivo_controller.route("/")
 @login_required()
 def index():
+    logger.info("Entering arquivo index route")
     db = get_db()
 
     page = request.args.get("page", 1, type=int)
-    arquivos_schema = db.query(ArquivoSchema)
+    search = request.args.get("search", "").strip()
+
+    arquivos_schema = db.session.query(ArquivoSchema)
+
+    if search:
+        arquivos_schema = arquivos_schema.filter(
+            ArquivoSchema.titulo.ilike(f"%{search}%")
+        )
+
     arquivos_schema = db.paginate(
         arquivos_schema,
         page=page,
@@ -40,7 +53,49 @@ def index():
     arquivos_schema.items = [
         Arquivo.from_sqlalchemy(item) for item in arquivos_schema.items
     ]
-    return render_template("arquivos.html", arquivos=arquivos_schema)
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        from flask_login import current_user
+
+        can_edit = current_user.urole in [
+            UserRole.ADMINISTRADOR.value,
+            UserRole.COLAB_PROJETO.value,
+            UserRole.COLAB_EXTERNO.value,
+            UserRole.PROFESSOR.value,
+        ]
+
+        return jsonify(
+            {
+                "items": [
+                    {
+                        "id": arquivo.id,
+                        "titulo": arquivo.titulo,
+                        "visualizar_url": url_for(
+                            "arquivos.visualizar_arquivo", id=arquivo.id
+                        ),
+                        "editar_url": url_for("arquivos.editar_arquivo", id=arquivo.id),
+                        "excluir_url": url_for(
+                            "arquivos.excluir_arquivo", id=arquivo.id
+                        ),
+                    }
+                    for arquivo in arquivos_schema.items
+                ],
+                "total": arquivos_schema.total,
+                "page": arquivos_schema.page,
+                "pages": arquivos_schema.pages,
+                "has_prev": arquivos_schema.has_prev,
+                "has_next": arquivos_schema.has_next,
+                "prev_num": arquivos_schema.prev_num,
+                "next_num": arquivos_schema.next_num,
+                "first_item": arquivos_schema.first_item,
+                "last_item": arquivos_schema.last_item,
+                "can_edit": can_edit,
+            }
+        )
+
+    return render_template(
+        "arquivos/listagem_arquivos.html", arquivos=arquivos_schema, search=search
+    )
 
 
 @arquivo_controller.route("/cadastrar_arquivo", methods=["GET", "POST"])
@@ -53,27 +108,33 @@ def index():
     ]
 )
 def cadastrar_arquivo():
+    logger.info("Entering cadastrar_arquivo route - Starting file upload process")
     db = get_db()
     _form = ArquivoForm()
     if _form.validate_on_submit():
         arquivo = request.files.get(_form.arquivo.name)
-        if not arquivo:
+        if not arquivo or arquivo.filename == "":
+            logger.warning("No file provided for upload")
             flash("Você precisa adicionar um arquivo.", "warning")
             return redirect(url_for("arquivos.cadastrar_arquivo"))
+        # Ensure the arquivos directory exists
+        arquivos_dir = os.path.join(current_app.root_path, "static", "arquivos")
+        os.makedirs(arquivos_dir, exist_ok=True)
+
+        logger.info(f"Uploading file: {arquivo.filename}")
         _arquivo_schema = ArquivoSchema(
             titulo=_form.titulo.data,
             descricao=_form.descricao.data,
             nome=arquivo.filename,
         )
-        arquivo.save(
-            os.path.join(current_app.root_path, "static", "arquivos", arquivo.filename)
-        )
+        arquivo.save(os.path.join(arquivos_dir, arquivo.filename))
         db.session.add(_arquivo_schema)
         db.session.commit()
+        logger.info(f"File uploaded successfully: {arquivo.filename}")
         flash("Arquivo adicionado", "success")
         return redirect(url_for("arquivos.index"))
 
-    return render_template("cadastrar_arquivo.html", form=_form)
+    return render_template("arquivos/cadastrar_arquivo.html", form=_form)
 
 
 @arquivo_controller.route("/editar_arquivo/<int:id>", methods=["GET", "POST"])
@@ -120,7 +181,8 @@ def editar_arquivo(id):
     _form.titulo.data = _arquivo_schema.titulo
     _form.descricao.data = _arquivo_schema.descricao
 
-    return render_template("editar_arquivo.html", form=_form)
+    _arquivo = Arquivo.from_sqlalchemy(_arquivo_schema)
+    return render_template("arquivos/editar_arquivo.html", form=_form, arquivo=_arquivo)
 
 
 @arquivo_controller.route("/visualizar_arquivo/<int:id>")
@@ -133,7 +195,7 @@ def visualizar_arquivo(id):
         abort(404)
 
     _arquivo = Arquivo.from_sqlalchemy(_arquivo_schema)
-    return render_template("visualizar_arquivo.html", arquivo=_arquivo)
+    return render_template("arquivos/visualizar_arquivo.html", arquivo=_arquivo)
 
 
 @arquivo_controller.route("/excluir_arquivo/<int:id>")
@@ -163,4 +225,4 @@ def excluir_arquivo(id):
 
     flash("arquivo excluido.")
 
-    return redirect(url_for("arquivo.index"))
+    return redirect(url_for("arquivos.index"))

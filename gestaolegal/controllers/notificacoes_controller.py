@@ -1,3 +1,5 @@
+import logging
+
 from flask import Blueprint, current_app, redirect, render_template, request, url_for
 from flask_login import current_user
 
@@ -5,8 +7,10 @@ from gestaolegal.database import get_db
 from gestaolegal.services.notificacao_service import NotificacaoService
 from gestaolegal.utils.decorators import login_required
 
+logger = logging.getLogger(__name__)
+
 notificacoes_controller = Blueprint(
-    "notificacoes", __name__, template_folder="../templates/notificacoes"
+    "notificacoes", __name__, template_folder="../static/templates"
 )
 
 
@@ -30,7 +34,9 @@ def index():
         current_user.id, current_user.urole, paginator
     )
 
-    return render_template("notificacoes.html", notificacoes=notificacoes)
+    return render_template(
+        "notificacoes/listagem_notificacoes.html", notificacoes=notificacoes
+    )
 
 
 @notificacoes_controller.route("/pagina/<notificacao_acao>")

@@ -217,6 +217,9 @@ function get_datas_duracao(){
             type: 'POST',
             contentType: 'application/json;charset=UTF-8',
             dataType: 'json',
+            headers: {
+                'X-CSRFToken': getCSRFToken()
+            },
             success: function (result) {
               var dias_duracao = [];
 

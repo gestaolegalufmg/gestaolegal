@@ -1,0 +1,410 @@
+/* ==========================================================================
+   Form Styles
+   ========================================================================== */
+
+/* Form Container Styles */
+.form-container {
+    background: var(--color-white, #ffffff);
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 1px solid var(--color-border, #e9ecef);
+    margin-bottom: 1.5rem;
+}
+
+.form-header {
+    background-color: color-mix(in srgb, var(--color-primary) 10%, white 90%);
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--color-border, #e9ecef);
+}
+
+.form-content {
+    padding: 1.5rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border, #e9ecef);
+}
+
+/* Form Field Styles */
+.form-field {
+    margin-bottom: 1.25rem;
+}
+
+.field-row {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.field-row label {
+    flex: 0 0 11.25rem; /* 180px */
+    font-weight: 500;
+    color: var(--color-text-primary, #333333);
+    font-size: 0.875rem;
+    text-align: left;
+    margin: 0;
+}
+
+.field-input {
+    flex: 0 0 18.75rem; /* 300px */
+    min-width: 0;
+    width: 100%;
+}
+
+.field-input-split {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.field-input-main {
+    flex: 1;
+}
+
+.field-input-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    white-space: nowrap;
+}
+
+.field-input-checkbox input[type="checkbox"] {
+    margin: 0;
+}
+
+.field-input-checkbox label {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary, #666666);
+}
+
+.field-error {
+    color: var(--color-danger, #dc3545);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+/* Form Input Styles */
+.form-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border, #dddddd);
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    height: 2.375rem;
+    box-sizing: border-box;
+}
+
+.form-input:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.form-input[type="textarea"] {
+    min-height: 5rem;
+    height: auto;
+    resize: vertical;
+    padding: 0.5rem 0.75rem;
+}
+
+/* Form Section Styles */
+.form-section {
+    margin: 2rem 0 1.25rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--color-border, #e9ecef);
+}
+
+.form-section h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-text-primary, #333333);
+}
+
+.required {
+    color: var(--color-danger, #dc3545);
+    font-weight: 600;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.2);
+    z-index: 999;
+}
+
+.modal-hidden {
+    display: none !important;
+}
+
+.modal-overlay {
+    display: none;
+}
+
+.modal-overlay:not(.modal-hidden) {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--color-white, #ffffff);
+    border-radius: 0.5rem;
+    max-width: 42.5rem; /* 680px */
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    padding: 1.5rem 1.5rem 0 1.5rem;
+}
+
+.modal-header h1 {
+    font-size: 1.125rem;
+    text-align: center;
+    line-height: 1.5625rem;
+    font-weight: 600;
+    color: var(--color-text-dark, #142129);
+    margin: 0;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.modal-main-content {
+    flex: 1;
+}
+
+.modal-separator {
+    width: 1px;
+    background-color: var(--color-border-light, #EAEEF0);
+    margin: 0 0.75rem;
+}
+
+.modal-password-section {
+    flex-basis: 11.625rem; /* 186px */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.modal-footer {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+}
+
+.modal-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Radio Option Styles */
+.radio-option {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.radio-option input[type="radio"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: 0.75rem;
+    margin-top: 0.125rem;
+}
+
+.radio-content {
+    flex: 1;
+}
+
+.radio-content label {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.375rem;
+    color: var(--color-text-dark, #1A1E21);
+    margin: 0;
+    display: block;
+}
+
+.radio-content p {
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.1875rem;
+    color: var(--color-text-muted, #3F5059);
+    margin: 0.25rem 0 0 0;
+}
+
+/* Checkbox Option Styles */
+.checkbox-option {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.checkbox-option input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: 0.75rem;
+}
+
+.checkbox-option label {
+    font-size: 0.875rem;
+    color: var(--color-text-primary, #333333);
+    margin: 0;
+}
+
+/* Loading Spinner Styles */
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 5rem;
+    height: 5rem;
+    border: 0.625rem solid var(--color-background-light, #f3f3f3);
+    border-top: 0.625rem solid var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-spinner span {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary, #666666);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Password Display Styles */
+.password-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.password-display p:first-child {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--color-text-dark, #283A45);
+    margin: 0 0 0.5rem 0;
+}
+
+.password-number {
+    font-size: 3rem;
+    line-height: 3.5625rem;
+    color: var(--color-primary, #0062B8);
+    font-weight: 600;
+    margin: 0;
+}
+
+.password-requirements {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background-color: var(--color-background-light, #f8f9fa);
+    border-radius: 0.25rem;
+    border-left: 3px solid var(--color-primary);
+}
+
+.password-requirements p {
+    margin: 0 0 0.5rem 0;
+    font-weight: 500;
+    color: var(--color-text-primary, #333333);
+    font-size: 0.875rem;
+}
+
+.password-requirements ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: var(--color-text-secondary, #666666);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+}
+
+.password-requirements li {
+    margin-bottom: 0.25rem;
+}
+
+.hidden-field {
+    display: none;
+}
+
+/* Responsive Design */
+@media (max-width: 48rem) { /* 768px */
+    .field-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .field-row label {
+        flex: none;
+        text-align: left;
+        margin-bottom: 0.25rem;
+    }
+
+    .field-input {
+        flex: none;
+        width: 100%;
+    }
+
+    .field-input-split {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .field-input-checkbox {
+        justify-content: flex-start;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .modal-body {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .modal-separator {
+        width: 100%;
+        height: 1px;
+        margin: 0.75rem 0;
+    }
+
+    .modal-password-section {
+        flex-basis: auto;
+    }
+
+    .modal-buttons {
+        flex-direction: column;
+    }
+}

@@ -1,3 +1,5 @@
+import logging
+
 from flask import Blueprint, current_app, flash, redirect, render_template, request
 from sqlalchemy import and_, or_
 
@@ -15,42 +17,50 @@ from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
 from gestaolegal.schemas.usuario import UsuarioSchema
 from gestaolegal.utils.decorators import login_required
 
+logger = logging.getLogger(__name__)
+
 principal_controller = Blueprint(
-    "principal", __name__, template_folder="../templates/principal"
+    "principal", __name__, template_folder="../static/templates"
 )
 
 
 @principal_controller.route("/")
 @login_required()
 def index():
-    return render_template("home.html")
+    return render_template("principal/home.html")
 
 
 @principal_controller.errorhandler(404)
 def error_404(error):
-    return render_template("erros/404.html"), 404
+    logger.warning(f"404 error: {request.url} - {error}")
+    return render_template("principal/erros/404.html"), 404
 
 
 @principal_controller.errorhandler(413)
 def error_413(error):
+    logger.warning(f"413 error - File too large: {request.url}")
     flash("Arquivo muito grande. O tamanho máximo permitido é de 10MB.")
     return redirect(request.url, code=302)
 
 
 @principal_controller.errorhandler(403)
 def error_403(error):
-    return render_template("erros/403.html"), 403
+    logger.warning(f"403 error - Forbidden: {request.url}")
+    return render_template("principal/erros/403.html"), 403
 
 
 @principal_controller.errorhandler(500)
 def error_500(error):
-    return render_template("erros/500.html"), 403
+    logger.error(
+        f"500 error - Internal server error: {request.url} - {error}", exc_info=True
+    )
+    return render_template("principal/erros/500.html"), 500
 
 
 @principal_controller.route("/termos_de_uso")
 @login_required()
 def termos():
-    return render_template("termos_de_uso.html")
+    return render_template("principal/termos_uso.html")
 
 
 from sqlalchemy import func, select
@@ -97,7 +107,7 @@ def busca_geral():
     assistidos_stmt = (
         select(AtendidoSchema)
         .join(AssistidoSchema)
-        .where(AtendidoSchema.status == True)
+        .where(AtendidoSchema.status)
         .where(
             or_(
                 AtendidoSchema.nome.ilike(f"%{busca}%"),
@@ -116,7 +126,7 @@ def busca_geral():
         select(AssistidoSchema)
         .join(AtendidoSchema)
         .join(AssistidoPessoaJuridica)
-        .where(AtendidoSchema.status == True)
+        .where(AtendidoSchema.status)
         .where(
             or_(AtendidoSchema.nome.contains(busca), AtendidoSchema.cpf.contains(busca))
         )
@@ -132,8 +142,8 @@ def busca_geral():
         select(UsuarioSchema)
         .where(
             or_(
-                and_(UsuarioSchema.nome.contains(busca), UsuarioSchema.status != False),
-                and_(UsuarioSchema.cpf.contains(busca), UsuarioSchema.status != False),
+                and_(UsuarioSchema.nome.contains(busca), UsuarioSchema.status),
+                and_(UsuarioSchema.cpf.contains(busca), UsuarioSchema.status),
             )
         )
         .order_by(UsuarioSchema.nome)
@@ -147,7 +157,7 @@ def busca_geral():
 
     if busca.isdigit():
         casos_stmt = select(CasoSchema).where(
-            and_(CasoSchema.status == True, CasoSchema.id == int(busca))
+            and_(CasoSchema.status, CasoSchema.id == int(busca))
         )
         casos = create_pagination(
             casos_stmt, page_caso, current_app.config["CASOS_POR_PAGINA"]
@@ -157,8 +167,8 @@ def busca_geral():
             select(CasoSchema)
             .join(associacao_casos_atendidos)
             .join(Atendido)
-            .where(CasoSchema.status == True)
-            .where(Atendido.status == True)
+            .where(CasoSchema.status)
+            .where(Atendido.status)
             .where(Atendido.nome.ilike(f"%{busca}%"))
             .order_by(CasoSchema.id)
         )
@@ -171,8 +181,8 @@ def busca_geral():
             select(OrientacaoJuridicaSchema)
             .join(Atendido_xOrientacaoJuridicaSchema)
             .join(Atendido)
-            .where(OrientacaoJuridicaSchema.status == True)
-            .where(Atendido.status == True)
+            .where(OrientacaoJuridicaSchema.status)
+            .where(Atendido.status)
             .where(Atendido.nome.ilike(f"%{busca}%"))
             .order_by(OrientacaoJuridicaSchema.id)
         )
@@ -181,7 +191,7 @@ def busca_geral():
         )
 
     return render_template(
-        "busca_geral.html",
+        "principal/busca_geral.html",
         assistidos=assistidos,
         assistidos_pjuridica=assistidos_pjuridica,
         usuarios=usuarios,

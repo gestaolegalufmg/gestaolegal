@@ -22,6 +22,7 @@ class AtendidoSchema(Base):
         "OrientacaoJuridicaSchema",
         secondary="atendido_xOrientacaoJuridica",
         back_populates="atendidos",
+        overlaps="atendido,atendido_xOrientacaoJuridica,orientacaoJuridica",
     )
     casos: Mapped[list["CasoSchema"]] = relationship(
         "CasoSchema", secondary=associacao_casos_atendidos, back_populates="clientes"

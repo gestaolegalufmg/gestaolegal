@@ -16,8 +16,12 @@ class Config:
     UPLOADS = "./static/casos"
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB limit
 
-    WTF_CSRF_TIME_LIMIT = 3600
-    WTF_CSRF_SSL_STRICT = False
+    # CSRF Protection Configuration
+    WTF_CSRF_TIME_LIMIT = 3600  # 1 hour token expiration
+    WTF_CSRF_SSL_STRICT = False  # Set to True in production with HTTPS
+    WTF_CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+    WTF_CSRF_COOKIE_HTTPONLY = True  # Prevent XSS access to CSRF cookie
+    WTF_CSRF_COOKIE_SAMESITE = "Lax"  # CSRF protection with some flexibility
 
     DB_USER = os.environ.get("DB_USER")
     DB_PASSWORD = os.environ.get("DB_PASSWORD")
@@ -70,6 +74,10 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
+
+    # Enhanced CSRF security for production
+    WTF_CSRF_SSL_STRICT = True  # Require HTTPS in production
+    WTF_CSRF_COOKIE_SECURE = True  # Secure cookies in production
 
 
 class TestingConfig(Config):

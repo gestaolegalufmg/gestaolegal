@@ -1,9 +1,12 @@
+import logging
 from typing import Optional
 
 from gestaolegal.models.assistido import Assistido
 from gestaolegal.schemas.assistido import AssistidoSchema
 from gestaolegal.schemas.assistido_pessoa_juridica import AssistidoPessoaJuridicaSchema
 from gestaolegal.services.base_service import BaseService
+
+logger = logging.getLogger(__name__)
 
 
 class AssistidoService(BaseService[AssistidoSchema, Assistido]):

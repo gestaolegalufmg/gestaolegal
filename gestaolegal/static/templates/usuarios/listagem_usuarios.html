@@ -1,0 +1,361 @@
+{% extends "base/painel_principal.html" %}
+
+{% block page_title %}Gestão de Usuários{% endblock page_title %}
+{% block titulo %}
+<h1>Gestão de Usuários</h1>
+{% endblock titulo %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/table_styles.css') }}">
+{% endblock %}
+
+{% block conteudo %}
+<div class="page-container">
+  <div class="page-header">
+    <div class="search-section">
+      <div class="search-form" role="search" aria-label="Filtros de busca de usuários">
+        <div class="search-field">
+          <label for="searchUser">Buscar:</label>
+          <input type="text" name="search" value="{{ search }}" 
+                 placeholder="Nome, e-mail..." id="searchUser"
+                 aria-describedby="search-help searchLoading"
+                 autocomplete="off">
+          <div id="searchLoading" class="search-loading" style="display: none;" 
+               role="status" aria-live="polite" aria-label="Buscando usuários">
+            <i class="icon icon-spinner icon-spin" aria-hidden="true"></i>
+            <span class="sr-only">Buscando usuários...</span>
+          </div>
+          <div id="search-help" class="sr-only">Digite o nome ou e-mail do usuário que deseja buscar</div>
+        </div>
+        
+        <div class="search-field">
+          <label for="urole">Função:</label>
+          <select name="funcao" id="urole" aria-label="Filtrar usuários por função">
+            <option value="all" {% if funcao == 'all' %}selected{% endif %}>Todas as funções</option>
+            <option value="admin" {% if funcao == 'admin' %}selected{% endif %}>Administrador</option>
+            <option value="orient" {% if funcao == 'orient' %}selected{% endif %}>Orientador</option>
+            <option value="colab_proj" {% if funcao == 'colab_proj' %}selected{% endif %}>Colaborador de projeto</option>
+            <option value="estag_direito" {% if funcao == 'estag_direito' %}selected{% endif %}>Estagiário de Direito</option>
+            <option value="colab_ext" {% if funcao == 'colab_ext' %}selected{% endif %}>Colaborador externo</option>
+            <option value="prof" {% if funcao == 'prof' %}selected{% endif %}>Professor</option>
+          </select>
+        </div>
+        
+        <div class="search-field">
+          <label for="desativados">Status:</label>
+          <select name="status" id="desativados" aria-label="Filtrar usuários por status">
+            <option value="1" {% if status == '1' %}selected{% endif %}>Ativos</option>
+            <option value="0" {% if status == '0' %}selected{% endif %}>Inativos</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="total-info">
+        <span>Total:</span>
+        <span class="total-badge">{{ usuarios.total }}</span>
+      </div>
+    </div>
+    
+    <div class="action-section">
+      {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value] %}
+      <a class="btn btn-primary" href="{{ url_for('usuario.cadastrar_usuario') }}">
+        Cadastrar Usuário
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if usuarios and usuarios.items and usuarios.items|length > 0 %}
+    <div class="table-container">
+      <table class="results-table" role="table" aria-label="Lista de usuários do sistema">
+        <caption class="sr-only">Tabela com informações dos usuários incluindo nome, email, função, status e ações disponíveis</caption>
+        <thead>
+          <tr>
+            <th scope="col">Nome</th>
+            <th scope="col">E-mail</th>
+            <th scope="col">Função</th>
+            <th scope="col">Status</th>
+            <th scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body">
+          {% include 'usuarios/parciais/linhas_tabela_usuarios.html' %}
+        </tbody>
+      </table>
+    </div>
+    
+    {% if usuarios.pages > 1 %}
+    <div class="pagination-section">
+      <div class="pagination-info">
+        <span class="results-text">
+          Mostrando 
+          <strong>{{ usuarios.first_item }}</strong> 
+          até 
+          <strong>{{ usuarios.last_item }}</strong> 
+          de 
+          <strong>{{ usuarios.total }}</strong> 
+          registros
+        </span>
+        
+        <span class="page-info">
+          Página {{ usuarios.page }} de {{ usuarios.pages }}
+        </span>
+      </div>
+
+      {% include 'usuarios/parciais/paginacao_usuarios.html' %}
+    </div>
+    {% endif %}
+    
+  {% else %}
+    <section class="empty-state" role="status" aria-live="polite">
+      <h2>Nenhum usuário encontrado</h2>
+      <p class="empty-message">
+        {% if search %}
+          Não foram encontrados resultados para "{{ search }}"
+        {% else %}
+          Não há usuários cadastrados no momento
+        {% endif %}
+      </p>
+      {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value] %}
+      <a href="{{ url_for('usuario.cadastrar_usuario') }}" class="btn btn-primary">
+        Cadastrar novo usuário
+      </a>
+      {% endif %}
+    </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector("#searchUser");
+    const uroleSelect = document.querySelector("#urole");
+    const statusSelect = document.querySelector("#desativados");
+    const usersTableBody = document.querySelector("#users-table-body");
+    const paginationContainer = document.querySelector(".pagination-section");
+    const totalBadge = document.querySelector(".total-badge");
+    const searchLoading = document.querySelector("#searchLoading");
+    
+    let searchTimeout;
+    let currentPage = 1;
+    const DEBOUNCE_DELAY = 500;
+    const MIN_SEARCH_LENGTH = 2;
+
+    function showLoading() {
+        if (searchLoading) {
+            searchLoading.style.display = 'block';
+            searchLoading.setAttribute('aria-hidden', 'false');
+        }
+        if (usersTableBody) {
+            usersTableBody.classList.add('table-loading');
+            usersTableBody.setAttribute('aria-busy', 'true');
+        }
+    }
+
+    function hideLoading() {
+        if (searchLoading) {
+            searchLoading.style.display = 'none';
+            searchLoading.setAttribute('aria-hidden', 'true');
+        }
+        if (usersTableBody) {
+            usersTableBody.classList.remove('table-loading');
+            usersTableBody.setAttribute('aria-busy', 'false');
+        }
+    }
+
+    function updateResults(page = 1) {
+        const searchTerm = searchInput.value.trim();
+        const funcao = uroleSelect.value;
+        const status = statusSelect.value;
+        
+        if (searchTerm.length > 0 && searchTerm.length < MIN_SEARCH_LENGTH) {
+            hideLoading();
+            return;
+        }
+
+        showLoading();
+
+        const params = new URLSearchParams();
+        if (searchTerm && searchTerm.length >= MIN_SEARCH_LENGTH) {
+            params.set('search', searchTerm);
+        }
+        if (funcao && funcao !== 'all') {
+            params.set('funcao', funcao);
+        }
+        if (status !== "1") {
+            params.set('status', status);
+        }
+        if (page > 1) {
+            params.set('page', page);
+        }
+
+        const ajaxUrl = '/usuario/busca_usuarios_ajax?' + params.toString();
+
+        fetch(ajaxUrl, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                usersTableBody.innerHTML = data.table_html;
+                
+                if (paginationContainer) {
+                    paginationContainer.innerHTML = data.pagination_html;
+                }
+                
+                if (totalBadge) {
+                    totalBadge.textContent = data.total;
+                }
+                
+                currentPage = page;
+                updateURL(searchTerm, funcao, status, page);
+                attachPaginationListeners();
+                
+                const resultCount = data.total || 0;
+                const announcement = resultCount === 1 ? 
+                    '1 usuário encontrado' : 
+                    `${resultCount} usuários encontrados`;
+                
+                const announcementEl = document.createElement('div');
+                announcementEl.setAttribute('aria-live', 'polite');
+                announcementEl.setAttribute('aria-atomic', 'true');
+                announcementEl.className = 'sr-only';
+                announcementEl.textContent = announcement;
+                document.body.appendChild(announcementEl);
+                
+                setTimeout(() => {
+                    document.body.removeChild(announcementEl);
+                }, 1000);
+            }
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+            
+            const errorEl = document.createElement('div');
+            errorEl.setAttribute('aria-live', 'assertive');
+            errorEl.setAttribute('aria-atomic', 'true');
+            errorEl.className = 'sr-only';
+            errorEl.textContent = 'Erro ao buscar usuários. Recarregando página...';
+            document.body.appendChild(errorEl);
+            
+            setTimeout(() => {
+                document.body.removeChild(errorEl);
+                window.location.href = '/usuario/listar_usuarios?' + params.toString();
+            }, 1000);
+        })
+        .finally(() => {
+            hideLoading();
+        });
+    }
+
+    function updateURL(searchTerm, funcao, status, page) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('search');
+        url.searchParams.delete('funcao');
+        url.searchParams.delete('status');
+        url.searchParams.delete('page');
+        
+        if (searchTerm && searchTerm.length >= MIN_SEARCH_LENGTH) {
+            url.searchParams.set('search', searchTerm);
+        }
+        if (funcao && funcao !== 'all') {
+            url.searchParams.set('funcao', funcao);
+        }
+        if (status !== "1") {
+            url.searchParams.set('status', status);
+        }
+        if (page > 1) {
+            url.searchParams.set('page', page);
+        }
+        
+        window.history.replaceState({}, '', url);
+    }
+
+    function attachPaginationListeners() {
+        const paginationLinks = document.querySelectorAll('.page-link');
+        paginationLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const href = this.getAttribute('href');
+                if (href) {
+                    const url = new URL(href, window.location.origin);
+                    const page = parseInt(url.searchParams.get('page')) || 1;
+                    updateResults(page);
+                }
+            });
+        });
+    }
+
+    function debouncedSearch() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            updateResults(1);
+        }, DEBOUNCE_DELAY);
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener("input", debouncedSearch);
+        
+        searchInput.addEventListener("keydown", (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(searchTimeout);
+                updateResults(1);
+            }
+            
+            if (e.key === 'Escape') {
+                searchInput.value = "";
+                clearTimeout(searchTimeout);
+                updateResults(1);
+                searchInput.focus();
+            }
+        });
+    }
+    
+    const formControls = [searchInput, uroleSelect, statusSelect].filter(Boolean);
+    
+    formControls.forEach((control, index) => {
+        if (control) {
+            control.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    return;
+                }
+                
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    if (control.tagName === 'SELECT') {
+                        return;
+                    }
+                }
+                
+                if (e.key === 'Enter' && control !== searchInput) {
+                    e.preventDefault();
+                    clearTimeout(searchTimeout);
+                    updateResults(1);
+                }
+            });
+        }
+    });
+
+    if (uroleSelect) {
+        uroleSelect.addEventListener("change", function() {
+            clearTimeout(searchTimeout);
+            updateResults(1);
+        });
+    }
+    
+    if (statusSelect) {
+        statusSelect.addEventListener("change", function() {
+            clearTimeout(searchTimeout);
+            updateResults(1);
+        });
+    }
+
+    attachPaginationListeners();
+});
+</script>
+{% endblock %}

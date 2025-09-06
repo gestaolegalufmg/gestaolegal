@@ -1,0 +1,97 @@
+{% from "base/base_form.html" import form_field, form_section, form_field_split %}
+
+{{ form.csrf_token }}
+
+<!-- Hidden API endpoints -->
+<input type="hidden" id="apiCasosBuscarAtendido" value="{{url_for('casos.api_casos_buscar_assistido', _external=True)}}">
+<input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('casos.api_casos_buscar_usuario', _external=True)}}">
+<input type="hidden" id="apiCasosBuscarRoteiro" value="{{url_for('casos.api_casos_buscar_roteiro', _external=True)}}">
+<input type="hidden" id="apiCasosBuscarOrientador" value="{{url_for('casos.api_casos_buscar_orientador', _external=True)}}">
+<input type="hidden" id="apiCasosBuscarEstagiario" value="{{url_for('casos.api_casos_buscar_estagiario', _external=True)}}">
+<input type="hidden" id="apiCasosBuscarColaborador" value="{{url_for('casos.api_casos_buscar_colaborador', _external=True)}}">
+
+<!-- Area and Sub-area Fields -->
+{% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.ORIENTADOR.value, UserRole.ESTAGIARIO_DIREITO.value, UserRole.COLAB_EXTERNO.value] %}
+    {{ form_field(form.area_direito, field_id="div_area", required=true) }}
+    
+    <div class="form-field hidden" id="div_sub_area">
+        {{ form_field(form.sub_area, field_id="sub_area-js", required=true) }}
+    </div>
+
+    <div class="form-field hidden" id="div_sub_area_admin">
+        {{ form_field(form.sub_areaAdmin, field_id="sub_area_admin-js", required=true) }}
+    </div>
+{% endif %}
+
+<!-- Case Status Fields (only when editing) -->
+{% if caso %}
+    {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.COLAB_EXTERNO.value, UserRole.ESTAGIARIO_DIREITO.value] and caso.situacao_deferimento == 'indeferido'%}
+        {{ form_field(form.situacao_deferimento_indeferido) }}
+    {% endif %}
+
+    {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.ORIENTADOR.value, UserRole.COLAB_EXTERNO.value, UserRole.ESTAGIARIO_DIREITO.value] %}
+        {% if caso.situacao_deferimento == 'ativo' %}
+            {{ form_field(form.situacao_deferimento_ativo) }}
+        {% endif %}
+    {% endif %}
+{% endif %}
+
+<!-- Team Assignment Section -->
+{% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.ORIENTADOR.value, UserRole.COLAB_EXTERNO.value, UserRole.ESTAGIARIO_DIREITO.value] %}
+    {{ form_section("Equipe Responsável") }}
+    
+    <div class="form-field">
+        <div class="field-row">
+            <label for="orientador-js">Orientador</label>
+            <div class="field-input">
+                <select class="form-input" id="orientador-js" name="orientador-js"></select>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-field">
+        <div class="field-row">
+            <label for="estagiario-js">Estagiário</label>
+            <div class="field-input">
+                <select class="form-input" id="estagiario-js" name="estagiario-js"></select>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-field">
+        <div class="field-row">
+            <label for="colaborador-js">Colaborador Externo</label>
+            <div class="field-input">
+                <select class="form-input" id="colaborador-js" name="colaborador-js"></select>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Clients Section (only for new cases) -->
+{% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.ORIENTADOR.value, UserRole.ESTAGIARIO_DIREITO.value, UserRole.COLAB_EXTERNO.value, UserRole.ESTAGIARIO_DIREITO.value] and not caso %}
+    {{ form_section("Assistidos") }}
+    
+    <div class="form-field">
+        <div class="field-row">
+            <label for="clientes-js">Assistidos <span class="required">*</span></label>
+            <div class="field-input">
+                <select class="form-input" id="clientes-js" name="clientes-js" multiple></select>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Description Section -->
+{% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.ORIENTADOR.value, UserRole.ESTAGIARIO_DIREITO.value, UserRole.COLAB_EXTERNO.value] %}
+    {{ form_section("Descrição do Caso") }}
+    
+    <div class="form-field">
+        <div class="field-row">
+            <label for="descricao">Descrição <span class="required">*</span></label>
+            <div class="field-input">
+                {{ form.descricao(class="form-input", rows="10", placeholder="Insira aqui o link de acesso para o roteiro que foi preenchido. Para os casos que não possuem roteiro, insira aqui o detalhamento do caso.") }}
+            </div>
+        </div>
+    </div>
+{% endif %}

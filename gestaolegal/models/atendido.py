@@ -78,7 +78,7 @@ class Atendido:
                     "O campo 'repres_legal' é obrigatório se 'pj_constituida' for verdadeiro"
                 )
 
-        if (self.repres_legal == False) and self.pj_constituida:
+        if (not self.repres_legal) and self.pj_constituida:
             required_fields = [
                 (
                     "nome_repres_legal",

@@ -1,0 +1,314 @@
+{% extends "base/painel_principal.html" %}
+
+{% block titulo %}Busca Geral {% endblock titulo %}
+
+{% block css %}
+
+{% endblock css %}
+
+{% block conteudo %}
+
+<div class="section">
+    <div class="section-body">
+      <div class="card">
+        <div class="card-header">
+          <h4>Casos</h4>
+        </div>
+        <div class="card-body">
+          {% if casos and casos.pages > 0 %}
+            <nav class="d-inline-block">
+              <ul class="pagination mb-0">
+                {% if casos.has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('principal.busca_geral', page_caso=casos.prev_num, busca_atual=busca_atual) }}">← Previous</a>
+                  </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                  <span class="page-link">Page {{ casos.page }} of {{ casos.pages }}</span>
+                </li>
+                
+                {% if casos.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('principal.busca_geral', page_caso=casos.next_num, busca_atual=busca_atual) }}">Next →</a>
+                  </li>
+                {% endif %}
+              </ul>
+            </nav>
+          {% endif %}
+
+          {% if casos and casos.items %}
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th scope="col">Número</th>
+                <th scope="col">Área do direito</th>
+                <th scope="col">Situação</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for caso in casos.items %}
+              <tr>
+                <td>{{caso.id}}</td>
+                <td>{{caso.area_direito}}</td>
+                <td>
+                  {% for key in situacao_deferimento %}
+                    {% if situacao_deferimento[key][0] == caso.situacao_deferimento %}
+                      <span class="badge badge-{{situacao_deferimento[key][2]}}">
+                        {{situacao_deferimento[key][1]}}
+                      </span>
+                    {% endif %}
+                  {% endfor %}
+                </td>
+                <td>
+                  <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                    href="{{url_for('casos.visualizar_caso', id = caso.id)}}"
+                    style="text-decoration: none;color: white;">Visualizar</a></button>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <h3>Nenhuma correspondência encontrada</h3>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h4>Orientações Jurídicas</h4>
+        </div>
+        <div class="card-body">
+          {% if orientacoes_juridicas and orientacoes_juridicas.pages > 0 %}
+            <nav class="d-inline-block">
+              <ul class="pagination mb-0">
+                {% if orientacoes_juridicas.has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('principal.busca_geral', page_caso=orientacoes_juridicas.prev_num, busca_atual=busca_atual) }}">← Previous</a>
+                  </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                  <span class="page-link">Page {{ orientacoes_juridicas.page }} of {{ orientacoes_juridicas.pages }}</span>
+                </li>
+                
+                {% if orientacoes_juridicas.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('principal.busca_geral', page_caso=orientacoes_juridicas.next_num, busca_atual=busca_atual) }}">Next →</a>
+                  </li>
+                {% endif %}
+              </ul>
+            </nav>
+          {% endif %}
+
+          {% if orientacoes_juridicas and orientacoes_juridicas.items %}
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th scope="col">Número</th>
+                <th scope="col">Área do direito</th>
+                <th scope="col">Data de criação</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for orientacao in orientacoes_juridicas.items %}
+              <tr>
+                <td>{{orientacao.id}}</td>
+                <td>{{orientacao.area_direito}}</td>
+                <td>{{orientacao.data_criacao.strftime('%d/%m/%Y') if orientacao.data_criacao else '--'}}</td>
+                <td>
+                  <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                    href="{{url_for('orientacao_juridica.perfil_oj', id = orientacao.id)}}"
+                    style="text-decoration: none;color: white;">Visualizar</a></button>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <h3>Nenhuma correspondência encontrada</h3>
+          {% endif %}
+        </div>
+      </div>
+
+        <div class="card">
+            <div class="card-header">
+              <h4>Usuários do Sistema</h4>
+            </div>
+            <div class="card-body">
+              {% if usuarios.pages > 0 %}
+              <nav class="d-inline-block">
+                <ul class="pagination mb-0">
+                  {% if usuarios.has_prev %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_usuario=usuarios.prev_num, busca_atual=busca_atual) }}">← Previous</a>
+                    </li>
+                  {% endif %}
+                  
+                  <li class="page-item active">
+                    <span class="page-link">Page {{ usuarios.page }} of {{ usuarios.pages }}</span>
+                  </li>
+                  
+                  {% if usuarios.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_usuario=usuarios.next_num, busca_atual=busca_atual) }}">Next →</a>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+              {% endif %}
+
+              {% if usuarios.items %}  
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">E-mail</th>
+                    <th scope="col">Celular</th>
+                    <th scope="col"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for usuario in usuarios.items %}
+                  <tr>
+                    <td>{{usuario.nome}}</td>
+                    <td>{{usuario.email}}</td>
+                    <td>{{usuario.celular}}</td>
+                    <td>
+                      <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                        href="{{url_for('usuario.perfil_usuario', id_user = usuario.id)}}"
+                        style="text-decoration: none;color: white;">Visualizar</a></button>
+                    </td>
+                  </tr> 
+                {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <h3>Nenhuma correspondência encontrada</h3>
+              {% endif %}
+            </div>
+          </div>
+        
+          <div class="card">
+            <div class="card-header">
+              <h4>Assistidos</h4>
+            </div>
+
+            <div class="card-body">
+            {% if assistidos.items %}
+            {% if assistidos.pages > 0 %}
+              <nav class="d-inline-block">
+                <ul class="pagination mb-0">
+                  {% if assistidos.has_prev %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pfisica=assistidos.prev_num, busca_atual=busca_atual) }}">← Previous</a>
+                    </li>
+                  {% endif %}
+                  
+                  <li class="page-item active">
+                    <span class="page-link">Page {{ assistidos.page }} of {{ assistidos.pages }}</span>
+                  </li>
+                  
+                  {% if assistidos.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pfisica=assistidos.next_num, busca_atual=busca_atual) }}">Next →</a>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">E-mail</th>
+                    <th scope="col">Celular</th>
+                    <th scope="col"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for assistido in assistidos.items %}
+                  <tr>
+                    <td>{{assistido.nome}}</td>
+                    <td>{{assistido.email}}</td>
+                    <td>{{assistido.celular}}</td>
+                    <td>
+                      <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                        href="{{url_for('atendido.perfil_assistido', _id=assistido.id)}}"
+                        style="text-decoration: none;color: white;">Visualizar</a></button>
+                    </td>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+            <h3>Nenhuma correspondência encontrada</h3>
+            {% endif %}
+            </div>
+          </div>
+        
+          <div class="card">
+            <div class="card-header">
+              <h4>Assistidos Pessoas Jurídicas</h4>
+            </div>
+            <div class="card-body">
+            {% if assistidos_pjuridica.items %}
+            {% if assistidos_pjuridica.pages > 0 %}
+              <nav class="d-inline-block">
+                <ul class="pagination mb-0">
+                  {% if assistidos_pjuridica.has_prev %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pjuridica=assistidos_pjuridica.prev_num, busca_atual=busca_atual) }}">← Previous</a>
+                    </li>
+                  {% endif %}
+                  
+                  <li class="page-item active">
+                    <span class="page-link">Page {{ assistidos_pjuridica.page }} of {{ assistidos_pjuridica.pages }}</span>
+                  </li>
+                  
+                  {% if assistidos_pjuridica.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="{{ url_for('principal.busca_geral', page_assistido_pjuridica=assistidos_pjuridica.next_num, busca_atual=busca_atual) }}">Next →</a>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Celular</th>
+                    <th scope="col"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for assistido_pjuridica in assistidos_pjuridica.items %}
+                  <tr>
+                    <td>{{assistido_pjuridica.nome}}</td>
+                    <td>{{assistido_pjuridica.email}}</td>
+                    <td>{{assistido_pjuridica.celular}}</td>
+                    <td>
+                      <button type="submit" class="btn mb-1 btn-flat btn-primary btn-sm" name="button"><a
+                        href="{{url_for('atendido.perfil_assistido', _id=assistido_pjuridica.id)}}"
+                        style="text-decoration: none;color: white;">Visualizar</a></button>
+                    </td>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+            <h3>Nenhuma correspondência encontrada</h3>  
+            {% endif %}
+            </div>
+          </div>
+    </div>
+</div>
+
+{% endblock conteudo %}

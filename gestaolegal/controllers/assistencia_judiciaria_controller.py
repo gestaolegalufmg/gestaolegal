@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from flask import (
@@ -33,10 +34,12 @@ from gestaolegal.utils.plantao_utils import (
     filtro_busca_assistencia_judiciaria,
 )
 
+logger = logging.getLogger(__name__)
+
 assistencia_judiciaria_controller = Blueprint(
     "assistencia_judiciaria",
     __name__,
-    template_folder="../templates/assistencia_judiciaria",
+    template_folder="../static/templates",
 )
 
 
@@ -61,7 +64,7 @@ def encaminha_assistencia_judiciaria(id_orientacao: int):
     if request.method == "GET":
         form = AssistenciaJudiciariaForm()
         return render_template(
-            "encaminha_assistencia_judiciaria.html",
+            "assistencia_judiciaria/encaminhar_assistencia.html",
             form=form,
             id_orientacao=id_orientacao,
         )
@@ -105,7 +108,9 @@ def encaminha_assistencia_judiciaria(id_orientacao: int):
         )
 
     return render_template(
-        "encaminha_assistencia_judiciaria.html", form=form, id_orientacao=id_orientacao
+        "assistencia_judiciaria/encaminhar_assistencia.html",
+        form=form,
+        id_orientacao=id_orientacao,
     )
 
 
@@ -132,7 +137,7 @@ def ajax_multiselect_associa_aj_oj(orientacao_id: int):
         db.session.query(AssistenciaJudiciariaSchema)
         .filter(
             AssistenciaJudiciariaSchema.area_direito == orientacao.area_direito,
-            AssistenciaJudiciariaSchema.status == True,
+            AssistenciaJudiciariaSchema.status,
         )
         .all()
     )
@@ -189,7 +194,7 @@ def busca_assistencia_judiciaria():
     )
 
     return render_template(
-        "busca_assistencia_judiciaria.html", assistencias=assistencias
+        "assistencia_judiciaria/buscar_assistencia.html", assistencias=assistencias
     )
 
 
@@ -211,7 +216,7 @@ def perfil_assistencia_judiciaria(_id: int):
         return redirect(
             url_for("assistencia_judiciaria.listar_assistencias_judiciarias")
         )
-    return render_template("visualizar_assistencia_judiciaria.html", aj=aj)
+    return render_template("assistencia_judiciaria/visualizar_assistencia.html", aj=aj)
 
 
 ### Retorna lista de assistencia judiciaria
@@ -220,7 +225,7 @@ def perfil_assistencia_judiciaria(_id: int):
 )
 @login_required()
 def pega_assistencias_judiciarias():
-    db = get_db()
+    get_db()
 
     assistencias_judiciarias = busca_assistencias_judiciarias_modal()
     return json.dumps(assistencias_judiciarias)
@@ -244,7 +249,7 @@ def listar_assistencias_judiciarias():
     assistencias = assistencia_judiciaria_service.get_all(paginator)
 
     return render_template(
-        "lista_assistencia_judiciaria.html",
+        "assistencia_judiciaria/listagem_assistencias.html",
         assistencias=assistencias,
         filtro_busca_assistencia_judiciaria=filtro_busca_assistencia_judiciaria,
     )
@@ -312,7 +317,7 @@ def editar_assistencia_judiciaria(id_assistencia_judiciaria: int):
     form.cidade.data = assistencia_juridica.endereco.cidade
     form.estado.data = assistencia_juridica.endereco.estado
 
-    return render_template("editar_assistencia_juridica.html", form=form)
+    return render_template("assistencia_judiciaria/editar_assistencia.html", form=form)
 
 
 @assistencia_judiciaria_controller.route(
@@ -360,7 +365,9 @@ def cadastro_assistencia_judiciaria():
         return redirect(
             url_for("assistencia_judiciaria.listar_assistencias_judiciarias")
         )
-    return render_template("cadastro_assistencia_judiciaria.html", form=form)
+    return render_template(
+        "assistencia_judiciaria/cadastrar_assistencia.html", form=form
+    )
 
 
 @assistencia_judiciaria_controller.route(
@@ -382,7 +389,7 @@ def buscar_assistencia_judiciaria():
     assistencias = assisistencia_judiciaria_service.get_by_name(termo, paginator)
 
     return render_template(
-        "lista_assistencia_judiciaria.html",
+        "assistencia_judiciaria/listagem_assistencias.html",
         assistencias=assistencias,
         filtro_busca_assistencia_judiciaria=filtro_busca_assistencia_judiciaria,
     )

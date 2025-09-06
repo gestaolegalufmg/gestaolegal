@@ -1,0 +1,46 @@
+<nav class="pagination-nav" role="navigation" aria-label="Navegação de páginas">
+  <ul class="pagination" role="list">
+    {% if usuarios.has_prev %}
+    <li class="page-item" role="listitem">
+      <a class="page-link" href="{{ url_for('usuario.listar_usuarios', 
+          page=usuarios.prev_num, 
+          search=search, 
+          funcao=funcao,
+          status=status) }}" 
+          aria-label="Página anterior">
+        <span aria-hidden="true">&laquo;</span>
+        <span class="sr-only">Página anterior</span>
+      </a>
+    </li>
+    {% endif %}
+    
+    {% for page_num in range(1, usuarios.pages + 1) %}
+    <li class="page-item {% if page_num == usuarios.page %}active{% endif %}" role="listitem">
+      <a class="page-link" 
+         href="{{ url_for('usuario.listar_usuarios', 
+          page=page_num, 
+          search=search, 
+          funcao=funcao,
+          status=status) }}"
+         {% if page_num == usuarios.page %}aria-current="page"{% endif %}
+         aria-label="Página {{ page_num }}{% if page_num == usuarios.page %} (página atual){% endif %}">
+        {{ page_num }}
+      </a>
+    </li>
+    {% endfor %}
+    
+    {% if usuarios.has_next %}
+    <li class="page-item" role="listitem">
+      <a class="page-link" href="{{ url_for('usuario.listar_usuarios', 
+          page=usuarios.next_num, 
+          search=search, 
+          funcao=funcao,
+          status=status) }}" 
+          aria-label="Próxima página">
+        <span aria-hidden="true">&raquo;</span>
+        <span class="sr-only">Próxima página</span>
+      </a>
+    </li>
+    {% endif %}
+  </ul>
+</nav>

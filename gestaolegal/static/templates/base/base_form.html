@@ -1,0 +1,45 @@
+{% macro form_field(field, field_id=None, field_type=None, required=false, extra_classes="") %}
+<div class="form-field" {% if field_id %}id="{{ field_id }}"{% endif %}>
+    <div class="field-row">
+        <label for="{{ field.id }}">{{ field.label }}{% if required %} <span class="required">*</span>{% endif %}</label>
+        <div class="field-input">
+            {% if field_type %}
+                {{ field(type=field_type, class_="form-input " + extra_classes) }}
+            {% else %}
+                {{ field(class_="form-input " + extra_classes) }}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% for error in field.errors %}
+<div class="field-error">{{error}}</div>
+{% endfor %}
+{% endmacro %}
+
+{% macro form_section(title) %}
+<div class="form-section">
+    <h3>{{ title }}</h3>
+</div>
+{% endmacro %}
+
+{% macro form_field_split(field, checkbox_id, checkbox_label, required=false) %}
+<div class="form-field">
+    <div class="field-row">
+        <label for="{{ field.id }}">{{ field.label }}{% if required %} <span class="required">*</span>{% endif %}</label>
+        <div class="field-input field-input-split">
+            <div class="field-input-main">
+                {{ field(type="text", class_="form-input") }}
+            </div>
+            <div class="field-input-checkbox">
+                <input type="checkbox" id="{{ checkbox_id }}">
+                <label for="{{ checkbox_id }}">{{ checkbox_label }}</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for error in field.errors %}
+<div class="field-error">{{error}}</div>
+{% endfor %}
+{% endmacro %}

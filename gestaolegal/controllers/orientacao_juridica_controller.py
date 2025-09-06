@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -35,8 +36,10 @@ from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaS
 from gestaolegal.utils.decorators import login_required
 from gestaolegal.utils.models import queryFiltradaStatus
 
+logger = logging.getLogger(__name__)
+
 orientacao_juridica_controller = Blueprint(
-    "orientacao_juridica", __name__, template_folder="../templates/orientacao_juridica"
+    "orientacao_juridica", __name__, template_folder="../static/templates"
 )
 
 
@@ -94,7 +97,9 @@ def editar_orientacao_juridica(id_oj: int):
     form = OrientacaoJuridicaForm()
     if request.method == "POST":
         if not form.validate():
-            return render_template("editar_orientacao_juridica.html", form=form)
+            return render_template(
+                "orientacao_juridica/editar_orientacao.html", form=form
+            )
 
         setDadosOrientacaoJuridica(entidade_orientacao, form)
         db.session.commit()
@@ -103,7 +108,9 @@ def editar_orientacao_juridica(id_oj: int):
 
     setOrientacaoJuridicaForm(entidade_orientacao, form)
     return render_template(
-        "editar_orientacao_juridica.html", form=form, orientacao=entidade_orientacao
+        "orientacao_juridica/editar_orientacao.html",
+        form=form,
+        orientacao=entidade_orientacao,
     )
 
 
@@ -123,7 +130,9 @@ def buscar_orientacao_juridica():
 
     orientacoes = orientacao_juridica_service.get_by_area_do_direito(termo, paginator)
 
-    return render_template("orientacoes_juridicas.html", orientacoes=orientacoes)
+    return render_template(
+        "orientacao_juridica/listagem_orientacoes.html", orientacoes=orientacoes
+    )
 
 
 @orientacao_juridica_controller.route(
@@ -185,7 +194,7 @@ def cadastro_orientacao_juridica():
             db.session.commit()
             flash("Orientação jurídica cadastrada com sucesso!", "success")
             return redirect(url_for("orientacao_juridica.orientacoes_juridicas"))
-    return render_template("cadastro_orientacao_juridica.html", form=form)
+    return render_template("orientacao_juridica/cadastrar_orientacao.html", form=form)
 
 
 @orientacao_juridica_controller.route(
@@ -282,7 +291,7 @@ def associacao_orientacao_juridica(id_orientacao, id_atendido):
     )
 
     return render_template(
-        "associa_orientacao_juridica.html",
+        "orientacao_juridica/associar_orientacao.html",
         orientacao_entidade=orientacao,
         pagination=pagination,
         encaminhar_outras_aj=False,
@@ -335,7 +344,7 @@ def perfil_oj(id):
         .join(Atendido_xOrientacaoJuridicaSchema)
         .filter(
             Atendido_xOrientacaoJuridicaSchema.id_orientacaoJuridica == orientacao.id,
-            AtendidoSchema.status == True,
+            AtendidoSchema.status,
         )
         .order_by(AtendidoSchema.nome)
         .all()
@@ -354,7 +363,7 @@ def perfil_oj(id):
     )
 
     return render_template(
-        "perfil_orientacao_juridica.html",
+        "orientacao_juridica/visualizar_orientacao.html",
         orientacao=orientacao,
         atendidos=atendidos_envolvidos,
         assistencias=assistencias_envolvidas,
@@ -371,7 +380,7 @@ def buscar_atendidos_ajax():
     orientacao_id = request.args.get("orientacao_id")
     template_type = request.args.get("template", "single")
 
-    query = db.session.query(AtendidoSchema).filter(AtendidoSchema.status == True)
+    query = db.session.query(AtendidoSchema).filter(AtendidoSchema.status)
 
     if orientacao_id and orientacao_id != "0":
         query = query.outerjoin(Atendido_xOrientacaoJuridicaSchema).filter(
@@ -414,7 +423,9 @@ def orientacoes_juridicas():
 
     orientacoes = orientacao_juridica_service.get_all(paginator)
 
-    return render_template("orientacoes_juridicas.html", orientacoes=orientacoes)
+    return render_template(
+        "orientacao_juridica/listagem_orientacoes.html", orientacoes=orientacoes
+    )
 
 
 @orientacao_juridica_controller.route("/busca_oj/", defaults={"_busca": None})
@@ -461,4 +472,6 @@ def busca_oj(_busca):
             )
         )
 
-    return render_template("busca_orientacoes_juridicas.html", orientacoes=orientacoes)
+    return render_template(
+        "busca_orientacao_juridica/listagem_orientacoes.html", orientacoes=orientacoes
+    )

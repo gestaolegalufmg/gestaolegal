@@ -1,0 +1,71 @@
+{% from "base/base_form.html" import form_field, form_section, form_field_split %}
+
+{{ form.csrf_token }}
+
+<!-- Basic Information -->
+{{ form_field(form.nome, required=true) }}
+{{ form_field(form.email, field_type="email", required=true) }}
+
+{% if tipo_classe(form, "CadastrarUsuarioForm") %}
+    {{ form_field(form.senha, field_type="password", required=true, extra_classes="password-field") }}
+    {{ form_field(form.confirmacao, field_type="password", required=true, extra_classes="password-field") }}
+    <div class="password-requirements">
+        <p>A sua senha deve:</p>
+        <ul>
+            <li>Ter mais que 6 caracteres</li>
+            <li>Conter pelo menos 1 número</li>
+            <li>Conter pelo menos 1 letra maiúscula</li>
+            <li>Conter pelo menos 1 letra do alfabeto</li>
+            <li>Conter um dos seguintes caracteres especiais: . , ; @ #</li>
+        </ul>
+    </div>
+{% endif %}
+
+{{ form_field(form.urole, required=true) }}
+
+{{ form_section("Dados Pessoais") }}
+
+{{ form_field(form.sexo, required=true) }}
+{{ form_field(form.estado_civil, field_type="number", required=true) }}
+{{ form_field(form.nascimento, field_type="date", required=true) }}
+{{ form_field(form.profissao, required=true) }}
+
+{{ form_field(form.telefone, extra_classes="formtel") }}
+{{ form_field(form.celular, required=true, extra_classes="formcel") }}
+
+{{ form_section("Endereço") }}
+
+{{ form_field(form.logradouro, required=true) }}
+{{ form_field_split(form.numero, "sem_numero", "Sem número", required=true) }}
+{{ form_field(form.complemento) }}
+{{ form_field(form.bairro, required=true) }}
+{{ form_field(form.cep, required=true, extra_classes="formcep") }}
+{{ form_field(form.cidade, required=true) }}
+{{ form_field(form.estado, required=true) }}
+{{ form_section("Documentos") }}
+
+{{ form_field(form.rg, required=true) }}
+{{ form_field(form.cpf, extra_classes="formcpf") }}
+{{ form_field(form.oab) }}
+
+{{ form_field(form.data_entrada, field_type="date", required=true) }}
+{{ form_field(form.data_saida, field_type="date") }}
+{{ form_field(form.bolsista, required=true) }}
+{{ form_field(form.matricula) }}
+
+{{ form_field(form.tipo_bolsa, field_id="div_tipo_bolsa", required=true, extra_classes="hidden-field") }}
+{{ form_field(form.inicio_bolsa, field_id="div_inicio_bolsa", field_type="date", required=true, extra_classes="hidden-field") }}
+{{ form_field(form.fim_bolsa, field_id="div_fim_bolsa", field_type="date", extra_classes="hidden-field") }}
+
+{{ form_field(form.horario_atendimento) }}
+{{ form_field(form.suplente) }}
+{{ form_field(form.ferias) }}
+
+{{ form_section("Certificado de Atuação DAJ") }}
+
+{{ form_field(form.cert_atuacao_DAJ, required=true) }}
+{{ form_field(form.obs, field_type="textarea") }}
+
+<div class="form-actions">
+    {{form.submit(class_='btn btn-primary')}}
+</div>
