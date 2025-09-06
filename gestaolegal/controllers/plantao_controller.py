@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from datetime import date, datetime
 
@@ -24,6 +25,8 @@ from gestaolegal.services.plantao_service import PlantaoService
 from gestaolegal.utils.decorators import login_required
 from gestaolegal.utils.plantao_utils import numero_plantao_a_marcar
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class CardInfo:
@@ -32,7 +35,7 @@ class CardInfo:
 
 
 plantao_controller = Blueprint(
-    "plantao", __name__, template_folder="../templates/plantao"
+    "plantao", __name__, template_folder="../static/templates"
 )
 
 data_atual = datetime.now().date()
@@ -41,6 +44,7 @@ data_atual = datetime.now().date()
 @plantao_controller.route("/pagina_plantao", methods=["POST", "GET"])
 @login_required()
 def pg_plantao():
+    logger.info("Entering pg_plantao route")
     plantao_service = PlantaoService()
 
     dias_usuario_marcado = plantao_service.get_dias_usuario_marcado(current_user.id)
@@ -54,14 +58,14 @@ def pg_plantao():
                 UserRole.ADMINISTRADOR,
                 UserRole.COLAB_PROJETO,
             ]
-        ) and (plantao and plantao.data_abertura == None):
+        ) and (plantao and plantao.data_abertura is None):
             flash("O plantão não está aberto!")
             return redirect(url_for("principal.index"))
 
         dias_usuario_atual = plantao_service.get_dias_usuario_marcado(current_user.id)
 
         return render_template(
-            "pagina_plantao.html",
+            "plantao/pagina_plantao.html",
             datas_plantao=dias_usuario_atual,
             numero_plantao=numero_plantao_a_marcar(current_user.id),
             data_atual=data_atual,
@@ -114,7 +118,7 @@ def ajax_confirma_data_plantao():
             UserRole.ADMINISTRADOR,
             UserRole.COLAB_PROJETO,
         ]
-    ) and (plantao and plantao.data_abertura == None):
+    ) and (plantao and plantao.data_abertura is None):
         flash("O plantão não está aberto!")
         return redirect(url_for("principal.index"))
 
@@ -132,7 +136,7 @@ def ajax_confirma_data_plantao():
     if not disponibilidade["disponivel"]:
         resultado_json = cria_json(
             render_template(
-                "lista_datas_plantao.html",
+                "plantao/componentes/lista_datas_plantao.html",
                 data_atual=data_atual,
                 datas_plantao=dias_usuario_marcado,
             ),
@@ -148,7 +152,7 @@ def ajax_confirma_data_plantao():
     ):
         resultado_json = cria_json(
             render_template(
-                "lista_datas_plantao.html",
+                "plantao/componentes/lista_datas_plantao.html",
                 datas_plantao=dias_usuario_marcado,
                 data_atual=data_atual,
             ),
@@ -169,7 +173,7 @@ def ajax_confirma_data_plantao():
     dias_usuario_atual = plantao_service.get_dias_usuario_marcado(current_user.id)
     resultado_json = cria_json(
         render_template(
-            "lista_datas_plantao.html",
+            "plantao/componentes/lista_datas_plantao.html",
             datas_plantao=dias_usuario_atual,
             data_atual=data_atual,
         ),
@@ -237,7 +241,7 @@ def reg_presenca():
     status_data = plantao_service.get_status_presenca_usuario(current_user.id)
 
     return render_template(
-        "registro_presenca.html",
+        "plantao/registro_presenca.html",
         data_hora_atual=status_data["data_hora_atual"],
         status_presenca=status_data["status_presenca"],
     )
@@ -275,7 +279,7 @@ def confirmar_presenca():
     presencas_data = plantao_service.get_presencas_para_confirmacao()
 
     return render_template(
-        "confirmar_presenca.html",
+        "plantao/confirmar_presenca.html",
         presencas_registradas=presencas_data["presencas_registradas"],
         plantoes_registradas=presencas_data["plantoes_registradas"],
         data_ontem=presencas_data["data_ontem"],
@@ -321,7 +325,7 @@ def configurar_abertura():
             UserRole.ADMINISTRADOR,
             UserRole.COLAB_PROJETO,
         ]
-    ) and (config_data["plantao"] and config_data["plantao"].data_abertura == None):
+    ) and (config_data["plantao"] and config_data["plantao"].data_abertura is None):
         flash("O plantão não está aberto!")
         return redirect(url_for("principal.index"))
 
@@ -334,7 +338,7 @@ def configurar_abertura():
     set_fechar_plantao_form(form_fechar, config_data["plantao"])
 
     return render_template(
-        "configurar_abertura.html",
+        "plantao/configurar_plantao.html",
         form_fechar=form_fechar,
         form_abrir=form_abrir,
         periodo=config_data["periodo"],
@@ -370,7 +374,7 @@ def ajax_salva_config_plantao():
 @plantao_controller.route("/fila-atendimento", methods=["GET", "POST"])
 @login_required()
 def fila_atendimento():
-    return render_template("lista_atendimentos.html")
+    return render_template("plantao/fila_atendimento.html")
 
 
 @plantao_controller.route("/fila-atendimento/criar", methods=["GET", "POST"])
@@ -389,6 +393,7 @@ def criar_fila():
 @plantao_controller.route("/fila-atendimento/hoje", methods=["GET", "PUT"])
 @login_required()
 def pegar_atendimentos():
+    logger.info("Entering pegar_atendimentos route")
     plantao_service = PlantaoService()
 
     if request.method == "PUT":
@@ -403,8 +408,23 @@ def pegar_atendimentos():
 @plantao_controller.route("/atendido/fila-atendimento", methods=["GET", "POST"])
 @login_required()
 def ajax_cadastrar_atendido():
-    atendido_service = AtendidoService()
-    data = request.get_json(silent=True, force=True)
+    try:
+        logger.info("Entering ajax_cadastrar_atendido route")
+        atendido_service = AtendidoService()
+        data = request.get_json(silent=True, force=True)
 
-    resultado = atendido_service.create_atendido_from_json(data)
-    return json.dumps(resultado)
+        logger.info(f"Received data keys: {list(data.keys()) if data else 'None'}")
+        logger.debug(f"Full received data: {data}")
+
+        if not data:
+            logger.warning("No data received in ajax_cadastrar_atendido")
+            return json.dumps({"message": "error: No data received"})
+
+        logger.info("Calling create_atendido_from_json...")
+        resultado = atendido_service.create_atendido_from_json(data)
+        logger.info(f"Result from create_atendido_from_json: {resultado}")
+
+        return json.dumps(resultado)
+    except Exception as e:
+        logger.error(f"Error in ajax_cadastrar_atendido: {str(e)}", exc_info=True)
+        return json.dumps({"message": f"error: {str(e)}"})

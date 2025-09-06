@@ -1,0 +1,24 @@
+{% extends "base/painel_principal.html" %}
+{% block titulo  %}Justificativa para Indeferimento de Caso {{ super() }}{% endblock titulo %}
+{% block conteudo %}
+<div class="card">
+    <div class="card-body">
+        <div class="section-body">
+            <div class="row">
+                <div class="col-12 col-md-6 col-lg-12">
+                    <form action="" method="POST">
+                        {{form.hidden_tag()}}
+                        <div class="form-group row">
+                            {{form.justificativa.label(class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
+                            <div class="col-12 col-lg-6 offset-lg-1">
+                                {{form.justificativa(class="w-100", rows="10")}}
+                            </div>
+                        </div>
+                        {{form.submit(class_='btn btn-flat btn-primary')}}
+                    </form>   
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock conteudo %}

@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Callable, TypeVar
 
 from sqlalchemy.orm import Query
@@ -12,6 +13,8 @@ from gestaolegal.services.base_service import BaseService
 from gestaolegal.utils.plantao_utils import filtro_busca_assistencia_judiciaria
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
 
 
 class AssistenciaJudiciariaService(
@@ -153,4 +156,4 @@ class AssistenciaJudiciariaService(
         return result.all()
 
     def filter_active(self, query: Query[T]) -> Query[T]:
-        return query.filter(AssistenciaJudiciariaSchema.status == True)
+        return query.filter(AssistenciaJudiciariaSchema.status)

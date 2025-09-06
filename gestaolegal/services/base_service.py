@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Callable, Generic, Optional, TypeVar
 
 from sqlalchemy.orm import Query
@@ -7,6 +8,8 @@ from gestaolegal.database import get_db
 T = TypeVar("T")
 SchemaType = TypeVar("SchemaType")
 ModelType = TypeVar("ModelType")
+
+logger = logging.getLogger(__name__)
 
 
 class BaseService(Generic[SchemaType, ModelType]):
@@ -18,6 +21,9 @@ class BaseService(Generic[SchemaType, ModelType]):
         self.schema_class = schema_class
 
     def find_by_id(self, id: int) -> Optional[ModelType]:
+        logger.debug(
+            f"BaseService.find_by_id called for {self.schema_class.__name__} with id: {id}"
+        )
         result = (
             self.filter_active(self.session.query(self.schema_class))
             .filter(self.schema_class.id == id)
@@ -90,9 +96,11 @@ class BaseService(Generic[SchemaType, ModelType]):
         return [self._to_model(result) for result in results]
 
     def create(self, data: dict) -> ModelType:
+        logger.info(f"BaseService.create called for {self.schema_class.__name__}")
         entity = self.schema_class(**data)
         self.session.add(entity)
         self.session.commit()
+        logger.info(f"Created {self.schema_class.__name__} with ID: {entity.id}")
         return self._to_model(entity)
 
     def update(self, entity_id: int, data: dict) -> ModelType:
@@ -138,7 +146,7 @@ class BaseService(Generic[SchemaType, ModelType]):
 
     def filter_active(self, query: Query[T]) -> Query[T]:
         if hasattr(self.schema_class, "status"):
-            return query.filter(self.schema_class.status == True)
+            return query.filter(self.schema_class.status)
 
         return query
 

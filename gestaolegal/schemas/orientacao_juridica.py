@@ -33,11 +33,13 @@ class OrientacaoJuridicaSchema(Base):
         "AssistenciaJudiciariaSchema",
         secondary="assistenciasJudiciarias_xOrientacao_juridica",
         back_populates="orientacoesJuridicas",
+        overlaps="assistenciaJudiciaria,assistenciasJudiciarias_xOrientacao_juridica,orientacaoJuridica",
     )
     atendidos: Mapped[list["AtendidoSchema"]] = relationship(
         "AtendidoSchema",
         secondary="atendido_xOrientacaoJuridica",
         back_populates="orientacoesJuridicas",
+        overlaps="atendido,atendido_xOrientacaoJuridica,orientacaoJuridica",
     )
     id_usuario: Mapped[int | None] = mapped_column(Integer, ForeignKey("usuarios.id"))
     usuario: Mapped["UsuarioSchema | None"] = relationship(

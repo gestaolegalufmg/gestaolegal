@@ -1,0 +1,171 @@
+{% extends "base/painel_principal.html" %}
+
+{% block page_title %}Notificações{% endblock page_title %}
+{% block titulo %}
+<h1>Notificações</h1>
+{% endblock titulo %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/table_styles.css') }}">
+{% endblock %}
+
+{% block conteudo %}
+<div class="page-container">
+  <div class="page-header">
+    <div class="search-section">
+      <form method="GET" action="{{ url_for('notificacoes.index') }}" class="search-form">
+        <div class="search-field">
+          <label>Buscar:</label>
+          <input type="text" name="valor_busca" value="{{ valor_busca or '' }}" 
+                 placeholder="Caráter, criador...">
+        </div>
+        
+        <div class="search-field">
+          <select name="tipo_busca">
+            <option value="todos" {% if tipo_busca == 'todos' or not tipo_busca %}selected{% endif %}>Todos</option>
+            <option value="info" {% if tipo_busca == 'info' %}selected{% endif %}>Informação</option>
+            <option value="warning" {% if tipo_busca == 'warning' %}selected{% endif %}>Aviso</option>
+            <option value="error" {% if tipo_busca == 'error' %}selected{% endif %}>Erro</option>
+          </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Buscar</button>
+      </form>
+      
+      <div class="total-info">
+        <span>Total:</span>
+        <span class="total-badge">
+          {% if notificacoes and notificacoes.total is defined %}
+            {{ notificacoes.total }}
+          {% else %}
+            {{ notificacoes|length if notificacoes else 0 }}
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  {% if notificacoes and ((notificacoes.items and notificacoes.items|length > 0) or (notificacoes|length > 0 and not notificacoes.items)) %}
+    <div class="table-container">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Caráter da Notificação</th>
+            <th>Data</th>
+            <th>Criador</th>
+            <th>Página de Origem</th>
+          </tr> 
+        </thead>
+        <tbody>
+          {% set items = notificacoes.items if notificacoes.items is defined else notificacoes %}
+          {% for notificacao in items %}
+            <tr>
+              <td>{{ notificacao.carater or '--' }}</td>
+              <td>{{ notificacao.data_criacao.strftime('%d/%m/%Y %H:%M') if notificacao.data_criacao else '--' }}</td>
+              <td>{{ notificacao.criador.nome if notificacao.criador else '--' }}</td>
+              <td>
+                <div class="action-buttons">
+                  <a href="{{ url_for('notificacoes.ir_a_pagina', id=notificacao.id) }}" 
+                     class="btn btn-info">Ir à página</a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    {% if notificacoes.pages is defined and notificacoes.pages > 1 %}
+    <div class="pagination-section">
+      <div class="pagination-info">
+        <span class="results-text">
+          Mostrando 
+          <strong>{{ notificacoes.first_item }}</strong> 
+          até 
+          <strong>{{ notificacoes.last_item }}</strong> 
+          de 
+          <strong>{{ notificacoes.total }}</strong> 
+          registros
+        </span>
+        
+        <span class="page-info">
+          Página {{ notificacoes.page }} de {{ notificacoes.pages }}
+        </span>
+      </div>
+
+      <nav class="pagination-nav">
+        <ul class="pagination">
+          {% if notificacoes.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('notificacoes.index', 
+                page=notificacoes.prev_num, 
+                valor_busca=valor_busca, 
+                tipo_busca=tipo_busca) }}" aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          {% endif %}
+          
+          {% for page_num in notificacoes.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+            {% if page_num %}
+              {% if page_num == notificacoes.page %}
+                <li class="page-item active">
+                  <span class="page-link">{{ page_num }}</span>
+                </li>
+              {% else %}
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('notificacoes.index', 
+                      page=page_num, 
+                      valor_busca=valor_busca, 
+                      tipo_busca=tipo_busca) }}">{{ page_num }}</a>
+                </li>
+              {% endif %}
+            {% else %}
+              <li class="page-item disabled">
+                <span class="page-link">...</span>
+              </li>
+            {% endif %}
+          {% endfor %}
+          
+          {% if notificacoes.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('notificacoes.index', 
+                page=notificacoes.next_num, 
+                valor_busca=valor_busca, 
+                tipo_busca=tipo_busca) }}" aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+    
+  {% else %}
+    <div class="empty-state">
+      <h4>Nenhuma notificação encontrada</h4>
+      <p class="empty-message">
+        {% if valor_busca %}
+          Não foram encontrados resultados para "{{ valor_busca }}"
+        {% else %}
+          Não há notificações cadastradas no momento
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+</div>
+{% endblock conteudo %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoSelect = document.querySelector('select[name="tipo_busca"]');
+    if (tipoSelect) {
+        tipoSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+});
+</script>
+{% endblock %}

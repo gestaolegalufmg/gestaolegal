@@ -1,0 +1,63 @@
+<!-- Reusable Modal Component -->
+<!-- Usage: {% include 'components/modal_component.html' with context %} -->
+
+<!-- Modal Template -->
+<div class="modal-overlay modal-hidden" 
+     id="{{ modal_id }}" 
+     role="dialog" 
+     aria-modal="true" 
+     aria-labelledby="{{ modal_id }}_title"
+     aria-describedby="{{ modal_id }}_body">
+  <div class="modal-content {{ modal_size or 'modal-md' }}" 
+       tabindex="-1">
+    
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <h2 class="modal-title" id="{{ modal_id }}_title">
+        {{ modal_title }}
+      </h2>
+      <button type="button" 
+              class="modal-close" 
+              onclick="ModalManager.close('{{ modal_id }}')" 
+              aria-label="Fechar modal">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    
+    <!-- Modal Body -->
+    <div class="modal-body" id="{{ modal_id }}_body">
+      {{ modal_body | safe }}
+    </div>
+    
+    <!-- Modal Footer -->
+    {% if modal_cancel_text or modal_confirm_text or modal_danger_text %}
+    <div class="modal-footer">
+      {% if modal_cancel_text %}
+        <button type="button" 
+                class="btn btn-secondary" 
+                onclick="ModalManager.close('{{ modal_id }}')">
+          {{ modal_cancel_text }}
+        </button>
+      {% endif %}
+      
+      {% if modal_confirm_text %}
+        <button type="button" 
+                class="btn btn-primary" 
+                id="{{ modal_confirm_id or modal_id + '_confirm' }}"
+                {% if modal_confirm_disabled %}disabled{% endif %}>
+          {{ modal_confirm_text }}
+        </button>
+      {% endif %}
+      
+      {% if modal_danger_text %}
+        <button type="button" 
+                class="btn btn-danger" 
+                id="{{ modal_danger_id or modal_id + '_danger' }}"
+                {% if modal_danger_disabled %}disabled{% endif %}>
+          {{ modal_danger_text }}
+        </button>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>

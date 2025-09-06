@@ -1,0 +1,27 @@
+{% extends "base/painel_principal.html" %}
+{%block titulo%}Cadastrar Arquivo{%endblock%}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/form_styles.css') }}">
+{% endblock %}
+
+{% block conteudo %}
+<div class="card pessoa" id="pessoa">
+    <div class="card-body">
+        <div class="form-validation">
+            <form class="form-valide" action="{{url_for('arquivos.cadastrar_arquivo')}}" method="POST" id="form" enctype="multipart/form-data">
+                {% include "arquivos/formulario_base_arquivo.html" %}
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Cadastrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/novo_caso.js')}}"></script>
+{% endblock scripts %}

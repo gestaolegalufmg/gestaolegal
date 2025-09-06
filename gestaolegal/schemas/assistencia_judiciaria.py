@@ -39,6 +39,7 @@ class AssistenciaJudiciariaSchema(Base):
         "OrientacaoJuridicaSchema",
         secondary="assistenciasJudiciarias_xOrientacao_juridica",
         back_populates="assistenciasJudiciarias",
+        overlaps="assistenciaJudiciaria,assistenciasJudiciarias_xOrientacao_juridica,orientacaoJuridica",
     )
 
     def setAreas_atendidas(self, opcoes):

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Any, Callable, TypeVar
 
@@ -13,6 +14,8 @@ from gestaolegal.services.base_service import BaseService
 
 T = TypeVar("T")
 
+logger = logging.getLogger(__name__)
+
 
 class UsuarioService(BaseService[UsuarioSchema, Usuario]):
     def __init__(self):
@@ -27,6 +30,7 @@ class UsuarioService(BaseService[UsuarioSchema, Usuario]):
         return Usuario.from_sqlalchemy(usuario_schema) if usuario_schema else None
 
     def find_by_email(self, email: str) -> Usuario | None:
+        logger.info(f"UsuarioService.find_by_email called for: {email}")
         usuario_schema = (
             self.filter_active(self.session.query(UsuarioSchema))
             .filter(UsuarioSchema.email == email)
@@ -133,25 +137,34 @@ class UsuarioService(BaseService[UsuarioSchema, Usuario]):
                 )
             else:
                 usuarios = self.session.query(UsuarioSchema).filter(
-                    UsuarioSchema.status == True
+                    UsuarioSchema.status
                 )
 
         usuarios = usuarios.all()
         return [Usuario.from_sqlalchemy(usuario) for usuario in usuarios]
 
     def authenticate_user(self, email: str, senha: str) -> Usuario | None:
+        logger.info(f"UsuarioService.authenticate_user called for: {email}")
         usuario_schema = (
             self.session.query(UsuarioSchema).filter_by(email=email).first()
         )
         if usuario_schema:
             usuario = Usuario.from_sqlalchemy(usuario_schema)
             if Usuario.checa_senha(usuario, senha):
+                logger.info(f"User authenticated successfully: {email}")
                 return usuario
+            else:
+                logger.warning(f"Invalid password for user: {email}")
+        else:
+            logger.warning(f"User not found: {email}")
         return None
 
     def create_user(
         self, user_data: dict, endereco_data: dict, criado_por: int
     ) -> Usuario:
+        logger.info(
+            f"UsuarioService.create_user called for: {user_data.get('email', 'Unknown')}"
+        )
         entidade_endereco = EnderecoSchema(**endereco_data)
         self.session.add(entidade_endereco)
         self.session.flush()
@@ -348,4 +361,4 @@ class UsuarioService(BaseService[UsuarioSchema, Usuario]):
         return True, ""
 
     def filter_active(self, query: Query[T]) -> Query[T]:
-        return query.filter(UsuarioSchema.status == True)
+        return query.filter(UsuarioSchema.status)

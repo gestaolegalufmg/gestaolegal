@@ -1,0 +1,65 @@
+{% extends "base_form.html" %}
+{% block titulo %} Edição de Orientacao Jurídica {% endblock titulo %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/form_styles.css') }}">
+{% endblock css %}
+
+{% block conteudo %}
+
+
+<div class="card pessoa" id = "Orientacao">
+    <div class="card-body">
+        <div class="form-group row" ><h3>Dados da Orientação Jurídica</h3></div>
+        <div style="height: 30px;"></div>
+        <div class= "form-validation">
+            <form class="form-valide" action="{{url_for('orientacao_juridica.editar_orientacao_juridica', id_oj = orientacao.id)}}" method="POST" id="form">
+                
+                {% include "orientacao_juridica_form.html" %}
+
+                <button type="submit" class="btn btn-primary" id="button">Salvar Alteração</button>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+
+{% endblock conteudo %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="{{url_for('static',filename='js/form_utils.js')}}"></script>
+<script src="{{url_for('static',filename='js/orientacao.js')}}"></script>
+<script>
+    trataBotaoForm();
+
+    //CHAMO A VALIDACAO
+    validarCampoAreaDireito();
+    
+    //LINKO A VALIDACAO AO CAMPO bolsista
+    document.getElementById('area_direito').onchange = function() {validarCampoAreaDireito()};
+    document.getElementById('val-sub_area_admin').onchange = function() {validarCampoAreaDireito()};
+
+    document.addEventListener("wheel", function(event){
+        if(document.activeElement.type === "number"){
+        document.activeElement.blur();
+     }
+    });
+</script>
+
+
+<style>
+.modal-backdrop {
+    z-index: 9998 !important;
+}
+.modal {
+    z-index: 9999 !important;
+    padding-left: 250px !important;
+}
+.modal-dialog {
+    margin: 15vh auto 5vh auto !important;
+    max-height: 80vh !important;
+}
+</style>
+{%endblock%}

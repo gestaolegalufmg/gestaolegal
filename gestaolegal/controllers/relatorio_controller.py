@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from flask import (
@@ -12,6 +13,7 @@ from flask import (
 from flask_login import current_user
 from sqlalchemy import func
 
+from gestaolegal import csrf
 from gestaolegal.common.constants import UserRole, situacao_deferimento
 from gestaolegal.forms.relatorio import RelatorioForm
 from gestaolegal.schemas.caso import CasoSchema
@@ -23,8 +25,10 @@ from gestaolegal.utils.casos_utils import *
 from gestaolegal.utils.decorators import login_required
 from gestaolegal.utils.plantao_utils import *
 
+logger = logging.getLogger(__name__)
+
 relatorios_controller = Blueprint(
-    "relatorios", __name__, template_folder="../templates/relatorios"
+    "relatorios", __name__, template_folder="../static/templates"
 )
 
 
@@ -85,7 +89,7 @@ def index():  # vai listar os dados como o select2 entende
                     areas=areas,
                 )
             )
-    return render_template("relatorios.html", form=form)
+    return render_template("relatorios/pagina_relatorios.html", form=form)
 
 
 @relatorios_controller.route("/casos_orientacao_juridica/<inicio>/<final>/<areas>")
@@ -105,7 +109,7 @@ def casos_orientacao_juridica(inicio, final, areas):
         OrientacaoJuridicaSchema.area_direito,
         func.count(OrientacaoJuridicaSchema.area_direito),
     ).filter(
-        OrientacaoJuridicaSchema.status == True,
+        OrientacaoJuridicaSchema.status,
         OrientacaoJuridicaSchema.data_criacao >= inicio,
         OrientacaoJuridicaSchema.data_criacao <= final,
     )
@@ -123,7 +127,7 @@ def casos_orientacao_juridica(inicio, final, areas):
     usuario = current_user.nome
 
     return render_template(
-        "casos_orientacao_juridica.html",
+        "relatorios/relatorio_casos_orientacao.html",
         orientacoes_juridicas=orientacoes_juridicas,
         data_emissao=data_emissao,
         usuario=usuario,
@@ -151,7 +155,7 @@ def casos_cadastrados(inicio, final, areas):
                 CasoSchema.area_direito, func.count(CasoSchema.area_direito)
             )
             .filter(
-                CasoSchema.status == True,
+                CasoSchema.status,
                 CasoSchema.data_criacao >= inicio,
                 CasoSchema.data_criacao <= final,
             )
@@ -165,7 +169,7 @@ def casos_cadastrados(inicio, final, areas):
                 CasoSchema.area_direito, func.count(CasoSchema.area_direito)
             )
             .filter(
-                CasoSchema.status == True,
+                CasoSchema.status,
                 CasoSchema.data_criacao >= inicio,
                 CasoSchema.data_criacao <= final,
                 CasoSchema.area_direito.in_(area_direito),
@@ -176,7 +180,7 @@ def casos_cadastrados(inicio, final, areas):
     data_emissao = datetime.now().date().strftime("%d/%m/%Y")
     usuario = current_user.nome
     return render_template(
-        "casos_cadastrados.html",
+        "relatorios/relatorio_casos_cadastrados.html",
         casos=casos,
         data_emissao=data_emissao,
         usuario=usuario,
@@ -204,7 +208,7 @@ def relatorio_horarios(inicio, final, usuarios):
             .select_from(RegistroEntradaSchema)
             .join(UsuarioSchema)
             .filter(
-                RegistroEntradaSchema.status == False,
+                not RegistroEntradaSchema.status,
                 RegistroEntradaSchema.data_saida >= inicio,
                 RegistroEntradaSchema.data_saida <= final,
             )
@@ -226,7 +230,7 @@ def relatorio_horarios(inicio, final, usuarios):
         horarios = (
             db.session.query(RegistroEntradaSchema)
             .filter(
-                RegistroEntradaSchema.status == False,
+                not RegistroEntradaSchema.status,
                 RegistroEntradaSchema.data_saida >= inicio,
                 RegistroEntradaSchema.data_saida <= final,
                 RegistroEntradaSchema.id_usuario.in_(usuarios),
@@ -246,7 +250,7 @@ def relatorio_horarios(inicio, final, usuarios):
     data_emissao = datetime.now().date().strftime("%d/%m/%Y")
     usuario = current_user.nome
     return render_template(
-        "relatorio_horarios.html",
+        "relatorios/relatorio_horarios.html",
         data_emissao=data_emissao,
         usuario=usuario,
         horarios=horarios,
@@ -275,7 +279,7 @@ def casos_arq_sol_ativ(inicio, final, areas):
         casos = (
             db.session.query(CasoSchema)
             .filter(
-                CasoSchema.status == True,
+                CasoSchema.status,
                 CasoSchema.data_criacao >= inicio,
                 CasoSchema.data_criacao <= final,
                 CasoSchema.situacao_deferimento.in_(
@@ -293,7 +297,7 @@ def casos_arq_sol_ativ(inicio, final, areas):
         casos = (
             db.session.query(CasoSchema)
             .filter(
-                CasoSchema.status == True,
+                CasoSchema.status,
                 CasoSchema.area_direito.in_(area_direito),
                 CasoSchema.data_criacao >= inicio,
                 CasoSchema.data_criacao <= final,
@@ -326,7 +330,7 @@ def casos_arq_sol_ativ(inicio, final, areas):
     data_emissao = datetime.now().date().strftime("%d/%m/%Y")
     usuario = current_user.nome
     return render_template(
-        "casos_arq_sol_ativ.html",
+        "relatorios/relatorio_casos_status.html",
         casos=casos_por_area,
         data_emissao=data_emissao,
         usuario=usuario,
@@ -335,6 +339,7 @@ def casos_arq_sol_ativ(inicio, final, areas):
 
 
 @relatorios_controller.route("/api/buscar_usuarios", methods=["GET"])
+@csrf.exempt
 @login_required()
 def api_relatorios_buscar_usuarios():
     termo = request.args.get("q", type=str)
@@ -369,6 +374,7 @@ def api_relatorios_buscar_usuarios():
 
 
 @relatorios_controller.route("/api/buscar_area_direito", methods=["GET"])
+@csrf.exempt
 @login_required()
 def api_relatorios_buscar_area_direito():
     termo = request.args.get("q", type=str)
@@ -411,7 +417,7 @@ def api_relatorios_buscar_area_direito():
 def relatorio_plantao():
     db = get_db()
 
-    horarios_plantao = (
+    (
         db.session.query(DiasMarcadosPlantaoSchema)
         .filter(
             DiasMarcadosPlantaoSchema.data >= data_inicio,
@@ -426,7 +432,7 @@ def relatorio_plantao():
 def relatorio_casos():
     db = get_db()
 
-    casos = (
+    (
         db.session.query(CasoSchema)
         .filter(
             CasoSchema.data_criacao >= data_inicio,

@@ -1,0 +1,261 @@
+/* Unified Modal System - Modern, Accessible, and Consistent */
+
+/* CSS Custom Properties for theming */
+:root {
+  --modal-z-index: 1050;
+  --modal-backdrop-z-index: 1040;
+  --modal-backdrop-color: rgba(0, 0, 0, 0.5);
+  --modal-border-radius: 0.5rem;
+  --modal-box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  --modal-transition-duration: 0.3s;
+  --modal-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--modal-z-index);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background-color: var(--modal-backdrop-color);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--modal-transition-duration) var(--modal-transition-timing),
+                visibility var(--modal-transition-duration) var(--modal-transition-timing);
+}
+
+/* Modal Overlay - Visible State */
+.modal-overlay:not(.modal-hidden) {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Modal Hidden State */
+.modal-hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Modal Content */
+.modal-content {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    background: var(--color-white, #ffffff);
+    border-radius: var(--modal-border-radius);
+    box-shadow: var(--modal-box-shadow);
+    overflow: hidden;
+    transform: scale(0.9) translateY(-20px);
+    transition: transform var(--modal-transition-duration) var(--modal-transition-timing);
+}
+
+/* Modal Content - Visible State */
+.modal-overlay:not(.modal-hidden) .modal-content {
+    transform: scale(1) translateY(0);
+}
+
+/* Modal Sizes */
+.modal-content.modal-sm {
+    max-width: 300px;
+}
+
+.modal-content.modal-md {
+    max-width: 500px;
+}
+
+.modal-content.modal-lg {
+    max-width: 800px;
+}
+
+.modal-content.modal-xl {
+    max-width: 1140px;
+}
+
+/* Modal Header */
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 1.5rem 0 1.5rem;
+    border-bottom: 1px solid var(--color-border, #e9ecef);
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text-primary, #142129);
+    line-height: 1.5;
+    flex: 1;
+    padding-right: 2rem; /* Space for close button */
+}
+
+/* Modal Body */
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 8rem); /* Account for header and footer */
+}
+
+/* Modal Footer */
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem 1.5rem 1.5rem;
+    border-top: 1px solid var(--color-border, #e9ecef);
+    background-color: var(--color-bg-light, #f8f9fa);
+}
+
+/* Modal Close Button */
+.modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--color-text-muted, #6c757d);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.modal-close:hover {
+    color: var(--color-text-primary, #000);
+    background-color: var(--color-bg-hover, #f8f9fa);
+}
+
+.modal-close:focus {
+    outline: 2px solid var(--color-primary, #007bff);
+    outline-offset: 2px;
+}
+
+/* Button Styles for Modals - Consistent with existing design system */
+.modal-footer .btn {
+    min-width: 80px;
+    font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .modal-overlay {
+        padding: 0.5rem;
+    }
+    
+    .modal-content {
+        max-height: 95vh;
+    }
+    
+    .modal-header {
+        padding: 1rem 1rem 0 1rem;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+        max-height: calc(95vh - 6rem);
+    }
+    
+    .modal-footer {
+        padding: 0.75rem 1rem 1rem 1rem;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+    }
+}
+
+/* Focus Management */
+.modal-overlay:not(.modal-hidden) .modal-content {
+    outline: none;
+}
+
+/* Animation for modal appearance */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Backdrop click animation */
+.modal-overlay.modal-closing {
+    animation: modalFadeOut var(--modal-transition-duration) var(--modal-transition-timing) forwards;
+}
+
+.modal-overlay.modal-closing .modal-content {
+    animation: modalSlideOut var(--modal-transition-duration) var(--modal-transition-timing) forwards;
+}
+
+@keyframes modalFadeOut {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+@keyframes modalSlideOut {
+    to {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .modal-content {
+        border: 2px solid var(--color-text-primary, #000);
+    }
+    
+    .modal-close {
+        border: 1px solid var(--color-text-primary, #000);
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .modal-overlay,
+    .modal-content,
+    .modal-close {
+        transition: none;
+    }
+    
+    .modal-overlay.modal-closing,
+    .modal-overlay.modal-closing .modal-content {
+        animation: none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .modal-overlay {
+        display: none !important;
+    }
+}

@@ -1,0 +1,453 @@
+{% extends "base/painel_principal.html" %}
+
+{% block page_title %}Atendidos e Assistidos{% endblock page_title %}
+{% block titulo %}
+<h1>Atendidos e Assistidos</h1>
+{% endblock titulo %}
+
+{% block conteudo %}
+<div class="page-container">
+  <div class="page-header">
+    <div class="search-section">
+      <form method="GET" action="{{ url_for('atendido.atendidos_assistidos') }}" class="search-form">
+        <div class="search-field">
+          <label>Buscar:</label>
+          <input type="text" name="valor_busca" value="{{ valor_busca }}" 
+                 placeholder="Nome, CPF, CNPJ...">
+        </div>
+        
+        <div class="search-field">
+          <select name="tipo_busca">
+            <option value="todos" {% if tipo_busca == 'todos' %}selected{% endif %}>Todos</option>
+            <option value="atendidos" {% if tipo_busca == 'atendidos' %}selected{% endif %}>Atendidos</option>
+            <option value="assistidos" {% if tipo_busca == 'assistidos' %}selected{% endif %}>Assistidos</option>
+          </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Buscar</button>
+      </form>
+      
+      <div class="total-info">
+        <span>Total:</span>
+        <span class="total-badge">
+          {% if atendidos_assistidos.total is defined %}
+            {{ atendidos_assistidos.total }}
+          {% else %}
+            {{ atendidos_assistidos|length if atendidos_assistidos else 0 }}
+          {% endif %}
+        </span>
+      </div>
+    </div>
+    
+    <div class="action-section">
+      <a class="btn btn-primary" href="{{ url_for('atendido.cadastro_na') }}">
+        Cadastrar Atendido
+      </a>
+    </div>
+  </div>
+
+  <!-- Results Table -->
+  {% if atendidos_assistidos and ((atendidos_assistidos.items and atendidos_assistidos.items|length > 0) or (atendidos_assistidos|length > 0 and not atendidos_assistidos.items)) %}
+    <div class="table-container">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>CPF</th>
+            <th>CNPJ</th>
+            <th>Telefone</th>
+            <th>Ações</th>
+            <th></th>
+            <th></th>
+            <th></th>
+          </tr> 
+        </thead>
+        <tbody>
+          {% set items = atendidos_assistidos.items if atendidos_assistidos.items is defined else atendidos_assistidos %}
+          {% for atendido, assistido in items %}
+            <tr>
+              <td>{{ atendido.nome }}</td>
+              <td>{{ atendido.cpf or '--' }}</td>
+              <td>{{ atendido.cnpj or '--' }}</td>
+              <td>{{ atendido.telefone or '--' }}</td>
+              
+              <td>
+                <a href="{{ url_for('atendido.perfil_assistido', _id=atendido.id) }}" 
+                   class="btn btn-primary">Visualizar</a>
+              </td>
+              
+              <td>
+                {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.COLAB_PROJETO.value, UserRole.ESTAGIARIO_DIREITO.value] %}
+                  {% if assistido %}
+                    <a href="{{ url_for('atendido.editar_assistido', id_atendido=atendido.id) }}" 
+                       class="btn btn-primary">Editar</a>
+                  {% else %}
+                    <a href="{{ url_for('atendido.editar_atendido', id_atendido=atendido.id) }}" 
+                       class="btn btn-primary">Editar</a>
+                  {% endif %}
+                {% endif %}
+              </td>
+              
+              <td>
+                {% if not assistido %}
+                  {% if current_user.urole == "admin" or current_user.urole == "estag_direito" %}
+                    <a href="{{ url_for('atendido.tornar_assistido', id_atendido=atendido.id) }}" 
+                       class="btn btn-primary">Tornar Assistido</a>
+                  {% endif %}
+                {% else %}
+                  <span class="status-text">Já é Assistido</span>
+                {% endif %}
+              </td>
+              
+              <td>
+                {% if current_user.urole == "admin" %}
+                  <form action="{{ url_for('atendido.excluir_atendido') }}" method="POST" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="id" value="{{ atendido.id }}">
+                    <button type="submit" class="btn btn-danger"
+                            onclick="return confirm('Você deseja excluir este atendido/assistido?');">
+                      Excluir
+                    </button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Pagination Info and Controls -->
+    {% if atendidos_assistidos.pages is defined %}
+    <div class="pagination-section">
+      <!-- Results Info -->
+      <div class="pagination-info">
+        <span class="results-text">
+          Mostrando 
+          <strong>{{ atendidos_assistidos.first_item }}</strong> 
+          até 
+          <strong>{{ atendidos_assistidos.last_item }}</strong> 
+          de 
+          <strong>{{ atendidos_assistidos.total }}</strong> 
+          registros
+        </span>
+        
+        {% if atendidos_assistidos.pages > 1 %}
+        <span class="page-info">
+          Página {{ atendidos_assistidos.page }} de {{ atendidos_assistidos.pages }}
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- Pagination Controls (only show if more than 1 page) -->
+      {% if atendidos_assistidos.pages > 1 %}
+      <nav class="pagination-nav">
+        <ul class="pagination">
+          {% if atendidos_assistidos.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('atendido.atendidos_assistidos', 
+                page=atendidos_assistidos.prev_num, 
+                valor_busca=valor_busca, 
+                tipo_busca=tipo_busca) }}" aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          {% endif %}
+          
+          {% for page_num in range(1, atendidos_assistidos.pages + 1) %}
+          <li class="page-item {% if page_num == atendidos_assistidos.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('atendido.atendidos_assistidos', 
+                page=page_num, 
+                valor_busca=valor_busca, 
+                tipo_busca=tipo_busca) }}">{{ page_num }}</a>
+          </li>
+          {% endfor %}
+          
+          {% if atendidos_assistidos.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('atendido.atendidos_assistidos', 
+                page=atendidos_assistidos.next_num, 
+                valor_busca=valor_busca, 
+                tipo_busca=tipo_busca) }}" aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+    {% endif %}
+    
+  {% else %}
+    <div class="empty-state">
+      <h4>Nenhum atendido encontrado</h4>
+      <p class="empty-message">
+        {% if valor_busca %}
+          Não foram encontrados resultados para "{{ valor_busca }}"
+        {% else %}
+          Não há atendidos cadastrados no momento
+        {% endif %}
+      </p>
+      <a href="{{ url_for('atendido.cadastro_na') }}" class="btn btn-primary">
+        Cadastrar novo atendido
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock conteudo %}
+
+{% block scripts %}
+<style>
+  /* Page Container */
+  .page-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  /* Page Header */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .search-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .search-form {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .search-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .search-field label {
+    font-weight: 500;
+    color: #333;
+    white-space: nowrap;
+  }
+
+  .search-field input,
+  .search-field select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 200px;
+  }
+
+  .search-field input:focus,
+  .search-field select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+
+  .total-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #666;
+  }
+
+  .total-badge {
+    background-color: var(--color-primary);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .action-section {
+    display: flex;
+    align-items: center;
+  }
+
+  /* Table */
+  .table-container {
+    overflow-x: auto;
+    margin-bottom: 24px;
+  }
+
+  .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+  }
+
+  .results-table th {
+    background-color: #f8f9fa;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #dee2e6;
+  }
+
+  .results-table td {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+    vertical-align: middle;
+  }
+
+  .results-table tbody tr:hover {
+    background-color: #f8f9fa;
+  }
+
+  .status-text {
+    color: #6c757d;
+    font-style: italic;
+  }
+
+  .inline-form {
+    display: inline;
+  }
+
+  /* Pagination */
+  .pagination-section {
+    margin-top: 24px;
+  }
+
+  .pagination-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .results-text,
+  .page-info {
+    color: #6c757d;
+    font-size: 14px;
+  }
+
+  .pagination-nav {
+    display: flex;
+    justify-content: center;
+  }
+
+  .pagination {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    gap: 4px;
+  }
+
+  .page-item {
+    display: flex;
+  }
+
+  .page-link {
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    color: #007bff;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+  }
+
+  .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: #6c757d;
+  }
+
+  .empty-state h4 {
+    margin-bottom: 16px;
+    color: #333;
+  }
+
+  .empty-message {
+    margin-bottom: 24px;
+    font-size: 16px;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .page-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-section {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-form {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-field {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-field input,
+    .search-field select {
+      min-width: auto;
+    }
+
+    .pagination-info {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .table-container {
+      font-size: 14px;
+    }
+
+    .results-table th,
+    .results-table td {
+      padding: 8px;
+    }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoSelect = document.querySelector('select[name="tipo_busca"]');
+    if (tipoSelect) {
+        tipoSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+});
+</script>
+{% endblock %}

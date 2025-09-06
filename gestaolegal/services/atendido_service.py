@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Callable, Literal, Optional, TypedDict, TypeVar
 
 from gestaolegal.models.atendido import Atendido
@@ -7,6 +8,8 @@ from gestaolegal.schemas.atendido import AtendidoSchema
 from gestaolegal.services.assistido_service import AssistidoService
 from gestaolegal.services.base_service import BaseService
 from gestaolegal.services.endereco_service import EnderecoService
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -26,6 +29,7 @@ class AtendidoService(BaseService[AtendidoSchema, Atendido]):
         return Atendido.from_sqlalchemy(schema_instance)
 
     def find_by_email(self, email: str) -> Optional[Atendido]:
+        logger.info(f"AtendidoService.find_by_email called for: {email}")
         return self.find_by_field("email", email)
 
     def get_atendido_with_assistido_data(
@@ -62,12 +66,18 @@ class AtendidoService(BaseService[AtendidoSchema, Atendido]):
     def create_with_endereco(
         self, atendido_data: dict, endereco_data: dict
     ) -> Atendido:
+        logger.info(
+            f"AtendidoService.create_with_endereco called for: {atendido_data.get('nome', 'Unknown')}"
+        )
         endereco = self.endereco_service.create(endereco_data)
+        logger.debug(f"Endereco created with ID: {endereco.id}")
 
         atendido_data["endereco_id"] = endereco.id
         atendido_data["status"] = 1
 
-        return self.create(atendido_data)
+        atendido = self.create(atendido_data)
+        logger.info(f"Atendido created successfully with ID: {atendido.id}")
+        return atendido
 
     def update_with_endereco(
         self, atendido_id: int, atendido_data: dict, endereco_data: dict
@@ -230,6 +240,85 @@ class AtendidoService(BaseService[AtendidoSchema, Atendido]):
 
         query = query.order_by(AtendidoSchema.nome)
         return paginator_func(query)
+
+    def create_atendido_from_json(self, data: dict) -> dict:
+        """Create atendido from JSON data with proper field conversion"""
+        try:
+            logger.info(
+                f"Starting create_atendido_from_json with data keys: {list(data.keys())}"
+            )
+            logger.debug(f"Full input data: {data}")
+
+            # Create a copy to avoid modifying the original data
+            atendido_data = data.copy()
+            logger.debug(f"Created copy of data: {atendido_data}")
+
+            # Convert boolean fields to string format expected by database
+            boolean_fields = [
+                "procurou_outro_local",
+                "pj_constituida",
+                "repres_legal",
+                "pretende_constituir_pj",
+            ]
+            for field in boolean_fields:
+                if field in atendido_data:
+                    old_value = atendido_data[field]
+                    atendido_data[field] = "1" if atendido_data[field] else "0"
+                    logger.debug(
+                        f"Converted boolean field {field}: {old_value} -> {atendido_data[field]}"
+                    )
+
+            # Map obs_atendido to obs
+            if "obs_atendido" in atendido_data:
+                obs_value = atendido_data.pop("obs_atendido")
+                atendido_data["obs"] = obs_value
+                logger.debug(f"Mapped obs_atendido to obs: {obs_value}")
+
+            # Extract address data and remove from atendido_data
+            endereco_data = {
+                "logradouro": atendido_data.pop("logradouro", ""),
+                "numero": atendido_data.pop("numero", ""),
+                "complemento": atendido_data.pop("complemento", ""),
+                "bairro": atendido_data.pop("bairro", ""),
+                "cep": atendido_data.pop("cep", ""),
+                "cidade": atendido_data.pop("cidade", ""),
+                "estado": atendido_data.pop("estado", ""),
+            }
+            logger.info(f"Extracted endereco_data: {endereco_data}")
+
+            # Remove any other address-related fields that might be present
+            address_fields_to_remove = ["id_cidade", "id_estado", "sem_numero"]
+            removed_fields = {}
+            for field in address_fields_to_remove:
+                if field in atendido_data:
+                    removed_fields[field] = atendido_data.pop(field)
+                    logger.warning(
+                        f"Removed address field {field}: {removed_fields[field]}"
+                    )
+
+            logger.info(
+                f"Final atendido_data keys before creating atendido: {list(atendido_data.keys())}"
+            )
+            logger.debug(f"Final atendido_data: {atendido_data}")
+
+            # Create address first
+            logger.info("Creating endereco...")
+            endereco = self.endereco_service.create(endereco_data)
+            logger.info(f"Created endereco with ID: {endereco.id}")
+
+            atendido_data["endereco_id"] = endereco.id
+            atendido_data["status"] = 1
+
+            # Create atendido
+            logger.info("Creating atendido...")
+            atendido = self.create(atendido_data)
+            logger.info(f"Successfully created atendido with ID: {atendido.id}")
+            return {"id": atendido.id, "message": "success"}
+
+        except Exception as e:
+            logger.error(f"Error in create_atendido_from_json: {str(e)}", exc_info=True)
+            logger.error(f"Data that caused error: {data}")
+            return {"message": f"error: {str(e)}"}
 
     def ensure_atendido_assistido_exists(
         self, atendido_id: int

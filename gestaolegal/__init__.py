@@ -24,6 +24,11 @@ def create_app(config_object=None):
     else:
         configure_app(app)
 
+    # Initialize logging
+    from gestaolegal.logging_config import setup_logging
+
+    setup_logging()
+
     initialize_extensions(app)
 
     register_blueprints(app)
@@ -127,14 +132,18 @@ def register_context_processors(app):
 
 
 def register_error_handlers(app):
+    from flask_wtf.csrf import CSRFError
+
     from gestaolegal.utils.error_handlers import (
         error_403,
         error_404,
         error_413,
         error_500,
+        error_csrf,
     )
 
     app.register_error_handler(404, error_404)
     app.register_error_handler(403, error_403)
     app.register_error_handler(413, error_413)
     app.register_error_handler(500, error_500)
+    app.register_error_handler(CSRFError, error_csrf)

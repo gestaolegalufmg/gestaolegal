@@ -1,3 +1,5 @@
+import logging
+
 from flask import (
     Blueprint,
     abort,
@@ -21,29 +23,31 @@ from gestaolegal.models.usuario import Usuario
 from gestaolegal.services.usuario_service import UsuarioService
 from gestaolegal.utils.decorators import login_required
 
+logger = logging.getLogger(__name__)
+
 usuario_controller = Blueprint(
-    "usuario", __name__, template_folder="../templates/usuario"
+    "usuario", __name__, template_folder="../static/templates"
 )
 
 
 @usuario_controller.route("/relatorio", methods=["GET", "POST"])
 def relatorio():
-    return render_template("relatorio.html")
+    return render_template("sistema/pagina_relatorios.html")
 
 
 @usuario_controller.route("/arquivo", methods=["GET", "POST"])
 def arquivo():
-    return render_template("arquivo.html")
+    return render_template("sistema/pagina_arquivos.html")
 
 
 @usuario_controller.route("/plantao", methods=["GET", "POST"])
 def plantao():
-    return render_template("plantao.html")
+    return render_template("sistema/pagina_plantao.html")
 
 
 @usuario_controller.route("/casos_id", methods=["GET", "POST"])
 def casos_esp():
-    return render_template("meus_casos.html")
+    return render_template("sistema/meus_casos.html")
 
 
 @usuario_controller.route("/meu_perfil", methods=["GET"])
@@ -55,7 +59,7 @@ def meu_perfil():
         abort(404)
     entidade_endereco = entidade_usuario.endereco
     return render_template(
-        "perfil_usuario.html",
+        "usuarios/visualizar_perfil.html",
         usuario=entidade_usuario,
         endereco=entidade_endereco,
     )
@@ -70,7 +74,7 @@ def perfil_usuario(id_user):
         abort(404)
     entidade_endereco = entidade_usuario.endereco
     return render_template(
-        "perfil_usuario.html",
+        "usuarios/visualizar_perfil.html",
         usuario=entidade_usuario,
         endereco=entidade_endereco,
     )
@@ -89,7 +93,7 @@ def editar_usuario(id_user):
         id_usuario_padrao: int,
     ):
         return render_template(
-            "editar_usuario.html",
+            "usuarios/formularios/editar_usuario.html",
             form=form,
             entidade_usuario=entidade_usuario,
             id_user=id_user,
@@ -200,11 +204,11 @@ def editar_senha_usuario():
         is_valid, error_message = usuario_service.validate_password(senha)
         if not is_valid:
             flash(error_message, "warning")
-            return render_template("editar_senha_usuario.html")
+            return render_template("usuarios/formularios/alterar_senha.html")
 
         if confirmacao != senha:
             flash("Confirmação de senha e senha estão diferentes.", "warning")
-            return render_template("editar_senha_usuario.html")
+            return render_template("usuarios/formularios/alterar_senha.html")
 
         if usuario_service.update_password(current_user.id, senha):
             flash("Senha alterada com sucesso!", "success")
@@ -213,12 +217,13 @@ def editar_senha_usuario():
             flash("Usuário não encontrado.", "danger")
             return redirect(url_for("principal.index"))
 
-    return render_template("editar_senha_usuario.html")
+    return render_template("usuarios/formularios/alterar_senha.html")
 
 
 @usuario_controller.route("/cadastrar_usuario", methods=["POST", "GET"])
 @login_required(role=[UserRole.ADMINISTRADOR, UserRole.PROFESSOR])
 def cadastrar_usuario():
+    logger.info("Entering cadastrar_usuario route")
     usuario_service = UsuarioService()
     form = CadastrarUsuarioForm()
 
@@ -226,18 +231,26 @@ def cadastrar_usuario():
         is_valid, error_message = usuario_service.validate_password(form.senha.data)
         if not is_valid:
             flash(error_message, "warning")
-            return render_template("cadastro.html", form=form)
+            return render_template(
+                "usuarios/formularios/cadastrar_usuario.html", form=form
+            )
 
         if form.confirmacao.data != form.senha.data:
             flash("Confirmação de senha e senha estão diferentes.", "warning")
-            return render_template("cadastro.html", form=form)
+            return render_template(
+                "usuarios/formularios/cadastrar_usuario.html", form=form
+            )
 
         if not usuario_service.validate_email_unique(form.email.data):
             flash("Este email já está em uso.", "warning")
-            return render_template("cadastro.html", form=form)
+            return render_template(
+                "usuarios/formularios/cadastrar_usuario.html", form=form
+            )
 
         if not form.validate():
-            return render_template("cadastro.html", form=form)
+            return render_template(
+                "usuarios/formularios/cadastrar_usuario.html", form=form
+            )
 
         entidade_usuario = usuario_service.create_user_from_form(
             form, current_user.get_id()
@@ -246,11 +259,12 @@ def cadastrar_usuario():
         flash("Usuário cadastrado!", "success")
         return redirect(url_for("usuario.perfil_usuario", id_user=entidade_usuario.id))
 
-    return render_template("cadastro.html", form=form)
+    return render_template("usuarios/formularios/cadastrar_usuario.html", form=form)
 
 
 @usuario_controller.route("/login", methods=["POST", "GET"])
 def login():
+    logger.info("Entering login route - Login attempt initiated")
     usuario_service = UsuarioService()
 
     if request.method == "POST":
@@ -258,22 +272,26 @@ def login():
         login = form["login"]
         senha = form["senha"]
 
+        logger.info(f"Login attempt for user: {login}")
         loginUsuario = usuario_service.authenticate_user(login, senha)
         if loginUsuario:
             login_user(loginUsuario)
+            logger.info(f"User {login} logged in successfully")
             flash("Você foi logado com sucesso!", "success")
             return redirect(url_for("principal.index"))
         else:
+            logger.warning(f"Failed login attempt for user: {login}")
             if usuario_service.find_by_email_with_inactive(login):
                 flash("Senha inválida!", "warning")
             else:
                 flash("Email inválido!", "warning")
 
-    return render_template("login.html")
+    return render_template("autenticacao/entrar.html")
 
 
 @usuario_controller.route("/logout")
 def logout():
+    logger.info("Entering logout route")
     if current_user:
         flash("Logout feito com sucesso!", "info")
         logout_user()
@@ -309,7 +327,7 @@ def listar_usuarios():
         usuarios = usuario_service.get_all(paginator)
 
     return render_template(
-        "usuario/listar_usuarios.html",
+        "usuarios/listagem_usuarios.html",
         usuarios=usuarios,
         admin_padrao=current_app.config["ADMIN_PADRAO"],
         UserRole=UserRole,
@@ -346,7 +364,7 @@ def busca_usuarios_ajax():
         usuarios = usuario_service.get_all(paginator)
 
     table_html = render_template(
-        "usuario/partials/usuarios_table_rows.html",
+        "usuarios/parciais/linhas_tabela_usuarios.html",
         usuarios=usuarios,
         admin_padrao=current_app.config["ADMIN_PADRAO"],
         UserRole=UserRole,
@@ -354,7 +372,7 @@ def busca_usuarios_ajax():
 
     pagination_html = (
         render_template(
-            "usuario/partials/usuarios_pagination.html",
+            "usuarios/parciais/paginacao_usuarios.html",
             usuarios=usuarios,
         )
         if usuarios.pages > 1
@@ -420,7 +438,9 @@ def inativar_usuario_lista():
 def muda_senha_admin():
     id_usuario = request.form["id"]
 
-    return render_template("nova_senha.html", id_usuario=id_usuario)
+    return render_template(
+        "autenticacao/definir_nova_senha.html", id_usuario=id_usuario
+    )
 
 
 @usuario_controller.route("/confirma_senha", methods=["POST"])
@@ -434,7 +454,9 @@ def confirma_senha():
     is_valid, error_message = usuario_service.validate_password(senha)
     if not is_valid:
         flash(error_message, "warning")
-        return render_template("nova_senha.html", id_usuario=id_usuario)
+        return render_template(
+            "autenticacao/definir_nova_senha.html", id_usuario=id_usuario
+        )
 
     if senha != confirmar_senha:
         flash("As senhas não são iguais", "warning")
@@ -495,7 +517,7 @@ def esqueci_senha():
                 }
             )
 
-    return render_template("esqueci-a-senha.html")
+    return render_template("autenticacao/recuperar_senha.html")
 
 
 @usuario_controller.route("/resetar-a-senha/<token>", methods=["GET", "POST"])
@@ -520,4 +542,4 @@ def resetar_senha(token):
         flash("Erro! Por favor refaça a operação", "warning")
         return redirect(url_for("usuario.login"))
 
-    return render_template("recuperar_senha.html")
+    return render_template("autenticacao/redefinir_senha.html")
