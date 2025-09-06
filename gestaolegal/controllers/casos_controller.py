@@ -14,6 +14,7 @@ from flask import (
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import RequestEntityTooLarge
 
+from gestaolegal import csrf
 from gestaolegal.common.constants import UserRole, acoes, situacao_deferimento
 from gestaolegal.forms.relatorio import (
     ArquivoCasoForm,
@@ -491,6 +492,7 @@ def adicionar_assistido_caso(id_caso):
 
 
 @casos_controller.route("/api/buscar_assistido", methods=["GET"])
+@csrf.exempt
 @login_required()
 def api_casos_buscar_assistido():
     termo = request.args.get("q", type=str)
@@ -541,6 +543,7 @@ def api_casos_buscar_assistido():
 
 
 @casos_controller.route("/api/buscar_usuario", methods=["GET"])
+@csrf.exempt
 @login_required()
 def api_casos_buscar_usuario():
     db = get_db()
@@ -574,6 +577,7 @@ def api_casos_buscar_usuario():
 
 
 @casos_controller.route("/api/buscar_roteiro", methods=["GET"])
+@csrf.exempt
 @login_required()
 def api_casos_buscar_roteiro():
     db = get_db()
@@ -595,6 +599,7 @@ def api_casos_buscar_roteiro():
 
 
 @casos_controller.route("/api/buscar_casos", methods=["GET"])
+@csrf.exempt
 @login_required()
 def api_casos_buscar_casos():
     db = get_db()
@@ -642,6 +647,7 @@ def api_casos_buscar_casos():
 
 
 @casos_controller.route("/api/buscar_orientador", methods=["GET"])
+@csrf.exempt
 @login_required()
 def api_casos_buscar_orientador():
     db = get_db()
@@ -677,6 +683,7 @@ def api_casos_buscar_orientador():
 
 
 @casos_controller.route("/api/buscar_estagiario", methods=["GET"])
+@csrf.exempt
 @login_required()
 def api_casos_buscar_estagiario():
     db = get_db()
@@ -712,6 +719,7 @@ def api_casos_buscar_estagiario():
 
 
 @casos_controller.route("/api/buscar_colaborador", methods=["GET"])
+@csrf.exempt
 @login_required()
 def api_casos_buscar_colaborador():
     db = get_db()

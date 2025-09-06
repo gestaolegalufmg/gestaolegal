@@ -31,12 +31,14 @@ def index():
 
     page = request.args.get("page", 1, type=int)
     search = request.args.get("search", "").strip()
-    
+
     arquivos_schema = db.session.query(ArquivoSchema)
-    
+
     if search:
-        arquivos_schema = arquivos_schema.filter(ArquivoSchema.titulo.ilike(f"%{search}%"))
-    
+        arquivos_schema = arquivos_schema.filter(
+            ArquivoSchema.titulo.ilike(f"%{search}%")
+        )
+
     arquivos_schema = db.paginate(
         arquivos_schema,
         page=page,
@@ -47,39 +49,49 @@ def index():
     arquivos_schema.items = [
         Arquivo.from_sqlalchemy(item) for item in arquivos_schema.items
     ]
-    
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         from flask_login import current_user
+
         can_edit = current_user.urole in [
-            UserRole.ADMINISTRADOR.value, 
-            UserRole.COLAB_PROJETO.value, 
-            UserRole.COLAB_EXTERNO.value, 
-            UserRole.PROFESSOR.value
+            UserRole.ADMINISTRADOR.value,
+            UserRole.COLAB_PROJETO.value,
+            UserRole.COLAB_EXTERNO.value,
+            UserRole.PROFESSOR.value,
         ]
-        
-        return jsonify({
-            'items': [
-                {
-                    'id': arquivo.id,
-                    'titulo': arquivo.titulo,
-                    'visualizar_url': url_for('arquivos.visualizar_arquivo', id=arquivo.id),
-                    'editar_url': url_for('arquivos.editar_arquivo', id=arquivo.id),
-                    'excluir_url': url_for('arquivos.excluir_arquivo', id=arquivo.id)
-                } for arquivo in arquivos_schema.items
-            ],
-            'total': arquivos_schema.total,
-            'page': arquivos_schema.page,
-            'pages': arquivos_schema.pages,
-            'has_prev': arquivos_schema.has_prev,
-            'has_next': arquivos_schema.has_next,
-            'prev_num': arquivos_schema.prev_num,
-            'next_num': arquivos_schema.next_num,
-            'first_item': arquivos_schema.first_item,
-            'last_item': arquivos_schema.last_item,
-            'can_edit': can_edit
-        })
-    
-    return render_template("arquivos/listagem_arquivos.html", arquivos=arquivos_schema, search=search)
+
+        return jsonify(
+            {
+                "items": [
+                    {
+                        "id": arquivo.id,
+                        "titulo": arquivo.titulo,
+                        "visualizar_url": url_for(
+                            "arquivos.visualizar_arquivo", id=arquivo.id
+                        ),
+                        "editar_url": url_for("arquivos.editar_arquivo", id=arquivo.id),
+                        "excluir_url": url_for(
+                            "arquivos.excluir_arquivo", id=arquivo.id
+                        ),
+                    }
+                    for arquivo in arquivos_schema.items
+                ],
+                "total": arquivos_schema.total,
+                "page": arquivos_schema.page,
+                "pages": arquivos_schema.pages,
+                "has_prev": arquivos_schema.has_prev,
+                "has_next": arquivos_schema.has_next,
+                "prev_num": arquivos_schema.prev_num,
+                "next_num": arquivos_schema.next_num,
+                "first_item": arquivos_schema.first_item,
+                "last_item": arquivos_schema.last_item,
+                "can_edit": can_edit,
+            }
+        )
+
+    return render_template(
+        "arquivos/listagem_arquivos.html", arquivos=arquivos_schema, search=search
+    )
 
 
 @arquivo_controller.route("/cadastrar_arquivo", methods=["GET", "POST"])

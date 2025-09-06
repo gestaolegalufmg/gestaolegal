@@ -971,6 +971,33 @@
         });
     </script>
 
+    <!-- Global CSRF Token Setup for AJAX requests -->
+    <script type="text/javascript">
+        // CSRF token for AJAX requests
+        var csrf_token = "{{ csrf_token() }}";
+        
+        // Setup jQuery AJAX to include CSRF token automatically
+        if (typeof $ !== 'undefined') {
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader("X-CSRFToken", csrf_token);
+                    }
+                }
+            });
+        }
+        
+        // Setup Axios to include CSRF token automatically
+        if (typeof axios !== 'undefined') {
+            axios.defaults.headers.common["X-CSRFToken"] = csrf_token;
+        }
+        
+        // Function to get CSRF token for manual use
+        function getCSRFToken() {
+            return csrf_token;
+        }
+    </script>
+
     {%block scripts%}{% endblock %}
 </body>
 </html>
