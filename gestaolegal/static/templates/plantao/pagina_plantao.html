@@ -1,79 +1,386 @@
 {% extends "base/painel_principal.html" %}
-{% block titulo %}Escala do Plantão{% endblock titulo %}
+{% block titulo %}{% endblock titulo %}
+
 {% block css %}
 <link rel="stylesheet" href="{{url_for('static',filename='css/calendario.css')}}">
+<link rel="stylesheet" href="{{url_for('static',filename='css/modal_styles.css')}}">
 <style>
-  .numero_plantao_a_marcar{
-    background-color:#52A0FD;
-  }
   .disponivel{
-    border-color:#25FD00;
+    border-color: var(--color-success);
     border-width: 2px;
-    
+    background-color: rgba(40, 167, 69, 0.1);
   }
   .indisponivel{
-    border-color:red;
+    border-color: var(--color-danger);
     border-width: 2px;
+    background-color: rgba(220, 53, 69, 0.1);
   }
+  
+  .dialog {
+    z-index: 4 !important;
+  }
+
+  .dias {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .dias:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.2);
+  }
+
+  .dias:active {
+    transform: scale(0.95);
+  }
+
+  .dias:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .card {
+    border: none;
+    border-radius: 12px;
+  }
+
+  .card-header {
+    border-radius: 12px 12px 0 0 !important;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+
+  .calendar {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+
+  .events-container {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .events-container .card {
+    width: 100%;
+    border: 1px solid #e9ecef;
+  }
+
+  .calendar-section {
+    flex: 0 0 40%;
+    max-width: 40%;
+    padding: 0 15px;
+  }
+
+  .plantao-section {
+    flex: 0 0 35%;
+    max-width: 35%;
+    padding: 0 15px;
+  }
+
+  .sidebar-section {
+    flex: 0 0 25%;
+    max-width: 25%;
+    padding: 0 15px;
+  }
+
+  .cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .plantao-card,
+  .users-card {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .plantao-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .plantao-shift-button {
+    border: 2px solid var(--color-primary);
+    border-radius: 12px;
+    min-width: 120px;
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    color: var(--color-text);
+    background-color: var(--color-white);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    padding: 12px 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .plantao-shift-button:hover {
+    background-color: var(--color-primary-light);
+    color: var(--color-white);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .plantao-shift-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .plantao-shift-button .shift-number {
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .plantao-shift-button .shift-label {
+    font-size: 12px;
+    opacity: 0.9;
+    line-height: 1;
+  }
+
+  .plantao-shift-button.numero_plantao_a_marcar {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    border-color: var(--color-primary-dark);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+  }
+
+  /* Responsive design */
+  @media (max-width: 576px) {
+    .plantao-buttons {
+      gap: 15px;
+    }
+    
+    .plantao-shift-button {
+      min-width: 100px;
+      height: 70px;
+      font-size: 14px;
+    }
+    
+    .plantao-shift-button .shift-number {
+      font-size: 18px;
+    }
+    
+    .plantao-shift-button .shift-label {
+      font-size: 11px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .calendar-section,
+    .plantao-section,
+    .sidebar-section {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+
+    .cards-container {
+      flex-direction: column;
+    }
+
+    .plantao-card,
+    .users-card {
+      flex: none;
+      min-width: auto;
+    }
+
+    .dias {
+      width: 60px;
+      height: 60px;
+      font-size: 18px;
+    }
+    
+    .card-body {
+      padding: 1rem;
+    }
+
+    .calendar {
+      margin: 0;
+    }
+
+    .events-container {
+      min-height: 150px;
+    }
+
+    .card-header h5 {
+      font-size: 1rem;
+    }
+
+    .card-header small {
+      font-size: 0.75rem;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .dias {
+      width: 50px;
+      height: 50px;
+      font-size: 16px;
+    }
+
+    .dias small {
+      font-size: 0.7rem;
+    }
+
+    .card-body {
+      padding: 0.75rem;
+    }
+
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.8rem;
+    }
+  }
+
+  .icon.text-primary {
+    background-color: var(--color-primary);
+  }
+  
+  .icon.text-muted {
+    background-color: var(--color-text-muted);
+  }
+  
+  .icon.text-white {
+    background-color: var(--color-white);
+  }
+  
+  .icon.text-warning {
+    background-color: var(--color-warning);
+  }
+  
+  .icon.text-info {
+    background-color: var(--color-info);
+  }
+
+  .card-header.bg-primary {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+  }
+  
+  .card-header.bg-primary h4,
+  .card-header.bg-primary small {
+    color: var(--color-white);
+  }
+
+  .left-button, .right-button {
+    background: var(--color-primary);
+    border: none;
+    color: var(--color-white);
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  .left-button:hover, .right-button:hover {
+    background: var(--color-primary-dark);
+    transform: scale(1.05);
+  }
+
+  .left-button:active, .right-button:active {
+    transform: scale(0.95);
+  }
+
+  .year-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+  }
+
+  .year-header .year {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--color-white);
+  }
+
 </style>
 {% endblock css %}
 
 {% block conteudo %}
 <input type="hidden" id="hdnAjaxEscala" value="{{url_for('plantao.ajax_obter_escala_plantao')}}">
-<div class="row">
+
+<header class="row mb-4">
   <div class="col-12">
-    <div class="card card-primary">
-      <div class="card-header row">
-          <div class="col-6">
-            <h4>Nome do funcionário: {{ current_user.nome}}</h4>
-          </div>
-          <div class="col-6">
-            <div class="d-flex flex-md-row-reverse flex-column-reverse">
-              <div class="card-header-action m-1">
-                <button class="btn btn-primary" id="confirmar_editar_plantao" data-toggle="modal" data-target="#confirmacaoEdicao">Editar</button>
-              </div>
-              {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value] %}
-                <div class="card-header-action m-1">
-                  <a class="btn btn-primary ml-auto" href="{{url_for('plantao.configurar_abertura')}}">Configurar Abertura</a>
-                </div>
-              {% endif %}
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <i class="icon icon-calendar-alt mr-3 text-white" style="font-size: 1.5rem;"></i>
+            <div>
+              <h4 class="mb-0">Escala do Plantão</h4>
+              <small class="opacity-75">Funcionário: {{ current_user.nome }}</small>
             </div>
           </div>
+          <div class="d-flex">
+            <button class="btn btn-outline-white mr-2" id="confirmar_editar_plantao" data-modal="confirmacaoEdicao">
+              <i class="icon icon-edit mr-1 text-white"></i>Editar
+            </button>
+            {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value] %}
+              <a class="btn btn-outline-white" href="{{url_for('plantao.configurar_abertura')}}">
+                <i class="icon icon-cog mr-1 text-white"></i>Configurar Abertura
+              </a>
+            {% endif %}
+          </div>
+        </div>
       </div>
     </div>
   </div>
-</div>
+</header>
 
-<div class="row">
-  <div class="col-12 col-lg-5">
-    <div class="card">
-      <div class="card-body d-flex justify-content-center" >
+<main class="row">
+  <section class="calendar-section">
+    <article class="card shadow-sm h-100">
+      <header class="card-header bg-light">
+        <h5 class="card-title mb-0 d-flex align-items-center">
+          <i class="icon icon-calendar mr-2 text-primary"></i>
+          Calendário de Plantões
+        </h5>
+      </header>
+      <div class="card-body d-flex justify-content-center p-3">
         <div class="calendar"> 
           <div class="year-header"> 
-             <span class="left-button" id="prev"> &lang; </span> 
+             <button class="left-button" id="prev" aria-label="Mês anterior"> <i class="icon icon-chevron-left text-white"></i> </button> 
               <span class="year" id="label"></span> 
-              <span class="right-button" id="next"> &rang; </span>
+              <button class="right-button" id="next" aria-label="Próximo mês"> <i class="icon icon-chevron-right text-white"></i> </button>
           </div> 
-          <table class="months-table"> 
+          <table class="months-table" role="grid"> 
             <tbody>
               <tr class="months-row">
-                <td class="month" id="month1" >Jan</td>
-                <td class="month" id="month2" >Fev</td>
-                <td class="month" id="month3" >Mar</td>
-                <td class="month" id="month4" >Abr</td>
-                <td class="month" id="month5" >Mai</td>
-                <td class="month" id="month6" >Jun</td>
-                <td class="month" id="month7" >Jul</td>
-                <td class="month" id="month8" >Ago</td>
-                <td class="month" id="month9" >Set</td>
-                <td class="month" id="month10">Out</td>
-                <td class="month" id="month11">Nov</td>
-                <td class="month" id="month12">Dez</td>
+                <td class="month" id="month1" role="gridcell" tabindex="0" aria-label="Janeiro">Jan</td>
+                <td class="month" id="month2" role="gridcell" tabindex="0" aria-label="Fevereiro">Fev</td>
+                <td class="month" id="month3" role="gridcell" tabindex="0" aria-label="Março">Mar</td>
+                <td class="month" id="month4" role="gridcell" tabindex="0" aria-label="Abril">Abr</td>
+                <td class="month" id="month5" role="gridcell" tabindex="0" aria-label="Maio">Mai</td>
+                <td class="month" id="month6" role="gridcell" tabindex="0" aria-label="Junho">Jun</td>
+                <td class="month" id="month7" role="gridcell" tabindex="0" aria-label="Julho">Jul</td>
+                <td class="month" id="month8" role="gridcell" tabindex="0" aria-label="Agosto">Ago</td>
+                <td class="month" id="month9" role="gridcell" tabindex="0" aria-label="Setembro">Set</td>
+                <td class="month" id="month10" role="gridcell" tabindex="0" aria-label="Outubro">Out</td>
+                <td class="month" id="month11" role="gridcell" tabindex="0" aria-label="Novembro">Nov</td>
+                <td class="month" id="month12" role="gridcell" tabindex="0" aria-label="Dezembro">Dez</td>
               </tr>
             </tbody>
           </table>
             
-          <table class="days-table"> 
+          <table class="days-table" role="grid"> 
             <td class="day">D</td> 
             <td class="day">S</td> 
             <td class="day">T</td> 
@@ -83,492 +390,665 @@
             <td class="day">S</td>
           </table> 
           <div class="frame"> 
-            <table class="dates-table"> 
+            <table class="dates-table" role="grid"> 
                 <tbody class="tbody">
                 </tbody> 
             </table>
           </div> 
-          <div class="d-flex justify-content-center">
-             <button class="button btn-primary" id="escolhe_data" data-toggle="modal" data-target="#confirmacao" >Selecionar data</button>
+          <div class="d-flex justify-content-center mt-3">
+             <button class="btn btn-primary" id="escolhe_data" data-modal="confirmacao">
+               <i class="icon icon-check mr-1"></i>Selecionar data
+             </button>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </article>
+  </section>
 
-
-  <div class="col-12 col-lg-4">
-    <div class="card ">
-      <div class="card-header">
-          <h4>Dia do plantão: </h4>
-      </div>
-      <div class="card-body row justify-content-center">
-        <div class="col" >
-          <div class="dias col-lg-8" id="numero_plantao_1">1°</div>
-        </div>
-        {% if current_user.urole != UserRole.ORIENTADOR.value %}
-          <div class="col" >
-            <div class="dias col-lg-8" id="numero_plantao_2">2°</div>
+  <section class="plantao-section">
+    <div class="cards-container">
+      <article class="card shadow-sm plantao-card">
+        <header class="card-header bg-light">
+          <h5 class="card-title mb-0 d-flex align-items-center">
+            <i class="icon icon-clock mr-2 text-primary"></i>
+            Seleção do Plantão
+          </h5>
+        </header>
+        <div class="card-body">
+          <div class="plantao-buttons">
+            <button class="plantao-shift-button" id="numero_plantao_1" aria-label="Selecionar primeiro turno">
+              <span class="shift-number">1°</span>
+              <span class="shift-label">Turno</span>
+            </button>
+            {% if current_user.urole != UserRole.ORIENTADOR.value %}
+              <button class="plantao-shift-button" id="numero_plantao_2" aria-label="Selecionar segundo turno">
+                <span class="shift-number">2°</span>
+                <span class="shift-label">Turno</span>
+              </button>
+            {% endif %}
           </div>
-        {% endif %}
-      </div>
+          <div class="text-center mt-3">
+            <small class="text-muted">Clique para selecionar o turno do plantão</small>
+          </div>
+        </div>
+      </article>
+
+      <article class="card shadow-sm users-card">
+        <header class="card-header bg-light">
+          <h5 class="card-title mb-0 d-flex align-items-center">
+            <i class="icon icon-user mr-2 text-primary"></i>
+            Usuários Escalados
+          </h5>
+        </header>
+        <div class="card-body events-container p-3">
+          <div class="text-center text-muted">
+            <i class="icon icon-calendar-plus mb-2 text-muted" style="font-size: 2rem;"></i>
+            <p>Selecione uma data para ver os usuários escalados</p>
+          </div>
+        </div>
+      </article>
     </div>
+  </section>
 
-
-    <div class="card">
-      <div class="card-header">
-        <h4>Usuários escalados:</h4>
-      </div>
-      <div class="card-body events-container"></div>
-    </div>
-  </div>
-
-
-  <div class="col-12 col-lg-3">
-    <div class="card">
-      <div class="card-header">
-        <h4>Seus dias de plantão:</h4>
-      </div>
-      <div class="card-body" id="dias_plantao">
+  <aside class="sidebar-section">
+    <article class="card shadow-sm mb-3">
+      <header class="card-header bg-light">
+        <h5 class="card-title mb-0 d-flex align-items-center">
+          <i class="icon icon-calendar-check mr-2 text-primary"></i>
+          Meus Plantões
+        </h5>
+      </header>
+      <div class="card-body p-3" id="dias_plantao">
         {% include 'plantao/componentes/lista_datas_plantao.html' %}
       </div>
-    </div>
+    </article>
 
-    <div class="card">
-      <div class="card-body">
-        <div class="row">
-          <div class="col-lg-2">
-            <input type="checkbox" checked >
-          </div>
-          <div class="col">
-            <label>Lembre-me no dia anterior.</label>
-          </div>
+    <article class="card shadow-sm">
+      <header class="card-header bg-light">
+        <h5 class="card-title mb-0 d-flex align-items-center">
+          <i class="icon icon-cog mr-2 text-primary"></i>
+          Configurações
+        </h5>
+      </header>
+      <div class="card-body p-3">
+        <div class="d-flex align-items-center">
+          <input type="checkbox" id="lembreteCheck" checked class="mr-2">
+          <label for="lembreteCheck" class="mb-0">
+            <i class="icon icon-bell mr-1 text-primary"></i>
+            Lembrete no dia anterior
+          </label>
         </div>
+        <small class="text-muted d-block mt-2">
+          <i class="icon icon-info-circle mr-1 text-muted"></i>
+          Receba notificações 24h antes do plantão
+        </small>
       </div>
-    </div>
-  </div>
-</div>
+    </article>
+  </aside>
+</main>
 {% endblock conteudo %}
 
 {%block modal %}
-<!-- Modal -->
-<div class="modal fade" id="confirmacao" tabindex="-1" role="dialog" aria-labelledby="confirmacao" aria-hidden="true" >
-  <div class="modal-dialog" role="document">
-  <div class="modal-content">
-      <div class="modal-header">
-      <h5 class="modal-title" id="exampleModalLabel">Deseja confirmar o plantão?</h5>
-      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
+<div class="modal-overlay modal-hidden" 
+     id="confirmacao" 
+     role="dialog" 
+     aria-modal="true" 
+     aria-labelledby="confirmacao_title"
+     aria-describedby="confirmacao_body">
+  <div class="modal-content modal-md" tabindex="-1">
+    <div class="modal-header">
+      <h2 class="modal-title" id="confirmacao_title">Deseja confirmar o plantão?</h2>
+      <button type="button" class="modal-close" data-modal-close="confirmacao" aria-label="Fechar modal">
+        <span aria-hidden="true">&times;</span>
       </button>
-      </div>
-      <div class="modal-body" id="id_body_modal">
-
-      </div>
-      <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-      <button type="button" class="btn btn-primary" data-dismiss="modal" id="id_botao_confirmar_modal">Confirmar</button>
-      </div>
-  </div>
+    </div>
+    <div class="modal-body" id="confirmacao_body">
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-modal-close="confirmacao">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="id_botao_confirmar_modal">Confirmar</button>
+    </div>
   </div>
 </div>
 
-<div class="modal fade" id="confirmacaoEdicao" tabindex="-2" role="dialog" aria-labelledby="confirmacaoEdicao" aria-hidden="true" >
-  <div class="modal-dialog" role="document">
-  <div class="modal-content">
-      <div class="modal-header">
-      <h5 class="modal-title" id="exampleModalLabel">Esta ação irá apagar seu registro de plantão para que ele possa ser feito novamente. Deseja continuar?</h5>
-      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
+<div class="modal-overlay modal-hidden" 
+     id="confirmacaoEdicao" 
+     role="dialog" 
+     aria-modal="true" 
+     aria-labelledby="confirmacaoEdicao_title"
+     aria-describedby="confirmacaoEdicao_body">
+  <div class="modal-content modal-md" tabindex="-1">
+    <div class="modal-header">
+      <h2 class="modal-title" id="confirmacaoEdicao_title">Esta ação irá apagar seu registro de plantão para que ele possa ser feito novamente. Deseja continuar?</h2>
+      <button type="button" class="modal-close" data-modal-close="confirmacaoEdicao" aria-label="Fechar modal">
+        <span aria-hidden="true">&times;</span>
       </button>
-      </div>
-      <div class="modal-body" id="id_body_modal_2">
-
-      </div>
-      <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-      <button class="btn btn-primary" id="botao_confirmar_editar_plantao_modal">Confirmar</button>
-      </div>
-  </div>
+    </div>
+    <div class="modal-body" id="confirmacaoEdicao_body">
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-modal-close="confirmacaoEdicao">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="botao_confirmar_editar_plantao_modal">Confirmar</button>
+    </div>
   </div>
 </div>
 {% endblock modal %}
 
 {% block scripts %}
 
-<script>
-  var event_data = {};
-  $(document).ready(function() {
-    atualiza_numero_plantao_a_marcar('{{numero_plantao}}');
-  });
-</script>
+<script src="{{url_for('static',filename='js/base-utils.js')}}"></script>
 
 <script>
-  function atualiza_numero_plantao_a_marcar(numero_plantao){
-    switch(numero_plantao){
-      case '1':
-        $(".numero_plantao_a_marcar").removeClass('numero_plantao_a_marcar')
-        $("#numero_plantao_1").addClass('numero_plantao_a_marcar')
-        break;
-      case '2':
-        $(".numero_plantao_a_marcar").removeClass('numero_plantao_a_marcar')
-        $("#numero_plantao_2").addClass('numero_plantao_a_marcar')
-        break;
-      default:
-        $(".numero_plantao_a_marcar").removeClass('numero_plantao_a_marcar') 
+  class CalendarState {
+    constructor() {
+      this.events = [];
+      this.selectedDate = null;
+      this.selectedMonth = new Date().getMonth();
+      this.selectedYear = new Date().getFullYear();
+      this.selectedShift = '1';
+    }
+
+    setEvents(events) {
+      this.events = events;
+    }
+
+    setSelectedDate(date) {
+      this.selectedDate = date;
+    }
+
+    setSelectedMonth(month) {
+      this.selectedMonth = month;
+    }
+
+    setSelectedYear(year) {
+      this.selectedYear = year;
+    }
+
+    setSelectedShift(shift) {
+      this.selectedShift = shift;
+    }
+
+    getEventsForDate(day, month, year) {
+      return this.events.filter(event => 
+        event.day === day && event.month === month && event.year === year
+      );
     }
   }
 
-  document.getElementById("escolhe_data").onclick = function() {
+  const calendarState = new CalendarState();
+
+  function updateSelectedShift(shiftNumber) {
+    document.querySelectorAll('.numero_plantao_a_marcar').forEach(el => {
+      el.classList.remove('numero_plantao_a_marcar');
+    });
     
-    colore_calendario();
-    ano = document.getElementsByClassName("year")[0].innerHTML
-    mes = document.getElementsByClassName("active-month")[0].id.substring(5)
-    dia = document.getElementsByClassName("active-date")[0].innerHTML
-
-    document.getElementById("id_body_modal").innerHTML = ''
-    document.getElementById("id_body_modal").append("Data selecionada: " + dia + "/" + mes + "/" + ano)
-  };
-
-  $("#id_botao_confirmar_modal").click(function() {
-    $.ajax({
-        type: "GET",
-        url: "{{url_for('plantao.ajax_confirma_data_plantao')}}",
-        contentType: 'application/json;charset=UTF-8',
-        data: {
-            ano: document.getElementsByClassName("year")[0].innerHTML,
-            mes: document.getElementsByClassName("active-month")[0].id.substring(5),
-            dia: document.getElementsByClassName("active-date")[0].innerHTML
-        },
-        success: (result) => {
-          $("#dias_plantao").empty()
-          $("#dias_plantao").append(result['lista_datas'])
-
-          atualiza_numero_plantao_a_marcar(String(result['numero_plantao']))
-
-          //Mostrar notificação na tela
-          switch(result['tipo_mensagem']){
-            case 'success':
-                iziToast.success({
-                    title: 'Sucesso!',
-                    message: result['mensagem'],
-                    position: 'topCenter'
-                });
-                break;
-            case 'warning':
-                iziToast.warning({
-                    title: 'Atenção:',
-                    message: result['mensagem'],
-                    position: 'topCenter'
-                });
-          }
-        }
-    })
-  });
-
-  $("#botao_confirmar_editar_plantao_modal").click(function() {
-    window.location.href = "{{url_for('plantao.editar_plantao')}}"
-  });
-
-</script>
-
-<script>
-
-// Setup the calendar with the current date
-var event_data = {"events":[]};
-
-$(document).ready(function(){
-    $.ajax({
-        type: "GET",
-        url: window.origin + $("#hdnAjaxEscala").val(),
-        contentType: 'application/json;charset=UTF-8',
-        success: (result) => {
-          event_data = {
-            "events": result
-          }
-
-            var date = new Date();
-            var today = date.getDate();
-            // Set click handlers for DOM elements
-            $(".right-button").click({date: date}, next_year);
-            $(".left-button").click({date: date}, prev_year);
-            $(".month").click({date: date}, month_click);
-            $("#add-button").click({date: date}, new_event);
-            // Set current month as active
-            $(".months-row").children().eq(date.getMonth()).addClass("active-month");
-
-            init_calendar(date);
-            let eventos_dia = check_events(today, date.getMonth()+1, date.getFullYear());
-            show_events(eventos_dia, months[date.getMonth()], today);
-            vagas_disponiveis();
-            colore_calendario();
-        }
-    });
-});
-
-// Initialize the calendar by appending the HTML dates
-function init_calendar(date) {
-    $(".tbody").empty();
-    $(".events-container").empty();
-    var calendar_days = $(".tbody");
-    var month = date.getMonth();
-    var year = date.getFullYear();
-    var day_count = days_in_month(month, year);
-    var row = $("<tr class='table-row'></tr>");
-    var today = date.getDate();
-    // Set date to 1 to find the first day of the month
-    date.setDate(1);
-    var first_day = date.getDay();
-    // 35+firstDay is the number of date elements to be added to the dates table
-    // 35 is from (7 days in a week) * (up to 5 rows of dates in a month)
-    for(var i=0; i<35+first_day; i++) {
-        // Since some of the elements will be blank, 
-        // need to calculate actual date from index
-        var day = i-first_day+1;
-        // If it is a sunday, make a new row
-        if(i%7===0) {
-            calendar_days.append(row);
-            row = $("<tr class='table-row'></tr>");
-        }
-        // if current index isn't a day in this month, make it blank
-        if(i < first_day || day > day_count) {
-            var curr_date = $("<td class='table-date nil'>"+"</td>");
-            row.append(curr_date);
-        }   
-        else {
-            var curr_date = $("<td class='table-date'>"+day+"</td>");
-            var events = check_events(day, month+1, year);
-            if(today===day && $(".active-date").length===0) {
-                curr_date.addClass("active-date");
-                show_events(events, months[month], day);
-            }
-
-            // Set onClick handler for clicking a date
-            curr_date.click({events: events, month: months[month], day:day}, date_click);
-            row.append(curr_date);
-        }
-       
+    const shiftButton = document.getElementById(`numero_plantao_${shiftNumber}`);
+    if (shiftButton) {
+      shiftButton.classList.add('numero_plantao_a_marcar');
     }
-    // Append the last row and set the current year
-    calendar_days.append(row);
-    $(".year").text(year);
-}
-
-// Get the number of days in a given month/year
-function days_in_month(month, year) {
-    var monthStart = new Date(year, month, 1);
-    var monthEnd = new Date(year, month + 1, 1);
-    return (monthEnd - monthStart) / (1000 * 60 * 60 * 24);    
-}
-
-// Event handler for when a date is clicked
-function date_click(event) {
-    $(".events-container").show(250);
-    $("#dialog").hide(250);
-    $(".active-date").removeClass("active-date");
-    $(this).addClass("active-date");
-    show_events(event.data.events, event.data.month, event.data.day);
-    vagas_disponiveis();
-};
-
-// Event handler for when a month is clicked
-function month_click(event) {
-    $(".events-container").show(250);
-    $("#dialog").hide(250);
-    var date = event.data.date;
-    $(".active-month").removeClass("active-month");
-    $(this).addClass("active-month");
-    var new_month = $(".month").index(this);
-    date.setMonth(new_month);
-    init_calendar(date);
-    colore_calendario();
-    vagas_disponiveis();
-}
-
-// Event handler for when the year right-button is clicked
-function next_year(event) {
-    $("#dialog").hide(250);
-    var date = event.data.date;
-    var new_year = date.getFullYear()+1;
-    $("year").html(new_year);
-    date.setFullYear(new_year);
-    init_calendar(date);
-    colore_calendario();
-    vagas_disponiveis();
-}
-
-// Event handler for when the year left-button is clicked
-function prev_year(event) {
-    $("#dialog").hide(250);
-    var date = event.data.date;
-    var new_year = date.getFullYear()-1;
-    $("year").html(new_year);
-    date.setFullYear(new_year);
-    init_calendar(date);
-    colore_calendario();
-    vagas_disponiveis();
-}
-
-// Event handler for clicking the new event button
-function new_event(event) {
-    // if a date isn't selected then do nothing
-    if($(".active-date").length===0)
-        return;
-    // remove red error input on click
-    $("input").click(function(){
-        $(this).removeClass("error-input");
-    })
-    // empty inputs and hide events
-    $("#dialog input[type=text]").val('');
-    $("#dialog input[type=number]").val('');
-    $(".events-container").hide(250);
-    $("#dialog").show(250);
-    // Event handler for cancel button
-    $("#cancel-button").click(function() {
-        $("#name").removeClass("error-input");
-        $("#count").removeClass("error-input");
-        $("#dialog").hide(250);
-        $(".events-container").show(250);
-    });
-    // Event handler for ok button
-    $("#ok-button").unbind().click({date: event.data.date}, function() {
-        var date = event.data.date;
-        var name = $("#name").val().trim();
-        var count = parseInt($("#count").val().trim());
-        var day = parseInt($(".active-date").html());
-        // Basic form validation
-        if(name.length === 0) {
-            $("#name").addClass("error-input");
-        }
-        else if(isNaN(count)) {
-            $("#count").addClass("error-input");
-        }
-        else {
-            $("#dialog").hide(250);
-            console.log("new event");
-            new_event_json(name, count, date, day);
-            date.setDate(day);
-            init_calendar(date);
-        }
-    });
-}
-
-// Adds a json event to event_data
-function new_event_json(name, count, date, day) {
-    var event = {
-        "occasion": name,
-        "invited_count": count,
-        "year": date.getFullYear(),
-        "month": date.getMonth()+1,
-        "day": day
-    };
-    event_data["events"].push(event);
-}
-
-// Display all events of the selected date in card views
-function show_events(events, month, day) {
-    // Clear the dates container
-    $(".events-container").empty();
-    $(".events-container").show(250);
-    // If there are no events for this date, notify the user
-    if(events.length===0) {
-        var event_card = $(`<div class="card card-danger"><div class="card-body"><li>Não há escalados para ${day} de ${month}.</li></div></div>'`);
-        $(".events-container").append(event_card);
-    }
-    else {
-        // Go through and add each event as a card to the events container
-        var event_card_top = $('<div class="card card-primary"><div class="card-body"></div></div>');
-        for(_event of events) {
-            $(event_card_top).find('.card-body').append($("<li class='data_plantao'>"+_event.nome+"</li>"));
-        }
-        $(".events-container").append(event_card_top);
-    }
-}
-
-// Checks if a specific date has any events
-function check_events(day, month, year) {
-    var events = [];
-    for(var i=0; i<event_data["events"].length; i++) {
-        var event = event_data["events"][i];
-        if(event["day"]==day &&
-            event["month"]==month &&
-            event["year"]==year) {
-                events.push(event);
-            }
-    }
-    return events;
-}
-
-const months = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro"
-];
-
-function vagas_disponiveis(){ 
-
-    $.ajax({
-        type: "GET",
-        url: "{{url_for('plantao.ajax_vagas_disponiveis')}}",
-        contentType: 'application/json;charset=UTF-8',
-        data: {
-            ano: document.getElementsByClassName("year")[0].innerHTML,
-            mes: document.getElementsByClassName("active-month")[0].id.substring(5),
-            dia: document.getElementsByClassName("active-date")[0].innerHTML             
-        },
-        success: (result) => {
-          $(".events-container p").hide();
-          $(".events-container").append($("<p>Vagas disponíveis: "+result.NumeroVagas+"<p>"));
-        }
-    })
-      
-}
-
-function colore_calendario(){
-
-    $.ajax({
-        type: "GET",
-        url: "{{url_for('plantao.ajax_disponibilidade_de_vagas')}}",
-        contentType: 'application/json;charset=UTF-8',
-        data: {
-            ano: document.getElementsByClassName("year")[0].innerHTML,
-            mes: document.getElementsByClassName("active-month")[0].id.substring(5)             
-        },
-        success: (result) => {
-          
-          var elementos = (document.getElementsByClassName("table-date"))
-          var elementosNulos = (document.getElementsByClassName("nil"))
-          var diasDeEventos = (document.getElementsByClassName("event-date"))
-  
-          var i;   
-
-            $.each(result, function(index){
-              
-              for (i = 0; i < elementos.length; i++) {
-                if(elementos[i].innerText == result[index].Dia){
-                  if(result[index].Vagas == true){
-                    $(elementos[i]).addClass("disponivel");
-                  }
-                  else{
-                    $(elementos[i]).addClass("indisponivel");
-                  }                
-                }
-              }         
-            }); 
-
-            $(elementosNulos).removeClass("disponivel");
-          }
-    })
-      
+    
+    calendarState.setSelectedShift(shiftNumber);
   }
+
+  function setupEventDelegation() {
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('#numero_plantao_1, #numero_plantao_2')) {
+        const shiftNumber = e.target.id.split('_').pop();
+        updateSelectedShift(shiftNumber);
+        return;
+      }
+      
+      if (e.target.matches('.table-date:not(.nil)')) {
+        const day = parseInt(e.target.textContent);
+        const month = calendarState.selectedMonth + 1;
+        const year = calendarState.selectedYear;
+        const events = calendarState.getEventsForDate(day, month, year);
+        
+        document.querySelectorAll('.active-date').forEach(el => {
+          el.classList.remove('active-date');
+        });
+        e.target.classList.add('active-date');
+        
+        calendarState.setSelectedDate(day);
+        showEvents(events, monthsArray[calendarState.selectedMonth], day);
+        vagasDisponiveis();
+        return;
+      }
+      
+      if (e.target.matches('.month')) {
+        const monthIndex = Array.from(e.target.parentElement.children).indexOf(e.target);
+        const date = new Date(calendarState.selectedYear, monthIndex);
+        
+        document.querySelectorAll('.active-month').forEach(el => {
+          el.classList.remove('active-month');
+        });
+        e.target.classList.add('active-month');
+        
+        calendarState.setSelectedMonth(monthIndex);
+        date.setMonth(monthIndex);
+        initCalendar(date);
+        coloreCalendario();
+        vagasDisponiveis();
+        return;
+      }
+      
+      if (e.target.matches('#prev, .left-button, .left-button i')) {
+        const newYear = calendarState.selectedYear - 1;
+        calendarState.setSelectedYear(newYear);
+        const yearElement = document.querySelector('.year');
+        if (yearElement) yearElement.textContent = newYear;
+        
+        const date = new Date(newYear, calendarState.selectedMonth);
+        initCalendar(date);
+        coloreCalendario();
+        vagasDisponiveis();
+        return;
+      }
+      
+      if (e.target.matches('#next, .right-button, .right-button i')) {
+        const newYear = calendarState.selectedYear + 1;
+        calendarState.setSelectedYear(newYear);
+        const yearElement = document.querySelector('.year');
+        if (yearElement) yearElement.textContent = newYear;
+        
+        const date = new Date(newYear, calendarState.selectedMonth);
+        initCalendar(date);
+        coloreCalendario();
+        vagasDisponiveis();
+        return;
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    updateSelectedShift('{{numero_plantao}}');
+    setupEventDelegation();
+    initializeCalendar();
+
+    document.addEventListener('click', function(e) {
+      if (e.target.hasAttribute('data-modal')) {
+        const modalId = e.target.getAttribute('data-modal');
+        if (window.ModalManager && typeof window.ModalManager.open === 'function') {
+          window.ModalManager.open(modalId);
+        } else {
+          console.error('ModalManager is not available');
+        }
+      }
+      
+      if (e.target.hasAttribute('data-modal-close')) {
+        const modalId = e.target.getAttribute('data-modal-close');
+        if (window.ModalManager && typeof window.ModalManager.close === 'function') {
+          window.ModalManager.close(modalId);
+        } else {
+          console.error('ModalManager is not available');
+        }
+      }
+    });
+  });
+
+  function initializeCalendar() {
+    const ajaxUrl = document.getElementById('hdnAjaxEscala').value;
+    
+    fetch(window.origin + ajaxUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json;charset=UTF-8'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(result => {
+      calendarState.setEvents(result);
+      
+      const date = new Date();
+      const today = date.getDate();
+      
+      const monthsRow = document.querySelector('.months-row');
+      if (monthsRow && monthsRow.children[date.getMonth()]) {
+        monthsRow.children[date.getMonth()].classList.add('active-month');
+      }
+
+      initCalendar(date);
+      const eventos_dia = calendarState.getEventsForDate(today, date.getMonth()+1, date.getFullYear());
+      showEvents(eventos_dia, monthsArray[date.getMonth()], today);
+      vagasDisponiveis();
+      coloreCalendario();
+    })
+    .catch(error => {
+      console.error('Error loading calendar data:', error);
+      showNotification('Erro!', 'Erro ao carregar dados do calendário', 'danger');
+    });
+  }
+
+  function initCalendar(date) {
+    const tbody = document.querySelector('.tbody');
+    const eventsContainer = document.querySelector('.events-container');
+    
+    if (tbody) tbody.innerHTML = '';
+    if (eventsContainer) eventsContainer.innerHTML = '';
+    
+    const month = date.getMonth();
+    const year = date.getFullYear();
+    const dayCount = daysInMonth(month, year);
+    const today = date.getDate();
+    
+    date.setDate(1);
+    const firstDay = date.getDay();
+    
+    let row = document.createElement('tr');
+    row.className = 'table-row';
+    
+    for(let i = 0; i < 35 + firstDay; i++) {
+      const day = i - firstDay + 1;
+      
+      if(i % 7 === 0) {
+        tbody.appendChild(row);
+        row = document.createElement('tr');
+        row.className = 'table-row';
+      }
+      
+      if(i < firstDay || day > dayCount) {
+        const currDate = document.createElement('td');
+        currDate.className = 'table-date nil';
+        row.appendChild(currDate);
+      } else {
+        const currDate = document.createElement('td');
+        currDate.className = 'table-date';
+        currDate.textContent = day;
+        
+        const events = calendarState.getEventsForDate(day, month + 1, year);
+        if(today === day && !document.querySelector('.active-date')) {
+          currDate.classList.add('active-date');
+          showEvents(events, monthsArray[month], day);
+        }
+        
+        row.appendChild(currDate);
+      }
+    }
+    
+    tbody.appendChild(row);
+    const yearElement = document.querySelector('.year');
+    if (yearElement) yearElement.textContent = year;
+  }
+
+  function daysInMonth(month, year) {
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 1);
+    return (monthEnd - monthStart) / (1000 * 60 * 60 * 24);
+  }
+
+
+  function createEventCard(events, month, day) {
+    const template = document.createElement('template');
+    
+    if (events.length === 0) {
+      template.innerHTML = `
+        <div class="card border-warning">
+          <div class="card-body text-center p-4">
+            <i class="icon icon-exclamation-triangle text-warning mb-3"></i>
+            <h6 class="card-title text-warning">Nenhum usuário escalado</h6>
+            <p class="card-text text-muted mb-0">Não há escalados para ${day} de ${month}.</p>
+          </div>
+        </div>
+      `;
+    } else {
+      const eventsList = events.map((event, index) => `
+        <div class="d-flex align-items-center p-2 mb-2 bg-light rounded">
+          <div class="me-3">
+            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px; font-size: 14px; font-weight: bold;">
+              ${index + 1}
+            </div>
+          </div>
+          <div class="flex-grow-1">
+            <h6 class="mb-0 text-primary">${event.nome}</h6>
+            <small class="text-muted">Usuário escalado</small>
+          </div>
+        </div>
+      `).join('');
+      
+      template.innerHTML = `
+        <div class="card border-primary">
+          <div class="card-header bg-primary text-white text-center">
+            <h6 class="mb-0">
+              <i class="icon icon-user me-2 text-white"></i>
+              Usuários Escalados - ${day}/${month}
+            </h6>
+          </div>
+          <div class="card-body p-3">
+            ${eventsList}
+          </div>
+        </div>
+      `;
+    }
+    
+    return template.content.firstElementChild;
+  }
+
+  function showEvents(events, month, day) {
+    const eventsContainer = document.querySelector('.events-container');
+    if (!eventsContainer) return;
+    
+    eventsContainer.replaceChildren();
+    eventsContainer.style.display = 'flex';
+    eventsContainer.style.alignItems = 'center';
+    eventsContainer.style.justifyContent = 'center';
+    
+    const eventCard = createEventCard(events, month, day);
+    eventsContainer.appendChild(eventCard);
+  }
+
+
+  const monthsArray = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
+
+  function vagasDisponiveis() {
+    const yearElement = document.querySelector('.year');
+    const activeMonth = document.querySelector('.active-month');
+    const activeDate = document.querySelector('.active-date');
+    
+    if (!yearElement || !activeMonth || !activeDate) return;
+    
+    const ano = yearElement.textContent;
+    const mes = activeMonth.id.substring(5);
+    const dia = activeDate.textContent;
+    
+    const url = new URL("{{url_for('plantao.ajax_vagas_disponiveis')}}", window.location.origin);
+    url.searchParams.append('ano', ano);
+    url.searchParams.append('mes', mes);
+    url.searchParams.append('dia', dia);
+    
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json;charset=UTF-8'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(result => {
+      const eventsContainer = document.querySelector('.events-container');
+      if (eventsContainer) {
+        const existingVagas = eventsContainer.querySelector('.vagas-info');
+        if (existingVagas) {
+          existingVagas.remove();
+        }
+        
+        const vagasInfo = document.createElement('div');
+        vagasInfo.className = 'vagas-info mt-3 p-3 bg-info bg-opacity-10 border border-info rounded';
+        vagasInfo.innerHTML = `
+          <div class="d-flex align-items-center">
+            <i class="icon icon-info-circle text-info me-2"></i>
+            <span class="fw-bold text-info">Vagas disponíveis: ${result.NumeroVagas}</span>
+          </div>
+        `;
+        
+        const existingCard = eventsContainer.querySelector('.card');
+        if (existingCard) {
+          existingCard.appendChild(vagasInfo);
+        } else {
+          eventsContainer.appendChild(vagasInfo);
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error loading available slots:', error);
+    });
+  }
+
+  function coloreCalendario() {
+    const yearElement = document.querySelector('.year');
+    const activeMonth = document.querySelector('.active-month');
+    
+    if (!yearElement || !activeMonth) return;
+    
+    const ano = yearElement.textContent;
+    const mes = activeMonth.id.substring(5);
+    
+    const url = new URL("{{url_for('plantao.ajax_disponibilidade_de_vagas')}}", window.location.origin);
+    url.searchParams.append('ano', ano);
+    url.searchParams.append('mes', mes);
+    
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json;charset=UTF-8'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(result => {
+      const elementos = document.getElementsByClassName('table-date');
+      const elementosNulos = document.getElementsByClassName('nil');
+      
+      Array.from(elementos).forEach(el => {
+        el.classList.remove('disponivel', 'indisponivel');
+      });
+      
+      result.forEach(item => {
+        for (let i = 0; i < elementos.length; i++) {
+          if (elementos[i].textContent == item.Dia) {
+            if (item.Vagas === true) {
+              elementos[i].classList.add('disponivel');
+            } else {
+              elementos[i].classList.add('indisponivel');
+            }
+          }
+        }
+      });
+      
+      Array.from(elementosNulos).forEach(el => {
+        el.classList.remove('disponivel');
+      });
+    })
+    .catch(error => {
+      console.error('Error loading availability:', error);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const escolheDataBtn = document.getElementById('escolhe_data');
+    if (escolheDataBtn) {
+      escolheDataBtn.addEventListener('click', function() {
+        coloreCalendario();
+        const yearElement = document.querySelector('.year');
+        const activeMonth = document.querySelector('.active-month');
+        const activeDate = document.querySelector('.active-date');
+        
+        if (yearElement && activeMonth && activeDate) {
+          const ano = yearElement.textContent;
+          const mes = activeMonth.id.substring(5);
+          const dia = activeDate.textContent;
+          
+          const modalBody = document.getElementById('id_body_modal');
+          if (modalBody) {
+            modalBody.innerHTML = `Data selecionada: ${dia}/${mes}/${ano}`;
+          }
+        }
+      });
+    }
+
+    const confirmBtn = document.getElementById('id_botao_confirmar_modal');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', function() {
+        const yearElement = document.querySelector('.year');
+        const activeMonth = document.querySelector('.active-month');
+        const activeDate = document.querySelector('.active-date');
+        
+        if (!yearElement || !activeMonth || !activeDate) return;
+        
+        const ano = yearElement.textContent;
+        const mes = activeMonth.id.substring(5);
+        const dia = activeDate.textContent;
+        
+        const url = new URL("{{url_for('plantao.ajax_confirma_data_plantao')}}", window.location.origin);
+        url.searchParams.append('ano', ano);
+        url.searchParams.append('mes', mes);
+        url.searchParams.append('dia', dia);
+        
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json;charset=UTF-8'
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(result => {
+          const diasPlantao = document.getElementById('dias_plantao');
+          if (diasPlantao) {
+            diasPlantao.innerHTML = result.lista_datas;
+          }
+          
+          atualiza_numero_plantao_a_marcar(String(result.numero_plantao));
+          
+          if (window.ModalManager && typeof window.ModalManager.close === 'function') {
+            window.ModalManager.close('confirmacao');
+          }
+          
+          switch(result.tipo_mensagem) {
+            case 'success':
+              showNotification('Sucesso!', result.mensagem, 'success');
+              break;
+            case 'warning':
+              showNotification('Atenção:', result.mensagem, 'warning');
+              break;
+          }
+        })
+        .catch(error => {
+          console.error('Error confirming plantão:', error);
+          showNotification('Erro!', 'Erro ao confirmar plantão', 'danger');
+        });
+      });
+    }
+
+    const editBtn = document.getElementById('botao_confirmar_editar_plantao_modal');
+    if (editBtn) {
+      editBtn.addEventListener('click', function() {
+        if (window.ModalManager && typeof window.ModalManager.close === 'function') {
+          window.ModalManager.close('confirmacaoEdicao');
+        }
+        window.location.href = "{{url_for('plantao.editar_plantao')}}";
+      });
+    }
+  });
 </script>
 
 {% endblock scripts %}

@@ -116,7 +116,7 @@
             <button id="outQueue" type="button" class="btn btn-outline-primary btn-sm toggle-button" 
                 aria-expanded="false" aria-controls="completed-section">
                 <span class="toggle-text">Mostrar atendidos/cancelados</span>
-                <i class="fas fa-angle-down toggle-icon"></i>
+                <i class="icon icon-angle-down toggle-icon"></i>
             </button>
         </div>
     </div>
@@ -236,14 +236,14 @@
                 completedSection.style.display = "none";
                 completedSection.classList.add("hidden");
                 toggleText.textContent = "Mostrar atendidos/cancelados";
-                toggleIcon.className = "fas fa-angle-down toggle-icon";
+                toggleIcon.className = "icon icon-angle-down toggle-icon";
                 button.setAttribute("aria-expanded", "false");
             } else {
                 // Show section
                 completedSection.style.display = "block";
                 completedSection.classList.remove("hidden");
                 toggleText.textContent = "Ocultar atendidos/cancelados";
-                toggleIcon.className = "fas fa-angle-up toggle-icon";
+                toggleIcon.className = "icon icon-angle-up toggle-icon";
                 button.setAttribute("aria-expanded", "true");
             }
         })

@@ -50,6 +50,7 @@
     <link rel="stylesheet" href="{{url_for('static',filename='css/icons.css')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='css/styles.css')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='css/utilities.css')}}">
+    <link rel="stylesheet" href="{{url_for('static',filename='css/modal_styles.css')}}">
     <link rel='shortcut icon' type='image/x-icon' href="{{url_for('static', filename='imgs_daj/gestao_legal_home.png')}}" />
 
     {% include 'atendidos/componentes/sistema_cores.html' %}
@@ -998,6 +999,7 @@
         }
     </script>
 
+    <script src="{{url_for('static',filename='js/modal_manager.js')}}"></script>
     {%block scripts%}{% endblock %}
 </body>
 </html>

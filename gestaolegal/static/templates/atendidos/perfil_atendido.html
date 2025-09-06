@@ -333,7 +333,7 @@
         <div class="profile-actions">
             <button id="addQueue" type="button" class="btn btn-secondary">Incluir na Fila de Atendimento</button>
             <a class="btn btn-primary" href="/atendido/editar_atendido/{{assistido.Atendido.id}}">
-                <span>Editar</span> <span><i class="fas fa-edit"></i></span>
+                <span>Editar</span> <span><i class="icon icon-edit"></i></span>
             </a>
         </div>
     </div>
@@ -370,12 +370,20 @@
 {% endblock %}
 
 {% block modal %}
-<div class="modal-overlay modal-hidden">
-    <div class="modal-content">
+<div class="modal-overlay modal-hidden" 
+     id="senhaModal" 
+     role="dialog" 
+     aria-modal="true" 
+     aria-labelledby="senhaModal_title"
+     aria-describedby="senhaModal_body">
+    <div class="modal-content modal-lg" tabindex="-1">
         <div class="modal-header">
-            <h1>Escolha o tipo de senha</h1>
+            <h2 class="modal-title" id="senhaModal_title">Escolha o tipo de senha</h2>
+            <button type="button" class="modal-close" onclick="ModalManager.close('senhaModal')" aria-label="Fechar modal">
+                <span aria-hidden="true">&times;</span>
+            </button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" id="senhaModal_body">
             <div class="modal-main-content">
                 <div class="radio-option">
                     <input type="radio" name="senha" value="N" id="senhaNormal">
@@ -418,7 +426,7 @@
                     <label for="psicologia">Há atendimento da psicologia</label>
                 </div>
                 <div class="modal-buttons">
-                    <button id="closeModal" type="button" class="btn btn-secondary">Voltar</button>
+                    <button id="closeModal" type="button" class="btn btn-secondary" onclick="ModalManager.close('senhaModal')">Voltar</button>
                     <button id="createQueue" type="button" class="btn btn-primary">Cadastrar e Incluir na Fila</button>
                 </div>
             </div>
@@ -495,7 +503,7 @@
 
     }
     document.querySelector("#addQueue").addEventListener("click", () => {
-        document.querySelector(".modal-overlay").classList.toggle("modal-hidden")
+        ModalManager.open('senhaModal');
     });
     Array.from(radios).map((item) => {
         item.onclick = async () => {

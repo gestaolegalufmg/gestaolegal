@@ -2,10 +2,12 @@ $(document).ready(function() {
     let currentOrientacaoId = null;
     let searchTimeout;
     
-    $('#modalAssociarAtendido').on('show.bs.modal', function (event) {
-        const button = $(event.relatedTarget);
-        currentOrientacaoId = button.data('orientacao-id') || window.currentOrientacaoId;
-        carregarAtendidos('');
+    // Listen for modal open events
+    document.addEventListener('modal:open', function(event) {
+        if (event.detail.modalId === 'modalAssociarAtendido') {
+            currentOrientacaoId = window.currentOrientacaoId;
+            carregarAtendidos('');
+        }
     });
     
     $('#buscaAtendido').on('input', function() {
@@ -59,7 +61,7 @@ $(document).ready(function() {
                 },
                 success: function(response) {
                     if (response.success) {
-                        $('#modalAssociarAtendido').modal('hide');
+                        ModalManager.close('modalAssociarAtendido');
                         location.reload();
                     } else {
                         alert('Erro ao associar atendido: ' + response.message);
