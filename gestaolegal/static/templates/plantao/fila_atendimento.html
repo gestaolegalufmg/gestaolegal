@@ -1,19 +1,31 @@
 {% extends "base/painel_principal.html" %}
 
 {% block css %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/table_styles.css')}}">
 <style>
-    .legends,
-    .legends>div {
+    .legends-container {
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .legends {
         display: flex;
         flex-direction: row;
         flex-wrap: nowrap;
         align-items: center;
         justify-content: flex-end;
         gap: 1.5rem;
+        background-color: var(--color-background-muted);
+        padding: 12px 16px;
+        border-radius: 6px;
+        border: 1px solid var(--color-border);
     }
 
-    .legends>div {
+    .legends > div {
+        display: flex;
         justify-content: flex-start;
+        align-items: center;
         gap: 12px;
     }
 
@@ -25,62 +37,152 @@
     }
 
     .legends span.bg-warning:empty {
-        background-color: #FFA426 !important;
+        background-color: var(--color-warning) !important;
     }
 
     .legends span.bg-primary:empty {
-        background-color: #38B4FD !important;
+        background-color: var(--color-primary) !important;
     }
 
     .legends span.bg-white:empty {
         height: 6px;
-        border: 1px solid #D3DADE;
+        border: 1px solid var(--color-border);
+    }
+
+    .toggle-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border: 1px solid var(--color-primary);
+        background-color: transparent;
+        color: var(--color-primary);
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .toggle-button:hover {
+        background-color: var(--color-primary);
+        color: var(--color-white);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .toggle-button:active {
+        transform: translateY(0);
+    }
+
+    .toggle-icon {
+        transition: transform 0.2s ease;
+        font-size: 14px;
+    }
+
+    .toggle-button[aria-expanded="true"] .toggle-icon {
+        transform: rotate(180deg);
+    }
+
+    /* Completed Section Styling */
+    .completed-section {
+        margin-top: 24px;
+        border-top: 2px solid var(--color-border);
+        padding-top: 24px;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    .completed-section.hidden {
+        display: none !important;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>
 {% endblock %}
-{% block titulo %} Fila de Atendimento {% endblock %}
-{% block conteudo %}
-<div class="card">
-    <table class="table">
-        <thead>
-            <tr>
-                <th class="bg-white"></th>
-                <th class="bg-white">Nome</th>
-                <th class="bg-white">Senha</th>
-                <th class="bg-white">Hora</th>
-                <th class="bg-white">Psicologia</th>
-                <th class="bg-white">Ações</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
 
-<section class="section">
-    <div class="section-header d-flex justify-content-start">
-        <h1>Atendidos e cancelados</h1>
-        <button id="outQueue" type="button" class="btn btn-outline-primary ml-4 btn-sm" data-toggle="collapse"
-            data-target="#table-out-queue" aria-expanded="false" aria-controls="table-out-queue">
-            <span>Expandir</span>
-            <i class="fas fa-angle-down ml-2"></i>
-        </button>
+{% block page_title %} Fila de Atendimento {% endblock %}
+{% block titulo %}
+    <div class="page-header">
+        <h1>Fila de Atendimento</h1>
+        <div class="action-section">
+            <button id="outQueue" type="button" class="btn btn-outline-primary btn-sm toggle-button" 
+                aria-expanded="false" aria-controls="completed-section">
+                <span class="toggle-text">Mostrar atendidos/cancelados</span>
+                <i class="fas fa-angle-down toggle-icon"></i>
+            </button>
+        </div>
     </div>
-    <div id="table-out-queue" class="card collapse">
-        <table class="table">
+{% endblock %}
+
+
+
+{% block conteudo %}
+<div class="page-container">
+    <div class="legends-container">
+        <div class="legends">
+            <div>
+                <span class="badge bg-warning"></span>
+                <span>Super Prioridade</span>
+            </div>
+            <div>
+                <span class="badge bg-primary"></span>
+                <span>Prioridade</span>
+            </div>
+            <div>
+                <span class="badge bg-white"></span>
+                <span>Normal</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table class="results-table">
             <thead>
                 <tr>
-                    <th class="bg-white"></th>
-                    <th class="bg-white">Nome</th>
-                    <th class="bg-white">Senha</th>
-                    <th class="bg-white">Hora</th>
-                    <th class="bg-white">Psicologia</th>
-                    <th class="bg-white">Ações</th>
+                    <th>#</th>
+                    <th>Nome</th>
+                    <th>Senha</th>
+                    <th>Hora</th>
+                    <th>Psicologia</th>
+                    <th>Status</th>
+                    <th>Ações</th>
                 </tr>
             </thead>
-            <tbody></tbody>
+            <tbody id="main-queue"></tbody>
         </table>
     </div>
-</section>
+
+    <div id="completed-section" class="completed-section" style="display: none;">
+        <div class="page-container">
+            <div class="page-header">
+                <h2>Atendidos e Cancelados</h2>
+            </div>
+            <div class="table-container">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nome</th>
+                            <th>Senha</th>
+                            <th>Hora</th>
+                            <th>Psicologia</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="completed-queue"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 {% block scripts %}
 <script defer>
@@ -90,7 +192,9 @@
         day: "numeric",
     };
     const atendidos = [];
-    const listaAtendimento = document.querySelectorAll(".table tbody");
+    const mainQueue = document.querySelector("#main-queue");
+    const completedQueue = document.querySelector("#completed-queue");
+    
     const todosAtendidos = async () => {
         let res = await fetch("{{url_for('plantao.pegar_atendimentos')}}", {
             headers: {
@@ -101,24 +205,48 @@
         let data = await res.json();
         data.map(item => atendidos.push(item));
 
-        // Montar fila de atendimento
-        let superPrioridade = filtrarPrioridade(2);
-        let prioridade = filtrarPrioridade(1);
-        let normal = filtrarPrioridade(0);
-        montarTabela(superPrioridade, listaAtendimento[0]);
-        montarTabela(prioridade, listaAtendimento[0]);
-        montarTabela(normal, listaAtendimento[0]);
+        // Montar fila de atendimento (apenas status 0 - na fila)
+        let superPrioridade = filtrarPrioridade(2).filter(item => item.status === 0);
+        let prioridade = filtrarPrioridade(1).filter(item => item.status === 0);
+        let normal = filtrarPrioridade(0).filter(item => item.status === 0);
+        
+        montarTabela(superPrioridade, mainQueue);
+        montarTabela(prioridade, mainQueue);
+        montarTabela(normal, mainQueue);
 
-        // Fora da fila de atendimento
+        // Montar fila de atendidos/cancelados (status 1 e 2)
+        let superPrioridadeCompletos = filtrarPrioridade(2).filter(item => item.status !== 0);
+        let prioridadeCompletos = filtrarPrioridade(1).filter(item => item.status !== 0);
+        let normalCompletos = filtrarPrioridade(0).filter(item => item.status !== 0);
+        
+        montarTabelaChamados(superPrioridadeCompletos, completedQueue);
+        montarTabelaChamados(prioridadeCompletos, completedQueue);
+        montarTabelaChamados(normalCompletos, completedQueue);
+
+        // Event listener para toggle
         document.querySelector("#outQueue").addEventListener("click", (e) => {
-            let text = document.querySelector(`#outQueue > span`);
-            let icon = document.querySelector(`#outQueue > i`);
-            text.textContent = text.textContent === "Expandir" ? "Ocultar" : "Expandir";
-            icon.classList.value = icon.classList.value.includes("down") ? "fas fa-angle-up ml-2" : "fas fa-angle-down ml-2"
+            const button = e.currentTarget;
+            const completedSection = document.querySelector("#completed-section");
+            const toggleText = button.querySelector(".toggle-text");
+            const toggleIcon = button.querySelector(".toggle-icon");
+            const isExpanded = button.getAttribute("aria-expanded") === "true";
+            
+            if (isExpanded) {
+                // Hide section
+                completedSection.style.display = "none";
+                completedSection.classList.add("hidden");
+                toggleText.textContent = "Mostrar atendidos/cancelados";
+                toggleIcon.className = "fas fa-angle-down toggle-icon";
+                button.setAttribute("aria-expanded", "false");
+            } else {
+                // Show section
+                completedSection.style.display = "block";
+                completedSection.classList.remove("hidden");
+                toggleText.textContent = "Ocultar atendidos/cancelados";
+                toggleIcon.className = "fas fa-angle-up toggle-icon";
+                button.setAttribute("aria-expanded", "true");
+            }
         })
-        montarTabelaChamados(superPrioridade, listaAtendimento[1])
-        montarTabelaChamados(prioridade, listaAtendimento[1])
-        montarTabelaChamados(normal, listaAtendimento[1])
     }
     const buttonsActions = async (button, act) => {
         let atendido = atendidos.filter(item => item.id === parseInt(button.dataset.id))
@@ -131,20 +259,33 @@
             },
             body: JSON.stringify({id: atendido[0].id, status: act})
         })
-        listaAtendimento[0].innerHTML = "";
-        listaAtendimento[1].innerHTML = "";
+        
+        // Limpar as tabelas
+        mainQueue.innerHTML = "";
+        completedQueue.innerHTML = "";
 
         // Remontar as tabelas
-        let superPrioridade = filtrarPrioridade(2)
-        let prioridade = filtrarPrioridade(1)
+        let superPrioridade = filtrarPrioridade(2);
+        let prioridade = filtrarPrioridade(1);
         let normal = filtrarPrioridade(0);
-        montarTabela(superPrioridade, listaAtendimento[0])
-        montarTabela(prioridade, listaAtendimento[0])
-        montarTabela(normal, listaAtendimento[0])
-        montarTabelaChamados(superPrioridade, listaAtendimento[1])
-        montarTabelaChamados(prioridade, listaAtendimento[1])
-        montarTabelaChamados(normal, listaAtendimento[1])
-
+        
+        // Fila principal (apenas status 0)
+        let superPrioridadeFila = superPrioridade.filter(item => item.status === 0);
+        let prioridadeFila = prioridade.filter(item => item.status === 0);
+        let normalFila = normal.filter(item => item.status === 0);
+        
+        montarTabela(superPrioridadeFila, mainQueue);
+        montarTabela(prioridadeFila, mainQueue);
+        montarTabela(normalFila, mainQueue);
+        
+        // Fila de completos (status 1 e 2)
+        let superPrioridadeCompletos = superPrioridade.filter(item => item.status !== 0);
+        let prioridadeCompletos = prioridade.filter(item => item.status !== 0);
+        let normalCompletos = normal.filter(item => item.status !== 0);
+        
+        montarTabelaChamados(superPrioridadeCompletos, completedQueue);
+        montarTabelaChamados(prioridadeCompletos, completedQueue);
+        montarTabelaChamados(normalCompletos, completedQueue);
     }
     const filtrarPrioridade = (prioridade) => {
         return atendidos.filter(atendido => atendido.prioridade === prioridade);
@@ -164,17 +305,17 @@
                 switch (item.prioridade) {
                     case 2:
                         senha = `S${index + 1 < 10 ? "0" + (index + 1) : index}`;
-                        bg = "table-warning";
+                        bg = "bg-warning";
                         txt = "text-warning";
                         break;
                     case 1:
                         senha = `P${index < 10 ? "0" + (index + 1) : index}`;
-                        bg = "table-primary";
+                        bg = "bg-primary";
                         txt = "text-primary";
                         break;
                     case 0:
                         senha = `N${index < 10 ? "0" + (index + 1) : index}`;
-                        bg = "table-light";
+                        bg = "bg-light";
                         txt = "text-dark";
                         break;
                 }
@@ -186,9 +327,12 @@
                         <td class="${txt}">${senha}</td>
                         <td class="${txt}">${format}</td>
                         <td class="${txt}">${item.psicologia}</td>
-                        <td>
-                            <button type="button" class="btn btn-outline-dark text-dark bg-white" onclick="buttonsActions(this, 1)" data-id="${item.id}">Chamar</button>
-                            <button type="button" class="btn btn-outline-danger text-danger bg-white" onclick="buttonsActions(this, 2)" data-id="${item.id}">Tirar da fila</button>
+                        <td class="${txt}">
+                            <span class="status-badge active"><small>Na fila</small></span>
+                        </td>
+                        <td class="action-buttons">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="buttonsActions(this, 1)" data-id="${item.id}">Chamar</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="buttonsActions(this, 2)" data-id="${item.id}">Tirar da fila</button>
                         </td>
                     </tr>
                 `)
@@ -210,17 +354,17 @@
                 switch (item.prioridade) {
                     case 2:
                         senha = `S${index + 1 < 10 ? "0" + (index + 1) : index}`;
-                        bg = "table-warning";
+                        bg = "bg-warning";
                         txt = "text-warning";
                         break;
                     case 1:
                         senha = `P${index < 10 ? "0" + (index + 1) : index}`;
-                        bg = "table-primary";
+                        bg = "bg-primary";
                         txt = "text-primary";
                         break;
                     case 0:
                         senha = `N${index < 10 ? "0" + (index + 1) : index}`;
-                        bg = "table-light";
+                        bg = "bg-light";
                         txt = "text-dark";
                         break;
                 }
@@ -233,7 +377,7 @@
                         <td class="${txt}">${format}</td>
                         <td class="${txt}">${item.psicologia}</td>
                         <td>
-                            ${item.status === 1 ? '<span class="border border-dark rounded-pill px-2 py-1 text-dark bg-white"><small>Chamado</small></span>' : '<span class="border border-danger rounded-pill px-2 py-1 text-danger bg-white"><small>Cancelado</small></span>'
+                            ${item.status === 1 ? '<span class="status-badge active"><small>Chamado</small></span>' : '<span class="status-badge inactive"><small>Cancelado</small></span>'
                     }
                         </td>
                     </tr>
@@ -243,24 +387,7 @@
     }
     todosAtendidos();
     const today = new Intl.DateTimeFormat("pt-BR", options).format(new Date());
-    document.querySelector(".section-header h1").innerHTML = `Fila de Atendimento - Hoje - <span>${today}</span>`;
-    document.querySelector(".section-header").classList.add("justify-content-between");
-    document.querySelector(".section-header").insertAdjacentHTML("beforeend", `
-        <div class="col-5 legends">
-            <div>
-                <span class="badge bg-warning"></span>
-                <span>Super Prioridade</span>
-            </div>
-            <div>
-                <span class="badge bg-primary"></span>
-                <span>Prioridade</span>
-            </div>
-            <div>
-                <span class="badge bg-white"></span>
-                <span>Normal</span>
-            </div>
-        </div>
-    `);
+    document.querySelector(".page-header h1").innerHTML = `Fila de Atendimento - Hoje - <span>${today}</span>`;
 
 </script>
 {%endblock%}
