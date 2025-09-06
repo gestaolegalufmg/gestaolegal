@@ -44,7 +44,7 @@ from gestaolegal.utils.decorators import login_required
 from gestaolegal.utils.models import queryFiltradaStatus
 from gestaolegal.utils.plantao_utils import *
 
-casos_controller = Blueprint("casos", __name__, template_folder="../templates/casos")
+casos_controller = Blueprint("casos", __name__, template_folder="../static/templates")
 
 
 @casos_controller.route("/")
@@ -81,7 +81,7 @@ def index():
     )
 
     return render_template(
-        "lista_casos.html",
+        "casos/listagem_casos.html",
         opcoes_filtro_casos=opcoes_filtro_casos,
         **params_busca_casos(casos, ROTA_PAGINACAO_CASOS, opcao_filtro),
     )
@@ -105,7 +105,7 @@ def ajax_filtro_casos():
     )
 
     return render_template(
-        "busca_casos.html",
+        "casos/buscar_casos.html",
         **params_busca_casos(casos, ROTA_PAGINACAO_CASOS, opcao_filtro),
     )
 
@@ -154,13 +154,13 @@ def novo_caso():
             arquivo = request.files.get("arquivo")
         except RequestEntityTooLarge:
             flash("Tamanho de arquivo muito longo.")
-            return render_template("caso.html", form=_form)
+            return render_template("casos/editar_caso.html", form=_form)
 
         if arquivo.filename:
             _, extensao_do_arquivo = os.path.splitext(arquivo.filename)
             if extensao_do_arquivo != ".pdf" and arquivo:
                 flash("Extensão de arquivo não suportado.", "warning")
-                return render_template("caso.html", form=_form)
+                return render_template("casos/editar_caso.html", form=_form)
             nome_arquivo = f"{arquivo.filename}"
             arquivo.save(
                 os.path.join(current_app.root_path, "static", "casos", nome_arquivo)
@@ -184,7 +184,9 @@ def novo_caso():
 
         return redirect(url_for("casos.visualizar_caso", id=_caso.id))
 
-    return render_template("caso.html", form=_form, title="Novo Caso", caso=None)
+    return render_template(
+        "casos/editar_caso.html", form=_form, title="Novo Caso", caso=None
+    )
 
 
 @casos_controller.route(
@@ -243,7 +245,7 @@ def visualizar_caso(id):
         .first()
     )
     return render_template(
-        "visualizar_caso.html",
+        "casos/visualizar_casos/editar_caso.html",
         caso=_caso,
         processos=processos,
         lembrete=_lembrete,
@@ -298,7 +300,7 @@ def indeferir_caso(id_caso):
         db.session.commit()
         flash("Indeferimento realizado.", "success")
         return redirect(url_for("casos.index"))
-    return render_template("justificativa.html", form=_form)
+    return render_template("casos/justificativa.html", form=_form)
 
 
 @casos_controller.route("/editar_caso/<id_caso>", methods=["GET", "POST"])
@@ -344,7 +346,9 @@ def editar_caso(id_caso):
 
     if request.method == "POST":
         if not form.validate():
-            return render_template("caso.html", form=form, caso=entidade_caso)
+            return render_template(
+                "casos/editar_caso.html", form=form, caso=entidade_caso
+            )
         else:
             if form.orientador.data == "":
                 entidade_caso.id_orientador = None
@@ -452,7 +456,7 @@ def editar_caso(id_caso):
             )
 
         return render_template(
-            "caso.html", form=form, caso=entidade_caso, arquivos=arquivos
+            "casos/editar_caso.html", form=form, caso=entidade_caso, arquivos=arquivos
         )
 
 
@@ -773,7 +777,7 @@ def editar_roteiro():
 
     _roteiros = db.session.query(RoteiroSchema).all()
     return render_template(
-        "links_roteiro.html",
+        "casos/links_roteiro.html",
         form=_form,
         roteiros=_roteiros,
         assistencia_jud_areas_atendidas=assistencia_jud_areas_atendidas,
@@ -804,7 +808,7 @@ def eventos(id_caso):
         return redirect(url_for("casos.visualizar_caso", id=id_caso))
 
     return render_template(
-        "eventos.html",
+        "casos/eventos/listagem_eventos.html",
         opcoes_filtro_eventos=opcoes_filtro_eventos,
         **params_busca_eventos(_eventos, ROTA_PAGINACAO_EVENTOS, id_caso, opcao_filtro),
     )
@@ -828,7 +832,7 @@ def ajax_filtro_eventos(id_caso):
     )
 
     return render_template(
-        "busca_eventos.html",
+        "busca_casos/eventos/listagem_eventos.html",
         **params_busca_eventos(_eventos, ROTA_PAGINACAO_EVENTOS, id_caso, opcao_filtro),
     )
 
@@ -865,7 +869,9 @@ def lembretes(id_caso):
     if (num_lembrete is not None) and (_lembrete.status == False):
         flash("Lembrete inexistente!", "warning")
 
-    return render_template("lembretes.html", caso_id=id_caso, lembretes=_lembretes)
+    return render_template(
+        "casos/lembretes/listagem_lembretes.html", caso_id=id_caso, lembretes=_lembretes
+    )
 
 
 @casos_controller.route("/cadastrar_lembrete/<int:id_do_caso>", methods=["GET", "POST"])
@@ -916,7 +922,7 @@ def cadastrar_lembrete(id_do_caso):
 
         return redirect(url_for("casos.visualizar_caso", id=id_do_caso))
 
-    return render_template("novo_lembrete.html", form=_form)
+    return render_template("casos/lembretes/cadastrar_lembrete.html", form=_form)
 
 
 @casos_controller.route("/editar_lembrete/<id_lembrete>", methods=["GET", "POST"])
@@ -955,7 +961,7 @@ def editar_lembrete(id_lembrete):
 
     if request.method == "POST":
         if not _form.validate():
-            return render_template("editar_lembrete.html", form=_form)
+            return render_template("casos/lembretes/editar_lembrete.html", form=_form)
 
         setDadosLembrete(_form, entidade_lembrete)
         db.session.commit()
@@ -969,7 +975,9 @@ def editar_lembrete(id_lembrete):
         .first()
     )
     return render_template(
-        "editar_lembrete.html", form=_form, usuario=entidade_usuario_notificado.nome
+        "casos/lembretes/editar_lembrete.html",
+        form=_form,
+        usuario=entidade_usuario_notificado.nome,
     )
 
 
@@ -1056,7 +1064,9 @@ def historico(id_caso):
             error_out=False,
         )
     )
-    return render_template("historico.html", historicos=historicos, caso_id=id_caso)
+    return render_template(
+        "casos/historico.html", historicos=historicos, caso_id=id_caso
+    )
 
 
 # Meus casos
@@ -1080,7 +1090,7 @@ def meus_casos():
     titulo_total = titulo_total_meus_casos(casos.total)
 
     return render_template(
-        "listar_meus_casos.html",
+        "casos/meus_casos.html",
         opcoes_filtro_meus_casos=opcoes_filtro_meus_casos,
         titulo_total=titulo_total,
         **params_busca_casos(casos, ROTA_PAGINACAO_MEUS_CASOS, opcao_filtro),
@@ -1173,7 +1183,9 @@ def novo_evento(id_caso):
                         if extensao_do_arq != ".pdf" and arq:
                             flash("Extensão de arq não suportado.", "warning")
                             return render_template(
-                                "novo_evento.html", form=_form, id_caso=id_caso
+                                "casos/eventos/cadastrar_evento.html",
+                                form=_form,
+                                id_caso=id_caso,
                             )
                         nome_arq = f"{arq.filename}"
                         arq.save(
@@ -1189,7 +1201,9 @@ def novo_evento(id_caso):
                     except RequestEntityTooLarge:
                         flash("Tamanho de arquivo muito longo.")
                         return render_template(
-                            "novo_evento.html", form=_form, id_caso=id_caso
+                            "casos/eventos/cadastrar_evento.html",
+                            form=_form,
+                            id_caso=id_caso,
                         )
                 db.session.add(caso_arq)
                 db.session.commit()
@@ -1197,7 +1211,9 @@ def novo_evento(id_caso):
         flash("Evento criado com sucesso!", "success")
         return redirect(url_for("casos.visualizar_caso", id=id_caso))
 
-    return render_template("novo_evento.html", form=_form, id_caso=id_caso)
+    return render_template(
+        "casos/eventos/cadastrar_evento.html", form=_form, id_caso=id_caso
+    )
 
 
 # Rota para página de editar eventos
@@ -1248,7 +1264,9 @@ def editar_evento(id_evento):
     if request.method == "POST":
         if not form.validate():
             return render_template(
-                "editar_evento.html", form=form, entidade_evento=entidade_evento
+                "casos/eventos/editar_evento.html",
+                form=form,
+                entidade_evento=entidade_evento,
             )
 
         if request.files.get("arquivos"):
@@ -1261,7 +1279,7 @@ def editar_evento(id_evento):
                         if extensao_do_arq != ".pdf" and arq:
                             flash("Extensão de arq não suportado.", "warning")
                             return render_template(
-                                "editar_evento.html",
+                                "casos/eventos/editar_evento.html",
                                 form=form,
                                 entidade_evento=entidade_evento,
                             )
@@ -1280,7 +1298,7 @@ def editar_evento(id_evento):
                         flash("Tamanho de arquivo muito longo.")
                         if entidade_evento.usuario_responsavel:
                             return render_template(
-                                "editar_evento.html",
+                                "casos/eventos/editar_evento.html",
                                 form=form,
                                 entidade_evento=entidade_evento,
                                 usuario=entidade_evento.usuario_responsavel.nome,
@@ -1288,7 +1306,7 @@ def editar_evento(id_evento):
                             )
                         else:
                             return render_template(
-                                "editar_evento.html",
+                                "casos/eventos/editar_evento.html",
                                 form=form,
                                 entidade_evento=entidade_evento,
                                 usuario=None,
@@ -1312,7 +1330,7 @@ def editar_evento(id_evento):
         nome_usuario = "Não Há"
 
     return render_template(
-        "editar_evento.html",
+        "casos/eventos/editar_evento.html",
         form=form,
         entidade_evento=entidade_evento,
         usuario=nome_usuario,
@@ -1409,7 +1427,9 @@ def visualizar_evento(num_evento):
     )
 
     return render_template(
-        "visualizar_evento.html", entidade_evento=entidade_evento, arquivos=arquivos
+        "casos/eventos/visualizar_evento.html",
+        entidade_evento=entidade_evento,
+        arquivos=arquivos,
     )
 
 
@@ -1436,7 +1456,7 @@ def novo_processo(id_caso):
     form = ProcessoForm()
     if request.method == "POST":
         if not form.validate():
-            return render_template("novo_processo.html", form=form)
+            return render_template("casos/processos/cadastrar_processo.html", form=form)
 
         entidade_processo = ProcessoSchema(
             especie=form.especie.data,
@@ -1462,7 +1482,7 @@ def novo_processo(id_caso):
             > 0
         ):
             flash("O número deste processo já está cadastrado no sistema", "warning")
-            return render_template("novo_processo.html", form=form)
+            return render_template("casos/processos/cadastrar_processo.html", form=form)
 
         caso = (
             db.session.query(CasoSchema).filter_by(id=entidade_processo.id_caso).first()
@@ -1483,13 +1503,15 @@ def novo_processo(id_caso):
                 flash(
                     "O número deste processo excede o valor máximo permitido", "warning"
                 )
-                return render_template("novo_processo.html", form=form)
+                return render_template(
+                    "casos/processos/cadastrar_processo.html", form=form
+                )
             else:
                 return error.args[0]
 
         return redirect(url_for("casos.visualizar_caso", id=id_caso))
 
-    return render_template("novo_processo.html", form=form)
+    return render_template("casos/processos/cadastrar_processo.html", form=form)
 
 
 @casos_controller.route("/processo/<int:id_processo>", methods=["GET"])
@@ -1508,7 +1530,7 @@ def visualizar_processo(id_processo):
         abort(404)
 
     return render_template(
-        "visualizar_processo.html", processo=_processo, id_caso=id_caso
+        "casos/processos/visualizar_processo.html", processo=_processo, id_caso=id_caso
     )
 
 
@@ -1531,7 +1553,9 @@ def visualizar_processo_com_numero(numero_processo):
     )
 
     return render_template(
-        "visualizar_processo.html", processo=_processo, id_caso=_processo.id_caso
+        "casos/processos/visualizar_processo.html",
+        processo=_processo,
+        id_caso=_processo.id_caso,
     )
 
 
@@ -1668,7 +1692,9 @@ def editar_processo(id_processo):
     if request.method == "POST":
         if not form.validate():
             return render_template(
-                "editar_processo.html", form=form, id_processo=id_processo
+                "casos/processos/editar_processo.html",
+                form=form,
+                id_processo=id_processo,
             )
         setDadosProcesso(form, entidade_processo)
         db.session.commit()
@@ -1682,7 +1708,9 @@ def editar_processo(id_processo):
         )
 
     setValoresProcesso(form, entidade_processo)
-    return render_template("editar_processo.html", form=form, id_processo=id_processo)
+    return render_template(
+        "casos/processos/editar_processo.html", form=form, id_processo=id_processo
+    )
 
 
 @casos_controller.route(
@@ -1710,7 +1738,7 @@ def editar_arquivo_caso(id_arquivo, id_caso):
     except RequestEntityTooLarge:
         flash("Tamanho de arquivo muito longo.")
         return render_template(
-            "editar_arquivo_caso.html",
+            "editar_arquivo_casos/editar_caso.html",
             form=_form,
             id_arquivo=id_arquivo,
             id_caso=id_caso,
@@ -1720,7 +1748,7 @@ def editar_arquivo_caso(id_arquivo, id_caso):
         if extensao_do_arquivo != ".pdf" and arquivo:
             flash("Extensão de arquivo não suportado.", "warning")
             return render_template(
-                "editar_arquivo_caso.html",
+                "editar_arquivo_casos/editar_caso.html",
                 form=_form,
                 id_arquivo=id_arquivo,
                 id_caso=id_caso,
@@ -1735,7 +1763,7 @@ def editar_arquivo_caso(id_arquivo, id_caso):
         flash("Arquivo editado com sucesso", "success")
         return redirect(url_for("casos.editar_caso", id_caso=id_caso))
 
-    return render_template("editar_arquivo_caso.html", form=_form)
+    return render_template("editar_arquivo_casos/editar_caso.html", form=_form)
 
 
 @casos_controller.route(
@@ -1763,7 +1791,7 @@ def editar_arquivo_evento(id_arquivo, id_evento):
     except RequestEntityTooLarge:
         flash("Tamanho de arquivo muito longo.")
         return render_template(
-            "editar_arquivo_evento.html",
+            "casos/arquivos/editar_arquivo_evento.html",
             form=_form,
             id_arquivo=id_arquivo,
             id_evento=id_evento,
@@ -1773,7 +1801,7 @@ def editar_arquivo_evento(id_arquivo, id_evento):
         if extensao_do_arquivo != ".pdf" and arquivo:
             flash("Extensão de arquivo não suportado.", "warning")
             return render_template(
-                "editar_arquivo_evento.html",
+                "casos/arquivos/editar_arquivo_evento.html",
                 form=_form,
                 id_arquivo=id_arquivo,
                 id_evento=id_evento,
@@ -1788,7 +1816,7 @@ def editar_arquivo_evento(id_arquivo, id_evento):
         flash("Arquivo editado com sucesso", "success")
         return redirect(url_for("casos.editar_evento", id_evento=id_evento))
 
-    return render_template("editar_arquivo_evento.html", form=_form)
+    return render_template("casos/arquivos/editar_arquivo_evento.html", form=_form)
 
 
 @casos_controller.route(

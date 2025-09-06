@@ -1,0 +1,89 @@
+{% extends 'base/painel_principal.html' %}
+{% from 'components/profile_components.html' import profile_card, profile_field, profile_field_link, profile_section %}
+{% set eh_perfil_proprio = current_user.id == usuario.id %}
+{% block titulo %}{{'Meu Perfil' if eh_perfil_proprio else 'Perfil de {}'.format(usuario.nome.capitalize()) }}{% endblock %}
+
+{% block conteudo %}
+<div class="profile-container">
+    <!-- Profile Header -->
+    <div class="row pt-sm-3">
+        <div class="col-12">
+            <div class="card card-primary">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Função: <span>{{UserRole.get_display_name(usuario.urole)|upper}}</span></h4>
+                    <div class="card-header-action">
+                        {% if eh_perfil_proprio or current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value] %}
+                            <a href="{{url_for('usuario.editar_usuario', id_user=usuario.id)}}" class="btn btn-primary">Editar</a>
+                        {% else %}
+                            <a href="#" class="btn btn-disabled">Editar</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Cards Grid -->
+    <div class="profile-cards">
+        <!-- Dados Pessoais -->
+        {% if current_user.urole == UserRole.ADMINISTRADOR.value %}
+        {% set dados_pessoais_content %}
+            {{ profile_field("Data de nascimento", usuario.nascimento.strftime("%d/%m/%Y") if usuario.nascimento else None) }}
+            {{ profile_field("Sexo", usuario.sexo) }}
+            {{ profile_field("CPF", usuario.cpf) }}
+            {{ profile_field("RG", usuario.rg) }}
+            {{ profile_field("Profissão", usuario.profissao or "Não declarada") }}
+            {{ profile_field("OAB", usuario.oab or "N/A") }}
+        {% endset %}
+        {{ profile_card("Dados Pessoais", dados_pessoais_content) }}
+        {% endif %}
+
+        <!-- Dados Cadastrais -->
+        {% set dados_cadastrais_content %}
+            {{ profile_field("Email", usuario.email) }}
+            {% if eh_perfil_proprio %}
+                {{ profile_field_link("Senha", "Alterar senha", url_for('usuario.editar_senha_usuario'), "_blank") }}
+            {% endif %}
+            {{ profile_field("Telefone (fixo)", usuario.telefone or "Nenhum cadastrado") }}
+            {{ profile_field("Telefone (celular)", usuario.celular or "Nenhum cadastrado") }}
+            {{ profile_field("Data de inclusão", usuario.data_entrada.strftime("%d/%m/%Y") if usuario.data_entrada else "N/A") }}
+            {% if usuario.data_saida %}
+                {{ profile_field("Data de exclusão", usuario.data_saida.strftime("%d/%m/%Y")) }}
+            {% endif %}
+        {% endset %}
+        {{ profile_card("Dados Cadastrais", dados_cadastrais_content) }}
+
+        <!-- Agenda de Atendimento -->
+        {% set agenda_content %}
+            {{ profile_field("Dia da semana e horário do atendimento", usuario.horario_atendimento) }}
+        {% endset %}
+        {{ profile_card("Agenda de Atendimento", agenda_content) }}
+
+        <!-- Endereço -->
+        {% if current_user.urole == UserRole.ADMINISTRADOR.value %}
+        {% set endereco_content %}
+            {{ profile_field("Logradouro", endereco.logradouro) }}
+            {{ profile_field("Número", endereco.numero) }}
+            {{ profile_field("Complemento", endereco.complemento or "--") }}
+            {{ profile_field("Bairro", endereco.bairro) }}
+            {{ profile_field("CEP", endereco.cep) }}
+            {{ profile_field("Cidade", endereco.cidade + ", " + endereco.estado if endereco.cidade and endereco.estado else None) }}
+        {% endset %}
+        {{ profile_card("Endereço", endereco_content) }}
+        {% endif %}
+
+        <!-- Dados Acadêmicos -->
+        {% if current_user.urole == UserRole.ADMINISTRADOR.value %}
+        {% set academicos_content %}
+            {{ profile_field("Possui bolsa?", "sim" if usuario.bolsista else "não") }}
+            {% if usuario.bolsista %}
+                {{ profile_field("Tipo de bolsa", usuario.tipo_bolsa) }}
+                {{ profile_field("Início da bolsa", usuario.inicio_bolsa) }}
+                {{ profile_field("Término da bolsa", usuario.fim_bolsa) }}
+            {% endif %}
+        {% endset %}
+        {{ profile_card("Dados Acadêmicos", academicos_content) }}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

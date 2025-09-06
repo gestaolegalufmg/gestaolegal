@@ -1,0 +1,137 @@
+{% extends "base/painel_principal.html" %}
+{% import "base_form_evento.html" as formutils %}
+{%block titulo%}Editar Evento #{{entidade_evento.num_evento}}{%endblock%}
+{% block css %} 
+<link rel="stylesheet" href="{{url_for('static',filename='temas_externos/select2.min.css')}}">
+{% endblock css %}
+{% block conteudo %}
+<div class="card">
+    <div class="card-body">
+        <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
+            {{form.hidden_tag()}}
+            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('casos.api_casos_buscar_usuario', _external=True)}}">
+            <div class="form-group row">
+                {{formutils.form_label(form.data_evento, class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
+                 <div class="col-12 col-lg-6 offset-lg-1">
+                     {{formutils.form_field(form.data_evento, type='date', class='form-control')}}
+                 </div>
+            </div>
+            <div class="form-group row">
+               {{formutils.form_label(form.tipo, class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
+                <div class="col-12 col-lg-6 offset-lg-1">
+                    {{formutils.form_field(form.tipo, class_='form-control')}}
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-12 col-lg-6 offset-lg-1 col-form-label" for="usuario-js">Usuário Responsável</label>
+                <div class="col-12 col-lg-6 offset-lg-1">
+                    <select class="form-control" id="usuario-js" name="usuario-js" ></select>
+                </div>
+            </div>
+            <div class="form-group row">
+                {{formutils.form_label(form.descricao, class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
+                 <div class="col-12 col-lg-6 offset-lg-1">
+                     {{formutils.form_field(form.descricao, class='w-100', rows='10')}}
+                 </div>
+            </div>
+            {% if arquivos %}
+            <div class="card">
+                <div class="card-body">
+                  <div class="card-title">
+                    <div class="d-flex ml-auto">
+                      <h4>Arquivos</h4>
+                    </div>
+                  </div>
+                  <div class="container table-responsive">
+                      <table class="table table-striped">
+                        <style>
+                            th {
+                                text-align: center;
+                            }
+                            td{
+                                text-align: center;
+                            }
+                        </style>
+                          <thead>
+                            
+                              <tr>
+                                  <th style="width:60%">Título do Arquivo</th>
+                                  <th>Ações</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                          {% for arquivo in arquivos %}
+                          <tr>
+                              <td>{{arquivo.link_arquivo}}</td>
+                              <td >
+                                  <div class="row" style="justify-content: center;">
+                               
+                                    <a class="btn mr-1 btn-flat btn-info" href="{{url_for('static', filename='casos/'+arquivo.link_arquivo)}}">Vizualizar</a>
+                                    {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value, UserRole.COLAB_EXTERNO.value, UserRole.PROFESSOR.value, UserRole.ORIENTADOR.value]%}
+                                    <a href="{{url_for('casos.editar_arquivo_evento',id_arquivo=arquivo.id, id_evento=entidade_evento.id)}}" class="btn mr-1 btn-flat btn-primary">Editar</a>
+                                    {% endif %}
+                            
+                                      {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.ORIENTADOR.value, UserRole.PROFESSOR.value] %}
+                                      <a href="{{url_for('casos.excluir_arquivo_evento', id_arquivo=arquivo.id, id_evento=entidade_evento.id)}}" class="btn mr-1 btn-flat btn-danger">Excluir</a>
+                                      {% endif %}
+                                  </div>
+                              </td>
+                          </tr>
+                          {% endfor %}
+                          </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              <div class="row mb-5">
+                <div class="col col-lg-6 offset-lg-1">
+                    <h5>Adicionar arquivos</h5>
+                    <div class="row">
+                        <div class="col-6 align-self-end">
+                            <p>Adicione um ou mais arquivos</p>
+                            <label for="arquivos">Upload de arquivos<span class="text-danger">(.pdf)(Máx: 10MB)</span></label>
+                            <input type="file" name="arquivos" multiple="multiple" class="form-control-file overflow-hidden">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group row">
+                <div class="col-12 col-lg-6 offset-lg-1">
+                {{form.submit(class='btn btn-primary')}}
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="card-footer">
+        
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    
+    <script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+    <script>
+    
+    $(document).ready(function(){
+    
+    $('#usuario-js').select2({
+        ajax: {
+            url: $('#apiCasosBuscarUsuario').val(),
+            dataType: 'json',
+        },
+        delay: 500,
+        placeholder: '{{usuario}}',
+        width: '100%',
+        allowClear: true 
+    })
+
+    $('#usuario-js').on('change', function(){
+        $('#usuario').val($('#usuario-js').val());
+    });
+
+})
+    </script>
+
+{% endblock scripts %}

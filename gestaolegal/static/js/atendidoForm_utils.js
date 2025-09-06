@@ -1,14 +1,22 @@
 function validarPjConstituida() {
     var elemento_selecionado = document.getElementById("pj_constituida");
+    if (!elemento_selecionado) {
+        console.warn("Element pj_constituida not found");
+        return;
+    }
+    
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].value;
     var div_cnpj = document.getElementById("div_cnpj");
+    var formcnpj = document.getElementById("formcnpj");
 
-    if (string_selecionada === "1") {
-        div_cnpj.classList.remove("hidden");
-        document.getElementById("formcnpj").required = true;
-    } else {
-        div_cnpj.classList.add("hidden");
-        document.getElementById("formcnpj").required = false;
+    if (div_cnpj) {
+        if (string_selecionada === "1") {
+            div_cnpj.classList.remove("hidden");
+            if (formcnpj) formcnpj.required = true;
+        } else {
+            div_cnpj.classList.add("hidden");
+            if (formcnpj) formcnpj.required = false;
+        }
     }
 
     validarRepresLegal();
@@ -16,81 +24,128 @@ function validarPjConstituida() {
 
 function validarRepresLegal() {
     var pj_constituida = document.getElementById('pj_constituida');
+    if (!pj_constituida) {
+        console.warn("Element pj_constituida not found in validarRepresLegal");
+        return;
+    }
+    
     var pj_constituida_opcao = pj_constituida.options[pj_constituida.selectedIndex].value;
     var div_repres_legal = document.getElementById("div_repres_legal");
 
     if (pj_constituida_opcao === "0") {
-        div_repres_legal.classList.add("hidden");
-        document.getElementById("repres_legal").required = false;
-        document.getElementById("nome_repres_legal").required = false;
-        document.getElementById("div_nome_repres_legal").classList.add("hidden");
-        document.getElementById("div_cpf_repres_legal").classList.add("hidden");
-        document.getElementById("div_contato_repres_legal").classList.add("hidden");
-        document.getElementById("div_nascimento_repres_legal").classList.add("hidden");
-        document.getElementById("div_rg_repres_legal").classList.add("hidden");
+        if (div_repres_legal) div_repres_legal.classList.add("hidden");
+        
+        var repres_legal = document.getElementById("repres_legal");
+        if (repres_legal) repres_legal.required = false;
+        
+        var nome_repres_legal = document.getElementById("nome_repres_legal");
+        if (nome_repres_legal) nome_repres_legal.required = false;
+        
+        var fields = ['div_nome_repres_legal', 'div_cpf_repres_legal', 'div_contato_repres_legal', 'div_nascimento_repres_legal', 'div_rg_repres_legal'];
+        fields.forEach(function(fieldId) {
+            var element = document.getElementById(fieldId);
+            if (element) element.classList.add("hidden");
+        });
         return;
     }
 
-    div_repres_legal.classList.remove("hidden");
-    document.getElementById("repres_legal").required = true;
+    if (div_repres_legal) div_repres_legal.classList.remove("hidden");
+    
+    var repres_legal = document.getElementById("repres_legal");
+    if (repres_legal) repres_legal.required = true;
 
     var elemento_selecionado = document.getElementById('repres_legal');
+    if (!elemento_selecionado) {
+        console.warn("Element repres_legal not found");
+        return;
+    }
+    
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].value;
 
     if (string_selecionada === "0") {
-        document.getElementById("nome_repres_legal").required = true;
-        document.getElementById("div_nome_repres_legal").classList.remove("hidden");
-        document.getElementById("div_cpf_repres_legal").classList.remove("hidden");
-        document.getElementById("div_contato_repres_legal").classList.remove("hidden");
-        document.getElementById("div_nascimento_repres_legal").classList.remove("hidden");
-        document.getElementById("div_rg_repres_legal").classList.remove("hidden");
+        var nome_repres_legal = document.getElementById("nome_repres_legal");
+        if (nome_repres_legal) nome_repres_legal.required = true;
+        
+        var fields = ['div_nome_repres_legal', 'div_cpf_repres_legal', 'div_contato_repres_legal', 'div_nascimento_repres_legal', 'div_rg_repres_legal'];
+        fields.forEach(function(fieldId) {
+            var element = document.getElementById(fieldId);
+            if (element) element.classList.remove("hidden");
+        });
     } else {
-        document.getElementById("nome_repres_legal").required = false;
-        document.getElementById("div_nome_repres_legal").classList.add("hidden");
-        document.getElementById("div_cpf_repres_legal").classList.add("hidden");
-        document.getElementById("div_contato_repres_legal").classList.add("hidden");
-        document.getElementById("div_nascimento_repres_legal").classList.add("hidden");
-        document.getElementById("div_rg_repres_legal").classList.add("hidden");
+        var nome_repres_legal = document.getElementById("nome_repres_legal");
+        if (nome_repres_legal) nome_repres_legal.required = false;
+        
+        var fields = ['div_nome_repres_legal', 'div_cpf_repres_legal', 'div_contato_repres_legal', 'div_nascimento_repres_legal', 'div_rg_repres_legal'];
+        fields.forEach(function(fieldId) {
+            var element = document.getElementById(fieldId);
+            if (element) element.classList.add("hidden");
+        });
     }
 }
 
 function validarCampoComo_conheceu(orgaoPublicoDesc) {
     var elemento_selecionado = document.getElementById('como_conheceu');
+    if (!elemento_selecionado) {
+        console.warn("Element como_conheceu not found");
+        return;
+    }
+    
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
+    var div_indicacao_orgao = document.getElementById("div_indicacao_orgao");
+    var indicacao_orgao = document.getElementById("indicacao_orgao");
 
-    if (string_selecionada === orgaoPublicoDesc) {
-        document.getElementById("div_indicacao_orgao").classList.remove("hidden");
-        document.getElementById("indicacao_orgao").required = true;
-    } else {
-        document.getElementById("div_indicacao_orgao").classList.add("hidden");
-        document.getElementById("indicacao_orgao").required = false;
+    if (div_indicacao_orgao) {
+        if (string_selecionada === orgaoPublicoDesc) {
+            div_indicacao_orgao.classList.remove("hidden");
+            if (indicacao_orgao) indicacao_orgao.required = true;
+        } else {
+            div_indicacao_orgao.classList.add("hidden");
+            if (indicacao_orgao) indicacao_orgao.required = false;
+        }
     }
 }
 
 function validarCampoProcurou_outro_local() {
     var elemento_selecionado = document.getElementById('procurou_outro_local');
+    if (!elemento_selecionado) {
+        console.warn("Element procurou_outro_local not found");
+        return;
+    }
+    
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].value;
     var divElement = document.getElementById("div_procurou_qual_local");
+    var procurou_qual_local = document.getElementById("procurou_qual_local");
 
-    if (string_selecionada === "True") {
-        divElement.classList.remove("hidden");
-        document.getElementById("procurou_qual_local").required = true;
-    } else {
-        divElement.classList.add("hidden");
-        document.getElementById("procurou_qual_local").required = false;
+    if (divElement) {
+        if (string_selecionada === "True") {
+            divElement.classList.remove("hidden");
+            if (procurou_qual_local) procurou_qual_local.required = true;
+        } else {
+            divElement.classList.add("hidden");
+            if (procurou_qual_local) procurou_qual_local.required = false;
+        }
     }
 }
 
 function validarPretendeConstituirPj() {
     var pj_constituida = document.getElementById('pj_constituida');
+    if (!pj_constituida) {
+        console.warn("Element pj_constituida not found in validarPretendeConstituirPj");
+        return;
+    }
+    
     var pj_constituida_opcao = pj_constituida.options[pj_constituida.selectedIndex].value;
+    var div_pretende_constituir_pj = document.getElementById("div_pretende_constituir_pj");
+    var pretende_constituir_pj = document.getElementById("pretende_constituir_pj");
 
-    if (pj_constituida_opcao === "0") {
-        document.getElementById("div_pretende_constituir_pj").classList.remove("hidden");
-        document.getElementById("pretende_constituir_pj").required = true;
-    } else {
-        document.getElementById("div_pretende_constituir_pj").classList.add("hidden");
-        document.getElementById("pretende_constituir_pj").required = false;
+    if (div_pretende_constituir_pj) {
+        if (pj_constituida_opcao === "0") {
+            div_pretende_constituir_pj.classList.remove("hidden");
+            if (pretende_constituir_pj) pretende_constituir_pj.required = true;
+        } else {
+            div_pretende_constituir_pj.classList.add("hidden");
+            if (pretende_constituir_pj) pretende_constituir_pj.required = false;
+        }
     }
 }
 

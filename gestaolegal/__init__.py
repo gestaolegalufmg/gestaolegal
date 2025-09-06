@@ -24,6 +24,11 @@ def create_app(config_object=None):
     else:
         configure_app(app)
 
+    # Initialize logging
+    from gestaolegal.logging_config import setup_logging
+
+    setup_logging()
+
     initialize_extensions(app)
 
     register_blueprints(app)

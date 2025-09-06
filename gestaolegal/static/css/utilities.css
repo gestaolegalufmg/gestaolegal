@@ -2,25 +2,26 @@
 .row {
     display: flex;
     flex-wrap: wrap;
-    margin: 0 -15px;
 }
 
 .col-12 {
     flex: 0 0 100%;
     max-width: 100%;
-    padding: 0 15px;
 }
 
 .col-md-6 {
     flex: 0 0 100%;
     max-width: 100%;
-    padding: 0 15px;
 }
 
 .col-lg-4 {
     flex: 0 0 100%;
     max-width: 100%;
-    padding: 0 15px;
+}
+
+.col-xs-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
 }
 
 /* Responsive breakpoints */
@@ -53,8 +54,17 @@
     margin-bottom: 1rem;
 }
 
+.my-4 {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
 .mr-3 {
     margin-right: 1rem;
+}
+
+.pt-3 {
+    padding-top: 1rem;
 }
 
 .pt-5 {
@@ -63,6 +73,15 @@
 
 .pb-5 {
     padding-bottom: 3rem;
+}
+
+.py-4 {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+.pt-sm-3 {
+    padding-top: 1rem;
 }
 
 /* Button utilities */
@@ -113,6 +132,17 @@
     filter: brightness(1.1);
 }
 
+.btn-outline {
+    color: var(--color-primary);
+    background-color: transparent;
+    border-color: var(--color-primary);
+}
+
+.btn-outline:hover {
+    color: var(--color-white);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
 
 .btn-lg {
     padding: 0.5rem 1rem;
@@ -124,6 +154,21 @@
 .btn-block {
     display: block;
     width: 100%;
+}
+
+.btn-disabled {
+    color: var(--color-gray-400);
+    background-color: var(--color-gray-200);
+    border-color: var(--color-gray-200);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-disabled:hover {
+    color: var(--color-gray-400);
+    background-color: var(--color-gray-200);
+    border-color: var(--color-gray-200);
+    filter: none;
 }
 
 /* Order utilities */
@@ -289,6 +334,21 @@
 .font-weight-normal { font-weight: normal; }
 .font-weight-light { font-weight: 300; }
 
+/* Float utilities */
+.float-left { float: left; }
+.float-right { float: right; }
+.float-none { float: none; }
+
+.clearfix::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.clearfix {
+    clear: both;
+}
+
 /* Color utilities */
 .text-primary { color: var(--color-primary); }
 .text-secondary { color: var(--color-gray-600); }
@@ -339,3 +399,197 @@
 .shadow { box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); }
 .shadow-lg { box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175); }
 .shadow-none { box-shadow: none; }
+
+/* Profile Layout */
+.profile-container {
+    padding: 24px;
+}
+
+.profile-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    align-items: start;
+}
+
+/* Card Components */
+.card {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.card-primary {
+    border-color: var(--color-primary);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: color-mix(in srgb, var(--color-primary) 10%, white 90%);
+    border-bottom: 1px solid var(--color-border);
+    padding: 1rem 1.25rem;
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.card-header h4 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.card-header-action {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+/* Enhanced Card Component Styles */
+.component-card {
+    background: var(--color-white);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+}
+
+.component-card .card-header {
+    background-color: color-mix(in srgb, var(--color-primary) 10%, white 90%);
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.component-card .card-header h4 {
+    cursor: default;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.component-card .card-body {
+    padding: 20px;
+}
+
+.component-card .card-content {
+    padding: 8px 0;
+}
+
+.component-card .card-footer {
+    background-color: var(--color-background-muted);
+    padding: 16px 20px;
+    border-top: 1px solid var(--color-border);
+}
+
+/* Field Component Styles */
+.field-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.field-container:last-child {
+    margin-bottom: 0;
+}
+
+.field-message {
+    flex: 0 0 100%;
+    text-align: left;
+    color: var(--color-text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.field-label {
+    flex: 0 0 40%;
+    text-align: left;
+    font-weight: 500;
+    color: var(--color-text);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.field-value {
+    flex: 0 0 60%;
+    text-align: right;
+    color: var(--color-text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.field-value a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.field-value a:hover {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+}
+
+/* Profile specific styles */
+.profile-section {
+    margin-bottom: 1.5rem;
+}
+
+.profile-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.profile-row:last-child {
+    border-bottom: none;
+}
+
+.profile-label {
+    font-weight: 500;
+    color: var(--color-text);
+    font-size: 0.875rem;
+}
+
+.profile-value {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    text-align: right;
+}
+
+.profile-value a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.profile-value a:hover {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+}
+
+.profile-disabled {
+    color: var(--color-gray-400);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Responsive adjustments for profile */
+@media (max-width: 767px) {
+    .profile-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .profile-value {
+        text-align: left;
+    }
+}

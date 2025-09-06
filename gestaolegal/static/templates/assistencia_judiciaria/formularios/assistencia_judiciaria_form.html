@@ -1,0 +1,61 @@
+{% from "base/base_form.html" import form_field, form_section %}
+
+{{ form.csrf_token }}
+
+{{ form_field(form.nome, required=true) }}
+{{ form_field(form.telefone, required=true) }}
+{{ form_field(form.email, field_type="email", required=true) }}
+
+<div class="form-field">
+    <div class="field-row">
+        <label for="areas_atendidas">Áreas do Direito <span class="required">*</span></label>
+        <div class="field-input">
+            <select name="areas_atendidas" id="areas_atendidas" multiple class="form-input select-multiple" required>
+                <option value="ambiental" {% if form.areas_atendidas.data and 'ambiental' in form.areas_atendidas.data %}selected{% endif %}>Ambiental</option>
+                <option value="administrativo" {% if form.areas_atendidas.data and 'administrativo' in form.areas_atendidas.data %}selected{% endif %}>Administrativo</option>
+                <option value="civel" {% if form.areas_atendidas.data and 'civel' in form.areas_atendidas.data %}selected{% endif %}>Civel</option>
+                <option value="empresarial" {% if form.areas_atendidas.data and 'empresarial' in form.areas_atendidas.data %}selected{% endif %}>Empresarial</option>
+                <option value="penal" {% if form.areas_atendidas.data and 'penal' in form.areas_atendidas.data %}selected{% endif %}>Penal</option>
+                <option value="trabalhista" {% if form.areas_atendidas.data and 'trabalhista' in form.areas_atendidas.data %}selected{% endif %}>Trabalhista</option>
+            </select>
+        </div>
+    </div>
+    {% for error in form.areas_atendidas.errors %}
+    <div class="field-error">{{ error }}</div>
+    {% endfor %}
+</div>
+
+<div class="form-field">
+    <div class="field-row">
+        <label for="regiao">Região <span class="required">*</span></label>
+        <div class="field-input">
+            <select name="regiao" id="regiao" class="form-input" required>
+                <option value="">Selecione uma região</option>
+                <option value="norte" {% if form.regiao.data == 'norte' %}selected{% endif %}>Norte</option>
+                <option value="sul" {% if form.regiao.data == 'sul' %}selected{% endif %}>Sul</option>
+                <option value="leste" {% if form.regiao.data == 'leste' %}selected{% endif %}>Leste</option>
+                <option value="oeste" {% if form.regiao.data == 'oeste' %}selected{% endif %}>Oeste</option>
+                <option value="noroeste" {% if form.regiao.data == 'noroeste' %}selected{% endif %}>Noroeste</option>
+                <option value="centro_sul" {% if form.regiao.data == 'centro_sul' %}selected{% endif %}>Centro-Sul</option>
+                <option value="nordeste" {% if form.regiao.data == 'nordeste' %}selected{% endif %}>Nordeste</option>
+                <option value="pampulha" {% if form.regiao.data == 'pampulha' %}selected{% endif %}>Pampulha</option>
+                <option value="barreiro" {% if form.regiao.data == 'barreiro' %}selected{% endif %}>Barreiro</option>
+                <option value="venda_nova" {% if form.regiao.data == 'venda_nova' %}selected{% endif %}>Venda Nova</option>
+                <option value="contagem" {% if form.regiao.data == 'contagem' %}selected{% endif %}>Contagem</option>
+                <option value="betim" {% if form.regiao.data == 'betim' %}selected{% endif %}>Betim</option>
+            </select>
+        </div>
+    </div>
+    {% for error in form.regiao.errors %}
+    <div class="field-error">{{ error }}</div>
+    {% endfor %}
+</div>
+
+{{ form_section("Endereço") }}
+{{ form_field(form.cep, required=true) }}
+{{ form_field(form.logradouro, required=true) }}
+{{ form_field(form.numero, required=true) }}
+{{ form_field(form.complemento) }}
+{{ form_field(form.bairro, required=true) }}
+{{ form_field(form.cidade, required=true) }}
+{{ form_field(form.estado, required=true) }}
