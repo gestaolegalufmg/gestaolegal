@@ -1,3 +1,6 @@
+from .constants.atendido import (
+    TipoBusca,
+)
 from .constants.business import (
     como_conheceu_daj,
     enquadramento,
@@ -66,6 +69,7 @@ __all__ = [
     "situacao_deferimento",
     "tipo_evento",
     "acoes",
+    "TipoBusca",
     "tipos_busca_atendidos",
     "meses",
     "UserRole",

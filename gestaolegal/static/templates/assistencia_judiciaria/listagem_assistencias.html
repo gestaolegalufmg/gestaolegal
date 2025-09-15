@@ -22,236 +22,105 @@
 </style>
 {% endblock %}
 
+{% import 'macros/listing.html' as listui %}
 {% block conteudo %} 
-{% if assistencias %}
-<main class="page-container">
-  <section class="component-card">
-    <header class="card-header">
-      <h4>Assistências Judiciárias</h4>
-    </header>
-    
-    <div class="card-body">
-      <!-- Search and Filter Controls -->
-      <div class="page-header">
-        <div class="search-section">
-          <div class="search-form">
-            <div class="search-field">
-              <label for="busca">Buscar assistências</label>
-              <input
-                type="search"
-                id="busca"
-                class="form-input"
-                placeholder="Digite para buscar..."
-                aria-label="Buscar assistências judiciárias"
-              />
-            </div>
-            
-            <div class="search-field">
-              <label for="filtro">Filtrar por área</label>
-              <select id="filtro" name="filtro" class="form-input" aria-label="Filtrar por área jurídica">
-                <option value="{{filtro_busca_assistencia_judiciaria['TODAS'][0]}}">{{filtro_busca_assistencia_judiciaria['TODAS'][1]}}</option>
-                <option value="{{filtro_busca_assistencia_judiciaria['ADMINISTRATIVO'][0]}}">{{filtro_busca_assistencia_judiciaria['ADMINISTRATIVO'][1]}}</option>
-                <option value="{{filtro_busca_assistencia_judiciaria['AMBIENTAL'][0]}}">{{filtro_busca_assistencia_judiciaria['AMBIENTAL'][1]}}</option>
-                <option value="{{filtro_busca_assistencia_judiciaria['CIVEL'][0]}}">{{filtro_busca_assistencia_judiciaria['CIVEL'][1]}}</option>
-                <option value="{{filtro_busca_assistencia_judiciaria['EMPRESARIAL'][0]}}">{{filtro_busca_assistencia_judiciaria['EMPRESARIAL'][1]}}</option>
-                <option value="{{filtro_busca_assistencia_judiciaria['PENAL'][0]}}">{{filtro_busca_assistencia_judiciaria['PENAL'][1]}}</option>
-                <option value="{{filtro_busca_assistencia_judiciaria['TRABALHISTA'][0]}}">{{filtro_busca_assistencia_judiciaria['TRABALHISTA'][1]}}</option>
-              </select>
-            </div>
+      {% macro page_link(p) %}{{ url_for('assistencia_judiciaria.listar_assistencias_judiciarias', page=p, busca=busca, opcao_filtro=opcao_filtro) }}{% endmacro %}
+      {% macro regiao_label(row) %}
+        {% for key in assistencia_jud_regioes %}
+          {% if assistencia_jud_regioes[key][0] == row.regiao %}
+            {{ assistencia_jud_regioes[key][1] }}
+          {% endif %}
+        {% endfor %}
+      {% endmacro %}
+      {% macro areas_label(row) %}
+        {% set vars = {'espaco': False} %}
+        {% for key in assistencia_jud_areas_atendidas %}
+          {% if assistencia_jud_areas_atendidas[key][0] in row.areas_atendidas %}
+            {% if not vars.espaco %}
+              <span>{{ assistencia_jud_areas_atendidas[key][1] }}</span>
+              {% if vars.update({'espaco': True}) %}{% endif %}
+            {% else %}
+              <br><span>{{ assistencia_jud_areas_atendidas[key][1] }}</span>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      {% endmacro %}
+      {% macro actions_cell(row) %}
+      {{ listui.action_buttons([
+        {'label':'Visualizar','href':url_for('assistencia_judiciaria.perfil_assistencia_judiciaria', _id=row.id),'visible':true,'variant':'btn-primary'},
+        {'label':'Editar','href':url_for('assistencia_judiciaria.editar_assistencia_judiciaria', id_assistencia_judiciaria=row.id),'visible': true,'variant':'btn-outline-primary'},
+        {'label':'Excluir','href':url_for('assistencia_judiciaria.excluir_assistencia_judiciaria', id=row.id), 'method':'POST', 'csrf': csrf_token(), 'confirm':'Tem certeza que deseja excluir esta assistência judiciária?', 'visible': current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value], 'variant':'btn-outline-danger'}
+      ]) }}
+      {% endmacro %}
+      {% set columns = [
+        {'title':'Nome','key':'nome'},
+        {'title':'Região','renderer': regiao_label},
+        {'title':'Áreas do Direito','renderer': areas_label},
+        {'title':'Telefone','key':'telefone'},
+        {'title':'E-mail','key':'email'},
+        {'title':'Ações','renderer': actions_cell}
+      ] %}
+      {% call(list_slot) listui.listing_layout(url_for('assistencia_judiciaria.listar_assistencias_judiciarias'), total=(assistencias.total if assistencias.total is defined else (assistencias.items|length if assistencias and assistencias.items else 0))) %}
+        {% if list_slot == 'filters' %}
+          <div class="search-field">
+            <label for="busca">Buscar assistências</label>
+            <input type="search" id="busca" name="busca" value="{{ busca or '' }}" placeholder="Digite para buscar..." aria-label="Buscar assistências judiciárias"/>
           </div>
-        </div>
-        
-        {% if current_user.urole in [UserRole.ADMINISTRADOR.value,
-        UserRole.COLAB_EXTERNO.value,
-        UserRole.COLAB_PROJETO.value,
-        UserRole.PROFESSOR.value] %}
-        <div class="action-section">
-          <a
-            href="{{ url_for('assistencia_judiciaria.cadastro_assistencia_judiciaria') }}"
-            class="btn btn-primary btn-lg"
-            aria-label="Cadastrar nova assistência judiciária"
-          >
-            <span class="btn-icon">+</span>
-            Cadastrar Assistência
-          </a>
-        </div>
+          <div class="search-field">
+            <label for="filtro">Filtrar por área</label>
+            <select id="filtro" name="opcao_filtro" aria-label="Filtrar por área jurídica">
+              <option value="{{filtro_busca_assistencia_judiciaria['TODAS'][0]}}" {% if opcao_filtro == filtro_busca_assistencia_judiciaria['TODAS'][0] %}selected{% endif %}>{{filtro_busca_assistencia_judiciaria['TODAS'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['ADMINISTRATIVO'][0]}}" {% if opcao_filtro == filtro_busca_assistencia_judiciaria['ADMINISTRATIVO'][0] %}selected{% endif %}>{{filtro_busca_assistencia_judiciaria['ADMINISTRATIVO'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['AMBIENTAL'][0]}}" {% if opcao_filtro == filtro_busca_assistencia_judiciaria['AMBIENTAL'][0] %}selected{% endif %}>{{filtro_busca_assistencia_judiciaria['AMBIENTAL'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['CIVEL'][0]}}" {% if opcao_filtro == filtro_busca_assistencia_judiciaria['CIVEL'][0] %}selected{% endif %}>{{filtro_busca_assistencia_judiciaria['CIVEL'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['EMPRESARIAL'][0]}}" {% if opcao_filtro == filtro_busca_assistencia_judiciaria['EMPRESARIAL'][0] %}selected{% endif %}>{{filtro_busca_assistencia_judiciaria['EMPRESARIAL'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['PENAL'][0]}}" {% if opcao_filtro == filtro_busca_assistencia_judiciaria['PENAL'][0] %}selected{% endif %}>{{filtro_busca_assistencia_judiciaria['PENAL'][1]}}</option>
+              <option value="{{filtro_busca_assistencia_judiciaria['TRABALHISTA'][0]}}" {% if opcao_filtro == filtro_busca_assistencia_judiciaria['TRABALHISTA'][0] %}selected{% endif %}>{{filtro_busca_assistencia_judiciaria['TRABALHISTA'][1]}}</option>
+            </select>
+          </div>
+        {% elif list_slot == 'header_actions' %}
+          {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_EXTERNO.value, UserRole.COLAB_PROJETO.value, UserRole.PROFESSOR.value] %}
+          <a href="{{ url_for('assistencia_judiciaria.cadastro_assistencia_judiciaria') }}" class="btn btn-primary btn-lg" aria-label="Cadastrar nova assistência judiciária"><span class="btn-icon">+</span>Cadastrar Assistência</a>
+          {% endif %}
+        {% elif list_slot == 'content' %}
+          {% if assistencias and ((assistencias.items and assistencias.items|length > 0)) %}
+            {{ listui.table(columns, assistencias.items, 'Lista de assistências judiciárias') }}
+            {{ listui.pagination(assistencias, page_link) }}
+          {% else %}
+            {{ listui.empty_state('Nenhuma assistência judiciária cadastrada', 'Comece criando sua primeira assistência judiciária no sistema.', url_for('assistencia_judiciaria.cadastro_assistencia_judiciaria'), 'Cadastrar primeira assistência') }}
+          {% endif %}
         {% endif %}
-      </div>
-
-      <div id="tbl_assistencias_judiciarias" class="table-container" role="region" aria-live="polite" aria-label="Lista de assistências judiciárias">
-        <nav class="pagination-section" aria-label="Navegação de páginas">
-          <ul class="pagination">
-            {% for page_num in assistencias.iter_pages(left_edge=3, right_edge=3, left_current=2, right_current=2) %}
-              {% if page_num and assistencias.page == page_num %}
-                <li class="page-item active">
-                  <span class="page-link" aria-current="page">{{ page_num }}</span>
-                </li>
-              {% elif page_num %}
-                <li class="page-item">
-                  <button
-                    id="button_paginacao_aj"
-                    class="page-link"
-                    onclick="ajax_tbl_assistencia_judiciaria('{{ page_num }}')"
-                    aria-label="Ir para página {{ page_num }}"
-                  >
-                    {{ page_num }}
-                  </button>
-                </li>
-              {% else %}
-                <li class="page-item disabled">
-                  <span class="page-link" aria-disabled="true">...</span>
-                </li>
-              {% endif %}
-            {% endfor %}
-          </ul>
-        </nav>
-
-        <!-- Results Table -->
-        <div class="table-container">
-          <table class="results-table" role="table" aria-label="Lista de assistências judiciárias">
-            <thead>
-              <tr role="row">
-                <th scope="col" role="columnheader">Nome</th>
-                <th scope="col" role="columnheader">Região</th>
-                <th scope="col" role="columnheader">Áreas do Direito</th>
-                <th scope="col" role="columnheader">Telefone</th>
-                <th scope="col" role="columnheader">E-mail</th>
-                <th scope="col" role="columnheader" colspan="3">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for assistencia in assistencias.items %}
-                <tr role="row">
-                  <td role="cell" data-label="Nome">{{ assistencia.nome }}</td>
-                  <td role="cell" data-label="Região">
-                    {% for key in assistencia_jud_regioes %}
-                      {% if assistencia_jud_regioes[key][0] == assistencia.regiao %}
-                        {{ assistencia_jud_regioes[key][1] }}
-                      {% endif %}
-                    {% endfor %}
-                  </td>
-                  <td role="cell" data-label="Áreas do Direito">
-                    {% set vars = {'espaco': False} %}
-                    {% for key in assistencia_jud_areas_atendidas %}
-                      {% if assistencia_jud_areas_atendidas[key][0] in assistencia.areas_atendidas %}
-                        {% if not vars.espaco %}
-                          <span>{{ assistencia_jud_areas_atendidas[key][1] }}</span>
-                          {% if vars.update({'espaco': True}) %}{% endif %}
-                        {% else %}
-                          <br><span>{{ assistencia_jud_areas_atendidas[key][1] }}</span>
-                        {% endif %}
-                      {% endif %}
-                    {% endfor %}
-                  </td>
-                  <td role="cell" data-label="Telefone">{{ assistencia.telefone }}</td>
-                  <td role="cell" data-label="E-mail">{{ assistencia.email }}</td>
-
-                  <td role="cell" data-label="Ações">
-                    <div class="action-buttons">
-                      <a
-                        href="{{ url_for('assistencia_judiciaria.perfil_assistencia_judiciaria', _id=assistencia.id) }}"
-                        class="btn btn-primary"
-                        aria-label="Visualizar assistência judiciária {{ assistencia.nome }}"
-                      >
-                        Visualizar
-                      </a>
-                    </div>
-                  </td>
-                  <td role="cell" data-label="Ações">
-                    <div class="action-buttons">
-                      <a
-                        href="{{ url_for('assistencia_judiciaria.editar_assistencia_judiciaria', id_assistencia_judiciaria=assistencia.id) }}"
-                        class="btn btn-outline-primary"
-                        aria-label="Editar assistência judiciária {{ assistencia.nome }}"
-                      >
-                        Editar
-                      </a>
-                    </div>
-                  </td>
-
-                  {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value] %}
-                    <td role="cell" data-label="Ações">
-                      <div class="action-buttons">
-                        <form method="POST" action="{{ url_for('assistencia_judiciaria.excluir_assistencia_judiciaria', id=assistencia.id) }}" class="inline-form">
-                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                          <button
-                            type="submit"
-                            class="btn btn-outline-danger"
-                            onclick="return confirm('Tem certeza que deseja excluir esta assistência judiciária?');"
-                            aria-label="Excluir assistência judiciária {{ assistencia.nome }}"
-                          >
-                            Excluir
-                          </button>
-                        </form>
-                      </div>
-                    </td>
-                  {% endif %}
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </section>
-</main>
-{% else %}
-<section class="empty-state">
-  <h4>Nenhuma assistência judiciária cadastrada</h4>
-  <p class="empty-message">Comece criando sua primeira assistência judiciária no sistema.</p>
-  <a
-    href="{{ url_for('assistencia_judiciaria.cadastro_assistencia_judiciaria') }}"
-    class="btn btn-primary btn-lg"
-  >
-    <span class="btn-icon">+</span>
-    Cadastrar primeira assistência
-  </a>
-</section>
-{% endif %} 
+      {% endcall %}
 {% endblock %} 
 
 {% block scripts %}
 <script>
-  function ajax_tbl_assistencia_judiciaria(page){
-    const busca = document.getElementById('busca').value;
-    const filtro = document.getElementById('filtro').value;
-    const url = "{{url_for('assistencia_judiciaria.busca_assistencia_judiciaria')}}";
-    
-    const params = new URLSearchParams({
-      busca: busca,
-      opcao_filtro: filtro,
-      page: page
-    });
-    
-    fetch(`${url}?${params}`)
-      .then(response => response.text())
-      .then(response => {
-        const tblElement = document.getElementById('tbl_assistencias_judiciarias');
-        tblElement.innerHTML = '';
-        tblElement.insertAdjacentHTML('beforeend', response);
-      })
-      .catch(error => {
-        console.error('Error:', error);
-      });
-  }
-
-  document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.querySelector('.search-form');
     const buscaInput = document.getElementById('busca');
     const filtroSelect = document.getElementById('filtro');
     
-    if (buscaInput) {
-      buscaInput.addEventListener('keyup', () => {
-        ajax_tbl_assistencia_judiciaria(1);
-      });
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(searchForm);
+            const params = new URLSearchParams();
+            
+            for (let [key, value] of formData.entries()) {
+                if (value && value.trim() !== '') {
+                    params.set(key, value);
+                }
+            }
+            
+            window.location.href = searchForm.action + '?' + params.toString();
+        });
     }
     
     if (filtroSelect) {
-      filtroSelect.addEventListener('change', function() {
-        if (buscaInput) {
-          buscaInput.dispatchEvent(new Event('keyup'));
-        }
-      });
+        filtroSelect.addEventListener('change', function() {
+            searchForm.submit();
+        });
     }
-  });
+});
 </script>
 {% endblock scripts %}

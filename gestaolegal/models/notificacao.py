@@ -2,8 +2,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.usuario import Usuario
+
 if TYPE_CHECKING:
-    from gestaolegal.models.usuario import Usuario
     from gestaolegal.schemas.notificacao import NotificacaoSchema
 
 
@@ -22,13 +23,16 @@ class Notificacao:
         return
 
     @staticmethod
-    def from_sqlalchemy(notificacao: "NotificacaoSchema") -> "Notificacao":
-        return Notificacao(
-            id=notificacao.id,
-            id_executor_acao=notificacao.id_executor_acao,
-            id_usu_notificar=notificacao.id_usu_notificar,
-            acao=notificacao.acao,
-            data=notificacao.data,
-            executor_acao=notificacao.executor_acao,
-            usu_notificar=notificacao.usu_notificar,
+    def from_sqlalchemy(notificacao_schema: "NotificacaoSchema") -> "Notificacao":
+        notificacao_items = notificacao_schema.to_dict()
+        notificacao_items["executor_acao"] = (
+            Usuario.from_sqlalchemy(notificacao_schema.executor_acao)
+            if notificacao_schema.executor_acao
+            else None
         )
+        notificacao_items["usu_notificar"] = (
+            Usuario.from_sqlalchemy(notificacao_schema.usu_notificar)
+            if notificacao_schema.usu_notificar
+            else None
+        )
+        return Notificacao(**notificacao_items)

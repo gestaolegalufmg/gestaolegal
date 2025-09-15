@@ -1,0 +1,140 @@
+{% macro listing_layout(form_action, method='GET', total=None, aria_label=None) %}
+<div class="page-container">
+  <div class="page-header">
+    <div class="search-section">
+      <form method="{{ method }}" action="{{ form_action }}" class="search-form" role="search" aria-label="{{ aria_label or 'Filtros' }}">
+        {{ caller('filters') }}
+        <button type="submit" class="btn btn-primary">Buscar</button>
+      </form>
+      {% if total is not none %}
+      <div class="total-info">
+        <span>Total:</span>
+        <span class="total-badge">{{ total }}</span>
+      </div>
+      {% endif %}
+    </div>
+    <div class="action-section">
+      {{ caller('header_actions') }}
+    </div>
+  </div>
+  {{ caller('content') }}
+</div>
+{% endmacro %}
+
+{% macro table(columns, rows, table_aria_label=None) %}
+<div class="table-container">
+  <table class="results-table" role="table" aria-label="{{ table_aria_label or '' }}">
+    <thead>
+      <tr>
+        {% for col in columns %}
+          <th{% if col.colspan %} colspan="{{ col.colspan }}"{% endif %}>{{ col.title }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        {% for col in columns %}
+          <td>
+            {% if col.renderer %}
+              {{ col.renderer(row) }}
+            {% elif col.key %}
+              {% if row is mapping and col.key in row %}
+                {{ row[col.key] }}
+              {% else %}
+                {{ row|attr(col.key) }}
+              {% endif %}
+            {% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% macro action_buttons(actions) %}
+<div class="action-buttons">
+  {% for a in actions if a.visible %}
+    {% if a.method == 'POST' %}
+      <form method="POST" action="{{ a.href }}" class="inline-form">
+        {% if a.csrf %}<input type="hidden" name="csrf_token" value="{{ a.csrf }}">{% endif %}
+        {% for name, value in (a.hidden or {}).items() %}
+          <input type="hidden" name="{{ name }}" value="{{ value }}">
+        {% endfor %}
+        <button type="submit" class="btn {{ a.variant or 'btn-primary' }}" {% if a.confirm %}onclick="return confirm('{{ a.confirm }}');"{% endif %} {% if a.title %}title="{{ a.title }}"{% endif %}
+          {% for k, v in (a.attrs or {}).items() %} {{ k }}="{{ v }}"{% endfor %}>
+          {% if a.icon %}<i class="{{ a.icon }}" aria-hidden="true"></i>{% endif %}{{ a.label }}
+        </button>
+      </form>
+    {% else %}
+      {% if a.tag == 'button' %}
+        <button type="button" class="btn {{ a.variant or 'btn-primary' }}" {% if a.title %}title="{{ a.title }}"{% endif %}
+          {% for k, v in (a.attrs or {}).items() %} {{ k }}="{{ v }}"{% endfor %}>
+          {% if a.icon %}<i class="{{ a.icon }}" aria-hidden="true"></i>{% endif %}{{ a.label }}
+        </button>
+      {% else %}
+        <a href="{{ a.href }}" class="btn {{ a.variant or 'btn-primary' }}" {% if a.title %}title="{{ a.title }}"{% endif %}
+          {% for k, v in (a.attrs or {}).items() %} {{ k }}="{{ v }}"{% endfor %}>
+          {% if a.icon %}<i class="{{ a.icon }}" aria-hidden="true"></i>{% endif %}{{ a.label }}
+        </a>
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro pagination(pager, page_link) %}
+{% if pager and pager.pages and pager.pages > 1 %}
+<div class="pagination-section">
+  <div class="pagination-info">
+    <span class="results-text">
+      Mostrando 
+      <strong>{{ pager.first_item if pager.first_item is defined else ((pager.page - 1) * pager.per_page + 1) }}</strong> 
+      até 
+      <strong>{{ pager.last_item if pager.last_item is defined else ((pager.page - 1) * pager.per_page + (pager.items | length)) }}</strong> 
+      de 
+      <strong>{{ pager.total }}</strong> 
+      registros
+    </span>
+    <span class="page-info">Página {{ pager.page }} de {{ pager.pages }}</span>
+  </div>
+  <nav class="pagination-nav">
+    <ul class="pagination">
+      {% if pager.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="{{ page_link(pager.prev_num) }}" aria-label="Previous">&laquo;</a>
+      </li>
+      {% endif %}
+      {% for page_num in (pager.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) if pager.iter_pages else range(1, pager.pages + 1)) %}
+        {% if page_num %}
+          <li class="page-item {% if page_num == pager.page %}active{% endif %}">
+            <a class="page-link" href="{{ page_link(page_num) }}">{{ page_num }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">...</span></li>
+        {% endif %}
+      {% endfor %}
+      {% if pager.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="{{ page_link(pager.next_num) }}" aria-label="Next">&raquo;</a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro empty_state(title, message, cta_href=None, cta_label=None) %}
+<div class="empty-state">
+  <h4>{{ title }}</h4>
+  <p class="empty-message">{{ message }}</p>
+  {% if cta_href and cta_label %}
+    <a href="{{ cta_href }}" class="btn btn-primary">{{ cta_label }}</a>
+  {% endif %}
+</div>
+{% endmacro %}
+
+

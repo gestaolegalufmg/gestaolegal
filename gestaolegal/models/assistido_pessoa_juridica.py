@@ -33,24 +33,7 @@ class AssistidoPessoaJuridica:
 
     @staticmethod
     def from_sqlalchemy(
-        assistido_pessoa_juridica: "AssistidoPessoaJuridicaSchema",
+        assistido_pessoa_juridica_schema: "AssistidoPessoaJuridicaSchema",
     ) -> "AssistidoPessoaJuridica":
-        return AssistidoPessoaJuridica(
-            id=assistido_pessoa_juridica.id,
-            id_assistido=assistido_pessoa_juridica.id_assistido,
-            assistido=assistido_pessoa_juridica.assistido,
-            socios=assistido_pessoa_juridica.socios,
-            situacao_receita=assistido_pessoa_juridica.situacao_receita,
-            enquadramento=assistido_pessoa_juridica.enquadramento,
-            sede_bh=assistido_pessoa_juridica.sede_bh,
-            regiao_sede_bh=assistido_pessoa_juridica.regiao_sede_bh,
-            regiao_sede_outros=assistido_pessoa_juridica.regiao_sede_outros,
-            area_atuacao=assistido_pessoa_juridica.area_atuacao,
-            negocio_nascente=assistido_pessoa_juridica.negocio_nascente,
-            orgao_registro=assistido_pessoa_juridica.orgao_registro,
-            faturamento_anual=assistido_pessoa_juridica.faturamento_anual,
-            ultimo_balanco_neg=assistido_pessoa_juridica.ultimo_balanco_neg,
-            resultado_econ_neg=assistido_pessoa_juridica.resultado_econ_neg,
-            tem_funcionarios=assistido_pessoa_juridica.tem_funcionarios,
-            qtd_funcionarios=assistido_pessoa_juridica.qtd_funcionarios,
-        )
+        assistido_pessoa_juridica_items = assistido_pessoa_juridica_schema.to_dict()
+        return AssistidoPessoaJuridica(**assistido_pessoa_juridica_items)

@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+
 if TYPE_CHECKING:
     from gestaolegal.schemas.endereco import EnderecoSchema
 
 
 @dataclass(frozen=True)
-class Endereco:
+class Endereco(BaseModel):
     id: int
     logradouro: str
     numero: str
@@ -21,13 +23,10 @@ class Endereco:
 
     @staticmethod
     def from_sqlalchemy(endereco: "EnderecoSchema") -> "Endereco":
-        return Endereco(
-            id=endereco.id,
-            logradouro=endereco.logradouro,
-            numero=endereco.numero,
-            complemento=endereco.complemento,
-            bairro=endereco.bairro,
-            cep=endereco.cep,
-            cidade=endereco.cidade,
-            estado=endereco.estado,
-        )
+        endereco_items = endereco.to_dict()
+        return Endereco(**endereco_items)
+
+    def to_dict(self, *args, **kwargs):
+        data = super().to_dict(*args, **kwargs)
+        data["endereco_id"] = data.pop("id")
+        return data

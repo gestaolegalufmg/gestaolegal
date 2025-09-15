@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import SelectField, TextAreaField
-from wtforms.validators import AnyOf, DataRequired, InputRequired, Length, Optional
+from wtforms.validators import AnyOf, InputRequired, Length, Optional
 
 from gestaolegal.common.constants import (
     FIELD_LIMITS,
@@ -9,10 +9,11 @@ from gestaolegal.common.constants import (
     se_civel,
 )
 from gestaolegal.forms.plantao import MSG_SelecioneUmaOpcaoLista
+from gestaolegal.forms.plantao.base_form_mixin import BaseFormMixin
 from gestaolegal.utils.forms import RequiredIf
 
 
-class OrientacaoJuridicaForm(FlaskForm):
+class OrientacaoJuridicaForm(BaseFormMixin, FlaskForm):
     area_direito = SelectField(
         "Área do Direito",
         choices=[
@@ -27,7 +28,7 @@ class OrientacaoJuridicaForm(FlaskForm):
             (area_do_direito["TRABALHISTA"][0], area_do_direito["TRABALHISTA"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format("da área do direito")),
+            InputRequired(),
             AnyOf(
                 [area_do_direito[key][0] for key in area_do_direito],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -104,11 +105,7 @@ class CadastroOrientacaoJuridicaForm(OrientacaoJuridicaForm):
         "Encaminhamento para outras Assistências Judiciárias",
         choices=[(True, "Sim"), (False, "Não")],
         validators=[
-            InputRequired(
-                MSG_SelecioneUmaOpcaoLista.format(
-                    'de "Encaminhamento para outras Assistências Judiciárias"'
-                )
-            )
+            InputRequired(),
         ],
         default=False,
         coerce=bool,

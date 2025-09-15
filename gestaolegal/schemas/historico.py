@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class HistoricoSchema(Base):
-    __tablename__: Final = "historicos"
+    __tablename__ = "historicos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     id_usuario: Mapped[int] = mapped_column(

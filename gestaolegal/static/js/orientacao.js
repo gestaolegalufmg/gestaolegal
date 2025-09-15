@@ -3,20 +3,15 @@ function validarCampoAreaDireito() {
     var string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].text;
 
     if(string_selecionada == "Civel"){
-
-        document.getElementById("div_sub_area").hidden = false;
-
+        document.getElementById("div_sub_area").classList.remove('hidden-field');
     }
     else{
-
-        document.getElementById("div_sub_area").hidden = true;
+        document.getElementById("div_sub_area").classList.add('hidden-field');
     }
+    
     if(string_selecionada == "Administrativo"){
-
-        document.getElementById("div_sub_area_admin").hidden = false;
-
+        document.getElementById("div_sub_area_admin").classList.remove('hidden-field');
     }else{
-
-        document.getElementById("div_sub_area_admin").hidden = true;
+        document.getElementById("div_sub_area_admin").classList.add('hidden-field');
     }
 }

@@ -1,12 +1,15 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+
 if TYPE_CHECKING:
+    from gestaolegal.models.assistido_pessoa_juridica import AssistidoPessoaJuridica
     from gestaolegal.schemas.assistido import AssistidoSchema
 
 
 @dataclass(frozen=True)
-class Assistido:
+class Assistido(BaseModel):
     id: int | None
     id_atendido: int
     sexo: str
@@ -33,6 +36,8 @@ class Assistido:
     pessoa_doente_obs: str | None
     gastos_medicacao: float | None
     obs: str | None
+
+    assistido_pessoa_juridica: "AssistidoPessoaJuridica | None" = None
 
     def __post_init__(self):
         return
@@ -66,32 +71,15 @@ class Assistido:
             )
 
     @staticmethod
-    def from_sqlalchemy(assistido: "AssistidoSchema") -> "Assistido":
-        return Assistido(
-            id=assistido.id,
-            id_atendido=assistido.id_atendido,
-            sexo=assistido.sexo,
-            profissao=assistido.profissao,
-            raca=assistido.raca,
-            rg=assistido.rg,
-            grau_instrucao=assistido.grau_instrucao,
-            salario=assistido.salario,
-            beneficio=assistido.beneficio,
-            qual_beneficio=assistido.qual_beneficio,
-            contribui_inss=assistido.contribui_inss,
-            qtd_pessoas_moradia=assistido.qtd_pessoas_moradia,
-            renda_familiar=assistido.renda_familiar,
-            participacao_renda=assistido.participacao_renda,
-            tipo_moradia=assistido.tipo_moradia,
-            possui_outros_imoveis=assistido.possui_outros_imoveis,
-            quantos_imoveis=assistido.quantos_imoveis,
-            possui_veiculos=assistido.possui_veiculos,
-            possui_veiculos_obs=assistido.possui_veiculos_obs,
-            quantos_veiculos=assistido.quantos_veiculos,
-            ano_veiculo=assistido.ano_veiculo,
-            doenca_grave_familia=assistido.doenca_grave_familia,
-            pessoa_doente=assistido.pessoa_doente,
-            pessoa_doente_obs=assistido.pessoa_doente_obs,
-            gastos_medicacao=assistido.gastos_medicacao,
-            obs=assistido.obs,
+    def from_sqlalchemy(assistido_schema: "AssistidoSchema") -> "Assistido":
+        from gestaolegal.models.assistido_pessoa_juridica import AssistidoPessoaJuridica
+
+        assistido_items = assistido_schema.to_dict()
+        assistido_items["assistido_pessoa_juridica"] = (
+            AssistidoPessoaJuridica.from_sqlalchemy(
+                assistido_schema.assistido_pessoa_juridica
+            )
+            if assistido_schema.assistido_pessoa_juridica
+            else None
         )
+        return Assistido(**assistido_items)

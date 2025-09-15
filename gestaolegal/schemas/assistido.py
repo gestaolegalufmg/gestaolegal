@@ -6,6 +6,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from gestaolegal.schemas.base import Base
 
 if TYPE_CHECKING:
+    from gestaolegal.schemas.assistido_pessoa_juridica import (
+        AssistidoPessoaJuridicaSchema,
+    )
     from gestaolegal.schemas.atendido import AtendidoSchema
 
 
@@ -17,6 +20,9 @@ class AssistidoSchema(Base):
         Integer, ForeignKey("atendidos.id", ondelete="CASCADE")
     )
     atendido: Mapped["AtendidoSchema"] = relationship("AtendidoSchema", lazy="joined")
+    assistido_pessoa_juridica: Mapped["AssistidoPessoaJuridicaSchema | None"] = (
+        relationship("AssistidoPessoaJuridicaSchema", back_populates="assistido")
+    )
 
     # Dados pessoais
     sexo: Mapped[str] = mapped_column(

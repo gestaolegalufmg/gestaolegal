@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from gestaolegal.schemas.atendido import AtendidoSchema
+    from gestaolegal.models.atendido import Atendido
     from gestaolegal.schemas.fila_atendidos import FilaAtendidosSchema
 
 
@@ -16,20 +16,21 @@ class FilaAtendidos:
     senha: str
     status: int
     id_atendido: int | None
-    atendido: "AtendidoSchema | None"
+    atendido: "Atendido | None"
 
     def __post_init__(self):
         return
 
     @staticmethod
-    def from_sqlalchemy(fila_atendidos: "FilaAtendidosSchema") -> "FilaAtendidos":
-        return FilaAtendidos(
-            id=fila_atendidos.id,
-            psicologia=fila_atendidos.psicologia,
-            prioridade=fila_atendidos.prioridade,
-            data_criacao=fila_atendidos.data_criacao,
-            senha=fila_atendidos.senha,
-            status=fila_atendidos.status,
-            id_atendido=fila_atendidos.id_atendido,
-            atendido=fila_atendidos.atendido,
+    def from_sqlalchemy(
+        fila_atendidos_schema: "FilaAtendidosSchema",
+    ) -> "FilaAtendidos":
+        from gestaolegal.models.atendido import Atendido
+
+        fila_atendidos_items = fila_atendidos_schema.to_dict()
+        fila_atendidos_items["atendido"] = (
+            Atendido.from_sqlalchemy(fila_atendidos_schema.atendido)
+            if fila_atendidos_schema.atendido
+            else None
         )
+        return FilaAtendidos(**fila_atendidos_items)

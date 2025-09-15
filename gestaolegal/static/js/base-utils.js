@@ -10,63 +10,84 @@ document.addEventListener('DOMContentLoaded', function () {
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
 
-        // Create notification content wrapper
         const contentWrapper = document.createElement('div');
         contentWrapper.className = 'notification-content';
 
-        // Create icon element
+        const iconWrapper = document.createElement('div');
+        iconWrapper.className = 'notification-icon-wrapper';
+        
         const iconElement = document.createElement('div');
-        iconElement.className = `notification-icon ${type}`;
-        iconElement.textContent = getNotificationIcon(type);
+        iconElement.className = `notification-icon ${type} icon ${getNotificationIcon(type)}`;
+        
+        iconWrapper.appendChild(iconElement);
 
-        // Create text content wrapper
         const textWrapper = document.createElement('div');
         textWrapper.className = 'notification-text';
 
-        // Create title element
         const titleElement = document.createElement('div');
         titleElement.className = 'notification-title';
         titleElement.textContent = title;
 
-        // Create message element
         const messageElement = document.createElement('div');
         messageElement.className = 'notification-message';
         messageElement.textContent = message;
 
-        // Create close button
         const closeButton = document.createElement('button');
         closeButton.className = 'notification-close';
         closeButton.innerHTML = '×';
         closeButton.setAttribute('aria-label', 'Fechar notificação');
 
-        // Assemble the notification
         textWrapper.appendChild(titleElement);
         textWrapper.appendChild(messageElement);
-        contentWrapper.appendChild(iconElement);
+        contentWrapper.appendChild(iconWrapper);
         contentWrapper.appendChild(textWrapper);
         contentWrapper.appendChild(closeButton);
         notification.appendChild(contentWrapper);
         container.appendChild(notification);
 
-        // Show notification with animation
         setTimeout(() => {
             notification.classList.add('show');
         }, 10);
 
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-            hideNotification(notification);
-        }, 5000);
+        let hideTimeout;
+        let isHovered = false;
+        
+        function startHideTimer() {
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
+            hideTimeout = setTimeout(() => {
+                hideNotification(notification);
+            }, isHovered ? 3000 : 5000);
+        }
 
-        // Add close functionality to close button
+        startHideTimer();
+
+        notification.addEventListener('mouseenter', () => {
+            isHovered = true;
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
+        });
+
+        notification.addEventListener('mouseleave', () => {
+            isHovered = false;
+            startHideTimer();
+        });
+
         closeButton.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
             hideNotification(notification);
         });
 
-        // Add click to dismiss for the entire notification (except close button)
         notification.addEventListener('click', (e) => {
             if (e.target !== closeButton && !closeButton.contains(e.target)) {
+                if (hideTimeout) {
+                    clearTimeout(hideTimeout);
+                }
                 hideNotification(notification);
             }
         });
@@ -78,20 +99,20 @@ document.addEventListener('DOMContentLoaded', function () {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
             }
-        }, 400); // Match CSS transition duration
+        }, 400);
     }
 
     function getNotificationIcon(type) {
         switch (type) {
             case 'success':
-                return '✓';
+                return 'icon-check';
             case 'warning':
-                return '⚠';
+                return 'icon-exclamation-triangle';
             case 'danger':
-                return '✕';
+                return 'icon-close';
             case 'info':
             default:
-                return 'i';
+                return 'icon-info-circle';
         }
     }
 
@@ -115,6 +136,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 type = 'warning';
                 break;
             case 'danger':
+            case 'error':
                 title = 'Erro:';
                 type = 'danger';
                 break;

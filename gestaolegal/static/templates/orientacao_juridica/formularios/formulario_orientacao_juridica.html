@@ -205,7 +205,7 @@
                     {{form.area_direito.label}} <span class="text-danger">*</span>
                 </label>
                 <div class="field-input">
-                    {{form.area_direito(class_="form-input")}}
+                    {{form.area_direito()}}
                     {% for error in form.area_direito.errors %}
                     <span class="field-error">{{error}}</span>
                     {% endfor %}
@@ -219,7 +219,7 @@
                     {{form.sub_area.label}} <span class="text-danger">*</span>
                 </label>
                 <div class="field-input">
-                    {{form.sub_area(class_="form-input")}}
+                    {{form.sub_area()}}
                     {% for error in form.sub_area.errors %}
                     <span class="field-error">{{error}}</span>
                     {% endfor %}
@@ -233,7 +233,7 @@
                     {{form.sub_areaAdmin.label}} <span class="text-danger">*</span>
                 </label>
                 <div class="field-input">
-                    {{form.sub_areaAdmin(class_="form-input")}}
+                    {{form.sub_areaAdmin()}}
                     {% for error in form.sub_areaAdmin.errors %}
                     <span class="field-error">{{error}}</span>
                     {% endfor %}
@@ -247,7 +247,7 @@
                     {{form.descricao.label}}
                 </label>
                 <div class="field-input">
-                    {{form.descricao(type="textarea", class_="form-input", id="descricao")}}
+                    {{form.descricao(type="textarea", id="descricao")}}
                     {% for error in form.descricao.errors %}
                     <span class="field-error">{{error}}</span>
                     {% endfor %}

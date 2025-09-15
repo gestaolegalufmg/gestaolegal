@@ -5,193 +5,51 @@
 <h1>Orientações Jurídicas</h1>
 {% endblock titulo %}
 
+{% import 'macros/listing.html' as listui %}
 {% block conteudo %}
-<div class="page-container">
-  <div class="page-header">
-    <div class="search-section">
-      <div class="search-form">
-        <div class="search-field">
-          <label>Buscar:</label>
-          <input type="text" id="busca" class="form-control form-control-sm" 
-                 placeholder="Área do direito, partes envolvidas..." 
-                 aria-controls="table-2">
-        </div>
-      </div>
-      
-      <div class="total-info">
-        <span>Total:</span>
-        <span class="total-badge">
-          {% if orientacoes.total is defined %}
-            {{ orientacoes.total }}
-          {% else %}
-            {{ orientacoes|length if orientacoes else 0 }}
-          {% endif %}
-        </span>
-      </div>
+{% macro page_link(p) %}{{ url_for('orientacao_juridica.orientacoes_juridicas', page=p, busca=busca) }}{% endmacro %}
+{% macro area_label(row) %}{{ row.area_direito }}{% endmacro %}
+{% macro partes_label(row) %}
+  {% for atendido in row.atendidos %}
+    {{ atendido.nome }}<br />
+  {% endfor %}
+{% endmacro %}
+{% macro data_label(row) %}{{ row.data_criacao.strftime("%d/%m/%Y %H:%M") if row.data_criacao else "--" }}{% endmacro %}
+{% macro actions_cell(row) %}
+{{ listui.action_buttons([
+  {'label':'', 'href':url_for('orientacao_juridica.perfil_oj', id=row.id), 'visible':true, 'variant':'btn-primary', 'icon':'icon icon-eye', 'title':'Visualizar orientação jurídica'},
+  {'label':'', 'href':url_for('orientacao_juridica.editar_orientacao_juridica', id_oj=row.id), 'visible': current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value], 'variant':'btn-primary', 'icon':'icon icon-edit', 'title':'Editar orientação jurídica'},
+  {'label':'', 'tag':'button', 'visible': current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.ESTAGIARIO_DIREITO.value, UserRole.PROFESSOR.value], 'variant':'btn-primary', 'icon':'icon icon-link', 'title':'Associar atendido', 'attrs': {'data-toggle':'modal', 'data-target':'#modalAssociarAtendido', 'data-orientacao-id': row.id}},
+  {'label':'', 'href':url_for('orientacao_juridica.excluir_oj'), 'method':'POST', 'csrf': csrf_token(), 'hidden': {'id_orientacao': row.id}, 'confirm':'Você deseja realmente excluir essa orientação jurídica?', 'visible': current_user.urole == UserRole.ADMINISTRADOR.value, 'variant':'btn-danger', 'icon':'icon icon-trash', 'title':'Excluir orientação jurídica'}
+]) }}
+{% endmacro %}
+{% set items = orientacoes.items if orientacoes and orientacoes.items is defined else orientacoes %}
+{% set total_orients = (orientacoes.total if orientacoes and orientacoes.total is defined else (items|length if items else 0)) %}
+{% set columns = [
+  {'title':'Área do Direito','renderer': area_label},
+  {'title':'Partes Envolvidas','renderer': partes_label},
+  {'title':'Data/Hora de Criação','renderer': data_label},
+  {'title':'Ações','renderer': actions_cell}
+] %}
+{% call(list_slot) listui.listing_layout(url_for('orientacao_juridica.orientacoes_juridicas'), total=total_orients) %}
+  {% if list_slot == 'filters' %}
+    <div class="search-field">
+      <label>Buscar:</label>
+      <input type="text" name="busca" value="{{ busca or '' }}" class="form-control form-control-sm" placeholder="Área do direito, partes envolvidas..." aria-controls="table-2">
     </div>
-    
-    <div class="action-section">
-      <a class="btn btn-primary" href="{{ url_for('orientacao_juridica.cadastro_orientacao_juridica') }}">
-        Cadastrar Orientação Jurídica
-      </a>
-    </div>
-  </div>
-
-  <!-- Results Table -->
-  {% if orientacoes and ((orientacoes.items and orientacoes.items|length > 0) or (orientacoes|length > 0 and not orientacoes.items)) %}
-    <div class="table-container">
-      <table class="results-table">
-        <thead>
-          <tr>
-            <th>Área do Direito</th>
-            <th>Partes Envolvidas</th>
-            <th>Data/Hora de Criação</th>
-            <th>Ações</th>
-            <th></th>
-            <th></th>
-            <th></th>
-          </tr> 
-        </thead>
-        <tbody id="tbody_orientacoes_juridicas">
-          {% for orientacao in orientacoes.items %}
-          <tr>
-            <td>{{ orientacao.area_direito }}</td>
-            <td>
-              {% for atendido in orientacao.atendidos %}
-                {{ atendido.nome }}<br />
-              {% endfor %}
-            </td>
-            <td>{{ orientacao.data_criacao.strftime("%d/%m/%Y %H:%M") if orientacao.data_criacao else "--" }}</td>
-            
-            <td>
-              <a href="{{ url_for('orientacao_juridica.perfil_oj', id=orientacao.id) }}" 
-                 class="btn btn-primary" 
-                 title="Visualizar orientação jurídica"
-                 aria-label="Visualizar orientação jurídica {{ orientacao.area_direito }}">
-                <i class="icon icon-eye" aria-hidden="true"></i>
-                <span class="sr-only">Visualizar</span>
-              </a>
-            </td>
-            
-            <td>
-              {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value] %}
-                <a href="{{ url_for('orientacao_juridica.editar_orientacao_juridica', id_oj=orientacao.id) }}" 
-                   class="btn btn-primary" 
-                   title="Editar orientação jurídica"
-                   aria-label="Editar orientação jurídica {{ orientacao.area_direito }}">
-                  <i class="icon icon-edit" aria-hidden="true"></i>
-                  <span class="sr-only">Editar</span>
-                </a>
-              {% endif %}
-            </td>
-            
-            <td>
-              {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.ESTAGIARIO_DIREITO.value, UserRole.PROFESSOR.value] %}
-                <button type="button" 
-                        class="btn btn-primary" 
-                        data-toggle="modal" 
-                        data-target="#modalAssociarAtendido" 
-                        data-orientacao-id="{{ orientacao.id }}"
-                        title="Associar atendido"
-                        aria-label="Associar atendido à orientação jurídica {{ orientacao.area_direito }}">
-                  <i class="icon icon-link" aria-hidden="true"></i>
-                  <span class="sr-only">Associar</span>
-                </button>
-              {% endif %}
-            </td>
-            
-            <td>
-              {% if current_user.urole == UserRole.ADMINISTRADOR.value %}
-                <form action="{{ url_for('orientacao_juridica.excluir_oj') }}" method="POST" class="inline-form">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <input type="hidden" name="id_orientacao" value="{{ orientacao.id }}">
-                  <button type="submit" 
-                          class="btn btn-danger" 
-                          title="Excluir orientação jurídica"
-                          aria-label="Excluir orientação jurídica {{ orientacao.area_direito }}"
-                          onclick="return confirm('Você deseja realmente excluir essa orientação jurídica?');">
-                    <i class="icon icon-trash" aria-hidden="true"></i>
-                    <span class="sr-only">Excluir</span>
-                  </button>
-                </form>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    
-    <!-- Pagination Info and Controls -->
-    {% if orientacoes.pages is defined %}
-    <div class="pagination-section">
-      <!-- Results Info -->
-      <div class="pagination-info">
-        <span class="results-text">
-          Mostrando 
-          <strong>{{ orientacoes.first_item }}</strong> 
-          até 
-          <strong>{{ orientacoes.last_item }}</strong> 
-          de 
-          <strong>{{ orientacoes.total }}</strong> 
-          registros
-        </span>
-        
-        {% if orientacoes.pages > 1 %}
-        <span class="page-info">
-          Página {{ orientacoes.page }} de {{ orientacoes.pages }}
-        </span>
-        {% endif %}
-      </div>
-
-      <!-- Pagination Controls (only show if more than 1 page) -->
-      {% if orientacoes.pages > 1 %}
-      <nav class="pagination-nav">
-        <ul class="pagination">
-          {% if orientacoes.has_prev %}
-          <li class="page-item">
-            <a class="page-link" href="{{ url_for('orientacao_juridica.orientacoes_juridicas', 
-                page=orientacoes.prev_num) }}" aria-label="Previous">
-              <span aria-hidden="true">&laquo;</span>
-            </a>
-          </li>
-          {% endif %}
-          
-          {% for page_num in range(1, orientacoes.pages + 1) %}
-          <li class="page-item {% if page_num == orientacoes.page %}active{% endif %}">
-            <a class="page-link" href="{{ url_for('orientacao_juridica.orientacoes_juridicas', 
-                page=page_num) }}">{{ page_num }}</a>
-          </li>
-          {% endfor %}
-          
-          {% if orientacoes.has_next %}
-          <li class="page-item">
-            <a class="page-link" href="{{ url_for('orientacao_juridica.orientacoes_juridicas', 
-                page=orientacoes.next_num) }}" aria-label="Next">
-              <span aria-hidden="true">&raquo;</span>
-            </a>
-          </li>
-          {% endif %}
-        </ul>
-      </nav>
+  {% elif list_slot == 'header_actions' %}
+    <a class="btn btn-primary" href="{{ url_for('orientacao_juridica.cadastro_orientacao_juridica') }}">Cadastrar Orientação Jurídica</a>
+  {% elif list_slot == 'content' %}
+    {% if items and items|length > 0 %}
+      {{ listui.table(columns, items) }}
+      {% if orientacoes and orientacoes.pages is defined %}
+        {{ listui.pagination(orientacoes, page_link) }}
       {% endif %}
-    </div>
+    {% else %}
+      {{ listui.empty_state('Nenhuma orientação jurídica encontrada', 'Não há orientações jurídicas cadastradas no momento', url_for('orientacao_juridica.cadastro_orientacao_juridica'), 'Cadastrar nova orientação jurídica') }}
     {% endif %}
-    
-  {% else %}
-    <div class="empty-state">
-      <h4>Nenhuma orientação jurídica encontrada</h4>
-      <p class="empty-message">
-        Não há orientações jurídicas cadastradas no momento
-      </p>
-      <a href="{{ url_for('orientacao_juridica.cadastro_orientacao_juridica') }}" class="btn btn-primary">
-        Cadastrar nova orientação jurídica
-      </a>
-    </div>
   {% endif %}
-</div>
-
-
+{% endcall %}
 {% endblock conteudo %}
 
 {% block scripts %}
@@ -451,20 +309,26 @@
 </style>
 
 <script>
-    let busca = document.getElementById('busca');
-
-    $('#busca').on({
-        keyup: (event) => {
-            $.ajax({
-                method: "GET",
-                url: `${window.origin}/orientacao_juridica/busca_oj/${busca.value}`,
-                success: (result) => {
-                    document.getElementById('tbody_orientacoes_juridicas').innerHTML = '';
-                    $('tbody').append(result);
-        }
-            });
-        }
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.querySelector('.search-form');
+    const buscaInput = document.getElementById('busca');
+    
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(searchForm);
+            const params = new URLSearchParams();
+            
+            for (let [key, value] of formData.entries()) {
+                if (value && value.trim() !== '') {
+                    params.set(key, value);
+                }
+            }
+            
+            window.location.href = searchForm.action + '?' + params.toString();
+        });
+    }
+});
 </script>
 
 <script src="{{ url_for('static', filename='js/modal_associar_atendido.js') }}"></script>

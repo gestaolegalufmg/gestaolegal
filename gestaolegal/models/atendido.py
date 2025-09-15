@@ -3,21 +3,23 @@ from datetime import date
 from typing import TYPE_CHECKING
 
 from gestaolegal.common.constants import como_conheceu_daj
+from gestaolegal.models.assistido import Assistido
+from gestaolegal.models.base_model import BaseModel
+from gestaolegal.models.endereco import Endereco
+from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 
 if TYPE_CHECKING:
-    from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+    from gestaolegal.models.caso import Caso
     from gestaolegal.schemas.atendido import AtendidoSchema
-    from gestaolegal.schemas.caso import Caso
-    from gestaolegal.schemas.endereco import EnderecoSchema
 
 
 @dataclass(frozen=True)
-class Atendido:
+class Atendido(BaseModel):
     id: int
 
     orientacoes_juridicas: list["OrientacaoJuridica"]
     casos: list["Caso"]
-    endereco: "EnderecoSchema | None"
+    endereco: "Endereco | None"
 
     nome: str
     data_nascimento: date
@@ -43,6 +45,8 @@ class Atendido:
     nascimento_repres_legal: date | None
     pretende_constituir_pj: str | None
     status: int
+
+    assistido: "Assistido | None" = None
 
     def __post_init__(self):
         return
@@ -112,33 +116,31 @@ class Atendido:
                 )
 
     @staticmethod
-    def from_sqlalchemy(atendido: "AtendidoSchema") -> "Atendido":
-        return Atendido(
-            id=atendido.id,
-            orientacoes_juridicas=atendido.orientacoesJuridicas,
-            casos=atendido.casos,
-            endereco=atendido.endereco,
-            nome=atendido.nome,
-            data_nascimento=atendido.data_nascimento,
-            cpf=atendido.cpf,
-            cnpj=atendido.cnpj,
-            endereco_id=atendido.endereco_id,
-            telefone=atendido.telefone,
-            celular=atendido.celular,
-            email=atendido.email,
-            estado_civil=atendido.estado_civil,
-            como_conheceu=atendido.como_conheceu,
-            indicacao_orgao=atendido.indicacao_orgao,
-            procurou_outro_local=atendido.procurou_outro_local,
-            procurou_qual_local=atendido.procurou_qual_local,
-            obs=atendido.obs,
-            pj_constituida=atendido.pj_constituida,
-            repres_legal=atendido.repres_legal,
-            nome_repres_legal=atendido.nome_repres_legal,
-            cpf_repres_legal=atendido.cpf_repres_legal,
-            contato_repres_legal=atendido.contato_repres_legal,
-            rg_repres_legal=atendido.rg_repres_legal,
-            nascimento_repres_legal=atendido.nascimento_repres_legal,
-            pretende_constituir_pj=atendido.pretende_constituir_pj,
-            status=atendido.status,
+    def from_sqlalchemy(
+        atendido_schema: "AtendidoSchema", load_casos: bool = True
+    ) -> "Atendido":
+        atendido_items = atendido_schema.to_dict()
+
+        atendido_items["assistido"] = (
+            Assistido.from_sqlalchemy(atendido_schema.assistido)
+            if atendido_schema.assistido
+            else None
         )
+        atendido_items["orientacoes_juridicas"] = [ OrientacaoJuridica.from_sqlalchemy(orientacao) for orientacao in atendido_schema.orientacoesJuridicas if orientacao is not None]
+
+        if load_casos and atendido_schema.casos:
+            from gestaolegal.models.caso import Caso
+
+            atendido_items["casos"] = [
+                Caso.from_sqlalchemy(caso, load_clientes=False)
+                for caso in atendido_schema.casos
+            ]
+        else:
+            atendido_items["casos"] = []
+
+        atendido_items["endereco"] = (
+            Endereco.from_sqlalchemy(atendido_schema.endereco)
+            if atendido_schema.endereco
+            else None
+        )
+        return Atendido(**atendido_items)

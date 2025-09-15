@@ -88,7 +88,7 @@
 
 {% block conteudo %}
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<input type="hidden" id="hdnAjaxBuscaPresencasData" value="{{url_for('plantao.ajax_busca_presencas_data')}}">
+<input type="hidden" id="hdnAjaxBuscaPresencasData" value="{{url_for('api.busca_presencas_data')}}">
 
 {% block titulo %} {% endblock %}
 <div class="page-container">
@@ -96,7 +96,7 @@
     <h1>Confirmar Presença</h1>
     <div class="search-field">
       <label>Data:</label>
-      <input type="date" value="{{data_ontem.strftime('%Y-%m-%d')}}" id="dataProcurada" class="form-input">
+      <input type="date" value="{{data_ontem.strftime('%Y-%m-%d')}}" id="dataProcurada">
     </div>
   </div>
 </div>

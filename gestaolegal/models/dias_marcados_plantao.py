@@ -2,8 +2,9 @@ from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.usuario import Usuario
+
 if TYPE_CHECKING:
-    from gestaolegal.models.usuario import Usuario
     from gestaolegal.schemas.dias_marcados_plantao import DiasMarcadosPlantaoSchema
 
 
@@ -21,13 +22,12 @@ class DiasMarcadosPlantao:
 
     @staticmethod
     def from_sqlalchemy(
-        dias_marcados_plantao: "DiasMarcadosPlantaoSchema",
+        dias_marcados_plantao_schema: "DiasMarcadosPlantaoSchema",
     ) -> "DiasMarcadosPlantao":
-        return DiasMarcadosPlantao(
-            id=dias_marcados_plantao.id,
-            data_marcada=dias_marcados_plantao.data_marcada,
-            confirmacao=dias_marcados_plantao.confirmacao,
-            status=dias_marcados_plantao.status,
-            id_usuario=dias_marcados_plantao.id_usuario,
-            usuario=dias_marcados_plantao.usuario,
+        dias_marcados_plantao_items = dias_marcados_plantao_schema.to_dict()
+        dias_marcados_plantao_items["usuario"] = (
+            Usuario.from_sqlalchemy(dias_marcados_plantao_schema.usuario)
+            if dias_marcados_plantao_schema.usuario
+            else None
         )
+        return DiasMarcadosPlantao(**dias_marcados_plantao_items)

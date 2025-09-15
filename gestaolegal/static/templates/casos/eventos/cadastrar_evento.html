@@ -10,7 +10,7 @@
     <div class="card-body">      
         <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
             {{form.hidden_tag()}}
-            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('casos.api_casos_buscar_usuario', _external=True)}}">
+            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('api.casos_buscar_usuario', _external=True)}}">
             <div class="form-group row">
                 {{formutils.form_label(form.data_evento, class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
                  <div class="col-12 col-lg-6 offset-lg-1">
@@ -61,6 +61,18 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
-    <script src="{{url_for('static',filename='js/novo_evento.js')}}"></script>
+    <script src="{{url_for('static',filename='js/form_utilities.js')}}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            FormUtils.initializeFormWithValidation({
+                formId: 'form',
+                buttonId: 'submit',
+                masks: [],
+                conditionalFields: [],
+                dateRanges: [],
+                preventWheel: true,
+                enableValidation: true
+            });
+        });
+    </script>
 {% endblock scripts %}

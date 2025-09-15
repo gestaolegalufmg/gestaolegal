@@ -2,10 +2,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.usuario import Usuario
+
 if TYPE_CHECKING:
     from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
     from gestaolegal.models.atendido import Atendido
-    from gestaolegal.models.usuario import Usuario
     from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
 
 
@@ -27,17 +28,31 @@ class OrientacaoJuridica:
 
     @staticmethod
     def from_sqlalchemy(
-        orientacao_juridica: "OrientacaoJuridicaSchema",
+        orientacao_juridica_schema: "OrientacaoJuridicaSchema",
     ) -> "OrientacaoJuridica":
-        return OrientacaoJuridica(
-            id=orientacao_juridica.id,
-            area_direito=orientacao_juridica.area_direito,
-            sub_area=orientacao_juridica.sub_area,
-            descricao=orientacao_juridica.descricao,
-            data_criacao=orientacao_juridica.data_criacao,
-            status=orientacao_juridica.status,
-            assistencias_judiciarias=orientacao_juridica.assistenciasJudiciarias,
-            atendidos=orientacao_juridica.atendidos,
-            id_usuario=orientacao_juridica.id_usuario,
-            usuario=orientacao_juridica.usuario,
+        from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
+        from gestaolegal.models.atendido import Atendido
+
+        orientacao_juridica_items = orientacao_juridica_schema.to_dict()
+        orientacao_juridica_items["assistencias_judiciarias"] = (
+            [
+                AssistenciaJudiciaria.from_sqlalchemy(aj)
+                for aj in orientacao_juridica_schema.assistencias_judiciarias
+            ]
+            if orientacao_juridica_schema.assistencias_judiciarias
+            else []
         )
+        orientacao_juridica_items["atendidos"] = (
+            [
+                Atendido.from_sqlalchemy(atendido)
+                for atendido in orientacao_juridica_schema.atendidos
+            ]
+            if orientacao_juridica_schema.atendidos
+            else []
+        )
+        orientacao_juridica_items["usuario"] = (
+            Usuario.from_sqlalchemy(orientacao_juridica_schema.usuario)
+            if orientacao_juridica_schema.usuario
+            else None
+        )
+        return OrientacaoJuridica(**orientacao_juridica_items)

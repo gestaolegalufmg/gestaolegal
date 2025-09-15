@@ -1,13 +1,14 @@
 from typing import Final, Optional
 
 from sqlalchemy import String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column
 
 from gestaolegal.schemas.base import Base
 
 
 class ArquivoSchema(Base):
-    __tablename__: Final = "arquivos"
+    __tablename__ = "arquivos"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     titulo: Mapped[str] = mapped_column(

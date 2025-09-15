@@ -2,9 +2,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.usuario import Usuario
+
 if TYPE_CHECKING:
     from gestaolegal.models.caso import Caso
-    from gestaolegal.models.usuario import Usuario
     from gestaolegal.schemas.lembrete import LembreteSchema
 
 
@@ -27,18 +28,11 @@ class Lembrete:
         return
 
     @staticmethod
-    def from_sqlalchemy(lembrete: "LembreteSchema") -> "Lembrete":
-        return Lembrete(
-            id=lembrete.id,
-            num_lembrete=lembrete.num_lembrete,
-            id_do_criador=lembrete.id_do_criador,
-            criador=lembrete.criador,
-            id_caso=lembrete.id_caso,
-            caso=lembrete.caso,
-            id_usuario=lembrete.id_usuario,
-            usuario=lembrete.usuario,
-            data_criacao=lembrete.data_criacao,
-            data_lembrete=lembrete.data_lembrete,
-            descricao=lembrete.descricao,
-            status=lembrete.status,
-        )
+    def from_sqlalchemy(lembrete_schema: "LembreteSchema") -> "Lembrete":
+        from gestaolegal.models.caso import Caso
+
+        lembrete_items = lembrete_schema.to_dict()
+        lembrete_items["criador"] = Usuario.from_sqlalchemy(lembrete_schema.criador)
+        lembrete_items["caso"] = Caso.from_sqlalchemy(lembrete_schema.caso)
+        lembrete_items["usuario"] = Usuario.from_sqlalchemy(lembrete_schema.usuario)
+        return Lembrete(**lembrete_items)

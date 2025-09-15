@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class CasoSchema(Base):
-    __tablename__: Final = "casos"
+    __tablename__ = "casos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 

@@ -35,3 +35,20 @@
 </div>
 
 {% endblock %}
+
+{% block scripts %}
+<script src="{{url_for('static',filename='js/form_utilities.js')}}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        FormUtils.initializeFormWithValidation({
+            formId: 'form',
+            buttonId: 'submit',
+            masks: [],
+            conditionalFields: [],
+            dateRanges: [],
+            preventWheel: true,
+            enableValidation: true
+        });
+    });
+</script>
+{% endblock %}

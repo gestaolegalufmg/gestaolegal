@@ -1,121 +1,14 @@
 {% extends "base/painel_principal.html" %}
-{%block titulo%}Cadastro{%endblock%}
+{%block titulo%}Cadastrar Atendido{%endblock%}
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/form_styles.css') }}">
 <style>
-    .cadastro-form {
-        width: 100%;
-    }
-
-    .form-header h3 {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 600;
-        color: black;
-    }
-
-    /* Modal styles are now handled by the unified modal system */
-
-    .radio-option {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-        padding: 0.75rem;
-        border: 1px solid #e9ecef;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .radio-option:hover {
-        background-color: #f8f9fa;
-    }
-
-    .radio-option input[type="radio"] {
-        margin: 0;
-        margin-top: 0.25rem;
-    }
-
-    .radio-content label {
-        font-weight: 500;
-        margin: 0;
-        cursor: pointer;
-    }
-
-    .radio-content p {
-        margin: 0.25rem 0 0 0;
-        font-size: 0.875rem;
-        color: #6c757d;
-    }
-
-    .modal-separator {
-        height: 1px;
-        background-color: #e9ecef;
-        margin: 1.5rem 0;
-    }
-
-    .loading-spinner {
-        text-align: center;
-        padding: 1rem;
-    }
-
-    .password-display {
-        text-align: center;
-        padding: 1rem;
-    }
-
-    .password-number {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: var(--color-primary);
-        margin: 0.5rem 0;
-    }
-
-    .modal-footer {
-        padding: 1.5rem;
-        border-top: 1px solid #e9ecef;
-        background-color: #f8f9fa;
-    }
-
-    .checkbox-option {
-        margin-bottom: 1rem;
-    }
-
-    .checkbox-option input[type="checkbox"] {
-        margin-right: 0.5rem;
-    }
-
-    .modal-buttons {
-        display: flex;
-        gap: 0.75rem;
-        justify-content: flex-end;
-    }
-
-    /* Error message styling */
-    .alert-danger {
-        color: #dc3545;
-        background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
-        border-radius: 0.25rem;
-        padding: 0.75rem;
-        margin-top: 0.5rem;
-        font-size: 0.875rem;
-    }
-
-    /* Focus management for accessibility */
-    .modal-content:focus {
-        outline: none;
-    }
 </style>
 {% endblock %}
 {% block conteudo %}
 <div class="form-container" id="pessoa">
-    <div class="form-header">
-        <h3>Novo Atendido</h3>
-    </div>
     <div class="form-content">
-        <form class="cadastro-form" action="{{url_for('atendido.cadastro_na')}}" method="POST" id="form" novalidate>
+        <form class="cadastro-form" action="{{url_for('atendido.cadastrar_atendido')}}" method="POST" id="form" novalidate>
 
             {% include "atendidos/formularios/formulario_atendido.html" %}
 
@@ -193,61 +86,12 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="{{url_for('static',filename='js/form_utils.js')}}"></script>
-<script src="{{url_for('static',filename='js/atendidoForm_utils.js')}}"></script>
+<script src="{{url_for('static',filename='js/form_utilities.js')}}"></script>
 <script>
-    // Constants
     const PRIORITY_MAPPING = {
         'N': 0,
         'P': 1,
         'S': 2
-    };
-
-    const REQUIRED_FIELDS = [
-        { name: 'nome', message: 'O campo nome não pode ficar em branco.' },
-        { name: 'formcel', message: 'O campo telefone celular não pode ficar em branco.' },
-        { name: 'formcep', message: 'O campo CEP não pode ficar em branco.' },
-        { name: 'logradouro', message: 'O campo logradouro não pode ficar em branco.' },
-        { name: 'bairro', message: 'O campo bairro não pode ficar em branco.' },
-        { name: 'cidade', message: 'O campo cidade não pode ficar em branco.' },
-        { name: 'estado', message: 'O campo estado não pode ficar em branco.' }
-    ];
-
-    // Utility functions
-    const showError = (field, message) => {
-        const fieldContainer = field.parentElement.parentElement;
-        const existingError = fieldContainer.querySelector('.alert-danger');
-        if (existingError) {
-            existingError.remove();
-        }
-        fieldContainer.insertAdjacentHTML('afterend', `<div class="alert alert-danger" role="alert">${message}</div>`);
-    };
-
-    const clearErrors = () => {
-        const errorMessages = document.querySelectorAll('.alert-danger');
-        errorMessages.forEach(message => message.remove());
-    };
-
-    const validateRequiredFields = () => {
-        clearErrors();
-        let hasErrors = false;
-
-        REQUIRED_FIELDS.forEach(field => {
-            const element = form[field.name];
-            if (!element || element.value.trim() === '') {
-                showError(element, field.message);
-                hasErrors = true;
-            }
-        });
-
-        if (hasErrors) {
-            const firstError = document.querySelector('.alert-danger');
-            if (firstError) {
-                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
-
-        return !hasErrors;
     };
 
     const getPriorityValue = (priorityStr) => {
@@ -262,13 +106,11 @@
         ModalManager.close('senhaModal');
     };
 
-    // API functions
     const cadastrarAtendido = async () => {
         try {
             const formData = new FormData(form);
             const obj = Object.fromEntries(formData.entries());
 
-            // Convert boolean fields to proper format
             const booleanFields = ['procurou_outro_local', 'pj_constituida', 'repres_legal', 'pretende_constituir_pj'];
             booleanFields.forEach(field => {
                 if (obj[field] !== undefined) {
@@ -276,35 +118,24 @@
                 }
             });
 
-            // Debug: Log the data being sent
-            console.log('Data being sent to server:', obj);
-            console.log('Data keys:', Object.keys(obj));
-            console.log('Address-related fields:', Object.keys(obj).filter(key => 
-                ['logradouro', 'numero', 'complemento', 'bairro', 'cep', 'cidade', 'estado', 'id_cidade', 'id_estado', 'sem_numero'].includes(key)
-            ));
-
-            const response = await fetch("{{url_for('plantao.ajax_cadastrar_atendido')}}", {
+            const response = await fetch("{{url_for('api.cadastrar_atendido')}}", {
                 method: "POST",
                 headers: {
-                    'X-CSRF-Token': "{{ csrf_token() }}",
+                    'X-CSRF-Token': FormUtils.getCSRFToken(),
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(obj)
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const payload = await response.json();
+            if (response.ok && payload?.data?.id) {
+                clearFieldErrors();
+                return payload.data.id;
             }
-
-            const data = await response.json();
-            if (data.id) {
-                return data.id;
-            } else {
-                throw new Error(data.message || 'ID não retornado pelo servidor');
-            }
+            applyServerErrors(payload);
+            throw new Error(payload?.message || 'Erro ao cadastrar atendido');
         } catch (error) {
             console.error('Erro ao cadastrar atendido:', error);
-            alert('Erro ao cadastrar atendido. Tente novamente.');
             throw error;
         }
     };
@@ -320,7 +151,7 @@
             const prioridade = getPriorityValue(prioridadeStr);
             const response = await fetch(`/plantao/fila-atendimento/gerar-senha/${prioridade}`, {
                 headers: {
-                    'X-CSRF-Token': "{{ csrf_token() }}",
+                    'X-CSRF-Token': FormUtils.getCSRFToken(),
                 }
             });
 
@@ -330,7 +161,6 @@
 
             const data = await response.json();
             
-            // Simulate loading time for better UX
             setTimeout(() => {
                 loadingSpinner.classList.add('modal-hidden');
                 passwordDisplay.classList.remove('modal-hidden');
@@ -362,10 +192,10 @@
                 id_atendido: idAtendido
             };
 
-            const response = await fetch("{{url_for('plantao.criar_fila')}}", {
+            const response = await fetch("{{url_for('api.criar_fila_plantao')}}", {
                 method: "POST",
                 headers: {
-                    'X-CSRF-Token': "{{ csrf_token() }}",
+                    'X-CSRF-Token': FormUtils.getCSRFToken(),
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(obj)
@@ -391,7 +221,7 @@
     const handleInsertQueue = async (e) => {
         e.preventDefault();
         
-        if (!validateRequiredFields()) {
+        if (!FormUtils.validateForm(e)) {
             return;
         }
 
@@ -412,236 +242,57 @@
         }
     };
 
-    const handleCepLookup = async (e) => {
-        const cep = e.target.value.replace(/\D/g, '');
-        if (cep.length !== 8) return;
-
-        try {
-            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-            const data = await response.json();
-            
-            if (data.erro) {
-                // Clear fields if CEP not found
-                form.logradouro.value = "";
-                form.bairro.value = "";
-                form.cidade.value = "";
-                form.estado.value = "";
-                return;
-            }
-
-            form.logradouro.value = data.logradouro || "";
-            form.bairro.value = data.bairro || "";
-            form.cidade.value = data.localidade || "";
-            form.estado.value = data.uf || "";
-        } catch (error) {
-            console.error('Erro ao buscar CEP:', error);
-        }
-    };
-
-    const handleSemNumero = () => {
-        if (form.sem_numero.checked) {
-            form.numero.setAttribute("readonly", true);
-            form.numero.value = "S/N";
-        } else {
-            form.numero.removeAttribute("readonly");
-            form.numero.value = "";
-        }
-    };
-
-    // Input mask function (vanilla JS replacement for jQuery mask)
-    const applyMask = (element, pattern) => {
-        element.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, '');
-            let maskedValue = '';
-            let patternIndex = 0;
-            
-            for (let i = 0; i < pattern.length && patternIndex < value.length; i++) {
-                if (pattern[i] === '0') {
-                    maskedValue += value[patternIndex];
-                    patternIndex++;
-                } else {
-                    maskedValue += pattern[i];
-                }
-            }
-            
-            e.target.value = maskedValue;
-        });
-    };
-
-    // Safe validation functions with null checks
-    const safeValidarPjConstituida = () => {
-        const elemento_selecionado = document.getElementById("pj_constituida");
-        if (!elemento_selecionado) return;
-        
-        const string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].value;
-        const div_cnpj = document.getElementById("div_cnpj");
-        const formcnpj = document.getElementById("formcnpj");
-        
-        if (div_cnpj) {
-            if (string_selecionada === "1") {
-                div_cnpj.classList.remove("hidden");
-                if (formcnpj) formcnpj.required = true;
-            } else {
-                div_cnpj.classList.add("hidden");
-                if (formcnpj) formcnpj.required = false;
-            }
-        }
-        
-        safeValidarRepresLegal();
-    };
-
-    const safeValidarRepresLegal = () => {
-        const pj_constituida = document.getElementById('pj_constituida');
-        if (!pj_constituida) return;
-        
-        const pj_constituida_opcao = pj_constituida.options[pj_constituida.selectedIndex].value;
-        const div_repres_legal = document.getElementById("div_repres_legal");
-        
-        if (pj_constituida_opcao === "0") {
-            if (div_repres_legal) div_repres_legal.classList.add("hidden");
-            const repres_legal = document.getElementById("repres_legal");
-            if (repres_legal) repres_legal.required = false;
-            
-            const fields = ['nome_repres_legal', 'cpf_repres_legal', 'contato_repres_legal', 'nascimento_repres_legal', 'rg_repres_legal'];
-            fields.forEach(field => {
-                const element = document.getElementById(field);
-                if (element) element.required = false;
-                const div = document.getElementById(`div_${field}`);
-                if (div) div.classList.add("hidden");
-            });
-            return;
-        }
-
-        if (div_repres_legal) div_repres_legal.classList.remove("hidden");
-        const repres_legal = document.getElementById("repres_legal");
-        if (repres_legal) repres_legal.required = true;
-
-        const elemento_selecionado = document.getElementById('repres_legal');
-        if (!elemento_selecionado) return;
-        
-        const string_selecionada = elemento_selecionado.options[elemento_selecionado.selectedIndex].value;
-
-        if (string_selecionada === "0") {
-            const fields = ['nome_repres_legal', 'cpf_repres_legal', 'contato_repres_legal', 'nascimento_repres_legal', 'rg_repres_legal'];
-            fields.forEach(field => {
-                const element = document.getElementById(field);
-                if (element) element.required = true;
-                const div = document.getElementById(`div_${field}`);
-                if (div) div.classList.remove("hidden");
-            });
-        } else {
-            const fields = ['nome_repres_legal', 'cpf_repres_legal', 'contato_repres_legal', 'nascimento_repres_legal', 'rg_repres_legal'];
-            fields.forEach(field => {
-                const element = document.getElementById(field);
-                if (element) element.required = false;
-                const div = document.getElementById(`div_${field}`);
-                if (div) div.classList.add("hidden");
-            });
-        }
-    };
-
-    // Initialize form when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
-        // Wait a bit for form elements to be fully rendered
-        setTimeout(() => {
-            // Initialize form validation with safe functions
-            if (typeof trataBotaoForm === 'function') {
-                trataBotaoForm();
-            }
-            
-            // Use safe validation functions only if elements exist
-            if (document.getElementById('pj_constituida')) {
-                safeValidarPjConstituida();
-            }
-            
-            if (document.getElementById('como_conheceu') && typeof validarCampoComo_conheceu === 'function') {
-                validarCampoComo_conheceu("{{como_conheceu_daj['ORGAOSPUBLICOS'][1]}}");
-            }
-            if (document.getElementById('procurou_outro_local') && typeof validarCampoProcurou_outro_local === 'function') {
-                validarCampoProcurou_outro_local();
-            }
+        FormUtils.initializeFormWithValidation({
+            formId: 'form',
+            buttonId: 'submitBtn',
+            masks: [
+                { selector: '#formcpf', pattern: FormUtils.MASK_PATTERNS.CPF },
+                { selector: '#formcpfrepr', pattern: FormUtils.MASK_PATTERNS.CPF },
+                { selector: '#formcnpj', pattern: FormUtils.MASK_PATTERNS.CNPJ },
+                { selector: '#formcel', pattern: FormUtils.MASK_PATTERNS.CELL_PHONE },
+                { selector: '#formtel', pattern: FormUtils.MASK_PATTERNS.PHONE },
+                { selector: '#formcep', pattern: FormUtils.MASK_PATTERNS.CEP }
+            ],
+            conditionalFields: [
+                {
+                    triggerId: 'pj_constituida',
+                    fieldsToToggle: ['div_cnpj'],
+                    condition: (trigger) => trigger.value === 'True'
+                },
+                {
+                    triggerId: 'pj_constituida',
+                    fieldsToToggle: ['div_repres_legal'],
+                    condition: (trigger) => trigger.value === 'True'
+                },
+                {
+                    triggerId: 'repres_legal',
+                    fieldsToToggle: ['div_nome_repres_legal', 'div_cpf_repres_legal', 'div_contato_repres_legal', 'div_nascimento_repres_legal', 'div_rg_repres_legal'],
+                    condition: (trigger) => trigger.value === '0'
+                },
+                {
+                    triggerId: 'como_conheceu',
+                    fieldsToToggle: ['div_indicacao_orgao'],
+                    condition: (trigger) => trigger.options[trigger.selectedIndex]?.text === '{{como_conheceu_daj["ORGAOSPUBLICOS"][1]}}'
+                },
+                {
+                    triggerId: 'procurou_outro_local',
+                    fieldsToToggle: ['div_procurou_qual_local'],
+                    condition: (trigger) => trigger.value === 'True'
+                }
+            ],
+            dateRanges: [],
+            preventWheel: true,
+            enableValidation: true
+        });
 
-            // Bind validation to fields using safe functions
-            const pjConstituida = document.getElementById('pj_constituida');
-            if (pjConstituida) {
-                pjConstituida.onchange = safeValidarPjConstituida;
-            }
-            
-            const comoConheceu = document.getElementById('como_conheceu');
-            if (comoConheceu) {
-                comoConheceu.onchange = () => {
-                    if (typeof validarCampoComo_conheceu === 'function') {
-                        validarCampoComo_conheceu("{{como_conheceu_daj['ORGAOSPUBLICOS'][1]}}");
-                    }
-                };
-            }
-            
-            const procurouOutroLocal = document.getElementById('procurou_outro_local');
-            if (procurouOutroLocal) {
-                procurouOutroLocal.onchange = () => {
-                    if (typeof validarCampoProcurou_outro_local === 'function') {
-                        validarCampoProcurou_outro_local();
-                    }
-                };
-            }
-            
-            const represLegal = document.getElementById('repres_legal');
-            if (represLegal) {
-                represLegal.onchange = safeValidarRepresLegal;
-            }
-
-            // Initialize input masks
-            const cpfField = document.getElementById('formcpf');
-            if (cpfField) applyMask(cpfField, '000.000.000-00');
-            
-            const cpfReprField = document.getElementById('formcpfrepr');
-            if (cpfReprField) applyMask(cpfReprField, '000.000.000-00');
-            
-            const cnpjField = document.getElementById('formcnpj');
-            if (cnpjField) applyMask(cnpjField, '00.000.000/0000-00');
-            
-            const celField = document.getElementById('formcel');
-            if (celField) applyMask(celField, '(00) 00000-0000');
-            
-            const telField = document.getElementById('formtel');
-            if (telField) applyMask(telField, '(00) 0000-0000');
-            
-            const cepField = document.getElementById('formcep');
-            if (cepField) {
-                applyMask(cepField, '00000-000');
-                cepField.addEventListener("focusout", handleCepLookup);
-            }
-
-            // Bind event handlers
-            const semNumeroCheckbox = form.sem_numero;
-            if (semNumeroCheckbox) {
-                semNumeroCheckbox.onclick = handleSemNumero;
-            }
-            
-            const insertQueueBtn = document.getElementById('insertQueue');
-            if (insertQueueBtn) {
-                insertQueueBtn.addEventListener('click', handleInsertQueue);
-            }
-            
-            const closeModalBtn = document.getElementById('closeModal');
-            if (closeModalBtn) {
-                closeModalBtn.addEventListener('click', hideModal);
-            }
-            
-            const createQueueBtn = document.getElementById('createQueue');
-            if (createQueueBtn) {
-                createQueueBtn.addEventListener('click', handleCreateQueue);
-            }
-
-            // Handle radio button changes
-            document.querySelectorAll(".modal-main-content input[type=radio]").forEach(radio => {
-                radio.addEventListener('change', () => {
-                    if (radio.checked) {
-                        gerarSenha(radio.value);
-                    }
-                });
+        document.querySelectorAll(".modal-main-content input[type=radio]").forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    gerarSenha(radio.value);
+                }
             });
-        }, 100);
+        });
     });
 </script>
 {%endblock%}

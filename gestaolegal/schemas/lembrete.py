@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class LembreteSchema(Base):
-    __tablename__: Final = "lembretes"
+    __tablename__ = "lembretes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     num_lembrete: Mapped[int] = mapped_column(Integer, default=0)

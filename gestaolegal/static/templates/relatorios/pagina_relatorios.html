@@ -3,12 +3,12 @@
 {% block titulo %}Relatórios{% endblock %}
 
 {% block css %} 
-    <link rel="stylesheet" href="{{url_for('static',filename='temas_externos/select2.min.css')}}">
+    <link rel="stylesheet" href="{{url_for('static',filename='css/native_select.css')}}">
 {% endblock css %}
 
 {% block conteudo %}
-        <input type="hidden" id="apiRelatoriosBuscarUsuarios" value="{{url_for('relatorios.api_relatorios_buscar_usuarios', _external=True)}}">
-        <input type="hidden" id="apiRelatoriosBuscaAreasDireito" value="{{url_for('relatorios.api_relatorios_buscar_area_direito', _external=True)}}">
+        <input type="hidden" id="apiRelatoriosBuscarUsuarios" value="{{url_for('api.relatorios_buscar_usuarios', _external=True)}}">
+        <input type="hidden" id="apiRelatoriosBuscaAreasDireito" value="{{url_for('api.relatorios_buscar_area_direito', _external=True)}}">
         <div class="card">
             <div class="card-body">
                 <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
@@ -65,57 +65,63 @@
 
 {% endblock conteudo %}
 {% block scripts %}
-<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/native_select.js')}}"></script>
 <script>
     function esconde_campos(){
         switch(document.getElementById('tipo_relatorio').value){
             case "horario_usuarios":
-                document.getElementById('escolhe_usuario').hidden = false
-                document.getElementById('escolhe_area_direito').hidden = true
+                document.getElementById('escolhe_usuario').classList.remove('hidden-field')
+                document.getElementById('escolhe_area_direito').classList.add('hidden-field')
                 break
             case "casos_orientacao":
-                document.getElementById('escolhe_usuario').hidden = true
-                document.getElementById('escolhe_area_direito').hidden = false
+                document.getElementById('escolhe_usuario').classList.add('hidden-field')
+                document.getElementById('escolhe_area_direito').classList.remove('hidden-field')
                 break 
             case "casos_cadastrados":
-                document.getElementById('escolhe_usuario').hidden = true
-                document.getElementById('escolhe_area_direito').hidden = false
+                document.getElementById('escolhe_usuario').classList.add('hidden-field')
+                document.getElementById('escolhe_area_direito').classList.remove('hidden-field')
                 break    
             case "casos_arquiv_soluc_ativ":
-                document.getElementById('escolhe_usuario').hidden = true
-                document.getElementById('escolhe_area_direito').hidden = false
+                document.getElementById('escolhe_usuario').classList.add('hidden-field')
+                document.getElementById('escolhe_area_direito').classList.remove('hidden-field')
                 break 
         }
     }
 
-    $(document).ready(function(){
+    document.addEventListener('DOMContentLoaded', function(){
 
-        $('#usuarios-js').select2({
-            placeholder: 'Selecione um usuário',
+        // Initialize native select for usuarios
+        const usuariosSelect = new NativeSelect(document.getElementById('usuarios-js'), {
             ajax: {
-                url:$('#apiRelatoriosBuscarUsuarios').val(),
-                dataType:'json'
+                url: document.getElementById('apiRelatoriosBuscarUsuarios').value,
+                delay: 500,
+                params: {}
             },
+            placeholder: 'Selecione um usuário',
             multiple: true,
-            width: 'resolve'
+            allowClear: true,
+            width: '100%'
         });
 
-        $('#usuarios-js').on('change', function(){
-            $('#usuarios').val($('#usuarios-js').val().join(','));
+        document.getElementById('usuarios-js').addEventListener('change', function(){
+            document.getElementById('usuarios').value = document.getElementById('usuarios-js').value.join(',');
         })
 
-        $('#areaDoDireito').select2({
-            placeholder: 'Selecione uma Área do Direito...',
-            ajax:{
-                url:$('#apiRelatoriosBuscaAreasDireito').val(),
-                dataType:'json'
+        // Initialize native select for area do direito
+        const areaDireitoSelect = new NativeSelect(document.getElementById('areaDoDireito'), {
+            ajax: {
+                url: document.getElementById('apiRelatoriosBuscaAreasDireito').value,
+                delay: 500,
+                params: {}
             },
-            multiple:true,
-            width:'resolve'
+            placeholder: 'Selecione uma Área do Direito...',
+            multiple: true,
+            allowClear: true,
+            width: '100%'
         })
 
-        $('#areaDoDireito').on('change', function(){
-            $('#area_direito').val($('#areaDoDireito').val().join(','));
+        document.getElementById('areaDoDireito').addEventListener('change', function(){
+            document.getElementById('area_direito').value = document.getElementById('areaDoDireito').value.join(',');
         })
 
         esconde_campos()

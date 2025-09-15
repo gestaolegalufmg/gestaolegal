@@ -21,7 +21,7 @@
                                 {% for processo in processos %}
                                 <tr class="text-center">
                                     <td>
-                                        <a href="{{url_for('casos.visualizar_processo', id_processo = processo.id, id_caso = caso.id)}}">
+                                        <a href="{{url_for('processo.visualizar_processo', id_processo = processo.id, id_caso = caso.id)}}">
                                             {{processo.numero}}<br>
                                         </a>
                                     </td>
@@ -41,8 +41,8 @@
                     <div class="card-header">
                         <h4>Ações:</h4>
                         <div class="card-header-action">
-                         <a href="{{url_for('casos.novo_processo', id_caso=caso.id)}}"><button class="btn btn-primary mr-1">Associar Processo</button></a> 
-                         <a href="{{url_for('casos.cadastrar_lembrete', id_do_caso=caso.id)}}"><button  class="btn btn-primary mr-1">Criar Lembrete</button></a>
+                         <a href="{{url_for('processo.novo_processo', id_caso=caso.id)}}"><button class="btn btn-primary mr-1">Associar Processo</button></a> 
+                         <!-- <a href="{{url_for('casos.cadastrar_lembrete', id_do_caso=caso.id)}}"><button  class="btn btn-primary mr-1">Criar Lembrete</button></a> -->
                          <a href="{{url_for('casos.novo_evento', id_caso=caso.id)}}"><button  class="btn btn-primary mr-1">Criar Evento</button></a>
                          {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.ESTAGIARIO_DIREITO.value, UserRole.PROFESSOR.value, UserRole.ORIENTADOR.value, UserRole.COLAB_EXTERNO.value] %}
                          <a href="{{url_for('casos.editar_caso',id_caso = caso.id)}}"><button class="btn btn-primary">Editar</button></a>
@@ -164,7 +164,7 @@
                   <h4 style="font-weight: normal; font-size: 10pt;">CNPJ: {{atendido.cnpj or ' ---'}}</h4>
                   <div class="card-body-action">
                     <a
-                      href="{{url_for('atendido.perfil_assistido', _id=atendido.id)}}"
+                      href="{{url_for('atendido.visualizar_atendido', _id=atendido.id)}}"
                       class="btn btn-primary"
                       >Visualizar</a
                     >
@@ -320,12 +320,10 @@
 <script src="{{url_for('static',filename='js/ver_mais.js')}}"></script>
 
 <script type="text/javascript">
-	$(document).ready(function() {
-	
-		$(".descricao").shorten({
+	document.addEventListener('DOMContentLoaded', function() {
+		shortenText(".descricao", {
 	        "showChars" : 30
-});
-	
+		});
 	});
 </script>
 

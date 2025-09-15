@@ -48,16 +48,24 @@
 .search-field input,
 .search-field select {
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--form-border-default);
   border-radius: 4px;
   font-size: 14px;
   min-width: 200px;
+  background-color: var(--form-bg-subtle);
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-field input:hover,
+.search-field select:hover {
+  border-color: var(--form-border-hover);
 }
 
   .search-field input:focus,
   .search-field select:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: var(--form-border-focus);
+    background-color: var(--form-bg-subtle);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
   }
 
@@ -220,25 +228,6 @@
   font-size: 16px;
 }
 
-/* Status Badges */
-.status-badge {
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-
-.status-badge.active {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.status-badge.inactive {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
 /* Action Buttons */
 .action-buttons {
   display: flex;
@@ -299,6 +288,44 @@
 .action-buttons .btn-outline-danger:hover {
   background-color: #dc3545;
   color: white;
+}
+
+/* Files Table Styles */
+.files-table {
+    margin: 1.5rem 0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid var(--color-border, #e9ecef);
+}
+
+.files-table table {
+    margin: 0;
+    width: 100%;
+}
+
+.files-table th {
+    background-color: var(--color-background, #f8f9fa);
+    font-weight: 600;
+    text-align: left;
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border, #e9ecef);
+}
+
+.files-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border, #e9ecef);
+    vertical-align: middle;
+}
+
+.file-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.file-actions .btn {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
 }
 
 /* Responsive Design */

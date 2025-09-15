@@ -62,12 +62,12 @@
         <!-- Endereço -->
         {% if current_user.urole == UserRole.ADMINISTRADOR.value %}
         {% set endereco_content %}
-            {{ profile_field("Logradouro", endereco.logradouro) }}
-            {{ profile_field("Número", endereco.numero) }}
-            {{ profile_field("Complemento", endereco.complemento or "--") }}
-            {{ profile_field("Bairro", endereco.bairro) }}
-            {{ profile_field("CEP", endereco.cep) }}
-            {{ profile_field("Cidade", endereco.cidade + ", " + endereco.estado if endereco.cidade and endereco.estado else None) }}
+            {{ profile_field("Logradouro", usuario.endereco.logradouro) }}
+            {{ profile_field("Número", usuario.endereco.numero) }}
+            {{ profile_field("Complemento", usuario.endereco.complemento or "--") }}
+            {{ profile_field("Bairro", usuario.endereco.bairro) }}
+            {{ profile_field("CEP", usuario.endereco.cep) }}
+            {{ profile_field("Cidade", usuario.endereco.cidade + ", " + usuario.endereco.estado if usuario.endereco.cidade and usuario.endereco.estado else None) }}
         {% endset %}
         {{ profile_card("Endereço", endereco_content) }}
         {% endif %}
