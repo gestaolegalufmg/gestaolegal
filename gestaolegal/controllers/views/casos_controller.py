@@ -42,10 +42,22 @@ for key, value in situacao_deferimento.items():
 opcoes_filtro_casos["TODOS"] = ("todos", "Todos Casos")
 
 opcoes_filtro_meus_casos = {"CADASTRADO_POR_MIM": ("cad_por_mim", "Cadastrado por mim")}
-opcoes_filtro_meus_casos["ATIVO"] = (situacao_deferimento["ATIVO"][0], situacao_deferimento["ATIVO"][1])
-opcoes_filtro_meus_casos["ARQUIVADO"] = (situacao_deferimento["ARQUIVADO"][0], situacao_deferimento["ARQUIVADO"][1])
-opcoes_filtro_meus_casos["AGUARDANDO_DEFERIMENTO"] = (situacao_deferimento["AGUARDANDO_DEFERIMENTO"][0], situacao_deferimento["AGUARDANDO_DEFERIMENTO"][1])
-opcoes_filtro_meus_casos["INDEFERIDO"] = (situacao_deferimento["INDEFERIDO"][0], situacao_deferimento["INDEFERIDO"][1])
+opcoes_filtro_meus_casos["ATIVO"] = (
+    situacao_deferimento["ATIVO"][0],
+    situacao_deferimento["ATIVO"][1],
+)
+opcoes_filtro_meus_casos["ARQUIVADO"] = (
+    situacao_deferimento["ARQUIVADO"][0],
+    situacao_deferimento["ARQUIVADO"][1],
+)
+opcoes_filtro_meus_casos["AGUARDANDO_DEFERIMENTO"] = (
+    situacao_deferimento["AGUARDANDO_DEFERIMENTO"][0],
+    situacao_deferimento["AGUARDANDO_DEFERIMENTO"][1],
+)
+opcoes_filtro_meus_casos["INDEFERIDO"] = (
+    situacao_deferimento["INDEFERIDO"][0],
+    situacao_deferimento["INDEFERIDO"][1],
+)
 
 opcoes_filtro_eventos = tipo_evento.copy()
 opcoes_filtro_eventos["TODOS"] = ("todos", "Todos")

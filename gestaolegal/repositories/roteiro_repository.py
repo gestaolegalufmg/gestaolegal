@@ -3,7 +3,7 @@ from gestaolegal.repositories.base_repository import BaseRepository
 from gestaolegal.schemas.roteiro import RoteiroSchema
 
 
-class RoteiroRepository(BaseRepository[RoteiroSchema, Roteiro]):
+class RoteiroRepository(BaseRepository):
     def __init__(self):
         super().__init__(RoteiroSchema, Roteiro)
 

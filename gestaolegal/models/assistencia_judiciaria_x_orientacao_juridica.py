@@ -20,30 +20,42 @@ class AssistenciaJudiciaria_xOrientacaoJuridica:
     def __post_init__(self):
         return
 
-    @staticmethod
+    @classmethod
     def from_sqlalchemy(
-        assistencia_judiciaria_x_orientacao_juridica_schema: "AssistenciaJudiciaria_xOrientacaoJuridicaSchema",
+        cls,
+        schema: "AssistenciaJudiciaria_xOrientacaoJuridicaSchema",
+        shallow: bool = False,
     ) -> "AssistenciaJudiciaria_xOrientacaoJuridica":
-        from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
-        from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+        assistencia_judiciaria_x_orientacao_juridica_items = schema.to_dict()
 
-        assistencia_judiciaria_x_orientacao_juridica_items = (
-            assistencia_judiciaria_x_orientacao_juridica_schema.to_dict()
-        )
-        assistencia_judiciaria_x_orientacao_juridica_items["assistenciaJudiciaria"] = (
-            AssistenciaJudiciaria.from_sqlalchemy(
-                assistencia_judiciaria_x_orientacao_juridica_schema.assistenciaJudiciaria
+        if not shallow:
+            from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
+            from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+
+            assistencia_judiciaria_x_orientacao_juridica_items[
+                "assistenciaJudiciaria"
+            ] = (
+                AssistenciaJudiciaria.from_sqlalchemy(
+                    schema.assistenciaJudiciaria, shallow=True
+                )
+                if schema.assistenciaJudiciaria
+                else None
             )
-            if assistencia_judiciaria_x_orientacao_juridica_schema.assistenciaJudiciaria
-            else None
-        )
-        assistencia_judiciaria_x_orientacao_juridica_items["orientacaoJuridica"] = (
-            OrientacaoJuridica.from_sqlalchemy(
-                assistencia_judiciaria_x_orientacao_juridica_schema.orientacaoJuridica
+            assistencia_judiciaria_x_orientacao_juridica_items["orientacaoJuridica"] = (
+                OrientacaoJuridica.from_sqlalchemy(
+                    schema.orientacaoJuridica, shallow=True
+                )
+                if schema.orientacaoJuridica
+                else None
             )
-            if assistencia_judiciaria_x_orientacao_juridica_schema.orientacaoJuridica
-            else None
-        )
+        else:
+            assistencia_judiciaria_x_orientacao_juridica_items[
+                "assistenciaJudiciaria"
+            ] = None
+            assistencia_judiciaria_x_orientacao_juridica_items["orientacaoJuridica"] = (
+                None
+            )
+
         return AssistenciaJudiciaria_xOrientacaoJuridica(
             **assistencia_judiciaria_x_orientacao_juridica_items
         )

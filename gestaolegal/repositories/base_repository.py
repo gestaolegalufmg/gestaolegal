@@ -1,7 +1,7 @@
 from operator import and_, or_
-from typing import Any, Generic, Sequence, TypedDict, TypeGuard, TypeVar, Literal
+from typing import Any, Generic, Literal, Sequence, TypedDict, TypeGuard, TypeVar, cast
 
-from sqlalchemy import Column, UnaryExpression, asc, desc, BinaryExpression
+from sqlalchemy import BinaryExpression, Column, UnaryExpression, asc, desc
 from sqlalchemy.orm import Query
 
 from gestaolegal.database import get_db
@@ -12,7 +12,8 @@ from gestaolegal.services import PaginatedResult
 ModelType = TypeVar("ModelType", bound=BaseModel)
 SchemaType = TypeVar("SchemaType", bound=BaseSchema)
 
-def _has_status(schema_cls: type[BaseSchema]) -> TypeGuard[type[BaseSchema]]:
+
+def _has_status(schema_cls: type[SchemaType]) -> TypeGuard[type[SchemaType]]:
     return hasattr(schema_cls, "status")
 
 
@@ -23,56 +24,70 @@ class PageParams(TypedDict):
 
 T = TypeVar("T")
 
-Op = Literal[
-    "eq",
-    "ne",
-    "lt",
-    "lte",
-    "gt",
-    "gte",
-    "like",
-    "ilike",
-    "in",
-    "not_in",
-    "is_null",
-    "is_not_null",
-    "between",
-    "contains",
-    "icontains",
-    "startswith",
-    "istartswith",
-    "endswith",
-    "iendswith",
-] | str
+Op = (
+    Literal[
+        "eq",
+        "ne",
+        "lt",
+        "lte",
+        "gt",
+        "gte",
+        "like",
+        "ilike",
+        "in",
+        "not_in",
+        "is_null",
+        "is_not_null",
+        "between",
+        "contains",
+        "icontains",
+        "startswith",
+        "istartswith",
+        "endswith",
+        "iendswith",
+    ]
+    | str
+)
 
 OrderableColumn = Column | UnaryExpression | str
 OrderByList = list[OrderableColumn] | OrderableColumn | None
 
-ValueType = Any # TODO: Add type
-SingleCondition = tuple[str, str, ValueType]
+ValueType = Any  # TODO: Add type
 
 
 ExpressionOperator = Literal["and", "or"]
 
-ConditionList = list[SingleCondition]
-ConditionWithOperator = dict[ExpressionOperator, ConditionList]
-WhereConditions = ConditionWithOperator | list[ConditionWithOperator] | ConditionList | SingleCondition
+SimpleCondition = tuple[str, str, ValueType]
+ConditionWithOperator = dict[ExpressionOperator, list[SimpleCondition]]
+WhereConditions = list[ConditionWithOperator | SimpleCondition]
+
 
 DeleteMode = Literal["auto", "soft", "hard"]
 
 
 class BaseRepository(Generic[SchemaType, ModelType]):
-    def __init__(self, schema_class: type[SchemaType], model_class: type[BaseModel], delete_mode: DeleteMode = "auto"):
+    schema_class: type[SchemaType]
+    model_class: type[ModelType]
+
+    _has_status_field: bool
+    _delete_mode: DeleteMode
+
+    def __init__(
+        self,
+        schema_class: type[SchemaType],
+        model_class: type[ModelType],
+        delete_mode: DeleteMode = "auto",
+    ):
         self.schema_class = schema_class
         self.model_class = model_class
-        self.session = get_db().session
-        self._has_status_field = _has_status(schema_class)
-        self._delete_mode = delete_mode
 
+        self.session = get_db().session
+        self._has_status_field = _has_status(self.schema_class)
+        self._delete_mode = delete_mode
 
     def _apply_status_filter(self, query: Query, active_only: bool = True) -> Query:
         if active_only and hasattr(self.schema_class, "status"):
-            return query.filter(self.schema_class.status == True)  # type: ignore[attr-defined]
+            return query.filter(self.schema_class.status)  # type: ignore[attr-defined]
         return query
 
     def get(
@@ -80,13 +95,18 @@ class BaseRepository(Generic[SchemaType, ModelType]):
         active_only: bool = True,
         page_params: PageParams | None = None,
         order_by: OrderByList | None = None,
-        where_conditions: WhereConditions | None = None,
+        where_conditions: WhereConditions
+        | SimpleCondition
+        | ConditionWithOperator
+        | None = None,
         order_desc: bool = False,
     ) -> PaginatedResult[ModelType]:
         query = self._create_query()
         query = self._apply_status_filter(query, active_only)
 
         if where_conditions:
+            if not isinstance(where_conditions, list):
+                where_conditions = [where_conditions]
             query = self._apply_where(query, where_conditions)
 
         if order_by:
@@ -95,7 +115,9 @@ class BaseRepository(Generic[SchemaType, ModelType]):
         total = query.count()
 
         if page_params:
-            query = query.offset((page_params["page"] - 1) * page_params["per_page"]).limit(page_params["per_page"])
+            query = query.offset(
+                (page_params["page"] - 1) * page_params["per_page"]
+            ).limit(page_params["per_page"])
             page = page_params["page"] or 1
             per_page = page_params["per_page"] or total
         else:
@@ -107,11 +129,20 @@ class BaseRepository(Generic[SchemaType, ModelType]):
         items = [self._build_model(entity) for entity in result]
         return PaginatedResult[ModelType](items, total, page, per_page)
 
-    def find(self, where_conditions: WhereConditions | None = None, active_only: bool = True) -> ModelType | None:
+    def find(
+        self,
+        where_conditions: WhereConditions
+        | SimpleCondition
+        | ConditionWithOperator
+        | None = None,
+        active_only: bool = True,
+    ) -> ModelType | None:
         query = self._create_query()
         query = self._apply_status_filter(query, active_only)
 
         if where_conditions:
+            if not isinstance(where_conditions, list):
+                where_conditions = [where_conditions]
             query = self._apply_where(query, where_conditions)
 
         result = query.first()
@@ -119,7 +150,9 @@ class BaseRepository(Generic[SchemaType, ModelType]):
 
     def find_by_id(self, id: int, active_only: bool = True) -> ModelType | None:
         if not hasattr(self.schema_class, "id"):
-            raise ValueError(f"Schema {self.schema_class.__name__} does not have an id field")
+            raise ValueError(
+                f"Schema {self.schema_class.__name__} does not have an id field"
+            )
 
         where = ("id", "eq", id)
         return self.find(where_conditions=where, active_only=active_only)
@@ -200,35 +233,39 @@ class BaseRepository(Generic[SchemaType, ModelType]):
         query = self.session.query(self.schema_class)
         if id:
             if not hasattr(self.schema_class, "id"):
-                raise ValueError(f"Schema {self.schema_class.__name__} does not have an id field")
+                raise ValueError(
+                    f"Schema {self.schema_class.__name__} does not have an id field"
+                )
 
-            query = query.filter(self.schema_class.id == id) # type: ignore[attr-defined]
+            query = query.filter(self.schema_class.id == id)  # type: ignore[attr-defined]
         return query
 
     def _build_model(
         self, query_result: SchemaType | tuple[SchemaType, ...]
     ) -> ModelType:
         if not query_result:
-            raise ValueError(f"Query result is None when calling _build_model")
+            raise ValueError("Query result is None when calling _build_model")
 
         if isinstance(query_result, tuple):
             if not query_result[0]:
-                raise ValueError(f"Query result is None when calling _build_model")
+                raise ValueError("Query result is None when calling _build_model")
 
             primary_schema = query_result[0]
         else:
             primary_schema = query_result
 
-        return self.model_class.from_sqlalchemy(primary_schema)
+        return cast(ModelType, self.model_class.from_sqlalchemy(primary_schema))
 
-    def _apply_order(self, query: Query, order_by: OrderByList, order_desc: bool) -> Query:
+    def _apply_order(
+        self, query: Query, order_by: OrderByList, order_desc: bool
+    ) -> Query:
         if not order_by:
             return query
 
         if not isinstance(order_by, Sequence):
             order_by = [order_by]
 
-        order_expressions = []        
+        order_expressions = []
 
         for column in order_by:
             if isinstance(column, UnaryExpression):
@@ -240,23 +277,34 @@ class BaseRepository(Generic[SchemaType, ModelType]):
 
         return query.order_by(*order_expressions)
 
-
     def _apply_where(self, query: Query, where_conditions: WhereConditions) -> Query:
         if not where_conditions:
             return query
 
-        condition_list = where_conditions if isinstance(where_conditions, list) else [where_conditions]
+        condition_list = (
+            where_conditions
+            if isinstance(where_conditions, list)
+            else [where_conditions]
+        )
 
         for condition in condition_list:
             if isinstance(condition, dict):
                 operator = list(condition.keys())[0]
                 conditions = condition[operator]
-                expressions = [self._build_expression(condition) for condition in conditions]
-                
+                expressions = [
+                    self._build_expression(condition) for condition in conditions
+                ]
+
                 if operator == "and":
                     query = query.filter(and_(*expressions))
                 elif operator == "or":
                     query = query.filter(or_(*expressions))
+
+            elif isinstance(condition, list):
+                expressions = [
+                    self._build_expression(condition) for condition in condition
+                ]
+                query = query.filter(and_(*expressions))
 
             else:
                 expression = self._build_expression(condition)
@@ -264,10 +312,9 @@ class BaseRepository(Generic[SchemaType, ModelType]):
 
         return query
 
-    
-    def _build_expression(self, condition: SingleCondition) -> BinaryExpression:
+    def _build_expression(self, condition: SimpleCondition) -> BinaryExpression:
         column, query_operator, value = condition
-        column_ref = getattr(self.schema_class, column) # type: ignore[attr-defined]
+        column_ref = getattr(self.schema_class, column)  # type: ignore[attr-defined]
 
         if query_operator == "eq":
             return column_ref == value

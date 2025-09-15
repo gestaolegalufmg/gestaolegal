@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.usuario import Usuario
 
 if TYPE_CHECKING:
@@ -10,7 +11,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class Caso:
+class Caso(BaseModel):
     id: int
 
     id_usuario_responsavel: int
@@ -43,51 +44,54 @@ class Caso:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(
-        caso_schema: "CasoSchema", load_clientes: bool = True
-    ) -> "Caso":
-        caso_items = caso_schema.to_dict()
+    @classmethod
+    def from_sqlalchemy(cls, schema: "CasoSchema", shallow: bool = False) -> "Caso":
+        caso_items = schema.to_dict()
 
-        if load_clientes and caso_schema.clientes:
+        if not shallow:
             from gestaolegal.models.atendido import Atendido
 
             caso_items["clientes"] = [
-                Atendido.from_sqlalchemy(cliente, load_casos=False)
-                for cliente in caso_schema.clientes
+                Atendido.from_sqlalchemy(cliente, shallow=True)
+                for cliente in schema.clientes
             ]
+            caso_items["usuario_responsavel"] = (
+                Usuario.from_sqlalchemy(schema.usuario_responsavel)
+                if schema.usuario_responsavel
+                else None
+            )
+            caso_items["orientador"] = (
+                Usuario.from_sqlalchemy(schema.orientador)
+                if schema.orientador
+                else None
+            )
+            caso_items["estagiario"] = (
+                Usuario.from_sqlalchemy(schema.estagiario)
+                if schema.estagiario
+                else None
+            )
+            caso_items["colaborador"] = (
+                Usuario.from_sqlalchemy(schema.colaborador)
+                if schema.colaborador
+                else None
+            )
+            caso_items["criado_por"] = (
+                Usuario.from_sqlalchemy(schema.criado_por)
+                if schema.criado_por
+                else None
+            )
+            caso_items["modificado_por"] = (
+                Usuario.from_sqlalchemy(schema.modificado_por)
+                if schema.modificado_por
+                else None
+            )
         else:
             caso_items["clientes"] = []
-
-        caso_items["usuario_responsavel"] = (
-            Usuario.from_sqlalchemy(caso_schema.usuario_responsavel)
-            if caso_schema.usuario_responsavel
-            else None
-        )
-        caso_items["orientador"] = (
-            Usuario.from_sqlalchemy(caso_schema.orientador)
-            if caso_schema.orientador
-            else None
-        )
-        caso_items["estagiario"] = (
-            Usuario.from_sqlalchemy(caso_schema.estagiario)
-            if caso_schema.estagiario
-            else None
-        )
-        caso_items["colaborador"] = (
-            Usuario.from_sqlalchemy(caso_schema.colaborador)
-            if caso_schema.colaborador
-            else None
-        )
-        caso_items["criado_por"] = (
-            Usuario.from_sqlalchemy(caso_schema.criado_por)
-            if caso_schema.criado_por
-            else None
-        )
-        caso_items["modificado_por"] = (
-            Usuario.from_sqlalchemy(caso_schema.modificado_por)
-            if caso_schema.modificado_por
-            else None
-        )
+            caso_items["usuario_responsavel"] = None
+            caso_items["orientador"] = None
+            caso_items["estagiario"] = None
+            caso_items["colaborador"] = None
+            caso_items["criado_por"] = None
+            caso_items["modificado_por"] = None
 
         return Caso(**caso_items)

@@ -4,7 +4,6 @@ from flask import flash
 from flask_wtf import FlaskForm
 from wtforms import (
     DateField,
-    HiddenField,
     PasswordField,
     SelectField,
     StringField,
@@ -452,16 +451,6 @@ class EditarUsuarioForm(EnderecoFieldsMixin, BaseFormMixin, FlaskForm):
         "Data de fim da bolsa", validators=[Optional(), validaDatadaBolsa]
     )
 
-    senha = (
-        HiddenField()
-    )  # Não é usado no formulário, criado para o usuario_form.html funcionar
-
-    confirmacao = (
-        HiddenField()
-    )  # Não é usado no formulário, criado para o usuario_form.html funcionar
-
-    submit = SubmitField("Alterar dados")
-
     def _postprocess_data(self) -> dict[str, Any]:
         result = dict(self.data)
         return result
@@ -501,5 +490,3 @@ class EditarSenhaForm(BaseFormMixin, FlaskForm):
         ],
         render_kw={"placeholder": "Confirme sua senha", "maxlength": "60"},
     )
-
-    submit = SubmitField("Confirmar")

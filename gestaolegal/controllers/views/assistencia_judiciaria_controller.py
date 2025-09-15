@@ -207,7 +207,7 @@ def editar_assistencia_judiciaria(id_assistencia_judiciaria: int):
     assistencia = assistencia_judiciaria_service.find_by_id(id_assistencia_judiciaria)
     if not assistencia:
         abort(404)
-    
+
     # Type assertion: we know assistencia is not None after the check above
     assert assistencia is not None
     form = AssistenciaJudiciariaForm(data=assistencia.to_dict())

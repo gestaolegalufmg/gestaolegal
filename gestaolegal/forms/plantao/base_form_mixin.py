@@ -3,9 +3,8 @@ from typing import Any, Protocol
 
 class HasDataAttribute(Protocol):
     data: dict[str, Any]
-    
-    def _postprocess_data(self) -> dict[str, Any]:
-        ...
+
+    def _postprocess_data(self) -> dict[str, Any]: ...
 
 
 class BaseFormMixin:

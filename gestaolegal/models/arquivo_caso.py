@@ -14,10 +14,9 @@ class ArquivoCaso:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(arquivo_caso: "ArquivoCasoSchema") -> "ArquivoCaso":
-        return ArquivoCaso(
-            id=arquivo_caso.id,
-            link_arquivo=arquivo_caso.link_arquivo,
-            id_caso=arquivo_caso.id_caso,
-        )
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "ArquivoCasoSchema", shallow: bool = False
+    ) -> "ArquivoCaso":
+        arquivo_caso_items = schema.to_dict()
+        return ArquivoCaso(**arquivo_caso_items)

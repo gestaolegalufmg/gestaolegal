@@ -1,8 +1,8 @@
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, false
-from sqlalchemy.orm import mapped_column, relationship, Mapped
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from gestaolegal.schemas.base import Base
 

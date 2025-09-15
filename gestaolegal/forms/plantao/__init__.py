@@ -13,7 +13,6 @@ from wtforms.validators import (
 
 from .base_form_mixin import BaseFormMixin
 
-
 orientacao_AdminOuCivil = {
     "ADMINISTRADOR": ("adm", "Administrador"),
     "CIVEL": ("civ", "Cível"),

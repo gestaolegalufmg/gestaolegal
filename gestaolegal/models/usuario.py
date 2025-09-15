@@ -60,12 +60,17 @@ class Usuario(UserMixin, BaseModel):
     def __post_init__(self):
         pass
 
-    @staticmethod
-    def from_sqlalchemy(usuario_schema: "UsuarioSchema") -> "Usuario":
-        usuario_items = usuario_schema.to_dict()
-        usuario_items["endereco"] = (
-            Endereco.from_sqlalchemy(usuario_schema.endereco)
-            if usuario_schema.endereco
-            else None
-        )
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "UsuarioSchema", shallow: bool = False
+    ) -> "Usuario":
+        usuario_items = schema.to_dict()
+
+        if not shallow:
+            usuario_items["endereco"] = (
+                Endereco.from_sqlalchemy(schema.endereco) if schema.endereco else None
+            )
+        else:
+            usuario_items["endereco"] = None
+
         return Usuario(**usuario_items)

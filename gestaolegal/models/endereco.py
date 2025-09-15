@@ -21,9 +21,11 @@ class Endereco(BaseModel):
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(endereco: "EnderecoSchema") -> "Endereco":
-        endereco_items = endereco.to_dict()
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "EnderecoSchema", shallow: bool = False
+    ) -> "Endereco":
+        endereco_items = schema.to_dict()
         return Endereco(**endereco_items)
 
     def to_dict(self, *args, **kwargs):

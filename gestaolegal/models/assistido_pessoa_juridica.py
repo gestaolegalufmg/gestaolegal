@@ -31,9 +31,9 @@ class AssistidoPessoaJuridica:
     def __post_init__(self):
         return
 
-    @staticmethod
+    @classmethod
     def from_sqlalchemy(
-        assistido_pessoa_juridica_schema: "AssistidoPessoaJuridicaSchema",
+        cls, schema: "AssistidoPessoaJuridicaSchema", shallow: bool = False
     ) -> "AssistidoPessoaJuridica":
-        assistido_pessoa_juridica_items = assistido_pessoa_juridica_schema.to_dict()
+        assistido_pessoa_juridica_items = schema.to_dict()
         return AssistidoPessoaJuridica(**assistido_pessoa_juridica_items)

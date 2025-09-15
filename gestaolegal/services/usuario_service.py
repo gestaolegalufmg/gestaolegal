@@ -281,11 +281,6 @@ class UsuarioService:
             raise ValueError("Email não encontrado no sistema")
         return True
 
-    def reset_password_with_token(self, token: str, password: str) -> bool:
-        if not self.reset_password_with_token(token, password):
-            raise ValueError("Token inválido ou expirado")
-        return True
-
     def validate_password_reset_token(self, token: str) -> Usuario:
         usuario = self.verify_token(token)
         if not usuario or not usuario.chave_recuperacao:

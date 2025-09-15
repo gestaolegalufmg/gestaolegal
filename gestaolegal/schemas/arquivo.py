@@ -1,8 +1,7 @@
-from typing import Final, Optional
+from typing import Optional
 
 from sqlalchemy import String, Text
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 
 from gestaolegal.schemas.base import Base
 

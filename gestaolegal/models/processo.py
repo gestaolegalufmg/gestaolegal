@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.usuario import Usuario
 
 if TYPE_CHECKING:
@@ -10,7 +11,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class Processo:
+class Processo(BaseModel):
     id: int
     especie: str
     numero: int | None
@@ -33,13 +34,19 @@ class Processo:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(processo_schema: "ProcessoSchema") -> "Processo":
-        from gestaolegal.models.caso import Caso
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "ProcessoSchema", shallow: bool = False
+    ) -> "Processo":
+        processo_items = schema.to_dict()
 
-        processo_items = processo_schema.to_dict()
-        processo_items["caso"] = Caso.from_sqlalchemy(processo_schema.caso)
-        processo_items["criado_por"] = Usuario.from_sqlalchemy(
-            processo_schema.criado_por
-        )
+        if not shallow:
+            from gestaolegal.models.caso import Caso
+
+            processo_items["caso"] = Caso.from_sqlalchemy(schema.caso, shallow=True)
+            processo_items["criado_por"] = Usuario.from_sqlalchemy(schema.criado_por)
+        else:
+            processo_items["caso"] = None
+            processo_items["criado_por"] = None
+
         return Processo(**processo_items)

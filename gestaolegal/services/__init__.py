@@ -1,7 +1,7 @@
-
 from typing import Generic, TypeVar
 
 T = TypeVar("T")
+
 
 class PaginatedResult(Generic[T]):
     def __init__(self, items: list[T], total: int, page: int, per_page: int):

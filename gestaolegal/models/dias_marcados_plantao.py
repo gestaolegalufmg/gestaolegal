@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.usuario import Usuario
 
 if TYPE_CHECKING:
@@ -9,7 +10,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class DiasMarcadosPlantao:
+class DiasMarcadosPlantao(BaseModel):
     id: int
     data_marcada: date | None
     confirmacao: str
@@ -20,14 +21,17 @@ class DiasMarcadosPlantao:
     def __post_init__(self):
         return
 
-    @staticmethod
+    @classmethod
     def from_sqlalchemy(
-        dias_marcados_plantao_schema: "DiasMarcadosPlantaoSchema",
+        cls, schema: "DiasMarcadosPlantaoSchema", shallow: bool = False
     ) -> "DiasMarcadosPlantao":
-        dias_marcados_plantao_items = dias_marcados_plantao_schema.to_dict()
-        dias_marcados_plantao_items["usuario"] = (
-            Usuario.from_sqlalchemy(dias_marcados_plantao_schema.usuario)
-            if dias_marcados_plantao_schema.usuario
-            else None
-        )
+        dias_marcados_plantao_items = schema.to_dict()
+
+        if not shallow:
+            dias_marcados_plantao_items["usuario"] = (
+                Usuario.from_sqlalchemy(schema.usuario) if schema.usuario else None
+            )
+        else:
+            dias_marcados_plantao_items["usuario"] = None
+
         return DiasMarcadosPlantao(**dias_marcados_plantao_items)

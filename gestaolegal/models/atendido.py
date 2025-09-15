@@ -115,32 +115,36 @@ class Atendido(BaseModel):
                     "O campo 'procurou_qual_local' é obrigatório se 'procurou_outro_local' for verdadeiro"
                 )
 
-    @staticmethod
+    @classmethod
     def from_sqlalchemy(
-        atendido_schema: "AtendidoSchema", load_casos: bool = True
+        cls, schema: "AtendidoSchema", shallow: bool = False
     ) -> "Atendido":
-        atendido_items = atendido_schema.to_dict()
-
-        atendido_items["assistido"] = (
-            Assistido.from_sqlalchemy(atendido_schema.assistido)
-            if atendido_schema.assistido
-            else None
-        )
-        atendido_items["orientacoes_juridicas"] = [ OrientacaoJuridica.from_sqlalchemy(orientacao) for orientacao in atendido_schema.orientacoesJuridicas if orientacao is not None]
-
-        if load_casos and atendido_schema.casos:
-            from gestaolegal.models.caso import Caso
-
-            atendido_items["casos"] = [
-                Caso.from_sqlalchemy(caso, load_clientes=False)
-                for caso in atendido_schema.casos
-            ]
-        else:
-            atendido_items["casos"] = []
+        atendido_items = schema.to_dict()
 
         atendido_items["endereco"] = (
-            Endereco.from_sqlalchemy(atendido_schema.endereco)
-            if atendido_schema.endereco
-            else None
+            Endereco.from_sqlalchemy(schema.endereco) if schema.endereco else None
         )
+
+        if not shallow:
+            from gestaolegal.models.caso import Caso
+
+            atendido_items["assistido"] = (
+                Assistido.from_sqlalchemy(schema.assistido)
+                if schema.assistido
+                else None
+            )
+            atendido_items["orientacoes_juridicas"] = [
+                OrientacaoJuridica.from_sqlalchemy(orientacao)
+                for orientacao in schema.orientacoesJuridicas
+                if orientacao is not None
+            ]
+
+            atendido_items["casos"] = [
+                Caso.from_sqlalchemy(caso, shallow=True) for caso in schema.casos
+            ]
+        else:
+            atendido_items["assistido"] = None
+            atendido_items["orientacoes_juridicas"] = []
+            atendido_items["casos"] = []
+
         return Atendido(**atendido_items)

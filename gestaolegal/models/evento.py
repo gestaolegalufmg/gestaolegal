@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.usuario import Usuario
 
 if TYPE_CHECKING:
@@ -10,7 +11,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class Evento:
+class Evento(BaseModel):
     id: int
     id_caso: int
     caso: "Caso"
@@ -29,16 +30,23 @@ class Evento:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(evento_schema: "EventoSchema") -> "Evento":
-        from gestaolegal.models.caso import Caso
+    @classmethod
+    def from_sqlalchemy(cls, schema: "EventoSchema", shallow: bool = False) -> "Evento":
+        evento_items = schema.to_dict()
 
-        evento_items = evento_schema.to_dict()
-        evento_items["caso"] = Caso.from_sqlalchemy(evento_schema.caso)
-        evento_items["usuario_responsavel"] = (
-            Usuario.from_sqlalchemy(evento_schema.usuario_responsavel)
-            if evento_schema.usuario_responsavel
-            else None
-        )
-        evento_items["criado_por"] = Usuario.from_sqlalchemy(evento_schema.criado_por)
+        if not shallow:
+            from gestaolegal.models.caso import Caso
+
+            evento_items["caso"] = Caso.from_sqlalchemy(schema.caso, shallow=True)
+            evento_items["usuario_responsavel"] = (
+                Usuario.from_sqlalchemy(schema.usuario_responsavel)
+                if schema.usuario_responsavel
+                else None
+            )
+            evento_items["criado_por"] = Usuario.from_sqlalchemy(schema.criado_por)
+        else:
+            evento_items["caso"] = None
+            evento_items["usuario_responsavel"] = None
+            evento_items["criado_por"] = None
+
         return Evento(**evento_items)

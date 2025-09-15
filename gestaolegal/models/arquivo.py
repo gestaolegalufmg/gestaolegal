@@ -19,7 +19,9 @@ class Arquivo(BaseModel):
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(self, arquivo_schema: "ArquivoSchema") -> "Arquivo":
-        arquivo_items = arquivo_schema.to_dict()
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "ArquivoSchema", shallow: bool = False
+    ) -> "Arquivo":
+        arquivo_items = schema.to_dict()
         return Arquivo(**arquivo_items)
