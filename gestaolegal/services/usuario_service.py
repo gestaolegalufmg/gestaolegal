@@ -8,7 +8,7 @@ from itsdangerous import Serializer
 
 from gestaolegal.common.constants import UserRole
 from gestaolegal.models.usuario import Usuario
-from gestaolegal.repositories.base_repository import PageParams
+from gestaolegal.common import PageParams
 from gestaolegal.repositories.user_repository import UserRepository
 from gestaolegal.schemas.usuario import UsuarioSchema
 from gestaolegal.services.endereco_service import EnderecoService

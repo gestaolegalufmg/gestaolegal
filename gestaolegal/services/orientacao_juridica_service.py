@@ -6,7 +6,7 @@ from sqlalchemy import and_
 from gestaolegal.forms.plantao.orientacao_juridica_form import (
     OrientacaoJuridicaForm,
 )
-from gestaolegal.repositories.base_repository import PageParams
+from gestaolegal.common import PageParams
 from gestaolegal.repositories.orientacao_juridica_repository import (
     OrientacaoJuridicaRepository,
 )

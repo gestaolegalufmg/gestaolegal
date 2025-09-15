@@ -13,7 +13,7 @@ from gestaolegal.models.caso import Caso
 from gestaolegal.models.evento import Evento
 from gestaolegal.models.lembrete import Lembrete
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
-from gestaolegal.repositories.base_repository import PageParams
+from gestaolegal.common import PageParams
 from gestaolegal.repositories.caso_repository import CasoRepository
 from gestaolegal.repositories.roteiro_repository import RoteiroRepository
 from gestaolegal.repositories.user_repository import UserRepository

@@ -8,7 +8,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 
 from gestaolegal.common.constants import tipo_evento
 from gestaolegal.models.evento import Evento
-from gestaolegal.repositories.base_repository import PageParams
+from gestaolegal.common import PageParams
 from gestaolegal.repositories.evento_repository import EventoRepository
 from gestaolegal.schemas.arquivos_evento import ArquivosEventoSchema
 from gestaolegal.services.arquivo_service import ArquivoService

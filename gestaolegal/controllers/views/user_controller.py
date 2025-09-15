@@ -19,7 +19,7 @@ from gestaolegal.forms.usuario import (
     EditarSenhaForm,
     EditarUsuarioForm,
 )
-from gestaolegal.repositories.base_repository import PageParams
+from gestaolegal.common import PageParams
 from gestaolegal.services.usuario_service import UsuarioService
 from gestaolegal.utils.decorators import login_required
 
