@@ -42,21 +42,6 @@ class RequiredIf:
             raise ValidationError(message)
 
 
-class RequiredIfInputRequired(RequiredIf):
-    """
-    Similar to RequiredIf but for numeric fields that need InputRequired behavior.
-    """
-
-    def __call__(self, form, field):
-        other_field = form._fields.get(self.fieldname)
-        if other_field is None:
-            raise Exception(f'No field named "{self.fieldname}" in form')
-
-        if other_field.data == self.value and field.data is None:
-            message = self.message or "This field is required."
-            raise ValidationError(message)
-
-
 class MyFloatField(FloatField):
     def process_formdata(self, valuelist):
         if valuelist:

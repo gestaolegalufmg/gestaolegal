@@ -8,8 +8,8 @@
     <div class="card-body">
         <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
             {{form.hidden_tag()}}
-            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('casos.api_casos_buscar_usuario', _external=True)}}">
-            <input type="hidden" id="apiCasosBuscarCasos" value="{{url_for('casos.api_casos_buscar_casos', _external=True)}}">
+            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('api.casos_buscar_usuario', _external=True)}}">
+            <input type="hidden" id="apiCasosBuscarCasos" value="{{url_for('api.casos_buscar_casos', _external=True)}}">
 
             
             <div class="form-group row">

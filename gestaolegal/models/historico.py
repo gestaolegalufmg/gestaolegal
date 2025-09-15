@@ -2,9 +2,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.caso import Caso
+from gestaolegal.models.usuario import Usuario
+
 if TYPE_CHECKING:
-    from gestaolegal.models.caso import Caso
-    from gestaolegal.models.usuario import Usuario
     from gestaolegal.schemas.historico import HistoricoSchema
 
 
@@ -21,12 +22,16 @@ class Historico:
         return
 
     @staticmethod
-    def from_sqlalchemy(historico: "HistoricoSchema") -> "Historico":
-        return Historico(
-            id=historico.id,
-            id_usuario=historico.id_usuario,
-            usuario=historico.usuario,
-            id_caso=historico.id_caso,
-            caso=historico.caso,
-            data=historico.data,
+    def from_sqlalchemy(historico_schema: "HistoricoSchema") -> "Historico":
+        historico_items = historico_schema.to_dict()
+        historico_items["usuario"] = (
+            Usuario.from_sqlalchemy(historico_schema.usuario)
+            if historico_schema.usuario
+            else None
         )
+        historico_items["caso"] = (
+            Caso.from_sqlalchemy(historico_schema.caso)
+            if historico_schema.caso
+            else None
+        )
+        return Historico(**historico_items)

@@ -1,7 +1,9 @@
+from typing import Any
+
+from flask_wtf import FlaskForm
 from wtforms import DateField, SelectField, StringField, TextAreaField
 from wtforms.validators import (
     AnyOf,
-    DataRequired,
     Email,
     InputRequired,
     Length,
@@ -15,34 +17,38 @@ from gestaolegal.common.constants import (
 )
 from gestaolegal.forms.plantao.base_form_mixin import BaseFormMixin
 from gestaolegal.forms.usuario import (
-    EnderecoForm,
-    MSG_EscolhaUmaData,
+    EnderecoFieldsMixin,
     MSG_NaoPodeEstarEmBranco,
-    MSG_SelecioneUmaOpcaoLista,
 )
 from gestaolegal.utils.forms import RequiredIf
 
 
-class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
+class CadastroAtendidoForm(EnderecoFieldsMixin, BaseFormMixin, FlaskForm):
     nome = StringField(
         "Nome",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O nome")),
+            InputRequired(),
             Length(
                 max=FIELD_LIMITS["nome"],
                 message=f"O nome não pode conter mais de {FIELD_LIMITS['nome']} caracteres!",
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["nome"]},
     )
 
     email = StringField(
         "Endereço de e-mail",
         validators=[Optional(), Email("Formato de email inválido!")],
+        render_kw={
+            "maxlength": FIELD_LIMITS.get("email", 120),
+            "inputmode": "email",
+            "type": "email",
+        },
     )
 
     data_nascimento = DateField(
         "Data de nascimento",
-        validators=[DataRequired(MSG_EscolhaUmaData.format("de nascimento"))],
+        validators=[InputRequired()],
     )
 
     cpf = StringField(
@@ -54,6 +60,7 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
                 message=f"Por favor, use no máximo {FIELD_LIMITS['cpf']} caracteres para o CPF.",
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["cpf"]},
     )
 
     cnpj = StringField(
@@ -65,6 +72,7 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
                 message=f"Por favor, use no máximo {FIELD_LIMITS['cnpj']} caracteres para o CNPJ.",
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["cnpj"]},
     )
 
     telefone = StringField(
@@ -76,17 +84,19 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
                 message=f"Por favor, use no máximo {FIELD_LIMITS['telefone']} caracteres para o telefone fixo.",
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["telefone"], "inputmode": "tel"},
     )
 
     celular = StringField(
         "Telefone celular",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O telefone celular")),
+            InputRequired(),
             Length(
                 max=FIELD_LIMITS["celular"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['celular']} caracteres para o telefone celular.",
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["celular"], "inputmode": "tel"},
     )
 
     estado_civil = SelectField(
@@ -103,7 +113,7 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
             (estado_civilUsuario["UNIAO"][0], estado_civilUsuario["UNIAO"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format("de estado civil")),
+            InputRequired(),
             AnyOf(
                 [estado_civilUsuario[key][0] for key in estado_civilUsuario],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -129,9 +139,7 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
             (como_conheceu_daj["OUTROS"][0], como_conheceu_daj["OUTROS"][1]),
         ],
         validators=[
-            DataRequired(
-                MSG_SelecioneUmaOpcaoLista.format('de "Como conheceu a DAJ?"')
-            ),
+            InputRequired(),
             AnyOf(
                 [como_conheceu_daj[key][0] for key in como_conheceu_daj],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -152,18 +160,13 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
                 message=f'Por favor, use no máximo {FIELD_LIMITS["indicacaoOrgao"]} caracteres para o campo "Qual foi o órgão?".',
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["indicacaoOrgao"]},
     )
 
     procurou_outro_local = SelectField(
         "Você procurou outro local para resolver a demanda antes de vir à DAJ?",
         choices=[(True, "Sim"), (False, "Não")],
-        validators=[
-            InputRequired(
-                MSG_SelecioneUmaOpcaoLista.format(
-                    'de "Você procurou outro local para resolver a demanda antes de vir à DAJ?"'
-                )
-            )
-        ],
+        validators=[InputRequired()],
         coerce=bool,
     )
 
@@ -180,6 +183,7 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
                 message=f'Por favor, use no máximo {FIELD_LIMITS["procurouOutroLocal"]} caracteres para o campo "Qual local?".',
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["procurouOutroLocal"]},
     )
 
     obs_atendido = TextAreaField(
@@ -191,31 +195,20 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
                 message=f"Por favor, use no máximo {FIELD_LIMITS['obs']} caracteres para as observações.",
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["obs"]},
     )
 
     pj_constituida = SelectField(
         "Existe Pessoa Jurídica constituída?",
         choices=[(True, "Sim"), (False, "Não")],
-        validators=[
-            InputRequired(
-                MSG_SelecioneUmaOpcaoLista.format(
-                    'de "Existe Pessoa Jurídica constituída?"'
-                )
-            )
-        ],
+        validators=[InputRequired()],
         coerce=bool,
     )
 
     repres_legal = SelectField(
         "O atendido é o representante legal?",
         choices=[(True, "Sim"), (False, "Não")],
-        validators=[
-            InputRequired(
-                MSG_SelecioneUmaOpcaoLista.format(
-                    'de "O atendido é o representante legal?"'
-                )
-            )
-        ],
+        validators=[InputRequired()],
         default=True,
         coerce=bool,
     )
@@ -237,6 +230,7 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
                 message=f"O nome não pode conter mais de {FIELD_LIMITS['nome']} caracteres!",
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["nome"]},
     )
 
     cpf_repres_legal = StringField(
@@ -248,6 +242,7 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
                 message=f"Por favor, use no máximo {FIELD_LIMITS['cpf']} caracteres para o CPF.",
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["cpf"]},
     )
 
     contato_repres_legal = StringField(
@@ -259,6 +254,7 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
                 message=f"Por favor, use no máximo {FIELD_LIMITS['telefone']} caracteres para o telefone.",
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["telefone"], "inputmode": "tel"},
     )
 
     rg_repres_legal = StringField(
@@ -270,6 +266,7 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
                 message=f"Por favor, use no máximo {FIELD_LIMITS['rg']} caracteres para o RG.",
             ),
         ],
+        render_kw={"maxlength": FIELD_LIMITS["rg"]},
     )
 
     nascimento_repres_legal = DateField(
@@ -284,60 +281,20 @@ class CadastroAtendidoForm(EnderecoForm, BaseFormMixin):
         coerce=bool,
     )
 
-    def populate_from_atendido(self, atendido) -> None:
-        field_mapping = {
-            "obs_atendido": "obs",
-        }
+    def _postprocess_data(self) -> dict[str, Any]:
+        result = dict(self.data)
+        boolean_fields = [
+            "procurou_outro_local",
+            "pj_constituida",
+            "repres_legal",
+            "pretende_constituir_pj",
+        ]
 
-        self.populate_from_entity(atendido, field_mapping)
+        for key in boolean_fields:
+            if key in result:
+                result[key] = "1" if bool(result[key]) else "0"
 
-        if hasattr(atendido, "procurou_outro_local"):
-            self.procurou_outro_local.data = (
-                False if atendido.procurou_outro_local == "0" else True
-            )
+        if "obs_atendido" in result:
+            result["obs"] = result.pop("obs_atendido")
 
-        if hasattr(atendido, "pretende_constituir_pj"):
-            self.pretende_constituir_pj.data = (
-                False if atendido.pretende_constituir_pj == "0" else True
-            )
-
-        if hasattr(atendido, "endereco") and atendido.endereco:
-            self.populate_from_entity(atendido.endereco)
-
-    @staticmethod
-    def to_dict(form_instance):
-        exclude_fields = {
-            "logradouro",
-            "numero",
-            "complemento",
-            "bairro",
-            "cep",
-            "cidade",
-            "estado",
-            "id_cidade",
-            "id_estado",
-            "submit",
-            "csrf_token",
-        }
-
-        atendido_data = {}
-        for field_name, field in form_instance._fields.items():
-            if field_name not in exclude_fields and hasattr(field, "data"):
-                value = field.data
-
-                # Convert boolean fields to string format expected by database
-                if field_name in [
-                    "procurou_outro_local",
-                    "pj_constituida",
-                    "repres_legal",
-                    "pretende_constituir_pj",
-                ]:
-                    value = "1" if value else "0"
-
-                # Map obs_atendido to obs
-                if field_name == "obs_atendido":
-                    field_name = "obs"
-
-                atendido_data[field_name] = value
-
-        return atendido_data
+        return result

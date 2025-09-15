@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class ArquivoCasoSchema(Base):
-    __tablename__: Final = "arquivosCaso"
+    __tablename__ = "arquivosCaso"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     link_arquivo: Mapped[str | None] = mapped_column(

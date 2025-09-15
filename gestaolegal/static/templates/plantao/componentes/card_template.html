@@ -1,7 +1,7 @@
 {% macro card(header, body, footer=None, card_class='') %}
   <div class="component-card {{ card_class }}">
     <div class="card-header">
-      <h4>{{ header | safe }}</h4>
+      {{ header | safe }}
     </div>
     <div class="card-body">
       <div class="card-content">

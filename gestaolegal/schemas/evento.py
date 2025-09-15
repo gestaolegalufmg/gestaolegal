@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class EventoSchema(Base):
-    __tablename__: Final = "eventos"
+    __tablename__ = "eventos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     id_caso: Mapped[int] = mapped_column(

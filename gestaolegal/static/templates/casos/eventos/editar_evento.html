@@ -9,7 +9,7 @@
     <div class="card-body">
         <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
             {{form.hidden_tag()}}
-            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('casos.api_casos_buscar_usuario', _external=True)}}">
+            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('api.casos_buscar_usuario', _external=True)}}">
             <div class="form-group row">
                 {{formutils.form_label(form.data_evento, class_='col-12 col-lg-6 offset-lg-1 col-form-label')}}
                  <div class="col-12 col-lg-6 offset-lg-1">
@@ -111,24 +111,25 @@
 
 {% block scripts %}
     
-    <script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/native_select.js')}}"></script>
     <script>
     
-    $(document).ready(function(){
+    document.addEventListener('DOMContentLoaded', function(){
     
-    $('#usuario-js').select2({
+    // Initialize native select for usuario
+    const usuarioSelect = new NativeSelect(document.getElementById('usuario-js'), {
         ajax: {
-            url: $('#apiCasosBuscarUsuario').val(),
-            dataType: 'json',
+            url: document.getElementById('apiCasosBuscarUsuario').value,
+            delay: 500,
+            params: {}
         },
-        delay: 500,
         placeholder: '{{usuario}}',
-        width: '100%',
-        allowClear: true 
+        allowClear: true,
+        width: '100%'
     })
 
-    $('#usuario-js').on('change', function(){
-        $('#usuario').val($('#usuario-js').val());
+    document.getElementById('usuario-js').addEventListener('change', function(){
+        document.getElementById('usuario').value = document.getElementById('usuario-js').value;
     });
 
 })

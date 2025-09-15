@@ -1,10 +1,12 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from gestaolegal.models.endereco import Endereco
+from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
 
 if TYPE_CHECKING:
-    from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
-    from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
-    from gestaolegal.schemas.endereco import EnderecoSchema
+    pass
 
 
 @dataclass(frozen=True)
@@ -14,7 +16,7 @@ class AssistenciaJudiciaria:
     regiao: str
     areas_atendidas: str
     endereco_id: int | None
-    endereco: "EnderecoSchema | None"
+    endereco: "Endereco | None"
     telefone: str
     email: str
     status: int
@@ -23,19 +25,33 @@ class AssistenciaJudiciaria:
     def __post_init__(self):
         return
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "nome": self.nome,
+            "regiao": self.regiao,
+            "areas_atendidas": self.areas_atendidas,
+            "endereco_id": self.endereco_id,
+            "endereco": self.endereco,
+            "telefone": self.telefone,
+            "email": self.email,
+            "status": self.status,
+            "orientacoes_juridicas": self.orientacoes_juridicas,
+        }
+
     @staticmethod
     def from_sqlalchemy(
-        assistencia_judiciaria: "AssistenciaJudiciariaSchema",
+        assistencia_judiciaria_schema: "AssistenciaJudiciariaSchema",
     ) -> "AssistenciaJudiciaria":
-        return AssistenciaJudiciaria(
-            id=assistencia_judiciaria.id,
-            nome=assistencia_judiciaria.nome,
-            regiao=assistencia_judiciaria.regiao,
-            areas_atendidas=assistencia_judiciaria.areas_atendidas,
-            endereco_id=assistencia_judiciaria.endereco_id,
-            endereco=assistencia_judiciaria.endereco,
-            telefone=assistencia_judiciaria.telefone,
-            email=assistencia_judiciaria.email,
-            status=assistencia_judiciaria.status,
-            orientacoes_juridicas=assistencia_judiciaria.orientacoesJuridicas,
+        assistencia_judiciaria_items = assistencia_judiciaria_schema.to_dict()
+        assistencia_judiciaria_items["endereco"] = (
+            Endereco.from_sqlalchemy(assistencia_judiciaria_schema.endereco)
+            if assistencia_judiciaria_schema.endereco
+            else None
         )
+        assistencia_judiciaria_items["orientacoes_juridicas"] = [
+            OrientacaoJuridica.from_sqlalchemy(
+                orientacao
+            ) for orientacao in assistencia_judiciaria_schema.orientacoesJuridicas if orientacao is not None]
+
+        return AssistenciaJudiciaria(**assistencia_judiciaria_items)

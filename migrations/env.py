@@ -6,6 +6,7 @@ import sys
 from logging.config import fileConfig
 
 from alembic import context
+from flask import current_app
 from sqlalchemy import engine_from_config, pool
 
 # Add the parent directory to the Python path
@@ -21,12 +22,13 @@ fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
 
 # Import your models here
-from gestaolegal import db
 from gestaolegal.models import *
+from gestaolegal.database import get_db
+from gestaolegal.schemas.base import Base
 
 # Get the database URL from your Flask app config
 config.set_main_option("sqlalchemy.url", current_app.config["SQLALCHEMY_DATABASE_URI"])
-target_metadata = db.metadata
+target_metadata = Base.metadata
 
 
 def run_migrations_offline():

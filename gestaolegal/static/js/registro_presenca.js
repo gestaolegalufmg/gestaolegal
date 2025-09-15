@@ -1,44 +1,31 @@
-$("#registraPresenca").click(function(){
-    const hora_registrada = $("#hora_registrada").val()
-    const status_registro = $("#status_registro")
+document.getElementById('registraPresenca').addEventListener('click', function(){
+    const hora_registrada = document.getElementById('hora_registrada').value;
+    const status_registro = document.getElementById('status_registro');
 
-    const csrftoken = $('meta[name=csrf-token]').attr('content')
+    const csrftoken = document.querySelector('meta[name=csrf-token]').getAttribute('content');
 
-    $.ajaxSetup({
-        beforeSend: function(xhr, settings) {
-            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken)
-            }
-        }
-    });
-
-    $.ajax({
-        type:'post',
-        url: $("#hdnAjaxRegistraPresenca").val(),
-        contentType: 'application/json;charset=UTF-8',
-        dataType: 'json',
-        data: JSON.stringify({
+    fetch(document.getElementById('hdnAjaxRegistraPresenca').value, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({
             hora_registrada: hora_registrada
-        }),
-        success: (result) => {
-            status_registro.text(result.status)
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        status_registro.textContent = result.status;
 
-            switch(result['tipo_mensagem']){
-                case 'success':
-                    iziToast.success({
-                        title: 'Sucesso!',
-                        message: result.mensagem,
-                        position: 'topCenter'
-                    });
-                    break;
-                case 'warning':
-                    iziToast.warning({
-                        title: 'Atenção:',
-                        message: result.mensagem,
-                        position: 'topCenter'
-                    });
-                    break;
-            }
+        switch(result['tipo_mensagem']){
+            case 'success':
+                showNotification('Sucesso!', result.mensagem, 'success');
+                break;
+            case 'warning':
+                showNotification('Atenção:', result.mensagem, 'warning');
+                break;
         }
-    });
-})
+    })
+    .catch(error => console.error('Error:', error));
+});

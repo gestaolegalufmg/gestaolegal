@@ -2,10 +2,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.usuario import Usuario
+
 if TYPE_CHECKING:
     from gestaolegal.models.atendido import Atendido
-    from gestaolegal.models.usuario import Usuario
-    from gestaolegal.schemas.caso import Caso as CasoSchema
+    from gestaolegal.schemas.caso import CasoSchema
 
 
 @dataclass(frozen=True)
@@ -43,40 +44,50 @@ class Caso:
         return
 
     @staticmethod
-    def from_sqlalchemy(caso: "CasoSchema") -> "Caso":
-        return Caso(
-            id=caso.id,
-            id_usuario_responsavel=caso.id_usuario_responsavel,
-            usuario_responsavel=caso.usuario_responsavel,
-            area_direito=caso.area_direito,
-            sub_area=caso.sub_area,
-            clientes=caso.clientes,
-            id_orientador=caso.id_orientador,
-            orientador=caso.orientador,
-            id_estagiario=caso.id_estagiario,
-            estagiario=caso.estagiario,
-            id_colaborador=caso.id_colaborador,
-            colaborador=caso.colaborador,
-            data_criacao=caso.data_criacao,
-            id_criado_por=caso.id_criado_por,
-            criado_por=caso.criado_por,
-            data_modificacao=caso.data_modificacao,
-            id_modificado_por=caso.id_modificado_por,
-            modificado_por=caso.modificado_por,
-            situacao_deferimento=caso.situacao_deferimento,
-            justif_indeferimento=caso.justif_indeferimento,
-            status=caso.status,
-            descricao=caso.descricao,
-            numero_ultimo_processo=caso.numero_ultimo_processo,
+    def from_sqlalchemy(
+        caso_schema: "CasoSchema", load_clientes: bool = True
+    ) -> "Caso":
+        caso_items = caso_schema.to_dict()
+
+        if load_clientes and caso_schema.clientes:
+            from gestaolegal.models.atendido import Atendido
+
+            caso_items["clientes"] = [
+                Atendido.from_sqlalchemy(cliente, load_casos=False)
+                for cliente in caso_schema.clientes
+            ]
+        else:
+            caso_items["clientes"] = []
+
+        caso_items["usuario_responsavel"] = (
+            Usuario.from_sqlalchemy(caso_schema.usuario_responsavel)
+            if caso_schema.usuario_responsavel
+            else None
+        )
+        caso_items["orientador"] = (
+            Usuario.from_sqlalchemy(caso_schema.orientador)
+            if caso_schema.orientador
+            else None
+        )
+        caso_items["estagiario"] = (
+            Usuario.from_sqlalchemy(caso_schema.estagiario)
+            if caso_schema.estagiario
+            else None
+        )
+        caso_items["colaborador"] = (
+            Usuario.from_sqlalchemy(caso_schema.colaborador)
+            if caso_schema.colaborador
+            else None
+        )
+        caso_items["criado_por"] = (
+            Usuario.from_sqlalchemy(caso_schema.criado_por)
+            if caso_schema.criado_por
+            else None
+        )
+        caso_items["modificado_por"] = (
+            Usuario.from_sqlalchemy(caso_schema.modificado_por)
+            if caso_schema.modificado_por
+            else None
         )
 
-    def set_sub_areas(
-        self, area_direito: str, sub_area: str, sub_area_admin: str
-    ) -> None:
-        """Set sub areas based on the area of law"""
-        if area_direito == "civel":
-            self.sub_area = sub_area
-        elif area_direito == "administrativo":
-            self.sub_area = sub_area_admin
-        else:
-            self.sub_area = None
+        return Caso(**caso_items)

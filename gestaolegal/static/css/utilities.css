@@ -4,6 +4,30 @@
     flex-wrap: wrap;
 }
 
+.flex {
+    display: flex;
+}
+
+.gap-0 {
+    gap: 0;
+}
+
+.gap-1 {
+    gap: 0.25rem;
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+.gap-3 {
+    gap: 1rem;
+}
+
+.gap-4 {
+    gap: 1.5rem;
+}
+
 .col-12 {
     flex: 0 0 100%;
     max-width: 100%;
@@ -84,6 +108,24 @@
     padding-top: 1rem;
 }
 
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.inactive {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
 /* Button utilities */
 .btn {
     display: flex;
@@ -102,24 +144,25 @@
     transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
+.btn:hover {
+    filter: brightness(1.1);
+}
+
+a.btn:hover {
+    text-decoration: none;
+    color: var(--color-white);
+}
+
 .btn-primary {
     color: var(--color-white);
     background-color: var(--color-primary);
     border-color: var(--color-primary);
 }
 
-.btn-primary:hover {
-    filter: brightness(1.1);
-}
-
 .btn-danger {
     color: var(--color-white);
     background-color: var(--color-danger);
     border-color: var(--color-danger);
-}
-
-.btn-danger:hover {
-    filter: brightness(1.1);
 }
 
 .btn-secondary {
@@ -159,6 +202,11 @@
 .btn-outline-white:hover .icon {
     color: var(--color-primary);
     background-color: var(--color-primary);
+}
+.btn-warning {
+  background-color: var(--color-warning);
+  color: var(--color-white);
+  border-color: var(--color-warning);
 }
 
 .btn-lg {

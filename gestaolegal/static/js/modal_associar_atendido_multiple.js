@@ -1,4 +1,4 @@
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
     let searchTimeout;
     let selectedAtendidos = [];
     
@@ -9,9 +9,9 @@ $(document).ready(function() {
         }
     });
     
-    $('#buscaAtendidoMultiple').on('input', function() {
+    document.getElementById('buscaAtendidoMultiple').addEventListener('input', function() {
         clearTimeout(searchTimeout);
-        const termo = $(this).val();
+        const termo = this.value;
         
         searchTimeout = setTimeout(function() {
             carregarAtendidos(termo);
@@ -19,124 +19,163 @@ $(document).ready(function() {
     });
     
     function carregarAtendidos(termo) {
-        $('#loadingAtendidosMultiple').show();
-        $('#tbodyAtendidosMultiple').empty();
+        document.getElementById('loadingAtendidosMultiple').style.display = 'block';
+        document.getElementById('tbodyAtendidosMultiple').innerHTML = '';
         
-        $.ajax({
-            url: '/orientacao_juridica/buscar_atendidos_ajax',
+        const params = new URLSearchParams({
+            termo: termo,
+            orientacao_id: 0
+        });
+
+        fetch(`/orientacao_juridica/buscar_atendidos?${params}`, {
             method: 'GET',
-            data: {
-                termo: termo,
-                orientacao_id: 0,
-                template: 'multiple'
-            },
-            success: function(data) {
-                $('#tbodyAtendidosMultiple').html(data);
-                updateSelectedCount();
-            },
-            error: function(xhr, status, error) {
-                $('#tbodyAtendidosMultiple').html('<tr><td colspan="4" class="text-center text-danger">Erro ao carregar atendidos</td></tr>');
-            },
-            complete: function() {
-                $('#loadingAtendidosMultiple').hide();
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRFToken': getCSRFToken()
             }
+        })
+        .then(response => response.json())
+        .then(payload => {
+            const results = (payload && payload.data && payload.data.results) || [];
+            const rows = results.map(r => `
+                <tr>
+                    <td><input type="checkbox" data-atendido-id="${r.id}" /></td>
+                    <td>${r.nome}</td>
+                    <td>${r.cpf || ''}</td>
+                    <td></td>
+                </tr>
+            `).join('');
+            document.getElementById('tbodyAtendidosMultiple').innerHTML = rows || '<tr><td colspan="4" class="text-center">Nenhum atendido encontrado</td></tr>';
+            updateSelectedCount();
+        })
+        .catch(error => {
+            document.getElementById('tbodyAtendidosMultiple').innerHTML = '<tr><td colspan="4" class="text-center text-danger">Erro ao carregar atendidos</td></tr>';
+        })
+        .finally(() => {
+            document.getElementById('loadingAtendidosMultiple').style.display = 'none';
         });
     }
     
-    $(document).on('change', '#tbodyAtendidosMultiple input[type="checkbox"]', function() {
-        updateSelectedCount();
-    });
-    
-    $(document).on('change', '#checkallMultiple', function() {
-        const isChecked = $(this).is(':checked');
-        $('#tbodyAtendidosMultiple input[type="checkbox"]').prop('checked', isChecked);
-        updateSelectedCount();
+    document.addEventListener('change', function(event) {
+        if (event.target.matches('#tbodyAtendidosMultiple input[type="checkbox"]')) {
+            updateSelectedCount();
+        }
+        
+        if (event.target.matches('#checkallMultiple')) {
+            const isChecked = event.target.checked;
+            const checkboxes = document.querySelectorAll('#tbodyAtendidosMultiple input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+            });
+            updateSelectedCount();
+        }
     });
     
     function updateSelectedCount() {
-        const checkedCount = $('#tbodyAtendidosMultiple input[type="checkbox"]:checked').length;
-        const totalCount = $('#tbodyAtendidosMultiple input[type="checkbox"]').length;
+        const checkedBoxes = document.querySelectorAll('#tbodyAtendidosMultiple input[type="checkbox"]:checked');
+        const allBoxes = document.querySelectorAll('#tbodyAtendidosMultiple input[type="checkbox"]');
+        const checkedCount = checkedBoxes.length;
+        const totalCount = allBoxes.length;
+        const checkAllBox = document.getElementById('checkallMultiple');
+        const button = document.getElementById('associarSelecionados');
         
         if (checkedCount === 0) {
-            $('#checkallMultiple').prop('indeterminate', false).prop('checked', false);
+            checkAllBox.indeterminate = false;
+            checkAllBox.checked = false;
         } else if (checkedCount === totalCount) {
-            $('#checkallMultiple').prop('indeterminate', false).prop('checked', true);
+            checkAllBox.indeterminate = false;
+            checkAllBox.checked = true;
         } else {
-            $('#checkallMultiple').prop('indeterminate', true);
+            checkAllBox.indeterminate = true;
         }
         
-        const button = $('#associarSelecionados');
         if (checkedCount > 0) {
-            button.prop('disabled', false).text(`Associar Selecionados (${checkedCount})`);
+            button.disabled = false;
+            button.textContent = `Associar Selecionados (${checkedCount})`;
         } else {
-            button.prop('disabled', true).text('Associar Selecionados');
+            button.disabled = true;
+            button.textContent = 'Associar Selecionados';
         }
     }
     
-    $(document).on('click', '#associarSelecionados', function() {
-        const checkedBoxes = $('#tbodyAtendidosMultiple input[type="checkbox"]:checked');
-        selectedAtendidos = [];
-        
-        checkedBoxes.each(function() {
-            const row = $(this).closest('tr');
-            const atendidoId = $(this).data('atendido-id');
-            const atendidoNome = row.find('td:eq(1)').text().trim();
-            const atendidoCpf = row.find('td:eq(2)').text().trim();
-            const atendidoCelular = row.find('td:eq(3)').text().trim();
+    document.addEventListener('click', function(event) {
+        if (event.target.id === 'associarSelecionados') {
+            const checkedBoxes = document.querySelectorAll('#tbodyAtendidosMultiple input[type="checkbox"]:checked');
+            selectedAtendidos = [];
             
-            selectedAtendidos.push({
-                id: atendidoId,
-                nome: atendidoNome,
-                cpf: atendidoCpf,
-                celular: atendidoCelular
+            checkedBoxes.forEach(checkbox => {
+                const row = checkbox.closest('tr');
+                const cells = row.querySelectorAll('td');
+                const atendidoId = checkbox.dataset.atendidoId;
+                const atendidoNome = cells[1].textContent.trim();
+                const atendidoCpf = cells[2].textContent.trim();
+                const atendidoCelular = cells[3].textContent.trim();
+                
+                selectedAtendidos.push({
+                    id: atendidoId,
+                    nome: atendidoNome,
+                    cpf: atendidoCpf,
+                    celular: atendidoCelular
+                });
             });
-        });
-        
-        if (selectedAtendidos.length > 0) {
-            updateFormWithSelectedAtendidos();
-            ModalManager.close('modalAssociarAtendidoMultiple');
+            
+            if (selectedAtendidos.length > 0) {
+                updateFormWithSelectedAtendidos();
+                ModalManager.close('modalAssociarAtendidoMultiple');
+            }
         }
     });
     
     function updateFormWithSelectedAtendidos() {
-        $('#lista-atendidos').remove();
+        const existingList = document.getElementById('lista-atendidos');
+        if (existingList) {
+            existingList.remove();
+        }
         
-        const container = $('#atendidos > div > p');
-        container.after(`
-            <div id="lista-atendidos">
-                <table class="table table-striped">
-                    <tbody></tbody>
-                </table>
-            </div>
-        `);
+        const container = document.querySelector('#atendidos > div > p');
+        const newDiv = document.createElement('div');
+        newDiv.id = 'lista-atendidos';
+        newDiv.innerHTML = `
+            <table class="table table-striped">
+                <tbody></tbody>
+            </table>
+        `;
+        container.parentNode.insertBefore(newDiv, container.nextSibling);
         
-        const tableBody = $('#lista-atendidos .table tbody');
+        const tableBody = newDiv.querySelector('tbody');
         selectedAtendidos.forEach(atendido => {
-            tableBody.append(`
-                <tr>
-                    <td>${atendido.nome}</td>
-                    <td>${atendido.cpf}</td>
-                    <td>${atendido.celular}</td>
-                    <td>
-                        <a href="/atendido/perfil_assistido/${atendido.id}" target="_blank" class="btn btn-sm btn-info">visualizar</a>
-                    </td>
-                </tr>
-            `);
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${atendido.nome}</td>
+                <td>${atendido.cpf}</td>
+                <td>${atendido.celular}</td>
+                <td>
+                    <a href="/atendido/${atendido.id}" target="_blank" class="btn btn-sm btn-info">visualizar</a>
+                </td>
+            `;
+            tableBody.appendChild(row);
         });
         
         const atendidosData = { id: selectedAtendidos.map(a => a.id) };
-        $('#form').prepend(`
-            <input id="listaAtendidos" type="hidden" name="listaAtendidos" value='${JSON.stringify(atendidosData)}' />
-        `);
+        const hiddenInput = document.createElement('input');
+        hiddenInput.id = 'listaAtendidos';
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'listaAtendidos';
+        hiddenInput.value = JSON.stringify(atendidosData);
+        document.getElementById('form').insertBefore(hiddenInput, document.getElementById('form').firstChild);
     }
     
     // Listen for modal close events
     document.addEventListener('modal:close', function(event) {
         if (event.detail.modalId === 'modalAssociarAtendidoMultiple') {
-            $('#buscaAtendidoMultiple').val('');
-            $('#tbodyAtendidosMultiple').empty();
-            $('#checkallMultiple').prop('checked', false).prop('indeterminate', false);
-            $('#associarSelecionados').prop('disabled', true).text('Associar Selecionados');
+            document.getElementById('buscaAtendidoMultiple').value = '';
+            document.getElementById('tbodyAtendidosMultiple').innerHTML = '';
+            const checkAllBox = document.getElementById('checkallMultiple');
+            checkAllBox.checked = false;
+            checkAllBox.indeterminate = false;
+            const button = document.getElementById('associarSelecionados');
+            button.disabled = true;
+            button.textContent = 'Associar Selecionados';
         }
     });
 }); 

@@ -7,7 +7,7 @@ from gestaolegal.schemas.base import Base
 
 
 class RoteiroSchema(Base):
-    __tablename__: Final = "documentos_roteiro"
+    __tablename__ = "documentos_roteiro"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     area_direito: Mapped[str] = mapped_column(

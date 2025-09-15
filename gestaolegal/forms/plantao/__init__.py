@@ -1,3 +1,5 @@
+from typing import Any
+
 from flask_wtf import FlaskForm
 from wtforms import (
     DateField,
@@ -6,12 +8,11 @@ from wtforms import (
     TimeField,
 )
 from wtforms.validators import (
-    DataRequired,
+    InputRequired,
 )
 
-#####################################################
-##################### CONSTANTS ####################
-#####################################################
+from .base_form_mixin import BaseFormMixin
+
 
 orientacao_AdminOuCivil = {
     "ADMINISTRADOR": ("adm", "Administrador"),
@@ -31,19 +32,13 @@ MSG_EscolhaUmaData = "Por favor, escolha uma data {}"
 #####################################################
 
 
-class AbrirPlantaoForm(FlaskForm):
-    data_abertura = DateField(
-        "Data de abertura",
-        validators=[DataRequired(MSG_EscolhaUmaData.format("de abertura"))],
-    )
+class AbrirPlantaoForm(BaseFormMixin, FlaskForm):
+    data_abertura = DateField("Data de abertura", validators=[InputRequired()])
 
-    hora_abertura = TimeField(
-        "Horário de Abertura",
-        validators=[DataRequired("Por favor, escolha um horário de abertura.")],
-    )
+    hora_abertura = TimeField("Horário de Abertura", validators=[InputRequired()])
 
 
-class SelecionarDuracaoPlantaoForm(FlaskForm):
+class SelecionarDuracaoPlantaoForm(BaseFormMixin, FlaskForm):
     hdnDiasEscolhidos = HiddenField("Dias escolhidos")
     hdnDataAbertura = HiddenField("Data de abertura")
     hdnDataFechamento = HiddenField("Data de fechamento")
@@ -52,52 +47,13 @@ class SelecionarDuracaoPlantaoForm(FlaskForm):
     submit = SubmitField("Confirmar")
 
 
-class FecharPlantaoForm(FlaskForm):
+class FecharPlantaoForm(BaseFormMixin, FlaskForm):
     data_fechamento = DateField(
         "Data de fechamento",
-        validators=[DataRequired(MSG_EscolhaUmaData.format("de fechamento"))],
+        validators=[InputRequired()],
     )
 
     hora_fechamento = TimeField(
         "Horário de fechamento",
-        validators=[DataRequired("Por favor, escolha um horário de fechamento.")],
+        validators=[InputRequired()],
     )
-
-
-#####################################################
-################ UTILITY FUNCTIONS #################
-#####################################################
-
-
-def convert_boolean_fields(form_data):
-    """
-    Utility function to convert string boolean values to actual booleans.
-    Use this in your view functions to handle the boolean field conversions.
-
-    Example usage:
-        if form.validate_on_submit():
-            data = convert_boolean_fields(form.data)
-            # Now use 'data' instead of 'form.data'
-    """
-    boolean_fields = [
-        "encaminhar_outras_aj",
-        "procurou_outro_local",
-        "pj_constituida",
-        "repres_legal",
-        "pretende_constituir_pj",
-        "possui_outros_imoveis",
-        "possui_veiculos",
-        "sede_bh",
-        "negocio_nascente",
-    ]
-
-    converted_data = form_data.copy()
-
-    for field in boolean_fields:
-        if field in converted_data:
-            if converted_data[field] == "True":
-                converted_data[field] = True
-            elif converted_data[field] == "False":
-                converted_data[field] = False
-
-    return converted_data

@@ -2,16 +2,25 @@
 var event_data = {"events":[]};
 var datas_duracao = [];//TODAS as datas de duração do plantão
 
-$(document).ready(function(){
+document.addEventListener('DOMContentLoaded', function(){
     var date = new Date();
  
     // Set click handlers for DOM elements
-    $(".right-button").click({date: date}, next_year);
-    $(".left-button").click({date: date}, prev_year);
-    $(".month").click({date: date}, month_click);
+    document.querySelectorAll(".right-button").forEach(btn => {
+        btn.addEventListener('click', {date: date}, next_year);
+    });
+    document.querySelectorAll(".left-button").forEach(btn => {
+        btn.addEventListener('click', {date: date}, prev_year);
+    });
+    document.querySelectorAll(".month").forEach(btn => {
+        btn.addEventListener('click', {date: date}, month_click);
+    });
 
     // Set current month as active
-    $(".months-row").children().eq(date.getMonth()).addClass("active-month");
+    const monthsRow = document.querySelector(".months-row");
+    if (monthsRow && monthsRow.children[date.getMonth()]) {
+        monthsRow.children[date.getMonth()].classList.add("active-month");
+    }
 
     //Pega todas as datas que estao no banco e guarda no array
     get_datas_duracao().then(
@@ -22,11 +31,11 @@ $(document).ready(function(){
     );
 });
 
-$('#salva_configuracoes').click(function(){
-    data_abertura = $('#data_abertura').val();
-    hora_abertura = $('#hora_abertura').val();
-    data_fechamento = $('#data_fechamento').val();
-    hora_fechamento = $('#hora_fechamento').val();
+document.getElementById('salva_configuracoes').addEventListener('click', function(){
+    data_abertura = document.getElementById('data_abertura').value;
+    hora_abertura = document.getElementById('hora_abertura').value;
+    data_fechamento = document.getElementById('data_fechamento').value;
+    hora_fechamento = document.getElementById('hora_fechamento').value;
 
     let compara_data_abertura = new Date(data_abertura.split('-')[0],data_abertura.split('-')[1],data_abertura.split('-')[2], hora_abertura.split(':')[0], hora_abertura.split(':')[1])
     let compara_data_fechamento = new Date(data_fechamento.split('-')[0],data_fechamento.split('-')[1],data_fechamento.split('-')[2], hora_fechamento.split(':')[0], hora_fechamento.split(':')[1])
@@ -38,69 +47,55 @@ $('#salva_configuracoes').click(function(){
     }
 
     if(compara_data_abertura > compara_data_fechamento){
-        iziToast.error({
-            title: "Erro!",
-            message: "Data de abertura deve ocorrer antes da data de fechamento.",
-            position: 'topCenter'
-        });
+        showNotification("Erro!", "Data de abertura deve ocorrer antes da data de fechamento.", "danger");
     }
     else{
-        $('.active-date').each(function(){
-            let ano = $('.year').text();
-            let mes = $('.active-month').text();
-            let dia = $(this).text();
+        document.querySelectorAll('.active-date').forEach(element => {
+            let ano = document.querySelector('.year').textContent;
+            let mes = document.querySelector('.active-month').textContent;
+            let dia = element.textContent;
         });
-        const csrftoken = $('meta[name=csrf-token]').attr('content')
-        $.ajaxSetup({
-            beforeSend: function(xhr, settings) {
-                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken)
-                }
-            }
-        });
-        $.ajax({
-            type: "post",
-            url: $('#hdnAjaxSalvaConfig').val(),
-            contentType: 'application/json;charset=UTF-8',
-            dataType: 'json',
-            data: JSON.stringify({
+        const csrftoken = document.querySelector('meta[name=csrf-token]').getAttribute('content');
+        
+        fetch(document.getElementById('hdnAjaxSalvaConfig').value, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json;charset=UTF-8',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
                 datas_duracao: ajax_datas_duracao,
                 data_abertura: data_abertura,
                 hora_abertura: hora_abertura,
                 data_fechamento: data_fechamento,
                 hora_fechamento: hora_fechamento
-            }),
-            success:(result) => {
-                switch(result['tipo_mensagem']){
-                    case 'success':
-                        iziToast.success({
-                            title: 'Sucesso!',
-                            message: result.mensagem,
-                            position: 'topCenter'
-                        });
-                        break;
-                    case 'warning':
-                        iziToast.warning({
-                            title: 'Atenção:',
-                            message: result.mensagem,
-                            position: 'topCenter'
-                        });
-                        break;
-                }
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            switch(result['tipo_mensagem']){
+                case 'success':
+                    showNotification('Sucesso!', result.mensagem, 'success');
+                    break;
+                case 'warning':
+                    showNotification('Atenção:', result.mensagem, 'warning');
+                    break;
             }
-        });
+        })
+        .catch(error => console.error('Error:', error));
     }
 });
 
 // Initialize the calendar by appending the HTML dates
 function init_calendar(date) {
-    $(".tbody").empty();
-    $(".events-container").empty();
-    var calendar_days = $(".tbody");
+    document.querySelector('.tbody').innerHTML = '';
+    document.querySelector('.events-container').innerHTML = '';
+    var calendar_days = document.querySelector('.tbody');
     var month = date.getMonth();
     var year = date.getFullYear();
     var day_count = days_in_month(month, year);
-    var row = $("<tr class='table-row'></tr>");
+    var row = document.createElement('tr');
+    row.className = 'table-row';
 
     // Set date to 1 to find the first day of the month
     date.setDate(1);
@@ -113,33 +108,44 @@ function init_calendar(date) {
         var day = i-first_day+1;
         // If it is a sunday, make a new row
         if(i%7===0) {
-            calendar_days.append(row);
-            row = $("<tr class='table-row'></tr>");
+            calendar_days.appendChild(row);
+            row = document.createElement('tr');
+            row.className = 'table-row';
         }
         // if current index isn't a day in this month, make it blank
         if(i < first_day || day > day_count) {
-            var curr_date = $("<td class='table-date nil'>"+"</td>");
-            row.append(curr_date);
+            var curr_date = document.createElement('td');
+            curr_date.className = 'table-date nil';
+            row.appendChild(curr_date);
         }   
         else {
-            var curr_date = $("<td class='table-date' id="+ day +">"+day+"</td>");
+            var curr_date = document.createElement('td');
+            curr_date.className = 'table-date';
+            curr_date.id = day;
+            curr_date.textContent = day;
 
             // Set onClick handler for clicking a date
-            curr_date.click({month: months[month], day:day}, date_click);
-            row.append(curr_date);
+            curr_date.addEventListener('click', {month: months[month], day:day}, date_click);
+            row.appendChild(curr_date);
         }
     }
     // Append the last row and set the current year
-    calendar_days.append(row);
-    $(".year").text(year);
+    calendar_days.appendChild(row);
+    document.querySelector('.year').textContent = year;
 
     //marca os dias do mês atual, a partir do array já preenchido
-    data = new Date(parseInt($('.year').text()), parseInt($('.active-month').attr('id').replace ( /[^\d.]/g, '' )), 1);
+    const yearElement = document.querySelector('.year');
+    const activeMonthElement = document.querySelector('.active-month');
+    if (yearElement && activeMonthElement) {
+        data = new Date(parseInt(yearElement.textContent), parseInt(activeMonthElement.id.replace(/[^\d.]/g, '')), 1);
 
-    for(data_duracao of datas_duracao){
-        if((data_duracao.getMonth() == data.getMonth()) && (data_duracao.getFullYear() == data.getFullYear())){
-
-            $("#" + data_duracao.getDate()).addClass("active-date");
+        for(data_duracao of datas_duracao){
+            if((data_duracao.getMonth() == data.getMonth()) && (data_duracao.getFullYear() == data.getFullYear())){
+                const dayElement = document.getElementById(data_duracao.getDate());
+                if (dayElement) {
+                    dayElement.classList.add("active-date");
+                }
+            }
         }
     }
 }
@@ -153,46 +159,52 @@ function days_in_month(month, year) {
 
 // Event handler for when a date is clicked
 function date_click(event) {
-    $(this).toggleClass("active-date");
+    const clickedElement = event.target;
+    clickedElement.classList.toggle("active-date");
 
-    data = new Date(parseInt($('.year').text()), parseInt($('.active-month').attr('id').replace ( /[^\d.]/g, '' )), parseInt($(this).text()));
+    const yearElement = document.querySelector('.year');
+    const activeMonthElement = document.querySelector('.active-month');
+    if (yearElement && activeMonthElement) {
+        data = new Date(parseInt(yearElement.textContent), parseInt(activeMonthElement.id.replace(/[^\d.]/g, '')), parseInt(clickedElement.textContent));
 
-    if($(this).hasClass("active-date"))
-        datas_duracao.push(data);
-    else   
-        datas_duracao = datas_duracao.filter(function(value, index, arr){//remove a data que chamou este evento
-            return (value.getDate() != data.getDate()) || (value.getMonth() != data.getMonth()) || (value.getFullYear() != data.getFullYear());
-        });
+        if(clickedElement.classList.contains("active-date"))
+            datas_duracao.push(data);
+        else   
+            datas_duracao = datas_duracao.filter(function(value, index, arr){//remove a data que chamou este evento
+                return (value.getDate() != data.getDate()) || (value.getMonth() != data.getMonth()) || (value.getFullYear() != data.getFullYear());
+            });
+    }
 };
 
 // Event handler for when a month is clicked
 function month_click(event) {
-    $(".events-container").show(250);
-    $("#dialog").hide(250);
+    document.querySelector(".events-container").style.display = "block";
+    document.getElementById("dialog").style.display = "none";
     var date = event.data.date;
-    $(".active-month").removeClass("active-month");
-    $(this).addClass("active-month");
-    var new_month = $(".month").index(this);
+    document.querySelector(".active-month").classList.remove("active-month");
+    event.target.classList.add("active-month");
+    var monthElements = document.querySelectorAll(".month");
+    var new_month = Array.from(monthElements).indexOf(event.target);
     date.setMonth(new_month);
     init_calendar(date);
 }
 
 // Event handler for when the year right-button is clicked
 function next_year(event) {
-    $("#dialog").hide(250);
+    document.getElementById("dialog").style.display = "none";
     var date = event.data.date;
     var new_year = date.getFullYear()+1;
-    $("year").html(new_year);
+    document.querySelector(".year").textContent = new_year;
     date.setFullYear(new_year);
     init_calendar(date);
 }
 
 // Event handler for when the year left-button is clicked
 function prev_year(event) {
-    $("#dialog").hide(250);
+    document.getElementById("dialog").style.display = "none";
     var date = event.data.date;
     var new_year = date.getFullYear()-1;
-    $("year").html(new_year);
+    document.querySelector(".year").textContent = new_year;
     date.setFullYear(new_year);
     init_calendar(date);
 }
@@ -203,24 +215,17 @@ function get_datas_duracao(){
     
 
     return new Promise((resolve, reject) => {
-        const csrftoken = $('meta[name=csrf-token]').attr('content')
-        $.ajaxSetup({
-            beforeSend: function(xhr, settings) {
-                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken)
-                }
-            }
-        });
+        const csrftoken = document.querySelector('meta[name=csrf-token]').getAttribute('content');
 
-        $.ajax({
-            url: $('#hdnAjaxDuracao').val(),
-            type: 'POST',
-            contentType: 'application/json;charset=UTF-8',
-            dataType: 'json',
+        fetch(document.getElementById('hdnAjaxDuracao').value, {
+            method: 'POST',
             headers: {
+                'Content-Type': 'application/json;charset=UTF-8',
                 'X-CSRFToken': getCSRFToken()
-            },
-            success: function (result) {
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
               var dias_duracao = [];
 
               for(data of result){
@@ -234,11 +239,10 @@ function get_datas_duracao(){
               }
 
               resolve(dias_duracao)
-            },
-            error: function (error) {
-              reject(error)
-            },
         })
+        .catch(error => {
+              reject(error)
+        });
     })
 }
 

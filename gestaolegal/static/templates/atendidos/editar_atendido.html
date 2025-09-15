@@ -1,91 +1,82 @@
 {% extends "base/painel_principal.html" %}
-{%block titulo%}Edição Atendido{%endblock%}
+{%block titulo%}
+Edição de {{atendido.nome.capitalize()}}
+{%endblock%}
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/form_styles.css') }}">
 {% endblock %}
 
 {% block conteudo %}
-<div class="card pessoa" id = "pessoa">
-    <div class="card-body">
-        <h3>{{atendido.nome.capitalize()}}</h3>
+<div class="form-container" id = "pessoa">
+    <div class="form-content">
         <div class= "form-validation">
-            <form class="form-valide" action="{{url_for('atendido.editar_atendido', id_atendido = atendido.id)}}" method="POST" id="form">
+            <form action="{{url_for('atendido.editar_unificado', id_atendido = atendido.id)}}" method="POST" id="form">
                 <input value="{{atendido.email}}" name="emailAtual" type="hidden">
 
                 {% include "atendidos/formularios/formulario_atendido.html" %}
+
+                {% if form_assistido %}
+                    {% with form=form_assistido %}
+                        {% include "atendidos/formularios/formulario_assistido.html" %}
+                    {% endwith %}
+                {% endif %}
                 
                 <button type="submit" class="btn btn-primary" id="button">Salvar Alteração</button>
             </form>
-
         </div>
     </div>
 </div>
 {% endblock %}
 
-<script src="{{url_for('static', filename='js/jquery.min.js')}}"></script>
 {% block scripts %}
-<script src="{{url_for('static',filename='js/form_utils.js')}}"></script>
-<script src="{{url_for('static',filename='js/atendidoForm_utils.js')}}"></script>
+<script src="{{url_for('static',filename='js/form_utilities.js')}}"></script>
 <script>
-    trataBotaoForm();
-
-    //CHAMO AS VALIDACOES
-    validarPjConstituida();
-    validarCampoComo_conheceu("{{como_conheceu_daj['ORGAOSPUBLICOS'][1]}}");
-    validarCampoProcurou_outro_local();
-    validarRepresLegal();
-
-    //LINKO A VALIDACAO AOS CAMPOS
-    document.getElementById('pj_constituida').onchange = function() {validarPjConstituida()};
-    document.getElementById('como_conheceu').onchange = function() {validarCampoComo_conheceu("{{como_conheceu_daj['ORGAOSPUBLICOS'][1]}}")};
-    document.getElementById('procurou_outro_local').onchange = function() {validarCampoProcurou_outro_local()};
-    document.getElementById('repres_legal').onchange = function(){validarRepresLegal()};
-
-</script>
-<script>
-    $(document).ready(function($){
-        $("#formcpf").mask('000.000.000-00');
-        $("#formcpfrepr").mask('000.000.000-00');
-        $("#formcnpj").mask('00.000.000/0000-00');
-        $("#formcel").mask('(00) 00000-0000');
-        $("#formtel").mask('(00) 0000-0000');
-        $("#formcep").mask('00000-000');
-    })
-</script>
-
+    document.addEventListener('DOMContentLoaded', function() {
+        FormUtils.initializeFormWithValidation({
+            formId: 'form',
+            buttonId: 'button',
+            masks: [
+                { selector: '#formcpf', pattern: FormUtils.MASK_PATTERNS.CPF },
+                { selector: '#formcpfrepr', pattern: FormUtils.MASK_PATTERNS.CPF },
+                { selector: '#formcnpj', pattern: FormUtils.MASK_PATTERNS.CNPJ },
+                { selector: '#formcel', pattern: FormUtils.MASK_PATTERNS.CELL_PHONE },
+                { selector: '#formtel', pattern: FormUtils.MASK_PATTERNS.PHONE },
+                { selector: '#formcep', pattern: FormUtils.MASK_PATTERNS.CEP }
+            ],
+            conditionalFields: [
+                {
+                    triggerId: 'pj_constituida',
+                    fieldsToToggle: ['div_cnpj'],
+                    condition: (trigger) => trigger.value === 'True'
+                },
+                {
+                    triggerId: 'pj_constituida',
+                    fieldsToToggle: ['div_repres_legal'],
+                    condition: (trigger) => trigger.value === 'True'
+                },
+                {
+                    triggerId: 'repres_legal',
+                    fieldsToToggle: ['div_nome_repres_legal', 'div_cpf_repres_legal', 'div_contato_repres_legal', 'div_nascimento_repres_legal', 'div_rg_repres_legal'],
+                    condition: (trigger) => trigger.value === '0' || trigger.value === 'False'
+                },
+                {
+                    triggerId: 'como_conheceu',
+                    fieldsToToggle: ['div_indicacao_orgao'],
+                    condition: (trigger) => trigger.options[trigger.selectedIndex]?.text === '{{como_conheceu_daj["ORGAOSPUBLICOS"][1]}}'
+                },
+                {
+                    triggerId: 'procurou_outro_local',
+                    fieldsToToggle: ['div_procurou_qual_local'],
+                    condition: (trigger) => trigger.value === 'True' || trigger.value === '1'
+                }
+            ],
+            dateRanges: [],
+            preventWheel: true,
+            enableValidation: true
+        });
+    });
+    </script>
 {%endblock%}
 
 
-
-
-<!--<script>
-
-     function validar() {
-        var cpf = document.getElementById('val-cpf');
-
-       alert(TestaCPF(cpf.text));
-   }
-
-   function TestaCPF(strCPF) {
-    var Soma;
-    var Resto;
-    Soma = 0;
-  if (strCPF == "00000000000") return false;
-
-  for (i=1; i<=9; i++) Soma = Soma + parseInt(strCPF.substring(i-1, i)) * (11 - i);
-  Resto = (Soma * 10) % 11;
-
-    if ((Resto == 10) || (Resto == 11))  Resto = 0;
-    if (Resto != parseInt(strCPF.substring(9, 10)) ) return false;
-
-  Soma = 0;
-    for (i = 1; i <= 10; i++) Soma = Soma + parseInt(strCPF.substring(i-1, i)) * (12 - i);
-    Resto = (Soma * 10) % 11;
-
-    if ((Resto == 10) || (Resto == 11))  Resto = 0;
-    if (Resto != parseInt(strCPF.substring(10, 11) ) ) return false;
-    return true;
-}
-
-</script>-->

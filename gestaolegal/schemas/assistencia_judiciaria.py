@@ -42,11 +42,5 @@ class AssistenciaJudiciariaSchema(Base):
         overlaps="assistenciaJudiciaria,assistenciasJudiciarias_xOrientacao_juridica,orientacaoJuridica",
     )
 
-    def setAreas_atendidas(self, opcoes):
-        self.areas_atendidas = ",".join(opcoes)
-
     def getAreas_atendidas(self):
         return self.areas_atendidas.split(",")
-
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}

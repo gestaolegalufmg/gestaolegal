@@ -1,0 +1,322 @@
+<div class="modal-overlay modal-hidden" id="modalGerenciarAssistidos" role="dialog" aria-modal="true"
+    aria-labelledby="modalGerenciarAssistidos_title" aria-describedby="modalGerenciarAssistidos_body">
+    <div class="modal-content modal-lg" tabindex="-1">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalGerenciarAssistidos_title">Gerenciar Assistidos</h2>
+            <button type="button" class="modal-close" onclick="window.ModalManager.close('modalGerenciarAssistidos')"
+                aria-label="Fechar modal">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body" id="modalGerenciarAssistidos_body">
+            <div class="search-section">
+                <div class="search-form">
+                    <div class="search-field">
+                        <div class="search-input-wrapper">
+                            <input type="text" class="form-control" id="buscaAssistido"
+                                placeholder="Digite o nome, CPF ou CNPJ do assistido..." autocomplete="off">
+                            <div class="search-loading" id="searchLoading" style="display: none;">
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="sr-only">Buscando...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" type="button" id="btnAdicionarAssistido" disabled>
+                        <i aria-label="Adicionar selecionados" class="icon icon-plus"></i>
+                    </button>
+                </div>
+                <div class="search-results">
+                    <div id="sugestoesAssistidos" class="suggestions-container">
+                    </div>
+                </div>
+            </div>
+            <div class="assistidos-section">
+                <div class="section-header">
+                    <h4>Assistidos do Caso <span class="badge badge-primary" id="assistidosCount">0</span></h4>
+                </div>
+                <div id="loadingAssistidos" class="text-center" style="display: none;">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Carregando...</span>
+                    </div>
+                    <p class="text-muted mt-2">Carregando assistidos...</p>
+                </div>
+                <div id="listaAssistidosAtuais" class="assistidos-table-container">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-content {
+        min-height: 350px
+    }
+
+    .modal-body {
+        display: grid;
+        grid-template-columns: 1fr 1.1fr;
+        gap: 1rem;
+    }
+
+    .search-section {
+        flex-direction: column;
+    }
+
+    .search-form {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .search-field {
+        min-width: 0;
+    }
+
+    .search-input-wrapper {
+        position: relative;
+    }
+
+    .search-input-wrapper input {
+        padding-right: 2.5rem;
+    }
+
+    .search-loading {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .search-results {
+        width: 100%;
+        display: flex;
+        justify-content: start;
+        gap: 0.25rem;
+        ;
+    }
+
+    .suggestions-container {
+        max-height: 200px;
+        overflow-y: auto;
+        margin-top: 4px;
+        display: none;
+
+        gap: 0.25rem;
+    }
+
+    .suggestions-container.show {
+        display: flex;
+    }
+
+    .sugestao-item {
+        width: 120px;
+        height: 120px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ddd;
+        padding: 0.75rem;
+        cursor: pointer;
+        transition: var(--form-transition-duration) var(--form-transition-timing);
+        transition-property: background-color;
+
+
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .sugestao-item:hover {
+        background: var(--form-bg-hover);
+    }
+
+    .sugestao-item.selected {
+        background: var(--color-primary);
+        color: var(--color-white);
+    }
+
+    .sugestao-item-header strong {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .sugestao-item-content small {
+        color: var(--color-text-muted);
+        font-size: 0.75rem;
+    }
+
+    .sugestao-item.selected small {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Assistidos Section */
+    .assistidos-section {
+        margin-bottom: 1rem;
+    }
+
+    .section-header {
+        margin-bottom: 1rem;
+    }
+
+    .section-header h4 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Table Container */
+    .assistidos-table-container {
+        border: 1px solid var(--form-border-light);
+        border-radius: var(--form-border-radius);
+        overflow: hidden;
+        background: var(--form-bg-default);
+    }
+
+    .assistidos-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .assistidos-table th {
+        background: var(--form-bg-hover);
+        color: var(--color-text-primary);
+        font-weight: 600;
+        font-size: 0.875rem;
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--form-border-light);
+    }
+
+    .assistidos-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--form-border-light);
+        vertical-align: middle;
+    }
+
+    .assistidos-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .assistidos-table tr:hover {
+        background: var(--form-bg-hover);
+    }
+
+    .assistido-nome {
+        font-weight: 500;
+        color: var(--color-text-primary);
+    }
+
+    .btn-excluir-assistido {
+        background: var(--color-danger);
+        color: var(--color-white);
+        border: none;
+        border-radius: var(--form-border-radius);
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: var(--form-transition-duration) var(--form-transition-timing);
+        transition-property: background-color, filter;
+    }
+
+    .btn-excluir-assistido:hover {
+        filter: brightness(1.1);
+    }
+
+    .btn-excluir-assistido:disabled {
+        background: var(--color-gray-400);
+        cursor: not-allowed;
+        filter: none;
+    }
+
+    /* Badge for count */
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.25rem;
+    }
+
+    .badge-primary {
+        color: var(--color-white);
+        background-color: var(--color-primary);
+    }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: var(--color-text-muted);
+        background: var(--form-bg-default);
+        border: 1px solid var(--form-border-light);
+        border-radius: var(--form-border-radius);
+    }
+
+    .empty-state .icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    /* Responsive improvements */
+    @media (max-width: 768px) {
+        .modal-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .search-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .search-field {
+            margin-bottom: 1rem;
+        }
+
+        .assistidos-table-container {
+            overflow-x: auto;
+        }
+
+        .assistidos-table {
+            min-width: 300px;
+        }
+
+        .suggestions-container {
+            max-height: 200px;
+        }
+    }
+
+    /* Loading state improvements */
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    /* Focus states for accessibility */
+    .sugestao-item:focus {
+        outline: 2px solid var(--color-primary);
+        outline-offset: -2px;
+    }
+
+    .btn-excluir-assistido:focus {
+        outline: 2px solid var(--color-danger);
+        outline-offset: 2px;
+    }
+</style>

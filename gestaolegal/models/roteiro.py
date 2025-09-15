@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from gestaolegal.schemas.roteiro import RoteiroSchema
@@ -13,6 +13,13 @@ class Roteiro:
 
     def __post_init__(self):
         return
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "area_direito": self.area_direito,
+            "link": self.link,
+        }
 
     @staticmethod
     def from_sqlalchemy(roteiro: "RoteiroSchema") -> "Roteiro":

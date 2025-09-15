@@ -2,7 +2,8 @@
 
 {{ form.csrf_token }}
 
-<!-- Basic Information -->
+{{ form_section("Dados de Acesso ao Sistema") }}
+
 {{ form_field(form.nome, required=true) }}
 {{ form_field(form.email, field_type="email", required=true) }}
 

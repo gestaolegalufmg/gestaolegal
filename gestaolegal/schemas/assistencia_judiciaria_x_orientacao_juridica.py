@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Integer
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column, relationship
 
 from gestaolegal.schemas.base import Base
 

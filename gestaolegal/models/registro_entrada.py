@@ -2,8 +2,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.usuario import Usuario
+
 if TYPE_CHECKING:
-    from gestaolegal.models.usuario import Usuario
     from gestaolegal.schemas.registro_entrada import RegistroEntradaSchema
 
 
@@ -21,13 +22,13 @@ class RegistroEntrada:
         return
 
     @staticmethod
-    def from_sqlalchemy(registro_entrada: "RegistroEntradaSchema") -> "RegistroEntrada":
-        return RegistroEntrada(
-            id=registro_entrada.id,
-            data_entrada=registro_entrada.data_entrada,
-            data_saida=registro_entrada.data_saida,
-            status=registro_entrada.status,
-            confirmacao=registro_entrada.confirmacao,
-            id_usuario=registro_entrada.id_usuario,
-            usuario=registro_entrada.usuario,
+    def from_sqlalchemy(
+        registro_entrada_schema: "RegistroEntradaSchema",
+    ) -> "RegistroEntrada":
+        registro_entrada_items = registro_entrada_schema.to_dict()
+        registro_entrada_items["usuario"] = (
+            Usuario.from_sqlalchemy(registro_entrada_schema.usuario)
+            if registro_entrada_schema.usuario
+            else None
         )
+        return RegistroEntrada(**registro_entrada_items)

@@ -10,7 +10,7 @@
     <div class="field-row">
         <label for="areas_atendidas">Áreas do Direito <span class="required">*</span></label>
         <div class="field-input">
-            <select name="areas_atendidas" id="areas_atendidas" multiple class="form-input select-multiple" required>
+            <select name="areas_atendidas" id="areas_atendidas" multiple class="select-multiple" required>
                 <option value="ambiental" {% if form.areas_atendidas.data and 'ambiental' in form.areas_atendidas.data %}selected{% endif %}>Ambiental</option>
                 <option value="administrativo" {% if form.areas_atendidas.data and 'administrativo' in form.areas_atendidas.data %}selected{% endif %}>Administrativo</option>
                 <option value="civel" {% if form.areas_atendidas.data and 'civel' in form.areas_atendidas.data %}selected{% endif %}>Civel</option>
@@ -29,7 +29,7 @@
     <div class="field-row">
         <label for="regiao">Região <span class="required">*</span></label>
         <div class="field-input">
-            <select name="regiao" id="regiao" class="form-input" required>
+            <select name="regiao" id="regiao" required>
                 <option value="">Selecione uma região</option>
                 <option value="norte" {% if form.regiao.data == 'norte' %}selected{% endif %}>Norte</option>
                 <option value="sul" {% if form.regiao.data == 'sul' %}selected{% endif %}>Sul</option>

@@ -1,13 +1,14 @@
 from typing import Final
 
 from sqlalchemy import ForeignKey, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column
 
 from gestaolegal.schemas.base import Base
 
 
 class ArquivosEventoSchema(Base):
-    __tablename__: Final = "arquivosEvento"
+    __tablename__ = "arquivosEvento"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     id_evento: Mapped[int] = mapped_column(

@@ -5,13 +5,7 @@
   <meta charset="UTF-8">
   <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
   <title>Gestão Legal DAJ</title>
-  <!-- General CSS Files -->
-  <link rel="stylesheet" href="{{url_for('static', filename='app_tema/assets/css/app.min.css')}}">
-  <link rel="stylesheet" href="{{url_for('static',filename='app_tema/assets/bundles/izitoast/css/iziToast.min.css')}}">
-  <!-- Template CSS -->
   <link rel="stylesheet" href="{{url_for('static', filename='app_tema/assets/css/style.css')}}">
-  <link rel="stylesheet" href="{{url_for('static', filename='app_tema/assets/css/components.css')}}">
-  <!-- Custom style CSS -->
   <link rel='shortcut icon' type='image/x-icon'
     href="{{url_for('static', filename='imgs_daj/gestao_legal_home.png')}}" />
 </head>
@@ -107,14 +101,7 @@
     </section>
   </div>
 
-  <!-- General JS Scripts -->
-  <script src="{{url_for('static', filename='app_tema/assets/js/app.min.js')}}"></script>
-  <!-- JS Libraies -->
-  <script src="{{url_for('static', filename= 'app_tema/assets/bundles/izitoast/js/iziToast.min.js')}}"></script>
-  <!-- Page Specific JS File -->
   <script src="{{url_for('static',filename='js/base-utils.js')}}"></script>
-  <!-- Template JS File -->
-  <script src="{{url_for('static', filename='app_tema/assets/js/scripts.js')}}"></script>
   <script defer>
     const form = document.querySelector("form");
     const clearMessage = () => {
@@ -174,7 +161,13 @@
       })
       let data = await res.json()
       if(data.status === "success"){
-        $("#liveToast").toast('show')
+        const toast = document.getElementById('liveToast');
+        if (toast && typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+          new bootstrap.Toast(toast).show();
+        } else {
+          // Fallback for when Bootstrap is not available
+          toast.style.display = 'block';
+        }
         setTimeout(() => {
           window.location.href= "{{url_for('usuario.login')}}"
         }, 2000)

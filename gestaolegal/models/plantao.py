@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from gestaolegal.schemas.plantao import PlantaoSchema
@@ -14,6 +14,13 @@ class Plantao:
 
     def __post_init__(self):
         return
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "data_abertura": self.data_abertura,
+            "data_fechamento": self.data_fechamento,
+        }
 
     @staticmethod
     def from_sqlalchemy(plantao: "PlantaoSchema") -> "Plantao":

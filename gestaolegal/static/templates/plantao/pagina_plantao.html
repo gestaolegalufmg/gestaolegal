@@ -416,7 +416,7 @@
 {% endblock css %}
 
 {% block conteudo %}
-<input type="hidden" id="hdnAjaxEscala" value="{{url_for('plantao.ajax_obter_escala_plantao')}}">
+<input type="hidden" id="hdnAjaxEscala" value="{{url_for('api.obter_escala_plantao')}}">
 
 <header class="row mb-4">
   <div class="col-12">
@@ -1062,7 +1062,7 @@
     const mes = domCache.activeMonth.id.substring(5);
     const dia = domCache.activeDate.textContent;
     
-    const url = new URL("{{url_for('plantao.ajax_vagas_disponiveis')}}", window.location.origin);
+    const url = new URL("{{url_for('api.vagas_disponiveis')}}", window.location.origin);
     url.searchParams.append('ano', ano);
     url.searchParams.append('mes', mes);
     url.searchParams.append('dia', dia);
@@ -1137,7 +1137,7 @@
     const ano = domCache.yearElement.textContent;
     const mes = domCache.activeMonth.id.substring(5);
     
-    const url = new URL("{{url_for('plantao.ajax_disponibilidade_de_vagas')}}", window.location.origin);
+    const url = new URL("{{url_for('api.disponibilidade_de_vagas')}}", window.location.origin);
     url.searchParams.append('ano', ano);
     url.searchParams.append('mes', mes);
     
@@ -1211,7 +1211,7 @@
         const mes = domCache.activeMonth.id.substring(5);
         const dia = domCache.activeDate.textContent;
         
-        const url = new URL("{{url_for('plantao.ajax_confirma_data_plantao')}}", window.location.origin);
+        const url = new URL("{{url_for('api.confirma_data_plantao')}}", window.location.origin);
         url.searchParams.append('ano', ano);
         url.searchParams.append('mes', mes);
         url.searchParams.append('dia', dia);
