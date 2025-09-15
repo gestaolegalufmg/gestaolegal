@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
-from gestaolegal.repositories.base_repository import PageParams
+from gestaolegal.common import PageParams
 from gestaolegal.repositories.caso_repository import CasoRepository
 from gestaolegal.repositories.orientacao_juridica_repository import (
     OrientacaoJuridicaRepository,
@@ -47,8 +47,7 @@ class PrincipalService:
         per_page_caso: int = 10,
     ) -> dict[str, Any]:
         """Perform general search across all entities."""
-        from gestaolegal.repositories.base_repository import PageParams
-
+        from gestaolegal.common import PageParams
         assistidos_page_params = PageParams(
             page=page_assistido_pfisica, per_page=per_page_assistido
         )

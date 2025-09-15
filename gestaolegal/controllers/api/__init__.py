@@ -7,8 +7,7 @@ from flask_wtf.csrf import CSRFProtect
 
 from gestaolegal.common.constants import UserRole, situacao_deferimento, tipo_evento
 from gestaolegal.common.constants.atendido import TipoBusca
-from gestaolegal.repositories.base_repository import PageParams
-from gestaolegal.services.arquivo_service import ArquivoService
+from gestaolegal.common import PageParams
 from gestaolegal.services.assistencia_judiciaria_service import (
     AssistenciaJudiciariaService,
 )

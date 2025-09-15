@@ -8,7 +8,7 @@ from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
 from gestaolegal.repositories.assistencia_judiciaria_repository import (
     AssistenciaJudiciariaRepository,
 )
-from gestaolegal.repositories.base_repository import PageParams
+from gestaolegal.common import PageParams
 from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
 from gestaolegal.schemas.assistido import AssistidoSchema as Assistido
 from gestaolegal.services.endereco_service import EnderecoService

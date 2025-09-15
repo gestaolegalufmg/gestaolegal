@@ -3,7 +3,7 @@ from datetime import datetime
 
 from gestaolegal.common.constants import UserRole
 from gestaolegal.models.notificacao import Notificacao
-from gestaolegal.repositories.base_repository import PageParams
+from gestaolegal.common import PageParams
 from gestaolegal.repositories.notificacao_repository import NotificacaoRepository
 
 logger = logging.getLogger(__name__)

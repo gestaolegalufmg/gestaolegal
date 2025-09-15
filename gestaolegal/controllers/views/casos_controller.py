@@ -29,7 +29,7 @@ from gestaolegal.forms.relatorio import (
     NovoCasoForm,
     RoteiroForm,
 )
-from gestaolegal.repositories.base_repository import PageParams
+from gestaolegal.common import PageParams
 from gestaolegal.services.arquivo_service import ArquivoService
 from gestaolegal.services.casos_service import CasosService
 from gestaolegal.services.notificacao_service import NotificacaoService

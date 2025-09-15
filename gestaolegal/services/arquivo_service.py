@@ -8,7 +8,7 @@ from gestaolegal.models.arquivo import Arquivo
 from gestaolegal.models.arquivo_caso import ArquivoCaso
 from gestaolegal.models.arquivos_evento import ArquivosEvento
 from gestaolegal.repositories.arquivo_repository import ArquivoRepository
-from gestaolegal.repositories.base_repository import PageParams
+from gestaolegal.common import PageParams
 from gestaolegal.schemas.arquivo import ArquivoSchema
 
 logger = logging.getLogger(__name__)

@@ -13,8 +13,7 @@ from flask import (
 
 from gestaolegal.common.constants import UserRole
 from gestaolegal.forms.arquivo import ArquivoForm
-from gestaolegal.repositories.base_repository import PageParams
-from gestaolegal.services.arquivo_service import ArquivoService
+from gestaolegal.common import PageParams
 from gestaolegal.utils.decorators import login_required
 
 logger = logging.getLogger(__name__)

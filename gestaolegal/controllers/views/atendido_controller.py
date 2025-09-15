@@ -15,7 +15,7 @@ from gestaolegal.common.constants import UserRole
 from gestaolegal.common.constants.atendido import TipoBusca
 from gestaolegal.forms.plantao.cadastro_atendido_form import CadastroAtendidoForm
 from gestaolegal.forms.plantao.tornar_assistido_form import TornarAssistidoForm
-from gestaolegal.repositories.base_repository import PageParams
+from gestaolegal.common import PageParams
 from gestaolegal.services.atendido_service import AtendidoService
 from gestaolegal.utils.decorators import login_required
 from gestaolegal.utils.transforms import build_cards

@@ -4,6 +4,7 @@ from typing import Any, Generic, Literal, Sequence, TypedDict, TypeGuard, TypeVa
 from sqlalchemy import BinaryExpression, Column, UnaryExpression, asc, desc
 from sqlalchemy.orm import Query
 
+from gestaolegal.common import PageParams
 from gestaolegal.database import get_db
 from gestaolegal.models.base_model import BaseModel
 from gestaolegal.schemas.base import Base as BaseSchema
@@ -17,14 +18,7 @@ def _has_status(schema_cls: type[SchemaType]) -> TypeGuard[type[SchemaType]]:
     return hasattr(schema_cls, "status")
 
 
-class PageParams(TypedDict):
-    page: int
-    per_page: int
-
-
-T = TypeVar("T")
-
-Op = (
+QueryOperation = (
     Literal[
         "eq",
         "ne",
@@ -52,12 +46,10 @@ Op = (
 OrderableColumn = Column | UnaryExpression | str
 OrderByList = list[OrderableColumn] | OrderableColumn | None
 
-ValueType = Any  # TODO: Add type
-
 
 ExpressionOperator = Literal["and", "or"]
 
-SimpleCondition = tuple[str, str, ValueType]
+SimpleCondition = tuple[str, str, Any]
 ConditionWithOperator = dict[ExpressionOperator, list[SimpleCondition]]
 WhereConditions = list[ConditionWithOperator | SimpleCondition]
 

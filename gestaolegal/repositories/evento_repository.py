@@ -3,9 +3,9 @@ from sqlalchemy import desc
 from gestaolegal.models.evento import Evento
 from gestaolegal.repositories.base_repository import (
     BaseRepository,
-    PageParams,
     WhereConditions,
 )
+from gestaolegal.common import PageParams
 from gestaolegal.schemas.evento import EventoSchema
 
 

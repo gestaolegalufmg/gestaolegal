@@ -5,7 +5,8 @@ from typing import Any
 from sqlalchemy.exc import SQLAlchemyError
 
 from gestaolegal.models.historico import Historico
-from gestaolegal.repositories.base_repository import BaseRepository, PageParams
+from gestaolegal.repositories.base_repository import BaseRepository
+from gestaolegal.common import PageParams
 from gestaolegal.schemas.historico import HistoricoSchema
 from gestaolegal.schemas.usuario import UsuarioSchema
 
