@@ -2,7 +2,11 @@ from typing import Any
 
 from gestaolegal.common.constants import assistencia_jud_areas_atendidas
 from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
-from gestaolegal.repositories.base_repository import BaseRepository, ConditionList, PageParams
+from gestaolegal.repositories.base_repository import (
+    BaseRepository,
+    PageParams,
+    WhereConditions,
+)
 from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
 from gestaolegal.schemas.assistido import AssistidoSchema as Assistido
 from gestaolegal.schemas.assistido_pessoa_juridica import (
@@ -14,9 +18,7 @@ filtro_busca_assistencia_judiciaria = assistencia_jud_areas_atendidas.copy()
 filtro_busca_assistencia_judiciaria["TODAS"] = ("todas", "Todas")
 
 
-class AssistenciaJudiciariaRepository(
-    BaseRepository[AssistenciaJudiciariaSchema, AssistenciaJudiciaria]
-):
+class AssistenciaJudiciariaRepository(BaseRepository):
     def __init__(self):
         super().__init__(AssistenciaJudiciariaSchema, AssistenciaJudiciaria)
 
@@ -30,7 +32,9 @@ class AssistenciaJudiciariaRepository(
         nome: str | None = None,
         page_params: PageParams | None = None,
     ):
-        where_conditions: ConditionList = [("areas_atendidas", "contains", area_atendida)]
+        where_conditions: WhereConditions = [
+            ("areas_atendidas", "contains", area_atendida)
+        ]
         if nome:
             where_conditions.append(("nome", "eq", nome))
         if area_atendida == filtro_busca_assistencia_judiciaria["TODAS"][0]:
@@ -97,4 +101,8 @@ class AssistenciaJudiciariaRepository(
     def search_by_string(
         self, search_string: str, page_params: PageParams | None = None
     ) -> list[AssistenciaJudiciariaSchema] | Any:
-        return self.get(where_conditions=[("nome", "ilike", f"%{search_string}%")], order_by=["nome"], page_params=page_params)
+        return self.get(
+            where_conditions=[("nome", "ilike", f"%{search_string}%")],
+            order_by=["nome"],
+            page_params=page_params,
+        )

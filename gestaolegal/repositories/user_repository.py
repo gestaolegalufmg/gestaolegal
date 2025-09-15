@@ -1,9 +1,13 @@
 from gestaolegal.models.usuario import Usuario
-from gestaolegal.repositories.base_repository import BaseRepository, ConditionList, PageParams
+from gestaolegal.repositories.base_repository import (
+    BaseRepository,
+    PageParams,
+    WhereConditions,
+)
 from gestaolegal.schemas.usuario import UsuarioSchema
 
 
-class UserRepository(BaseRepository[UsuarioSchema, Usuario]):
+class UserRepository(BaseRepository):
     def __init__(self):
         super().__init__(UsuarioSchema, Usuario)
 
@@ -21,11 +25,11 @@ class UserRepository(BaseRepository[UsuarioSchema, Usuario]):
         status: str = "1",
         page_params: PageParams | None = None,
     ):
-        where_conditions: ConditionList = []
-        
+        where_conditions: WhereConditions = []
+
         if funcao != "all":
             where_conditions.append(("urole", "eq", funcao))
-        
+
         if valor_busca:
             where_conditions.append(("nome", "ilike", f"%{valor_busca}%"))
 
@@ -37,7 +41,7 @@ class UserRepository(BaseRepository[UsuarioSchema, Usuario]):
         )
 
     def search_general(self, busca: str, page_params: PageParams | None = None):
-        where_conditions: ConditionList = [
+        where_conditions: WhereConditions = [
             ("nome", "contains", busca),
             ("cpf", "contains", busca),
         ]

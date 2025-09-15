@@ -2,11 +2,15 @@ import logging
 from typing import Any
 
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
+from gestaolegal.repositories.base_repository import PageParams
 from gestaolegal.repositories.caso_repository import CasoRepository
 from gestaolegal.repositories.orientacao_juridica_repository import (
     OrientacaoJuridicaRepository,
 )
 from gestaolegal.repositories.user_repository import UserRepository
+from gestaolegal.schemas.atendido import AtendidoSchema
+from gestaolegal.schemas.caso import CasoSchema
+from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +49,6 @@ class PrincipalService:
         """Perform general search across all entities."""
         from gestaolegal.repositories.base_repository import PageParams
 
-        # Search assistidos (pessoas físicas)
         assistidos_page_params = PageParams(
             page=page_assistido_pfisica, per_page=per_page_assistido
         )
@@ -53,7 +56,6 @@ class PrincipalService:
             busca, assistidos_page_params
         )
 
-        # Search assistidos (pessoas jurídicas)
         assistidos_pjuridica_page_params = PageParams(
             page=page_assistido_pjuridica, per_page=per_page_assistido
         )
@@ -61,27 +63,22 @@ class PrincipalService:
             busca, assistidos_pjuridica_page_params
         )
 
-        # Search usuarios
         usuarios_page_params = PageParams(page=page_usuario, per_page=per_page_usuario)
         usuarios = self.usuario_repo.search_general(busca, usuarios_page_params)
 
-        # Search casos and orientacoes
         casos = None
         orientacoes_juridicas = None
 
         if busca.isdigit():
-            # Use find_by_id for exact ID match
             caso = self.caso_repo.find_by_id(int(busca))
             if caso:
                 casos = SimplePagination([caso], page_caso, per_page_caso, 1)
         elif busca.strip():
-            # Search casos by atendido name
             casos_page_params = PageParams(page=page_caso, per_page=per_page_caso)
-            casos = self.caso_repo.search_by_atendido_name(busca, casos_page_params)
+            casos = self.search_casos_by_atendido_name(busca, casos_page_params)
 
-            # Search orientações jurídicas by atendido name
             orientacoes_page_params = PageParams(page=page_caso, per_page=per_page_caso)
-            orientacoes_juridicas = self.orientacao_repo.search_by_atendido_name(
+            orientacoes_juridicas = self.search_orientacoes_juridicas_by_atendido_name(
                 busca, orientacoes_page_params
             )
 
@@ -92,3 +89,37 @@ class PrincipalService:
             "casos": casos,
             "orientacoes_juridicas": orientacoes_juridicas,
         }
+
+    def search_casos_by_atendido_name(self, busca: str, page_params: PageParams):
+        query = self.caso_repo._create_query()
+        query = query.join(AtendidoSchema).join(CasoSchema.clientes)
+
+        query = self.caso_repo._apply_status_filter(query, True)
+        query = query.where(AtendidoSchema.nome.ilike(f"%{busca}%"))
+        query = query.order_by(CasoSchema.id)
+
+        total = query.count()
+
+        query = query.offset(page_params["page"] - 1).limit(page_params["per_page"])
+        result = query.all()
+
+        items = [self.caso_repo._build_model(entity) for entity in result]
+        return self.caso_repo._create_paginated_result(items, total, page_params)
+
+    def search_orientacoes_juridicas_by_atendido_name(
+        self, busca: str, page_params: PageParams
+    ):
+        query = self.orientacao_repo._create_query()
+        query = query.join(AtendidoSchema).join(AtendidoSchema.orientacoesJuridicas)
+
+        query = self.orientacao_repo._apply_status_filter(query, True)
+        query = query.where(AtendidoSchema.nome.ilike(f"%{busca}%"))
+        query = query.order_by(OrientacaoJuridicaSchema.id)
+
+        total = query.count()
+
+        query = query.offset(page_params["page"] - 1).limit(page_params["per_page"])
+        result = query.all()
+
+        items = [self.orientacao_repo._build_model(entity) for entity in result]
+        return self.orientacao_repo._create_paginated_result(items, total, page_params)

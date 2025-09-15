@@ -21,16 +21,21 @@ class FilaAtendidos:
     def __post_init__(self):
         return
 
-    @staticmethod
+    @classmethod
     def from_sqlalchemy(
-        fila_atendidos_schema: "FilaAtendidosSchema",
+        cls, schema: "FilaAtendidosSchema", shallow: bool = False
     ) -> "FilaAtendidos":
-        from gestaolegal.models.atendido import Atendido
+        fila_atendidos_items = schema.to_dict()
 
-        fila_atendidos_items = fila_atendidos_schema.to_dict()
-        fila_atendidos_items["atendido"] = (
-            Atendido.from_sqlalchemy(fila_atendidos_schema.atendido)
-            if fila_atendidos_schema.atendido
-            else None
-        )
+        if not shallow:
+            from gestaolegal.models.atendido import Atendido
+
+            fila_atendidos_items["atendido"] = (
+                Atendido.from_sqlalchemy(schema.atendido, shallow=True)
+                if schema.atendido
+                else None
+            )
+        else:
+            fila_atendidos_items["atendido"] = None
+
         return FilaAtendidos(**fila_atendidos_items)

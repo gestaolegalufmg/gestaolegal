@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.usuario import Usuario
 
 if TYPE_CHECKING:
@@ -9,7 +10,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class RegistroEntrada:
+class RegistroEntrada(BaseModel):
     id: int
     data_entrada: datetime
     data_saida: datetime
@@ -21,14 +22,17 @@ class RegistroEntrada:
     def __post_init__(self):
         return
 
-    @staticmethod
+    @classmethod
     def from_sqlalchemy(
-        registro_entrada_schema: "RegistroEntradaSchema",
+        cls, schema: "RegistroEntradaSchema", shallow: bool = False
     ) -> "RegistroEntrada":
-        registro_entrada_items = registro_entrada_schema.to_dict()
-        registro_entrada_items["usuario"] = (
-            Usuario.from_sqlalchemy(registro_entrada_schema.usuario)
-            if registro_entrada_schema.usuario
-            else None
-        )
+        registro_entrada_items = schema.to_dict()
+
+        if not shallow:
+            registro_entrada_items["usuario"] = (
+                Usuario.from_sqlalchemy(schema.usuario) if schema.usuario else None
+            )
+        else:
+            registro_entrada_items["usuario"] = None
+
         return RegistroEntrada(**registro_entrada_items)

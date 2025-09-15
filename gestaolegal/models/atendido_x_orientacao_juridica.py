@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.atendido import Atendido
+from gestaolegal.models.base_model import BaseModel
+
 if TYPE_CHECKING:
     from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
     from gestaolegal.schemas.atendido import AtendidoSchema
@@ -10,7 +13,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class Atendido_xOrientacaoJuridica:
+class Atendido_xOrientacaoJuridica(BaseModel):
     id: int
     id_orientacaoJuridica: int
     id_atendido: int
@@ -20,17 +23,29 @@ class Atendido_xOrientacaoJuridica:
     def __post_init__(self):
         return
 
-    @staticmethod
+    @classmethod
     def from_sqlalchemy(
-        atendido_x_orientacao_juridica: "Atendido_xOrientacaoJuridicaSchema",
+        cls, schema: "Atendido_xOrientacaoJuridicaSchema", shallow: bool = False
     ) -> "Atendido_xOrientacaoJuridica":
-        if not atendido_x_orientacao_juridica:
-            raise ValueError("atendido_x_orientacao_juridica cannot be None")
-        
-        return Atendido_xOrientacaoJuridica(
-            id=atendido_x_orientacao_juridica.id or 0,
-            id_orientacaoJuridica=atendido_x_orientacao_juridica.id_orientacaoJuridica or 0,
-            id_atendido=atendido_x_orientacao_juridica.id_atendido or 0,
-            atendido=atendido_x_orientacao_juridica.atendido or None,
-            orientacaoJuridica=atendido_x_orientacao_juridica.orientacaoJuridica or None,
-        )
+        from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+
+        atendido_x_orientacao_juridica_items = schema.to_dict()
+
+        if not shallow:
+            atendido_x_orientacao_juridica_items["atendido"] = (
+                Atendido.from_sqlalchemy(schema.atendido, shallow=True)
+                if schema.atendido
+                else None
+            )
+            atendido_x_orientacao_juridica_items["orientacaoJuridica"] = (
+                OrientacaoJuridica.from_sqlalchemy(
+                    schema.orientacaoJuridica, shallow=True
+                )
+                if schema.orientacaoJuridica
+                else None
+            )
+        else:
+            atendido_x_orientacao_juridica_items["atendido"] = None
+            atendido_x_orientacao_juridica_items["orientacaoJuridica"] = None
+
+        return Atendido_xOrientacaoJuridica(**atendido_x_orientacao_juridica_items)

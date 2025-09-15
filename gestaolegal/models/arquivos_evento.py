@@ -15,11 +15,9 @@ class ArquivosEvento:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(arquivos_evento: "ArquivosEventoSchema") -> "ArquivosEvento":
-        return ArquivosEvento(
-            id=arquivos_evento.id,
-            id_evento=arquivos_evento.id_evento,
-            id_caso=arquivos_evento.id_caso,
-            link_arquivo=arquivos_evento.link_arquivo,
-        )
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "ArquivosEventoSchema", shallow: bool = False
+    ) -> "ArquivosEvento":
+        arquivos_evento_items = schema.to_dict()
+        return ArquivosEvento(**arquivos_evento_items)

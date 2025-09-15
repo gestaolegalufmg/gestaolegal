@@ -15,10 +15,9 @@ class DiaPlantao:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(dia_plantao: "DiaPlantaoSchema") -> "DiaPlantao":
-        return DiaPlantao(
-            id=dia_plantao.id,
-            data=dia_plantao.data,
-            status=dia_plantao.status,
-        )
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "DiaPlantaoSchema", shallow: bool = False
+    ) -> "DiaPlantao":
+        dia_plantao_items = schema.to_dict()
+        return DiaPlantao(**dia_plantao_items)

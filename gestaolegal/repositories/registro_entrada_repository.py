@@ -1,11 +1,11 @@
 from typing import Optional
 
 from gestaolegal.models.registro_entrada import RegistroEntrada
-from gestaolegal.repositories.base_repository import BaseRepository, ConditionList
+from gestaolegal.repositories.base_repository import BaseRepository, WhereConditions
 from gestaolegal.schemas.registro_entrada import RegistroEntradaSchema
 
 
-class RegistroEntradaRepository(BaseRepository[RegistroEntradaSchema, RegistroEntrada]):
+class RegistroEntradaRepository(BaseRepository):
     def __init__(self):
         super().__init__(RegistroEntradaSchema, RegistroEntrada)
 
@@ -13,7 +13,7 @@ class RegistroEntradaRepository(BaseRepository[RegistroEntradaSchema, RegistroEn
         self, data_inicio: str, data_fim: str, usuarios_ids: Optional[list[str]] = None
     ) -> list[RegistroEntrada]:
         """Get registros within date range and optionally filtered by users"""
-        where_conditions: ConditionList = [
+        where_conditions: WhereConditions = [
             ("status", "eq", False),
             ("data_saida", "gte", data_inicio),
             ("data_saida", "lte", data_fim),

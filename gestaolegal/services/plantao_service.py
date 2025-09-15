@@ -2,15 +2,14 @@ import logging
 from datetime import date, datetime, time
 from typing import Any, Optional
 
-from sqlalchemy import between
-
 from gestaolegal.common.constants import UserRole, acoes
 from gestaolegal.models.dia_plantao import DiaPlantao
 from gestaolegal.models.dias_marcados_plantao import DiasMarcadosPlantao
 from gestaolegal.models.fila_atendidos import FilaAtendidos
 from gestaolegal.models.notificacao import Notificacao
 from gestaolegal.models.plantao import Plantao
-from gestaolegal.repositories.base_repository import BaseRepository
+from gestaolegal.models.registro_entrada import RegistroEntrada
+from gestaolegal.repositories.base_repository import BaseRepository, WhereConditions
 from gestaolegal.schemas.dia_plantao import DiaPlantaoSchema
 from gestaolegal.schemas.dias_marcados_plantao import DiasMarcadosPlantaoSchema
 from gestaolegal.schemas.fila_atendidos import FilaAtendidosSchema
@@ -51,7 +50,7 @@ class PlantaoValidator:
         }
 
     @staticmethod
-    def get_role_limits(user_role: str) -> int:
+    def get_role_limits(user_role: UserRole) -> int:
         limits = {
             UserRole.ORIENTADOR: 1,
             UserRole.ESTAGIARIO_DIREITO: 3,
@@ -67,17 +66,21 @@ class PlantaoService:
             DiasMarcadosPlantaoSchema, DiasMarcadosPlantao
         )
         self.registro_entrada_repo = BaseRepository(
-            RegistroEntradaSchema, RegistroEntradaSchema
+            RegistroEntradaSchema, RegistroEntrada
         )
         self.fila_atendidos_repo = BaseRepository(FilaAtendidosSchema, FilaAtendidos)
         self.notificacao_repo = BaseRepository(NotificacaoSchema, Notificacao)
         self.validator = PlantaoValidator()
 
-    def get_active_plantao(self) -> Optional[Plantao]:
+    def get_active_plantao(self) -> Plantao:
         result = self.plantao_repo.get_by_fields(
             filters={"status": True}, page_params={"page": 1, "per_page": 1}
         )
-        return result.items[0] if result.items else None
+
+        if not result or not result.items[0]:
+            raise ValueError("No active plantão found")
+
+        return result.items[0]
 
     def create_plantao(
         self,
@@ -237,14 +240,18 @@ class PlantaoService:
 
     def get_today_attendance_queue(self) -> list[dict[str, Any]]:
         today = datetime.now()
-        result = self.fila_atendidos_repo.get_by_fields(
-            filters={
-                "data_criacao": between(
+
+        where_conditions: WhereConditions = [
+            (
+                "data_criacao",
+                "between",
+                (
                     today.strftime("%Y-%m-%d 00:00:00"),
                     today.strftime("%Y-%m-%d 23:59:59"),
-                )
-            }
-        )
+                ),
+            )
+        ]
+        result = self.fila_atendidos_repo.get(where_conditions=where_conditions)
         fila = result.items
 
         return [
@@ -492,7 +499,7 @@ class PlantaoService:
 
     def get_plantao_page_data(self, user_id: int, user_role: str) -> dict[str, Any]:
         """Get all data needed for the plantão page"""
-        dias_usuario_marcado = self.get_user_scheduled_days(user_id)
+        self.get_user_scheduled_days(user_id)
         plantao = self.get_active_plantao()
 
         if plantao:
@@ -546,9 +553,7 @@ class PlantaoService:
 
         dias_usuario_marcado = self.get_user_scheduled_days(user_id)
 
-        disponibilidade = self.check_date_availability(
-            data_marcada, user_id, user_role
-        )
+        disponibilidade = self.check_date_availability(data_marcada, user_id, user_role)
 
         if not disponibilidade["disponivel"]:
             return cria_json(
@@ -576,7 +581,7 @@ class PlantaoService:
             )
 
         # Try to schedule the day
-        if self.confirmar_data_plantao(data_marcada, user_id):
+        if self.confirmar_data_plantao(data_marcada, user_id, user_role, data_atual):
             mensagem = "Data de plantão cadastrada!"
             tipo_mensagem = "success"
         else:

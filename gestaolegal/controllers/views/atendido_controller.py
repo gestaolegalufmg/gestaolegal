@@ -127,7 +127,7 @@ def visualizar_atendido(atendido_id: int):
         result = atendido_service.find_by_id(atendido_id)
         if not result:
             abort(404)
-        
+
         # Type assertion: we know resulte is not None after the check above
         assert result is not None
         assistido = result.assistido
@@ -166,7 +166,7 @@ def tornar_assistido_form(id_atendido: int):
         atendido = atendido_service.find_by_id(id_atendido)
         if not atendido:
             abort(404)
-            
+
         form = TornarAssistidoForm()
 
         return render_template(
@@ -190,7 +190,7 @@ def tornar_assistido(id_atendido: int):
         atendido = atendido_service.find_by_id(id_atendido)
         if not atendido:
             abort(404)
-        
+
         # Type assertion: we know atendido is not None after the check above
         assert atendido is not None
         form = TornarAssistidoForm()
@@ -228,7 +228,7 @@ def editar_unificado(id_atendido: int):
         atendido = atendido_service.find_by_id(id_atendido)
         if not atendido:
             abort(404)
-        
+
         # Type assertion: we know atendido is not None after the check above
         assert atendido is not None
 

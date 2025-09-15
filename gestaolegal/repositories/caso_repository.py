@@ -1,15 +1,18 @@
 from typing import Optional
 
-from sqlalchemy import func, or_
+from sqlalchemy import func
 
 from gestaolegal.models.caso import Caso
-from gestaolegal.repositories.base_repository import BaseRepository, ConditionList, PageParams
-from gestaolegal.schemas import associacao_casos_atendidos
+from gestaolegal.repositories.base_repository import (
+    BaseRepository,
+    PageParams,
+    WhereConditions,
+)
 from gestaolegal.schemas.atendido import AtendidoSchema
 from gestaolegal.schemas.caso import CasoSchema
 
 
-class CasoRepository(BaseRepository[CasoSchema, Caso]):
+class CasoRepository(BaseRepository):
     def __init__(self):
         super().__init__(CasoSchema, Caso)
 
@@ -74,7 +77,7 @@ class CasoRepository(BaseRepository[CasoSchema, Caso]):
         self.session.commit()
 
     def get_casos_with_filters(self, opcao_filtro: str, page_params: PageParams):
-        where_conditions: ConditionList = []
+        where_conditions: WhereConditions = []
 
         if opcao_filtro != "todos":
             where_conditions.append(("situacao_deferimento", "eq", opcao_filtro))
@@ -109,7 +112,7 @@ class CasoRepository(BaseRepository[CasoSchema, Caso]):
         areas: Optional[list[str]] = None,
         situacoes: Optional[list[str]] = None,
     ) -> list[Caso]:
-        where_conditions: ConditionList = [
+        where_conditions: WhereConditions = [
             ("data_criacao", "gte", data_inicio),
             ("data_criacao", "lte", data_fim),
         ]
@@ -127,36 +130,8 @@ class CasoRepository(BaseRepository[CasoSchema, Caso]):
         )
         return result.items
 
-    def search_by_atendido_name(
-        self, busca: str, page_params: PageParams | None = None
-    ):
-        query = self._create_query()
-        query = query.join(associacao_casos_atendidos).join(AtendidoSchema)
-        query = self._apply_status_filter(query, True)
-
-        where_clauses = [
-            AtendidoSchema.status,
-            AtendidoSchema.nome.ilike(f"%{busca}%"),
-        ]
-
-        for clause in where_clauses:
-            query = query.where(clause)
-
-        query = query.order_by(CasoSchema.id)
-
-        if page_params:
-            query = query.offset(
-                (page_params["page"] - 1) * page_params["per_page"]
-            ).limit(page_params["per_page"])
-
-        result = query.all()
-        items = [self._build_model(entity) for entity in result]
-        total = query.count()
-
-        return self._create_paginated_result(items, total, page_params)
-
     def get_casos_by_date_range(self, data_inicio: str, data_fim: str) -> list[Caso]:
-        where_conditions: ConditionList = [
+        where_conditions: WhereConditions = [
             ("data_criacao", "gte", data_inicio),
             ("data_criacao", "lte", data_fim),
         ]
@@ -178,14 +153,14 @@ class CasoRepository(BaseRepository[CasoSchema, Caso]):
     def get_meus_casos(
         self, id_usuario: int, opcao_filtro: str, page_params: PageParams
     ):
-        from sqlalchemy import or_
-        
-        where_conditions: ConditionList = [
-            or_(
-                CasoSchema.id_usuario_responsavel == id_usuario,
-                CasoSchema.id_orientador == id_usuario,
-                CasoSchema.id_estagiario == id_usuario,
-            )
+        where_conditions: WhereConditions = [
+            {
+                "or": [
+                    ("id_usuario_responsavel", "eq", id_usuario),
+                    ("id_orientador", "eq", id_usuario),
+                    ("id_estagiario", "eq", id_usuario),
+                ]
+            }
         ]
 
         if opcao_filtro == "cad_por_mim":

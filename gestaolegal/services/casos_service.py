@@ -6,7 +6,6 @@ from typing import Optional
 import pytz
 from flask import current_app
 from sqlalchemy import and_
-from werkzeug.exceptions import RequestEntityTooLarge
 
 from gestaolegal.common.constants import UserRole, situacao_deferimento
 from gestaolegal.common.constants.atendido import TipoBusca
@@ -19,7 +18,6 @@ from gestaolegal.repositories.caso_repository import CasoRepository
 from gestaolegal.repositories.roteiro_repository import RoteiroRepository
 from gestaolegal.repositories.user_repository import UserRepository
 from gestaolegal.schemas.caso import CasoSchema
-from gestaolegal.schemas.evento import EventoSchema
 from gestaolegal.services.arquivo_service import ArquivoService
 from gestaolegal.services.atendido_service import AtendidoService
 from gestaolegal.services.evento_service import EventoService
@@ -95,7 +93,7 @@ class CasosService:
         orientador_value = data.get("orientador")
         estagiario_value = data.get("estagiario")
         colaborador_value = data.get("colaborador")
-        
+
         id_orientador = int(orientador_value) if orientador_value else None
         id_estagiario = int(estagiario_value) if estagiario_value else None
         id_colaborador = int(colaborador_value) if colaborador_value else None
@@ -161,7 +159,9 @@ class CasosService:
         where_clauses = []
 
         if termo:
-            where_clauses.append(and_(CasoSchema.id.isnot(None), CasoSchema.id.like(termo + "%")))
+            where_clauses.append(
+                and_(CasoSchema.id.isnot(None), CasoSchema.id.like(termo + "%"))
+            )
 
         page_params = PageParams(page=1, per_page=5) if not termo else None
 
@@ -222,7 +222,6 @@ class CasosService:
             return True
 
         return False
-
 
     def save_arquivo(
         self, arquivo, caso_id: Optional[int] = None, evento_id: Optional[int] = None

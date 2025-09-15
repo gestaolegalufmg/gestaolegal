@@ -1,12 +1,14 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+from gestaolegal.models.base_model import BaseModel
 
 if TYPE_CHECKING:
     from gestaolegal.schemas.roteiro import RoteiroSchema
 
 
 @dataclass(frozen=True)
-class Roteiro:
+class Roteiro(BaseModel):
     id: int
     area_direito: str
     link: str
@@ -14,17 +16,9 @@ class Roteiro:
     def __post_init__(self):
         return
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "id": self.id,
-            "area_direito": self.area_direito,
-            "link": self.link,
-        }
-
-    @staticmethod
-    def from_sqlalchemy(roteiro: "RoteiroSchema") -> "Roteiro":
-        return Roteiro(
-            id=roteiro.id,
-            area_direito=roteiro.area_direito,
-            link=roteiro.link,
-        )
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "RoteiroSchema", shallow: bool = False
+    ) -> "Roteiro":
+        roteiro_items = schema.to_dict()
+        return Roteiro(**roteiro_items)

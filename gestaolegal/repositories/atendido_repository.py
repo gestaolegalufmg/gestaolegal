@@ -1,16 +1,14 @@
 from gestaolegal.models.atendido import Atendido
 from gestaolegal.repositories.base_repository import (
     BaseRepository,
-    ConditionList,
     PageParams,
     PaginatedResult,
+    WhereConditions,
 )
-from gestaolegal.schemas.assistido import AssistidoSchema
-from gestaolegal.schemas.assistido_pessoa_juridica import AssistidoPessoaJuridicaSchema
 from gestaolegal.schemas.atendido import AtendidoSchema
 
 
-class AtendidoRepository(BaseRepository[AtendidoSchema, Atendido]):
+class AtendidoRepository(BaseRepository):
     def __init__(self):
         super().__init__(AtendidoSchema, Atendido)
 
@@ -20,13 +18,15 @@ class AtendidoRepository(BaseRepository[AtendidoSchema, Atendido]):
         search_type: str | None = None,
         page_params: PageParams | None = None,
     ):
-        where_conditions: ConditionList = []
+        where_conditions: WhereConditions = []
         if search_term:
-            where_conditions.extend([
-                ("nome", "ilike", f"%{search_term}%"),
-                ("cpf", "ilike", f"%{search_term}%"),
-                ("cnpj", "ilike", f"%{search_term}%")
-            ])
+            where_conditions.extend(
+                [
+                    ("nome", "ilike", f"%{search_term}%"),
+                    ("cpf", "ilike", f"%{search_term}%"),
+                    ("cnpj", "ilike", f"%{search_term}%"),
+                ]
+            )
 
         if search_type == "assistidos":
             where_conditions.append(("id", "is_not_null", None))
@@ -43,12 +43,14 @@ class AtendidoRepository(BaseRepository[AtendidoSchema, Atendido]):
     def search_assistidos_pfisica(
         self, busca: str, page_params: PageParams | None = None
     ):
-        where_conditions: ConditionList = {
-            "or": [
-                ("nome", "ilike", f"%{busca}%"),
-                ("cpf", "contains", busca),
-            ]
-        }
+        where_conditions: WhereConditions = [
+            {
+                "or": [
+                    ("nome", "ilike", f"%{busca}%"),
+                    ("cpf", "contains", busca),
+                ]
+            }
+        ]
 
         return self.get(
             page_params=page_params,
@@ -59,12 +61,14 @@ class AtendidoRepository(BaseRepository[AtendidoSchema, Atendido]):
     def search_assistidos_pjuridica(
         self, busca: str, page_params: PageParams | None = None
     ):
-        where_conditions: ConditionList = {
-            "or": [
-                ("nome", "contains", busca),
-                ("cpf", "contains", busca),
-            ]
-        }
+        where_conditions: WhereConditions = [
+            {
+                "or": [
+                    ("nome", "contains", busca),
+                    ("cpf", "contains", busca),
+                ]
+            }
+        ]
 
         return self.get(
             page_params=page_params,

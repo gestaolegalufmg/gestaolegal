@@ -1,7 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import or_
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 from gestaolegal.repositories.base_repository import BaseRepository, PageParams
@@ -16,9 +15,7 @@ from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
 from gestaolegal.schemas.usuario import UsuarioSchema
 
 
-class OrientacaoJuridicaRepository(
-    BaseRepository[OrientacaoJuridicaSchema, OrientacaoJuridica]
-):
+class OrientacaoJuridicaRepository(BaseRepository):
     def __init__(self):
         super().__init__(OrientacaoJuridicaSchema, OrientacaoJuridica)
 
@@ -88,7 +85,7 @@ class OrientacaoJuridicaRepository(
         self, termo: str, orientacao_id: str | None = None
     ) -> list[AtendidoSchema]:
         from sqlalchemy import or_
-        
+
         query = self.session.query(AtendidoSchema).filter(AtendidoSchema.status)
 
         if orientacao_id and orientacao_id != "0":
@@ -105,14 +102,13 @@ class OrientacaoJuridicaRepository(
                 or_(
                     AtendidoSchema.nome.ilike(f"%{termo}%"),
                     AtendidoSchema.cpf.ilike(f"%{termo}%"),
-                    AtendidoSchema.cnpj.ilike(f"%{termo}%")
+                    AtendidoSchema.cnpj.ilike(f"%{termo}%"),
                 )
             )
 
         return query.order_by(AtendidoSchema.nome).limit(20).all()
 
     def buscar_orientacoes_por_atendido(self, busca: str, page_params: PageParams):
-        
         query = (
             self.session.query(OrientacaoJuridicaSchema)
             .filter(OrientacaoJuridicaSchema.status)
@@ -128,7 +124,7 @@ class OrientacaoJuridicaRepository(
             .filter(
                 or_(
                     AtendidoSchema.nome.contains(busca),
-                    AtendidoSchema.cpf.contains(busca)
+                    AtendidoSchema.cpf.contains(busca),
                 )
             )
             .order_by(OrientacaoJuridicaSchema.data_criacao.desc())
@@ -231,35 +227,6 @@ class OrientacaoJuridicaRepository(
         except Exception:
             self.session.rollback()
             return False
-
-    def search_by_atendido_name(
-        self, busca: str, page_params: PageParams | None = None
-    ):
-        query = self._create_query()
-        query = query.join(Atendido_xOrientacaoJuridicaSchema).join(AtendidoSchema)
-        query = self._apply_status_filter(query, True)
-
-        where_clauses = [
-            AtendidoSchema.status,
-            AtendidoSchema.nome.ilike(f"%{busca}%"),
-        ]
-
-        for clause in where_clauses:
-            query = query.where(clause)
-
-        query = query.order_by(OrientacaoJuridicaSchema.id)
-
-        total = query.count()
-
-        if page_params:
-            query = query.offset(
-                (page_params["page"] - 1) * page_params["per_page"]
-            ).limit(page_params["per_page"])
-
-        result = query.all()
-        items = [self._build_model(entity) for entity in result]
-
-        return self._create_paginated_result(items, total, page_params)
 
     def _create_paginated_result(self, items, total, page_params):
         from gestaolegal.repositories.base_repository import PaginatedResult

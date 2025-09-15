@@ -1,7 +1,9 @@
 import logging
 from typing import Any, TypeVar
 
-from gestaolegal.forms.plantao.assistencia_juridica_form import AssistenciaJudiciariaForm
+from gestaolegal.forms.plantao.assistencia_juridica_form import (
+    AssistenciaJudiciariaForm,
+)
 from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
 from gestaolegal.repositories.assistencia_judiciaria_repository import (
     AssistenciaJudiciariaRepository,
@@ -111,7 +113,6 @@ class AssistenciaJudiciariaService:
         return self.repository.get_all_with_pagination(page_params)
 
     def get_encaminhar_assistencia_data(self, id_orientacao: int) -> dict[str, Any]:
-        
         try:
             form = AssistenciaJudiciariaForm()
             return {"success": True, "form": form}

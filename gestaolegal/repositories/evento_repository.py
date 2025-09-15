@@ -1,11 +1,15 @@
 from sqlalchemy import desc
 
 from gestaolegal.models.evento import Evento
-from gestaolegal.repositories.base_repository import BaseRepository, ConditionList, PageParams
+from gestaolegal.repositories.base_repository import (
+    BaseRepository,
+    PageParams,
+    WhereConditions,
+)
 from gestaolegal.schemas.evento import EventoSchema
 
 
-class EventoRepository(BaseRepository[EventoSchema, Evento]):
+class EventoRepository(BaseRepository):
     def __init__(self):
         super().__init__(EventoSchema, Evento)
 
@@ -21,7 +25,7 @@ class EventoRepository(BaseRepository[EventoSchema, Evento]):
     def get_eventos_by_caso_with_filter(
         self, caso_id: int, opcao_filtro: str, page_params: PageParams
     ):
-        where_conditions: ConditionList = [("id_caso", "eq", caso_id)]
+        where_conditions: WhereConditions = [("id_caso", "eq", caso_id)]
 
         if opcao_filtro != "todos":
             where_conditions.append(("tipo", "eq", opcao_filtro))
@@ -34,8 +38,8 @@ class EventoRepository(BaseRepository[EventoSchema, Evento]):
         )
 
     def get_evento_by_numero(self, num_evento: int, caso_id: int) -> Evento | None:
-        where_conditions: ConditionList = [
+        where_conditions: WhereConditions = [
             ("num_evento", "eq", num_evento),
-            ("id_caso", "eq", caso_id)
+            ("id_caso", "eq", caso_id),
         ]
         return self.find(where_conditions=where_conditions)

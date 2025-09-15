@@ -27,12 +27,21 @@ class Lembrete:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(lembrete_schema: "LembreteSchema") -> "Lembrete":
-        from gestaolegal.models.caso import Caso
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "LembreteSchema", shallow: bool = False
+    ) -> "Lembrete":
+        lembrete_items = schema.to_dict()
 
-        lembrete_items = lembrete_schema.to_dict()
-        lembrete_items["criador"] = Usuario.from_sqlalchemy(lembrete_schema.criador)
-        lembrete_items["caso"] = Caso.from_sqlalchemy(lembrete_schema.caso)
-        lembrete_items["usuario"] = Usuario.from_sqlalchemy(lembrete_schema.usuario)
+        if not shallow:
+            from gestaolegal.models.caso import Caso
+
+            lembrete_items["criador"] = Usuario.from_sqlalchemy(schema.criador)
+            lembrete_items["caso"] = Caso.from_sqlalchemy(schema.caso, shallow=True)
+            lembrete_items["usuario"] = Usuario.from_sqlalchemy(schema.usuario)
+        else:
+            lembrete_items["criador"] = None
+            lembrete_items["caso"] = None
+            lembrete_items["usuario"] = None
+
         return Lembrete(**lembrete_items)

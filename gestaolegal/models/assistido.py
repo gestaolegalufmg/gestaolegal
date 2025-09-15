@@ -70,16 +70,25 @@ class Assistido(BaseModel):
                 "Os campos pessoa_doente e gastos_medicacao são obrigatórios se doenca_grave_familia for True"
             )
 
-    @staticmethod
-    def from_sqlalchemy(assistido_schema: "AssistidoSchema") -> "Assistido":
-        from gestaolegal.models.assistido_pessoa_juridica import AssistidoPessoaJuridica
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "AssistidoSchema", shallow: bool = False
+    ) -> "Assistido":
+        assistido_items = schema.to_dict()
 
-        assistido_items = assistido_schema.to_dict()
-        assistido_items["assistido_pessoa_juridica"] = (
-            AssistidoPessoaJuridica.from_sqlalchemy(
-                assistido_schema.assistido_pessoa_juridica
+        if not shallow:
+            from gestaolegal.models.assistido_pessoa_juridica import (
+                AssistidoPessoaJuridica,
             )
-            if assistido_schema.assistido_pessoa_juridica
-            else None
-        )
+
+            assistido_items["assistido_pessoa_juridica"] = (
+                AssistidoPessoaJuridica.from_sqlalchemy(
+                    schema.assistido_pessoa_juridica
+                )
+                if schema.assistido_pessoa_juridica
+                else None
+            )
+        else:
+            assistido_items["assistido_pessoa_juridica"] = None
+
         return Assistido(**assistido_items)

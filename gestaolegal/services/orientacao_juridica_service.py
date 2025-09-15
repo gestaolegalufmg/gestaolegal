@@ -29,7 +29,7 @@ class OrientacaoJuridicaService:
         where_clauses = [
             and_(
                 OrientacaoJuridicaSchema.area_direito.isnot(None),
-                OrientacaoJuridicaSchema.area_direito.ilike(f"%{area_do_direito}%")
+                OrientacaoJuridicaSchema.area_direito.ilike(f"%{area_do_direito}%"),
             ),
         ]
 
@@ -102,9 +102,7 @@ class OrientacaoJuridicaService:
             busca, PageParams(page=page, per_page=per_page)
         )
 
-    def update_orientacao_juridica(
-        self, id_oj: int, form
-    ) -> OrientacaoJuridicaSchema:
+    def update_orientacao_juridica(self, id_oj: int, form) -> OrientacaoJuridicaSchema:
         orientacao_data = OrientacaoJuridicaForm.to_dict(form)
         orientacao_data["id"] = id_oj
         orientacao = self.repository.update(id_oj, orientacao_data)

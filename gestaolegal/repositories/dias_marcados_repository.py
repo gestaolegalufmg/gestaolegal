@@ -1,11 +1,9 @@
 from gestaolegal.models.dias_marcados_plantao import DiasMarcadosPlantao
-from gestaolegal.repositories.base_repository import BaseRepository, ConditionList
+from gestaolegal.repositories.base_repository import BaseRepository, WhereConditions
 from gestaolegal.schemas.dias_marcados_plantao import DiasMarcadosPlantaoSchema
 
 
-class DiasMarcadosRepository(
-    BaseRepository[DiasMarcadosPlantaoSchema, DiasMarcadosPlantao]
-):
+class DiasMarcadosRepository(BaseRepository):
     def __init__(self):
         super().__init__(DiasMarcadosPlantaoSchema, DiasMarcadosPlantao)
 
@@ -13,7 +11,7 @@ class DiasMarcadosRepository(
         self, data_inicio: str, data_fim: str, usuarios_ids: list[str] | None = None
     ) -> list[DiasMarcadosPlantao]:
         """Get dias marcados within date range and optionally filtered by users"""
-        where_conditions: ConditionList = [
+        where_conditions: WhereConditions = [
             ("data_marcada", "gte", data_inicio),
             ("data_marcada", "lte", data_fim),
         ]
@@ -32,7 +30,7 @@ class DiasMarcadosRepository(
         self, data_inicio: str, data_fim: str
     ) -> list[DiasMarcadosPlantao]:
         """Get dias marcados within date range for reports"""
-        where_conditions: ConditionList = [
+        where_conditions: WhereConditions = [
             ("data_marcada", "gte", data_inicio),
             ("data_marcada", "lte", data_fim),
         ]

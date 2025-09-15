@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Self
 
 if TYPE_CHECKING:
-    from gestaolegal.schemas.base import Base as BaseSchema
+    pass
 
 
 class BaseModel(ABC):
@@ -27,8 +27,7 @@ class BaseModel(ABC):
             base.pop(field, None)
         return base
 
+    @classmethod
     @abstractmethod
-    @staticmethod
-    def from_sqlalchemy(schema: "BaseSchema") -> Self:
+    def from_sqlalchemy(cls, schema: Any, shallow: bool = False) -> Self:
         pass
-

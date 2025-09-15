@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.usuario import Usuario
 
 if TYPE_CHECKING:
@@ -9,7 +10,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class Notificacao:
+class Notificacao(BaseModel):
     id: int
     id_executor_acao: int | None
     id_usu_notificar: int | None
@@ -22,17 +23,25 @@ class Notificacao:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(notificacao_schema: "NotificacaoSchema") -> "Notificacao":
-        notificacao_items = notificacao_schema.to_dict()
-        notificacao_items["executor_acao"] = (
-            Usuario.from_sqlalchemy(notificacao_schema.executor_acao)
-            if notificacao_schema.executor_acao
-            else None
-        )
-        notificacao_items["usu_notificar"] = (
-            Usuario.from_sqlalchemy(notificacao_schema.usu_notificar)
-            if notificacao_schema.usu_notificar
-            else None
-        )
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "NotificacaoSchema", shallow: bool = False
+    ) -> "Notificacao":
+        notificacao_items = schema.to_dict()
+
+        if not shallow:
+            notificacao_items["executor_acao"] = (
+                Usuario.from_sqlalchemy(schema.executor_acao)
+                if schema.executor_acao
+                else None
+            )
+            notificacao_items["usu_notificar"] = (
+                Usuario.from_sqlalchemy(schema.usu_notificar)
+                if schema.usu_notificar
+                else None
+            )
+        else:
+            notificacao_items["executor_acao"] = None
+            notificacao_items["usu_notificar"] = None
+
         return Notificacao(**notificacao_items)
