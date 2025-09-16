@@ -2,14 +2,16 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+from gestaolegal.models.usuario import Usuario
+
 if TYPE_CHECKING:
     from gestaolegal.models.atendido import Atendido
-    from gestaolegal.models.usuario import Usuario
-    from gestaolegal.schemas.caso import Caso as CasoSchema
+    from gestaolegal.schemas.caso import CasoSchema
 
 
 @dataclass(frozen=True)
-class Caso:
+class Caso(BaseModel):
     id: int
 
     id_usuario_responsavel: int
@@ -42,41 +44,54 @@ class Caso:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(caso: "CasoSchema") -> "Caso":
-        return Caso(
-            id=caso.id,
-            id_usuario_responsavel=caso.id_usuario_responsavel,
-            usuario_responsavel=caso.usuario_responsavel,
-            area_direito=caso.area_direito,
-            sub_area=caso.sub_area,
-            clientes=caso.clientes,
-            id_orientador=caso.id_orientador,
-            orientador=caso.orientador,
-            id_estagiario=caso.id_estagiario,
-            estagiario=caso.estagiario,
-            id_colaborador=caso.id_colaborador,
-            colaborador=caso.colaborador,
-            data_criacao=caso.data_criacao,
-            id_criado_por=caso.id_criado_por,
-            criado_por=caso.criado_por,
-            data_modificacao=caso.data_modificacao,
-            id_modificado_por=caso.id_modificado_por,
-            modificado_por=caso.modificado_por,
-            situacao_deferimento=caso.situacao_deferimento,
-            justif_indeferimento=caso.justif_indeferimento,
-            status=caso.status,
-            descricao=caso.descricao,
-            numero_ultimo_processo=caso.numero_ultimo_processo,
-        )
+    @classmethod
+    def from_sqlalchemy(cls, schema: "CasoSchema", shallow: bool = False) -> "Caso":
+        caso_items = schema.to_dict()
 
-    def set_sub_areas(
-        self, area_direito: str, sub_area: str, sub_area_admin: str
-    ) -> None:
-        """Set sub areas based on the area of law"""
-        if area_direito == "civel":
-            self.sub_area = sub_area
-        elif area_direito == "administrativo":
-            self.sub_area = sub_area_admin
+        if not shallow:
+            from gestaolegal.models.atendido import Atendido
+
+            caso_items["clientes"] = [
+                Atendido.from_sqlalchemy(cliente, shallow=True)
+                for cliente in schema.clientes
+            ]
+            caso_items["usuario_responsavel"] = (
+                Usuario.from_sqlalchemy(schema.usuario_responsavel)
+                if schema.usuario_responsavel
+                else None
+            )
+            caso_items["orientador"] = (
+                Usuario.from_sqlalchemy(schema.orientador)
+                if schema.orientador
+                else None
+            )
+            caso_items["estagiario"] = (
+                Usuario.from_sqlalchemy(schema.estagiario)
+                if schema.estagiario
+                else None
+            )
+            caso_items["colaborador"] = (
+                Usuario.from_sqlalchemy(schema.colaborador)
+                if schema.colaborador
+                else None
+            )
+            caso_items["criado_por"] = (
+                Usuario.from_sqlalchemy(schema.criado_por)
+                if schema.criado_por
+                else None
+            )
+            caso_items["modificado_por"] = (
+                Usuario.from_sqlalchemy(schema.modificado_por)
+                if schema.modificado_por
+                else None
+            )
         else:
-            self.sub_area = None
+            caso_items["clientes"] = []
+            caso_items["usuario_responsavel"] = None
+            caso_items["orientador"] = None
+            caso_items["estagiario"] = None
+            caso_items["colaborador"] = None
+            caso_items["criado_por"] = None
+            caso_items["modificado_por"] = None
+
+        return Caso(**caso_items)

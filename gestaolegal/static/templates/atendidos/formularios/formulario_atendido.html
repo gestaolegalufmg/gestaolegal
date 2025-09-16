@@ -2,12 +2,9 @@
 
 {{ form.csrf_token }}
 
-<!-- Personal Information -->
 {{ form_field(form.nome, required=true) }}
 {{ form_field(form.data_nascimento, field_type="date", required=true) }}
 {{ form_field(form.cpf, field_id="div_cpf", extra_classes="formcpf") }}
-
-
 
 {{ form_field(form.telefone, extra_classes="formtel") }}
 {{ form_field(form.celular, required=true, extra_classes="formcel") }}
@@ -19,11 +16,9 @@
 {{ form_field(form.procurou_qual_local, field_id="div_procurou_qual_local", required=true) }}
 {{ form_field(form.obs_atendido, field_type="textarea") }}
 
-<!-- Legal Entity Information -->
 {{ form_field(form.pj_constituida, required=true) }}
 {{ form_field(form.cnpj, field_id="div_cnpj", extra_classes="formcnpj") }}
 
-<!-- Legal Representative Information -->
 {{ form_field(form.repres_legal, field_id="div_repres_legal", required=true) }}
 {{ form_field(form.nome_repres_legal, field_id="div_nome_repres_legal", required=true) }}
 {{ form_field(form.cpf_repres_legal, field_id="div_cpf_repres_legal", extra_classes="formcpfrepr") }}
@@ -32,8 +27,8 @@
 {{ form_field(form.rg_repres_legal, field_id="div_rg_repres_legal") }}
 {{ form_field(form.pretende_constituir_pj, field_id="div_pretende_constituir_pj") }}
 
-<!-- Address Information -->
 {{ form_section("Endereço") }}
+
 {{ form_field(form.cep, required=true, extra_classes="formcep") }}
 {{ form_field(form.logradouro, required=true) }}
 {{ form_field_split(form.numero, "sem_numero", "Sem número", required=true) }}

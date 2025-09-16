@@ -1,23 +1,23 @@
+from flask_wtf import FlaskForm
 from wtforms import SelectField, SelectMultipleField, StringField, SubmitField
-from wtforms.validators import DataRequired, Email, Length
+from wtforms.validators import Email, InputRequired, Length
 
 from gestaolegal.common.constants import (
     FIELD_LIMITS,
     assistencia_jud_areas_atendidas,
     assistencia_jud_regioes,
 )
+from gestaolegal.forms.plantao.base_form_mixin import BaseFormMixin
 from gestaolegal.forms.usuario import (
-    EnderecoForm,
-    MSG_NaoPodeEstarEmBranco,
-    MSG_SelecioneUmaOpcaoLista,
+    EnderecoFieldsMixin,
 )
 
 
-class AssistenciaJudiciariaForm(EnderecoForm):
+class AssistenciaJudiciariaForm(EnderecoFieldsMixin, BaseFormMixin, FlaskForm):
     nome = StringField(
         "Nome",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O nome")),
+            InputRequired(),
             Length(
                 max=FIELD_LIMITS["nome"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['nome']} caracteres para o nome.",
@@ -53,13 +53,13 @@ class AssistenciaJudiciariaForm(EnderecoForm):
                 assistencia_jud_areas_atendidas["TRABALHISTA"][1],
             ),
         ],
-        validators=[DataRequired("Escolha pelo menos uma área do Direito!")],
+        validators=[InputRequired()],
     )
 
     telefone = StringField(
         "Telefone",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O telefone")),
+            InputRequired(),
             Length(
                 max=FIELD_LIMITS["telefone"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['telefone']} caracteres para o telefone.",
@@ -70,7 +70,7 @@ class AssistenciaJudiciariaForm(EnderecoForm):
     email = StringField(
         "Email",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O email")),
+            InputRequired(),
             Email("Por favor, insira um email válido."),
         ],
     )
@@ -81,7 +81,7 @@ class AssistenciaJudiciariaForm(EnderecoForm):
             (assistencia_jud_regioes[key][0], assistencia_jud_regioes[key][1])
             for key in assistencia_jud_regioes
         ],
-        validators=[DataRequired(MSG_SelecioneUmaOpcaoLista.format("uma região"))],
+        validators=[InputRequired()],
     )
 
     submit = SubmitField("Cadastrar")

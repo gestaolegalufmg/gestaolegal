@@ -196,7 +196,7 @@
     const completedQueue = document.querySelector("#completed-queue");
     
     const todosAtendidos = async () => {
-        let res = await fetch("{{url_for('plantao.pegar_atendimentos')}}", {
+        let res = await fetch("{{url_for('api.pegar_atendimentos_plantao')}}", {
             headers: {
                 'X-CSRF-Token': "{{ csrf_token() }}",
                 'Content-Type': 'application/json'
@@ -234,14 +234,14 @@
             if (isExpanded) {
                 // Hide section
                 completedSection.style.display = "none";
-                completedSection.classList.add("hidden");
+                completedSection.classList.add("hidden-field");
                 toggleText.textContent = "Mostrar atendidos/cancelados";
                 toggleIcon.className = "icon icon-angle-down toggle-icon";
                 button.setAttribute("aria-expanded", "false");
             } else {
                 // Show section
                 completedSection.style.display = "block";
-                completedSection.classList.remove("hidden");
+                completedSection.classList.remove("hidden-field");
                 toggleText.textContent = "Ocultar atendidos/cancelados";
                 toggleIcon.className = "icon icon-angle-up toggle-icon";
                 button.setAttribute("aria-expanded", "true");
@@ -251,7 +251,7 @@
     const buttonsActions = async (button, act) => {
         let atendido = atendidos.filter(item => item.id === parseInt(button.dataset.id))
         atendido[0].status = act;
-        let res = await fetch("{{url_for('plantao.pegar_atendimentos')}}", {
+        let res = await fetch("{{url_for('api.pegar_atendimentos_plantao')}}", {
             method: "PUT",
             headers: {
                 'X-CSRF-Token': "{{ csrf_token() }}",

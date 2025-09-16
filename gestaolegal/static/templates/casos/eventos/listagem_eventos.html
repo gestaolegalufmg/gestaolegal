@@ -7,25 +7,28 @@
   <div class="card-body">
     <div class="card-title">
       <div class="d-flex ml-auto">
-        <div class="ml-auto p-2">
-          <select class="form-control" id="filtro" name="filtro">
-            <option value="{{opcoes_filtro_eventos['TODOS'][0]}}"             >{{opcoes_filtro_eventos['TODOS'][1]}}             </option>
-            <option value="{{opcoes_filtro_eventos['AUDIENCIA'][0]}}"         >{{opcoes_filtro_eventos['AUDIENCIA'][1]}}         </option>
-            <option value="{{opcoes_filtro_eventos['CONTATO'][0]}}"           >{{opcoes_filtro_eventos['CONTATO'][1]}}           </option>
-            <option value="{{opcoes_filtro_eventos['CONCILIACAO'][0]}}"       >{{opcoes_filtro_eventos['CONCILIACAO'][1] }}      </option>
-            <option value="{{opcoes_filtro_eventos['DECISAO_JUDICIAL'][0]}}"  >{{opcoes_filtro_eventos['DECISAO_JUDICIAL'][1]}}  </option>
-            <option value="{{opcoes_filtro_eventos['DILIGENCIA_EXTERNA'][0]}}">{{opcoes_filtro_eventos['DILIGENCIA_EXTERNA'][1]}}</option>
-            <option value="{{opcoes_filtro_eventos['ENCERRAMENTO_CASO'][0]}}" >{{opcoes_filtro_eventos['ENCERRAMENTO_CASO'][1]}} </option>
-            <option value="{{opcoes_filtro_eventos['PROTOCOLO_PETICAO'][0]}}" >{{opcoes_filtro_eventos['PROTOCOLO_PETICAO'][1]}} </option>
-            <option value="{{opcoes_filtro_eventos['REDIST_CASO'][0]}}"       >{{opcoes_filtro_eventos['REDIST_CASO'][1]}}       </option>
-            <option value="{{opcoes_filtro_eventos['REUNIAO'][0]}}"           >{{opcoes_filtro_eventos['REUNIAO'][1]}}           </option>
-            <option value="{{opcoes_filtro_eventos['DOCUMENTOS'][0]}}"           >{{opcoes_filtro_eventos['DOCUMENTOS'][1]}}           </option>
-            <option value="{{opcoes_filtro_eventos['OUTROS'][0]}}"            >{{opcoes_filtro_eventos['OUTROS'][1]}}            </option>
-          </select>
-        </div>
-        <div class="d-flex flex-row p-2">
-          <a href="{{url_for('casos.novo_evento', id_caso = caso_id)}}" class="btn btn-primary ml-auto p-2">Criar Evento</a>
-        </div>
+        <form method="GET" action="{{ url_for('casos.listagem_eventos', id_caso=caso_id) }}" class="search-form d-flex align-items-center">
+          <div class="ml-auto p-2">
+            <select class="form-control" id="filtro" name="opcao_filtro">
+              <option value="{{opcoes_filtro_eventos['TODOS'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['TODOS'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['TODOS'][1]}}</option>
+              <option value="{{opcoes_filtro_eventos['AUDIENCIA'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['AUDIENCIA'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['AUDIENCIA'][1]}}</option>
+              <option value="{{opcoes_filtro_eventos['CONTATO'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['CONTATO'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['CONTATO'][1]}}</option>
+              <option value="{{opcoes_filtro_eventos['CONCILIACAO'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['CONCILIACAO'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['CONCILIACAO'][1]}}</option>
+              <option value="{{opcoes_filtro_eventos['DECISAO_JUDICIAL'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['DECISAO_JUDICIAL'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['DECISAO_JUDICIAL'][1]}}</option>
+              <option value="{{opcoes_filtro_eventos['DILIGENCIA_EXTERNA'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['DILIGENCIA_EXTERNA'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['DILIGENCIA_EXTERNA'][1]}}</option>
+              <option value="{{opcoes_filtro_eventos['ENCERRAMENTO_CASO'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['ENCERRAMENTO_CASO'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['ENCERRAMENTO_CASO'][1]}}</option>
+              <option value="{{opcoes_filtro_eventos['PROTOCOLO_PETICAO'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['PROTOCOLO_PETICAO'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['PROTOCOLO_PETICAO'][1]}}</option>
+              <option value="{{opcoes_filtro_eventos['REDIST_CASO'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['REDIST_CASO'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['REDIST_CASO'][1]}}</option>
+              <option value="{{opcoes_filtro_eventos['REUNIAO'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['REUNIAO'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['REUNIAO'][1]}}</option>
+              <option value="{{opcoes_filtro_eventos['DOCUMENTOS'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['DOCUMENTOS'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['DOCUMENTOS'][1]}}</option>
+              <option value="{{opcoes_filtro_eventos['OUTROS'][0]}}" {% if opcao_filtro == opcoes_filtro_eventos['OUTROS'][0] %}selected{% endif %}>{{opcoes_filtro_eventos['OUTROS'][1]}}</option>
+            </select>
+          </div>
+          <div class="d-flex flex-row p-2">
+            <button type="submit" class="btn btn-primary mr-2">Buscar</button>
+            <a href="{{url_for('casos.novo_evento', id_caso = caso_id)}}" class="btn btn-primary ml-auto p-2">Criar Evento</a>
+          </div>
+        </form>
       </div>
     </div>
     <div id="div_eventos">
@@ -38,28 +41,31 @@
 
 {% block scripts %}
 <script>
-
-    $(document).ready(function() {
-
-        $("#filtro").change(function() {
-
-            $.ajax({
-                method: "GET",
-                url: "{{url_for('casos.ajax_filtro_eventos', id_caso = caso_id)}}",
-                data: {
-                    opcao_filtro: $('#filtro').val()
-                },
-                success: (result) => {
-                    document.getElementById('div_eventos').innerHTML = '';
-                    $('#div_eventos').append(result);
-                }
-            })
-
-        });
-
-        document.getElementById('filtro').value = "{{opcao_filtro}}"
-    });
-
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.querySelector('.search-form');
+    const filtroSelect = document.getElementById('filtro');
     
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(searchForm);
+            const params = new URLSearchParams();
+            
+            for (let [key, value] of formData.entries()) {
+                if (value && value.trim() !== '') {
+                    params.set(key, value);
+                }
+            }
+            
+            window.location.href = searchForm.action + '?' + params.toString();
+        });
+    }
+    
+    if (filtroSelect) {
+        filtroSelect.addEventListener('change', function() {
+            searchForm.submit();
+        });
+    }
+});
 </script>
 {% endblock %}

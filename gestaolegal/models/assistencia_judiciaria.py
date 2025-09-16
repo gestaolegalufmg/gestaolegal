@@ -1,20 +1,23 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+from gestaolegal.models.endereco import Endereco
+from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
+
 if TYPE_CHECKING:
-    from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
-    from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
-    from gestaolegal.schemas.endereco import EnderecoSchema
+    pass
 
 
 @dataclass(frozen=True)
-class AssistenciaJudiciaria:
+class AssistenciaJudiciaria(BaseModel):
     id: int
     nome: str
     regiao: str
     areas_atendidas: str
     endereco_id: int | None
-    endereco: "EnderecoSchema | None"
+    endereco: "Endereco | None"
     telefone: str
     email: str
     status: int
@@ -23,19 +26,23 @@ class AssistenciaJudiciaria:
     def __post_init__(self):
         return
 
-    @staticmethod
+    @classmethod
     def from_sqlalchemy(
-        assistencia_judiciaria: "AssistenciaJudiciariaSchema",
+        cls, schema: "AssistenciaJudiciariaSchema", shallow: bool = False
     ) -> "AssistenciaJudiciaria":
-        return AssistenciaJudiciaria(
-            id=assistencia_judiciaria.id,
-            nome=assistencia_judiciaria.nome,
-            regiao=assistencia_judiciaria.regiao,
-            areas_atendidas=assistencia_judiciaria.areas_atendidas,
-            endereco_id=assistencia_judiciaria.endereco_id,
-            endereco=assistencia_judiciaria.endereco,
-            telefone=assistencia_judiciaria.telefone,
-            email=assistencia_judiciaria.email,
-            status=assistencia_judiciaria.status,
-            orientacoes_juridicas=assistencia_judiciaria.orientacoesJuridicas,
-        )
+        assistencia_judiciaria_items = schema.to_dict()
+
+        if not shallow:
+            assistencia_judiciaria_items["endereco"] = (
+                Endereco.from_sqlalchemy(schema.endereco) if schema.endereco else None
+            )
+            assistencia_judiciaria_items["orientacoes_juridicas"] = [
+                OrientacaoJuridica.from_sqlalchemy(orientacao, shallow=True)
+                for orientacao in schema.orientacoesJuridicas
+                if orientacao is not None
+            ]
+        else:
+            assistencia_judiciaria_items["endereco"] = None
+            assistencia_judiciaria_items["orientacoes_juridicas"] = []
+
+        return AssistenciaJudiciaria(**assistencia_judiciaria_items)

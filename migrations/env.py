@@ -15,6 +15,9 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 # access to the values within the .ini file in use.
 config = context.config
 
+if not config.config_file_name:
+    raise ValueError("config_file_name is required")
+
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class EnderecoSchema(Base):
-    __tablename__: Final = "enderecos"
+    __tablename__ = "enderecos"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     logradouro: Mapped[str] = mapped_column(String(100, collation="latin1_general_ci"))

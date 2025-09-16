@@ -1,8 +1,9 @@
+from typing import Any
+
 from flask_wtf import FlaskForm
 from wtforms import IntegerField, SelectField, StringField, TextAreaField
 from wtforms.validators import (
     AnyOf,
-    DataRequired,
     InputRequired,
     Length,
     NumberRange,
@@ -37,7 +38,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
             (sexo_usuario["OUTROS"][0], sexo_usuario["OUTROS"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format("de Sexo/Gênero")),
+            InputRequired(),
             AnyOf(
                 [sexo_usuario[key][0] for key in sexo_usuario],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -48,7 +49,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
     profissao = StringField(
         "Profissão",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("A profissão")),
+            InputRequired(),
             Length(
                 max=FIELD_LIMITS["profissao"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['profissao']} caracteres para descrever a profissão.",
@@ -67,7 +68,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
             (raca_cor["NAO_DECLARADO"][0], raca_cor["NAO_DECLARADO"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format('"de raça/cor"')),
+            InputRequired(),
             AnyOf(
                 [raca_cor[key][0] for key in raca_cor],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -78,7 +79,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
     rg = StringField(
         "RG",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O RG")),
+            InputRequired(),
             Length(
                 max=FIELD_LIMITS["rg"],
                 message=f"Por favor, use no máximo {FIELD_LIMITS['rg']} caracteres para o RG.",
@@ -112,7 +113,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
             (escolaridade["NAO_INFORMADO"][0], escolaridade["NAO_INFORMADO"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format('de "Grau de instrução"')),
+            InputRequired(),
             AnyOf(
                 [escolaridade[key][0] for key in escolaridade],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -123,7 +124,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
     salario = MyFloatField(
         "Salário",
         validators=[
-            InputRequired(MSG_NaoPodeEstarEmBranco.format("O salário")),
+            InputRequired(),
             NumberRange(
                 min=0,
                 max=9999999999,
@@ -149,9 +150,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
             (beneficio["OUTRO"][0], beneficio["OUTRO"][1]),
         ],
         validators=[
-            DataRequired(
-                MSG_SelecioneUmaOpcaoLista.format('"Recebe algum benefício social?"')
-            ),
+            InputRequired(),
             AnyOf(
                 [beneficio[key][0] for key in beneficio],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -182,11 +181,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
             (contribuicao_inss["NAO_INFO"][0], contribuicao_inss["NAO_INFO"][1]),
         ],
         validators=[
-            DataRequired(
-                MSG_SelecioneUmaOpcaoLista.format(
-                    'de "Contribui para a previdência social"'
-                )
-            ),
+            InputRequired(),
             AnyOf(
                 [contribuicao_inss[key][0] for key in contribuicao_inss],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -197,9 +192,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
     qtd_pessoas_moradia = IntegerField(
         "Quantas pessoas moram com você?",
         validators=[
-            InputRequired(
-                MSG_NaoPodeEstarEmBranco.format("Quantas pessoas moram com você")
-            ),
+            InputRequired(),
             NumberRange(min=0, max=999999999, message="Número inválido de pessoas."),
         ],
     )
@@ -207,9 +200,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
     renda_familiar = MyFloatField(
         "Qual o valor da renda familiar?",
         validators=[
-            InputRequired(
-                MSG_NaoPodeEstarEmBranco.format('"Qual o valor da renda familiar?"')
-            ),
+            InputRequired(),
             NumberRange(
                 min=0, max=999999999, message="Valor da renda familiar inválido."
             ),
@@ -230,11 +221,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
             (participacao_renda["DEPENDENTE"][0], participacao_renda["DEPENDENTE"][1]),
         ],
         validators=[
-            DataRequired(
-                MSG_SelecioneUmaOpcaoLista.format(
-                    'de "Qual a sua posição em relação à renda familiar?"'
-                )
-            ),
+            InputRequired(),
             AnyOf(
                 [participacao_renda[key][0] for key in participacao_renda],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -255,9 +242,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
             (moradia["SITUACAO_DE_RUA"][0], moradia["SITUACAO_DE_RUA"][1]),
         ],
         validators=[
-            DataRequired(
-                MSG_SelecioneUmaOpcaoLista.format('de "A família reside em:"')
-            ),
+            InputRequired(),
             AnyOf(
                 [moradia[key][0] for key in moradia],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -268,13 +253,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
     possui_outros_imoveis = SelectField(
         "A família possui outros imóveis?",
         choices=[(True, "Sim"), (False, "Não")],
-        validators=[
-            InputRequired(
-                MSG_SelecioneUmaOpcaoLista.format(
-                    'de "A família possui outros imóveis?"'
-                )
-            )
-        ],
+        validators=[InputRequired()],
         coerce=bool,
     )
 
@@ -295,11 +274,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
     possui_veiculos = SelectField(
         "A família possui veículos?",
         choices=[(True, "Sim"), (False, "Não")],
-        validators=[
-            InputRequired(
-                MSG_SelecioneUmaOpcaoLista.format('de "A família possui veículos?"')
-            )
-        ],
+        validators=[InputRequired()],
         coerce=bool,
     )
 
@@ -349,11 +324,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
         "Há pessoas com doença grave na família?",
         choices=[("sim", "Sim"), ("nao", "Não"), ("nao_inf", "Não informou")],
         validators=[
-            DataRequired(
-                MSG_SelecioneUmaOpcaoLista.format(
-                    '"Há pessoas com doença grave na família?"'
-                )
-            )
+            InputRequired(),
         ],
     )
 
@@ -683,25 +654,7 @@ class TornarAssistidoForm(FlaskForm, BaseFormMixin):
     #     ],
     # )
 
-    def populate_from_assistido(self, assistido) -> None:
-        self.populate_from_entity(assistido)
-
-        if hasattr(assistido, "possui_outros_imoveis"):
-            self.possui_outros_imoveis.data = assistido.possui_outros_imoveis
-
-        if hasattr(assistido, "possui_veiculos"):
-            self.possui_veiculos.data = assistido.possui_veiculos
-
-    @staticmethod
-    def to_dict(form_instance):
-        exclude_fields = {
-            "submit",
-            "csrf_token",
-        }
-
-        assistido_data = {}
-        for field_name, field in form_instance._fields.items():
-            if field_name not in exclude_fields and hasattr(field, "data"):
-                assistido_data[field_name] = field.data
-
-        return assistido_data
+    def _postprocess_data(self) -> dict[str, Any]:
+        result = dict(self.data)
+        result.pop("submit", None)
+        return result

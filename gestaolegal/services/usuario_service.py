@@ -1,310 +1,214 @@
 import logging
 from datetime import datetime
-from typing import Any, Callable, TypeVar
+from typing import TypeVar
 
+from flask import current_app
 from flask_bcrypt import Bcrypt
-from sqlalchemy.orm import Query
+from itsdangerous import Serializer, URLSafeTimedSerializer
 
+from gestaolegal.common import PageParams
 from gestaolegal.common.constants import UserRole
-from gestaolegal.forms.usuario import EditarUsuarioForm, EnderecoForm
 from gestaolegal.models.usuario import Usuario
-from gestaolegal.schemas.endereco import EnderecoSchema
+from gestaolegal.repositories.user_repository import UserRepository
 from gestaolegal.schemas.usuario import UsuarioSchema
-from gestaolegal.services.base_service import BaseService
+from gestaolegal.services.endereco_service import EnderecoService
 
 T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
 
-class UsuarioService(BaseService[UsuarioSchema, Usuario]):
+class UsuarioService:
+    repository: UserRepository
+    endereco_service: EnderecoService
+
     def __init__(self):
-        super().__init__(UsuarioSchema)
+        self.repository = UserRepository()
+        self.endereco_service = EnderecoService()
 
     def find_by_id(self, id: int) -> Usuario | None:
-        usuario_schema = (
-            self.filter_active(self.session.query(UsuarioSchema))
-            .filter(UsuarioSchema.id == id)
-            .first()
-        )
-        return Usuario.from_sqlalchemy(usuario_schema) if usuario_schema else None
+        return self.repository.find_by_id(id)
 
     def find_by_email(self, email: str) -> Usuario | None:
-        logger.info(f"UsuarioService.find_by_email called for: {email}")
-        usuario_schema = (
-            self.filter_active(self.session.query(UsuarioSchema))
-            .filter(UsuarioSchema.email == email)
-            .first()
-        )
-        return Usuario.from_sqlalchemy(usuario_schema) if usuario_schema else None
+        return self.repository.find_by_field("email", email)
 
     def find_by_id_with_inactive(self, id: int) -> Usuario | None:
-        usuario_schema = (
-            self.session.query(UsuarioSchema).filter(UsuarioSchema.id == id).first()
-        )
-        return Usuario.from_sqlalchemy(usuario_schema) if usuario_schema else None
+        return self.repository.find_by_id(id, active_only=False)
 
     def find_by_email_with_inactive(self, email: str) -> Usuario | None:
-        usuario_schema = (
-            self.session.query(UsuarioSchema)
-            .filter(UsuarioSchema.email == email)
-            .first()
-        )
-        return Usuario.from_sqlalchemy(usuario_schema) if usuario_schema else None
+        return self.repository.find_by_field("email", email, active_only=False)
 
-    def get_all(self, paginator: Callable[..., Any] | None = None):
-        query = self.filter_active(self.session.query(UsuarioSchema)).order_by(
-            UsuarioSchema.nome
+    def get_all(self, page_params: PageParams | None = None):
+        return self.repository.get_all(
+            page_params=page_params, order_by=UsuarioSchema.nome
         )
 
-        if paginator:
-            result = paginator(query)
-            if hasattr(result, "items"):
-                result.items = [Usuario.from_sqlalchemy(item) for item in result.items]
-                return result
-            else:
-                return [Usuario.from_sqlalchemy(item) for item in result]
-
-        usuarios_schema = query.all()
-        return [Usuario.from_sqlalchemy(usuario) for usuario in usuarios_schema]
-
-    def search_by_str(self, string: str, paginator: Callable[..., Any] | None = None):
-        result = (
-            self.session.query(UsuarioSchema)
-            .filter(UsuarioSchema.nome.ilike(f"%{string}%"))
-            .order_by(UsuarioSchema.nome)
-        )
-
-        if paginator:
-            paginated_result = paginator(result)
-            if hasattr(paginated_result, "items"):
-                paginated_result.items = [
-                    Usuario.from_sqlalchemy(item) for item in paginated_result.items
-                ]
-                return paginated_result
-            else:
-                return [Usuario.from_sqlalchemy(item) for item in paginated_result]
-
-        usuarios_schema = result.all()
-        return [Usuario.from_sqlalchemy(usuario) for usuario in usuarios_schema]
+    def search_by_name(self, string: str, page_params: PageParams | None = None):
+        return self.repository.search_by_name(string, page_params)
 
     def search_users_by_filters(
         self,
         valor_busca: str = "",
         funcao: str = "all",
         status: str = "1",
-        paginator: Callable[..., Any] | None = None,
+        page_params: PageParams | None = None,
     ):
-        query = self.session.query(UsuarioSchema)
+        return self.repository.search(valor_busca, funcao, status, page_params)
 
-        if funcao != "all":
-            query = query.filter(UsuarioSchema.urole == funcao)
+    def get_users_by_filters(
+        self, funcao: str | None = None, status: str | None = None
+    ):
+        """Get users filtered by role and status - simplified logic"""
+        filters = {}
 
-        query = query.filter(UsuarioSchema.status == (status == "1"))
+        if status:
+            filters["status"] = status == "1"
 
-        if valor_busca:
-            query = query.filter(UsuarioSchema.nome.ilike(f"%{valor_busca}%"))
+        if funcao and funcao != "all":
+            filters["urole"] = funcao
 
-        query = query.order_by(UsuarioSchema.nome)
-
-        if paginator:
-            result = paginator(query)
-            if hasattr(result, "items"):
-                result.items = [Usuario.from_sqlalchemy(item) for item in result.items]
-                return result
-            else:
-                return [Usuario.from_sqlalchemy(item) for item in result]
-
-        usuarios = query.all()
-        return [Usuario.from_sqlalchemy(usuario) for usuario in usuarios]
-
-    def get_users_by_filters_ajax(self, funcao: str = None, status: str = None):
-        """Get users by filters for AJAX requests"""
-        if funcao and status:
-            if funcao != "all":
-                usuarios = self.session.query(UsuarioSchema).filter(
-                    UsuarioSchema.urole == funcao,
-                    UsuarioSchema.status == (status == "1"),
-                )
-            else:
-                usuarios = self.session.query(UsuarioSchema).filter(
-                    UsuarioSchema.status == (status == "1")
-                )
-        else:
-            if status:
-                usuarios = self.session.query(UsuarioSchema).filter(
-                    UsuarioSchema.status == (status == "1")
-                )
-            else:
-                usuarios = self.session.query(UsuarioSchema).filter(
-                    UsuarioSchema.status
-                )
-
-        usuarios = usuarios.all()
-        return [Usuario.from_sqlalchemy(usuario) for usuario in usuarios]
+        return self.repository.get_all(filters=filters)
 
     def authenticate_user(self, email: str, senha: str) -> Usuario | None:
-        logger.info(f"UsuarioService.authenticate_user called for: {email}")
-        usuario_schema = (
-            self.session.query(UsuarioSchema).filter_by(email=email).first()
-        )
-        if usuario_schema:
-            usuario = Usuario.from_sqlalchemy(usuario_schema)
-            if Usuario.checa_senha(usuario, senha):
-                logger.info(f"User authenticated successfully: {email}")
-                return usuario
-            else:
-                logger.warning(f"Invalid password for user: {email}")
-        else:
-            logger.warning(f"User not found: {email}")
+        usuario = self.repository.find_by_field("email", email)
+        if not usuario:
+            logger.info(f"User not found: {email}")
+            return None
+
+        if self.check_password(usuario, senha):
+            logger.info(f"User authenticated successfully: {email}")
+            return usuario
+
+        logger.warning(f"Invalid password for user: {email}")
         return None
 
-    def create_user(
-        self, user_data: dict, endereco_data: dict, criado_por: int
-    ) -> Usuario:
-        logger.info(
-            f"UsuarioService.create_user called for: {user_data.get('email', 'Unknown')}"
-        )
-        entidade_endereco = EnderecoSchema(**endereco_data)
-        self.session.add(entidade_endereco)
-        self.session.flush()
+    def check_password(self, usuario: Usuario, senha: str) -> bool:
+        bcrypt = Bcrypt()
+        return bcrypt.check_password_hash(usuario.senha, senha)
 
-        user_data["endereco_id"] = entidade_endereco.id
+    def create(self, user_data: dict, criado_por: int) -> Usuario:
+        user_data.pop("csrf_token")
+        endereco_data = {
+            "logradouro": user_data.pop("logradouro"),
+            "numero": user_data.pop("numero"),
+            "complemento": user_data.pop("complemento"),
+            "bairro": user_data.pop("bairro"),
+            "cep": user_data.pop("cep"),
+        }
+        endereco = self.endereco_service.create_or_update_from_data(endereco_data)
+
+        if "bolsista" in user_data:
+            user_data["bolsista"] = user_data["bolsista"]
+            if user_data["bolsista"]:
+                user_data["inicio_bolsa"] = user_data.get("inicio_bolsa")
+                user_data["fim_bolsa"] = user_data.get("fim_bolsa")
+                user_data["tipo_bolsa"] = user_data.get("tipo_bolsa")
+            else:
+                user_data["inicio_bolsa"] = None
+                user_data["fim_bolsa"] = None
+                user_data["tipo_bolsa"] = None
+
+        user_data["endereco_id"] = endereco.id
         user_data["criado"] = datetime.now()
         user_data["criadopor"] = criado_por
         user_data["status"] = True
 
-        entidade_usuario_schema = UsuarioSchema(**user_data)
-
         bcrypt = Bcrypt()
-        entidade_usuario_schema.senha = bcrypt.generate_password_hash(
-            user_data["senha"]
-        ).decode("utf-8")
+
+        user_data["senha"] = bcrypt.generate_password_hash(user_data["senha"]).decode(
+            "utf-8"
+        )
+
+        return self.repository.create(user_data)
+
+    def update(
+        self, user_id: int, user_data: dict, modificado_por: int | None
+    ) -> Usuario | None:
+        usuario = self.repository.find_by_id(user_id)
+        if not usuario:
+            raise ValueError(f"Usuario with id {user_id} not found")
+
+        user_data.pop("csrf_token")
+        endereco_data = {
+            "logradouro": user_data.pop("logradouro"),
+            "numero": user_data.pop("numero"),
+            "complemento": user_data.pop("complemento"),
+            "bairro": user_data.pop("bairro"),
+            "cep": user_data.pop("cep"),
+        }
+
+        endereco = self.endereco_service.create_or_update_from_data(
+            endereco_data, usuario.endereco_id
+        )
+        user_data["endereco_id"] = endereco.id
 
         if "bolsista" in user_data:
-            entidade_usuario_schema.bolsista = user_data["bolsista"]
+            user_data["bolsista"] = user_data["bolsista"]
             if user_data["bolsista"]:
-                entidade_usuario_schema.inicio_bolsa = user_data.get("inicio_bolsa")
-                entidade_usuario_schema.fim_bolsa = user_data.get("fim_bolsa")
-                entidade_usuario_schema.tipo_bolsa = user_data.get("tipo_bolsa")
+                user_data["inicio_bolsa"] = user_data.get("inicio_bolsa")
+                user_data["fim_bolsa"] = user_data.get("fim_bolsa")
+                user_data["tipo_bolsa"] = user_data.get("tipo_bolsa")
             else:
-                entidade_usuario_schema.inicio_bolsa = None
-                entidade_usuario_schema.fim_bolsa = None
-                entidade_usuario_schema.tipo_bolsa = None
+                user_data["inicio_bolsa"] = None
+                user_data["fim_bolsa"] = None
+                user_data["tipo_bolsa"] = None
 
-        self.session.add(entidade_usuario_schema)
-        self.session.commit()
+        if "senha" in user_data and (
+            user_data["senha"] is None or user_data["senha"] == ""
+        ):
+            user_data.pop("senha")
 
-        # Return the model object
-        return Usuario.from_sqlalchemy(entidade_usuario_schema)
+        user_data["modificado"] = datetime.now()
+        user_data["modificadopor"] = modificado_por
 
-    def create_user_from_form(self, form, criado_por: int) -> Usuario:
-        user_data = EditarUsuarioForm.to_dict(form)
-        endereco_data = EnderecoForm.to_dict(form)
+        return self.repository.update(user_id, user_data)
 
-        return self.create_user(user_data, endereco_data, criado_por)
-
-    def update_user(
-        self, user_id: int, user_data: dict, endereco_data: dict, modificado_por: int
-    ) -> Usuario | None:
-        usuario_schema = self.session.get(UsuarioSchema, user_id)
-        if not usuario_schema:
-            return None
-
-        for key, value in user_data.items():
-            if hasattr(usuario_schema, key):
-                setattr(usuario_schema, key, value)
-
-        if not usuario_schema.endereco:
-            entidade_endereco = EnderecoSchema(**endereco_data)
-            self.session.add(entidade_endereco)
-            self.session.flush()
-            usuario_schema.endereco = entidade_endereco
-        else:
-            for key, value in endereco_data.items():
-                if hasattr(usuario_schema.endereco, key):
-                    setattr(usuario_schema.endereco, key, value)
-
-        # Update modification fields
-        usuario_schema.modificado = datetime.now()
-        usuario_schema.modificadopor = modificado_por
-
-        self.session.commit()
-        return Usuario.from_sqlalchemy(usuario_schema)
-
-    def update_user_from_form(
-        self, user_id: int, form, modificado_por: int
-    ) -> Usuario | None:
-        user_data = EditarUsuarioForm.to_dict(form)
-        endereco_data = EnderecoForm.to_dict(form)
-
-        return self.update_user(user_id, user_data, endereco_data, modificado_por)
-
-    def update_password(self, user_id: int, new_password: str) -> bool:
-        """Update user password"""
-        usuario_schema = self.session.get(UsuarioSchema, user_id)
-        if not usuario_schema:
-            return False
-
-        usuario = Usuario.from_sqlalchemy(usuario_schema)
-        usuario.setSenha(new_password)
-        self.session.commit()
-        return True
-
-    def update_password_admin(self, user_id: int, new_password: str) -> bool:
-        """Update user password by admin"""
-        usuario_schema = self.session.get(UsuarioSchema, user_id)
-        if not usuario_schema:
+    def update_password(
+        self, user_id: int, new_password: str, from_admin: bool = False
+    ) -> bool:
+        if not self.repository.find_by_id(user_id):
             return False
 
         bcrypt = Bcrypt()
-        usuario_schema.senha = bcrypt.generate_password_hash(new_password)
-        usuario_schema.chave_recuperacao = False
-        self.session.commit()
-        return True
+        update_data = {
+            "senha": bcrypt.generate_password_hash(new_password).decode("utf-8")
+        }
 
-    def deactivate_user(self, user_id: int) -> bool:
-        """Deactivate a user"""
-        usuario_schema = self.session.get(UsuarioSchema, user_id)
-        if not usuario_schema:
-            return False
+        if from_admin:
+            update_data["chave_recuperacao"] = False
 
-        usuario_schema.status = False
-        self.session.commit()
-        return True
+        return self.repository.update(user_id, update_data) is not None
+
+    def soft_delete(self, user_id: int) -> bool:
+        return self.repository.soft_delete(user_id)
 
     def set_password_recovery(self, email: str) -> bool:
-        """Set password recovery flag for user"""
-        usuario_schema = (
-            self.session.query(UsuarioSchema).filter_by(email=email).first()
-        )
-        if not usuario_schema:
+        usuario = self.repository.find(where_conditions=[("email", "eq", email)])
+        if not usuario:
             return False
 
-        usuario_schema.chave_recuperacao = True
-        self.session.commit()
-        return True
+        return (
+            self.repository.update(usuario.id, {"chave_recuperacao": True}) is not None
+        )
 
     def reset_password_with_token(self, token: str, new_password: str) -> bool:
-        """Reset password using recovery token"""
-        usuario = Usuario.verificaToken(token)
-        if not usuario or not usuario.chave_recuperacao:
+        try:
+            s = Serializer(current_app.config["SECRET_KEY"])
+            user_id = s.loads(token)["user_id"]
+            usuario = self.repository.find_by_id(user_id)
+
+            if not usuario or not usuario.chave_recuperacao:
+                return False
+
+            bcrypt = Bcrypt()
+            update_data = {
+                "senha": bcrypt.generate_password_hash(new_password).decode("utf-8"),
+                "chave_recuperacao": False,
+            }
+
+            return self.repository.update(usuario.id, update_data) is not None
+        except Exception:
             return False
-
-        bcrypt = Bcrypt()
-        usuario_schema = self.session.get(UsuarioSchema, usuario.id)
-        usuario_schema.senha = bcrypt.generate_password_hash(new_password)
-        usuario_schema.chave_recuperacao = False
-        self.session.commit()
-        return True
-
-    def validate_email_unique(self, email: str, current_email: str = None) -> bool:
-        """Validate if email is unique (excluding current user if updating)"""
-        query = self.session.query(UsuarioSchema).filter_by(email=email)
-        if current_email and email != current_email:
-            existing_user = query.first()
-            return existing_user is None
-        return True
 
     def validate_user_permissions(
         self,
@@ -313,7 +217,6 @@ class UsuarioService(BaseService[UsuarioSchema, Usuario]):
         current_user_role: UserRole,
         admin_padrao_id: int,
     ) -> tuple[bool, str]:
-        """Validate if current user can edit the target user"""
         if (
             current_user_role not in [UserRole.ADMINISTRADOR, UserRole.PROFESSOR]
             and current_user_id != user_id
@@ -326,18 +229,28 @@ class UsuarioService(BaseService[UsuarioSchema, Usuario]):
         return True, ""
 
     def validate_user_status(self, user_id: int) -> tuple[bool, str]:
-        """Validate if user exists and is active"""
-        usuario_schema = self.session.get(UsuarioSchema, user_id)
-        if not usuario_schema:
+        usuario = self.repository.find_by_id(user_id)
+        if not usuario:
             return False, "Usuário não encontrado."
 
-        if not usuario_schema.status:
+        if not usuario.status:
             return False, "Este usuário está inativo."
 
         return True, ""
 
+    def token_recovery(self, user_id: int, expires_in: int = 3600) -> str:
+        s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+        return s.dumps({"user_id": user_id}, salt="recovery")
+
+    def verify_token(self, token: str, max_age: int = 3600) -> Usuario | None:
+        s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+        try:
+            user_id = s.loads(token, salt="recovery", max_age=max_age)["user_id"]
+        except:
+            return None
+        return self.repository.find_by_id(user_id)
+
     def validate_password(self, senha: str) -> tuple[bool, str]:
-        """Validate password strength"""
         caracteresEspeciais = [".", ",", ";", "@", "#"]
 
         if len(senha) < 6:
@@ -360,5 +273,19 @@ class UsuarioService(BaseService[UsuarioSchema, Usuario]):
 
         return True, ""
 
-    def filter_active(self, query: Query[T]) -> Query[T]:
-        return query.filter(UsuarioSchema.status)
+    def process_login(self, login: str, senha: str) -> Usuario:
+        usuario = self.authenticate_user(login, senha)
+        if not usuario:
+            raise ValueError("Login ou senha inválidos")
+        return usuario
+
+    def process_password_recovery(self, email: str) -> bool:
+        if not self.set_password_recovery(email):
+            raise ValueError("Email não encontrado no sistema")
+        return True
+
+    def validate_password_reset_token(self, token: str) -> Usuario:
+        usuario = self.verify_token(token)
+        if not usuario or not usuario.chave_recuperacao:
+            raise ValueError("Token inválido ou expirado")
+        return usuario

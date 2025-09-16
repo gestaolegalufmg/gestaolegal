@@ -49,7 +49,12 @@ ol, ul {
 
 a {
   color: inherit;
-  text-decoration: none !important;
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
 }
 
 img {

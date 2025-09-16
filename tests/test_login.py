@@ -33,7 +33,7 @@ def test_login_wrong_password_failure(page) -> None:
     page.locator("div").filter(has_text="Atenção:Senha inválida!").nth(2)
 
 
-def test_login_wrong_password_failure(page) -> None:
+def test_login_wrong_password_failure_2(page) -> None:
     page.goto("/usuario/login")
     page.locator("#login").click()
     page.locator("#login").fill("admin@gl.com")

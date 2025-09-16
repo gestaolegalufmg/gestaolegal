@@ -1,5 +1,5 @@
 from datetime import date
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
 from sqlalchemy import BigInteger, Boolean, Date, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class ProcessoSchema(Base):
-    __tablename__: Final = "processos"
+    __tablename__ = "processos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     especie: Mapped[str] = mapped_column(

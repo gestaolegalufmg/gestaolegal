@@ -39,6 +39,10 @@ py-modules = []
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 
+[dependency-groups]
+dev = [
+]
+
 [project.optional-dependencies]
 dev = [
     "pytest-base-url>=2.1.0",

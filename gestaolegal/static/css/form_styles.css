@@ -1,21 +1,50 @@
-/* ==========================================================================
-   Form Styles
-   ========================================================================== */
+:root {
+    --form-bg-subtle: #fafafa;
+    --form-bg-default: var(--color-white, #ffffff);
+    --form-bg-hover: #f8f9fa;
+    --form-bg-focus: var(--color-white, #ffffff);
+    
+    --form-border-default: #d1d5db;
+    --form-border-hover: #9ca3af;
+    --form-border-focus: var(--color-primary);
+    --form-border-error: var(--color-danger, #dc3545);
+    --form-border-light: #e9ecef;
+    
+    --form-border-width: 1px;
+    --form-border-width-thick: 2px;
+    --form-border-style: solid;
+    --form-border-radius: 0.25rem;
+    --form-border-radius-large: 0.5rem;
+    
+    --form-shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --form-shadow-default: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --form-shadow-hover: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --form-shadow-focus: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    --form-shadow-modal: 0 4px 6px rgba(0, 0, 0, 0.1);
+    
+    --form-outline-width: 20px;
+    --form-outline-style: solid;
+    --form-outline-color: transparent;
+    --form-outline-offset: 2px;
+    
+    --form-transition-duration: 0.2s;
+    --form-transition-timing: ease;
+    --form-transition-properties: border-color, box-shadow, background-color;
+}
 
-/* Form Container Styles */
 .form-container {
-    background: var(--color-white, #ffffff);
-    border-radius: 0.5rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: var(--form-bg-default);
+    border-radius: var(--form-border-radius-large);
+    box-shadow: var(--form-shadow-default);
     overflow: hidden;
-    border: 1px solid var(--color-border, #e9ecef);
+    border: var(--form-border-width) var(--form-border-style) var(--form-border-light);
     margin-bottom: 1.5rem;
 }
 
 .form-header {
     background-color: color-mix(in srgb, var(--color-primary) 10%, white 90%);
     padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid var(--color-border, #e9ecef);
+    border-bottom: var(--form-border-width) var(--form-border-style) var(--form-border-light);
 }
 
 .form-content {
@@ -27,10 +56,9 @@
     gap: 0.75rem;
     margin-top: 1.5rem;
     padding-top: 1.5rem;
-    border-top: 1px solid var(--color-border, #e9ecef);
+    border-top: var(--form-border-width) var(--form-border-style) var(--form-border-light);
 }
 
-/* Form Field Styles */
 .form-field {
     margin-bottom: 1.25rem;
 }
@@ -75,6 +103,11 @@
 
 .field-input-checkbox input[type="checkbox"] {
     margin: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    appearance: auto;
+    -webkit-appearance: checkbox;
+    -moz-appearance: checkbox;
 }
 
 .field-input-checkbox label {
@@ -90,37 +123,110 @@
     display: block;
 }
 
-/* Form Input Styles */
-.form-input {
+.invalid-feedback {
+    color: var(--color-danger, #dc3545);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.is-invalid {
+    border-color: var(--form-border-error) !important;
+    box-shadow: 0 0 0 0.125rem rgba(220, 53, 69, 0.1);
+}
+
+
+.form-container input[type="text"],
+.form-container input[type="email"],
+.form-container input[type="password"],
+.form-container input[type="number"],
+.form-container input[type="tel"],
+.form-container input[type="url"],
+.form-container input[type="search"],
+.form-container input[type="date"],
+.form-container input[type="datetime-local"],
+.form-container input[type="time"],
+.form-container input[type="month"],
+.form-container input[type="week"],
+.form-container input[type="file"],
+.form-container select,
+.form-container textarea {
     width: 100%;
     padding: 0.5rem 0.75rem;
-    border: 1px solid var(--color-border, #dddddd);
-    border-radius: 0.25rem;
+    border: var(--form-border-width) var(--form-border-style) var(--form-border-default);
+    border-radius: var(--form-border-radius);
     font-size: 0.875rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    height: 2.375rem;
+    transition: var(--form-transition-properties) var(--form-transition-duration) var(--form-transition-timing);
     box-sizing: border-box;
+    background-color: var(--form-bg-subtle);
 }
 
-.form-input:focus {
-    outline: 2px solid transparent;
-    outline-offset: 2px;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+.form-container input[type="text"],
+.form-container input[type="email"],
+.form-container input[type="password"],
+.form-container input[type="number"],
+.form-container input[type="tel"],
+.form-container input[type="url"],
+.form-container input[type="search"],
+.form-container input[type="date"],
+.form-container input[type="datetime-local"],
+.form-container input[type="time"],
+.form-container input[type="month"],
+.form-container input[type="week"],
+.form-container input[type="file"],
+.form-container select {
+    height: 2.375rem;
 }
 
-.form-input[type="textarea"] {
+.form-container textarea {
     min-height: 5rem;
     height: auto;
     resize: vertical;
-    padding: 0.5rem 0.75rem;
 }
 
-/* Form Section Styles */
+.form-container input[type="text"]:hover,
+.form-container input[type="email"]:hover,
+.form-container input[type="password"]:hover,
+.form-container input[type="number"]:hover,
+.form-container input[type="tel"]:hover,
+.form-container input[type="url"]:hover,
+.form-container input[type="search"]:hover,
+.form-container input[type="date"]:hover,
+.form-container input[type="datetime-local"]:hover,
+.form-container input[type="time"]:hover,
+.form-container input[type="month"]:hover,
+.form-container input[type="week"]:hover,
+.form-container input[type="file"]:hover,
+.form-container select:hover,
+.form-container textarea:hover {
+    border-color: var(--form-border-hover);
+}
+
+.form-container input[type="text"]:focus,
+.form-container input[type="email"]:focus,
+.form-container input[type="password"]:focus,
+.form-container input[type="number"]:focus,
+.form-container input[type="tel"]:focus,
+.form-container input[type="url"]:focus,
+.form-container input[type="search"]:focus,
+.form-container input[type="date"]:focus,
+.form-container input[type="datetime-local"]:focus,
+.form-container input[type="time"]:focus,
+.form-container input[type="month"]:focus,
+.form-container input[type="week"]:focus,
+.form-container input[type="file"]:focus,
+.form-container select:focus,
+.form-container textarea:focus {
+    background-color: var(--form-bg-focus);
+    border-color: var(--form-border-focus);
+    box-shadow: var(--form-shadow-focus);
+    outline: var(--form-outline-width) var(--form-outline-style) var(--form-outline-color);
+    outline-offset: var(--form-outline-offset);
+}
+
 .form-section {
     margin: 2rem 0 1.25rem 0;
     padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--color-border, #e9ecef);
+    border-bottom: var(--form-border-width-thick) var(--form-border-style) var(--form-border-light);
 }
 
 .form-section h3 {
@@ -135,7 +241,6 @@
     font-weight: 600;
 }
 
-/* Modal Styles */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -161,13 +266,13 @@
 }
 
 .modal-content {
-    background: var(--color-white, #ffffff);
-    border-radius: 0.5rem;
+    background: var(--form-bg-default);
+    border-radius: var(--form-border-radius-large);
     max-width: 42.5rem; /* 680px */
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--form-shadow-modal);
 }
 
 .modal-header {
@@ -225,7 +330,6 @@
     gap: 0.75rem;
 }
 
-/* Radio Option Styles */
 .radio-option {
     display: flex;
     align-items: flex-start;
@@ -260,7 +364,6 @@
     margin: 0.25rem 0 0 0;
 }
 
-/* Checkbox Option Styles */
 .checkbox-option {
     display: flex;
     justify-content: center;
@@ -279,7 +382,6 @@
     margin: 0;
 }
 
-/* Loading Spinner Styles */
 .loading-spinner {
     display: flex;
     align-items: center;
@@ -302,7 +404,6 @@
     100% { transform: rotate(360deg); }
 }
 
-/* Password Display Styles */
 .password-display {
     display: flex;
     flex-direction: column;
@@ -330,7 +431,7 @@
     margin-top: 0.5rem;
     padding: 0.75rem;
     background-color: var(--color-background-light, #f8f9fa);
-    border-radius: 0.25rem;
+    border-radius: var(--form-border-radius);
     border-left: 3px solid var(--color-primary);
 }
 
@@ -357,7 +458,6 @@
     display: none;
 }
 
-/* Responsive Design */
 @media (max-width: 48rem) { /* 768px */
     .field-row {
         flex-direction: column;

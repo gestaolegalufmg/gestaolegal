@@ -8,8 +8,8 @@
     <div class="card-body">
         <form class="form" action="" method="POST" id="form" enctype="multipart/form-data">
             {{form.hidden_tag()}}
-            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('casos.api_casos_buscar_usuario', _external=True)}}">
-            <input type="hidden" id="apiCasosBuscarCasos" value="{{url_for('casos.api_casos_buscar_casos', _external=True)}}">
+            <input type="hidden" id="apiCasosBuscarUsuario" value="{{url_for('api.casos_buscar_usuario', _external=True)}}">
+            <input type="hidden" id="apiCasosBuscarCasos" value="{{url_for('api.casos_buscar_casos', _external=True)}}">
 
             {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_EXTERNO.value, UserRole.ORIENTADOR.value, UserRole.ESTAGIARIO_DIREITO.value] %}           
             <div class="form-group row">
@@ -47,23 +47,25 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/native_select.js')}}"></script>
     <script>
     
-    $(document).ready(function(){
+    document.addEventListener('DOMContentLoaded', function(){
     
-    $('#usuario-js').select2({
+    // Initialize native select for usuario
+    const usuarioSelect = new NativeSelect(document.getElementById('usuario-js'), {
         ajax: {
-            url: $('#apiCasosBuscarUsuario').val(),
-            dataType: 'json',
+            url: document.getElementById('apiCasosBuscarUsuario').value,
+            delay: 500,
+            params: {}
         },
-        delay: 500,
         placeholder: '{{usuario}}',
+        allowClear: true,
         width: '100%'
     })
 
-    $('#usuario-js').on('change', function(){
-        $('#usuarios').val($('#usuario-js').val());
+    document.getElementById('usuario-js').addEventListener('change', function(){
+        document.getElementById('usuarios').value = document.getElementById('usuario-js').value;
     });
 
 })

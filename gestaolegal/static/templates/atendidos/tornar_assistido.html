@@ -3,69 +3,66 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/form_styles.css') }}">
-<style>
-    input[type=number]::webkit-inner-spin-button,
-    input[type=number]::webkit-outer-spin-button {
-        -webkit-appearence: none !important;
-        margin: 0 !important;
-    }
-
-    input[type=number] {
-        -moz-appearance: textfield;
-    }
-</style>
 {% endblock %}
 
 {% block conteudo %}
-<div class="card pessoa" id = "pessoa">
-    <div class="card-body">
-        <h2>{{atendido.nome.capitalize()}}</h2>
-        <div class= "form-validation">
-            <form class="form-valide" action="{{url_for('atendido.tornar_assistido', id_atendido = atendido.id)}}" method="POST" id="form">
-                {% include "atendidos/formularios/formulario_assistido.html" %}       
-                
-                <button type="submit" class="btn btn-primary" id="button">Tornar Assistido</button>
-            </form>
+<div class="form-container" id="pessoa">
+    <div class="form-content" style="padding-top: 0;">
+        <form class="cadastro-form" action="{{url_for('atendido.tornar_assistido', id_atendido = atendido.id)}}" method="POST" id="form" novalidate>
+            {% include "atendidos/formularios/formulario_assistido.html" %}
             
-        </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="button">Tornar Assistido</button>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{url_for('static',filename='js/form_utils.js')}}"></script>
-<script src="{{url_for('static',filename='js/assistidoForm_utils.js')}}"></script>
+<script src="{{url_for('static',filename='js/form_utilities.js')}}"></script>
 <script>
-
-    trataBotaoForm();
-    //CHAMO AS FUNCOES DE VISIBILIDADE
-    visibilidadePossui_veiculos()
-    visibilidadePossui_imoveis()
-    visibilidadeRecebe_beneficio()
-    visibilidadeDoenca_grave_familia("{{qual_pessoa_doente['OUTROS'][1]}}")
-    visibilidadePessoaDoenteOBS("{{qual_pessoa_doente['OUTROS'][1]}}")
-    assistido_visibilidadePjConstituida("{{atendido.pj_constituida}}")
-    visibilidadeSede_bh()
-    visibilidadeTem_funcionarios()
-    visibilidadeSocios()
-    
-    ////LINKO A FUNÇAO DE VISIBILIDADE AO CAMPO QUE ALTERA ESTA FUNCAO
-    document.getElementById('possui_veiculos').onchange = function() {visibilidadePossui_veiculos()};
-    document.getElementById('possui_outros_imoveis').onchange = function() {visibilidadePossui_imoveis()};
-    document.getElementById('beneficio').onchange = function() {visibilidadeRecebe_beneficio()};
-    document.getElementById('doenca_grave_familia').onchange = function() {visibilidadeDoenca_grave_familia("{{qual_pessoa_doente['OUTROS'][1]}}")};
-    document.getElementById('pessoa_doente').onchange = function(){visibilidadePessoaDoenteOBS("{{qual_pessoa_doente['OUTROS'][1]}}")};
-    document.getElementById('sede_bh').onchange = function() {visibilidadeSede_bh()};
-    document.getElementById('tem_funcionarios').onchange = function() {visibilidadeTem_funcionarios()};
-    document.getElementById('enquadramento').onchange = function(){visibilidadeSocios()};
-
-
-//Função que remove efeitos no tipo Number
-    document.addEventListener("wheel", function (event) {
-    if (document.activeElement.type === "number") {
-        document.activeElement.blur();
-    }
-    })
-
+    document.addEventListener('DOMContentLoaded', function() {
+        FormUtils.initializeFormWithValidation({
+            formId: 'form',
+            buttonId: 'button',
+            masks: [
+                {
+                    selector: '#rg',
+                    pattern: FormUtils.MASK_PATTERNS.CPF
+                }
+            ],
+            conditionalFields: [
+                {
+                    triggerId: 'possui_veiculos',
+                    fieldsToToggle: ['div_possui_veiculos_obs', 'div_quantos_veiculos', 'div_ano_veiculo'],
+                    condition: (trigger) => trigger.value === 'True'
+                },
+                {
+                    triggerId: 'possui_outros_imoveis',
+                    fieldsToToggle: ['div_quantos_imoveis'],
+                    condition: (trigger) => trigger.value === 'True'
+                },
+                {
+                    triggerId: 'beneficio',
+                    fieldsToToggle: ['div_qual_beneficio'],
+                    condition: (trigger) => trigger.value === 'outro'
+                },
+                {
+                    triggerId: 'doenca_grave_familia',
+                    fieldsToToggle: ['div_pessoa_doente'],
+                    condition: (trigger) => trigger.value === 'sim'
+                },
+                {
+                    triggerId: 'pessoa_doente',
+                    fieldsToToggle: ['div_pessoa_doente_obs'],
+                    condition: (trigger) => trigger.options[trigger.selectedIndex]?.text === '{{qual_pessoa_doente["OUTROS"][1]}}'
+                }
+            ],
+            dateRanges: [],
+            preventWheel: true,
+            enableValidation: true
+        });
+    });
 </script>
 {%endblock%}
