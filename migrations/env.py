@@ -6,7 +6,6 @@ import sys
 from logging.config import fileConfig
 
 from alembic import context
-from flask import current_app
 from sqlalchemy import engine_from_config, pool
 
 # Add the parent directory to the Python path
@@ -24,12 +23,10 @@ if not config.config_file_name:
 fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
 
-# Import your models here
-from gestaolegal.models import *
+from gestaolegal.database import get_database_uri
 from gestaolegal.schemas.base import Base
 
-# Get the database URL from your Flask app config
-config.set_main_option("sqlalchemy.url", current_app.config["SQLALCHEMY_DATABASE_URI"])
+config.set_main_option("sqlalchemy.url", get_database_uri())
 target_metadata = Base.metadata
 
 
