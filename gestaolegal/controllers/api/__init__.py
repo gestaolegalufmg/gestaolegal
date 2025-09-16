@@ -5,9 +5,9 @@ from flask import Blueprint, current_app, flash, jsonify, redirect, request, url
 from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect
 
+from gestaolegal.common import PageParams
 from gestaolegal.common.constants import UserRole, situacao_deferimento, tipo_evento
 from gestaolegal.common.constants.atendido import TipoBusca
-from gestaolegal.common import PageParams
 from gestaolegal.services.assistencia_judiciaria_service import (
     AssistenciaJudiciariaService,
 )

@@ -2,13 +2,15 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+
 if TYPE_CHECKING:
     from gestaolegal.models.atendido import Atendido
     from gestaolegal.schemas.fila_atendidos import FilaAtendidosSchema
 
 
 @dataclass(frozen=True)
-class FilaAtendidos:
+class FilaAtendidos(BaseModel):
     id: int
     psicologia: int
     prioridade: int

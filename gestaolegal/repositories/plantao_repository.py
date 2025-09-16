@@ -5,7 +5,7 @@ from gestaolegal.repositories.base_repository import BaseRepository
 from gestaolegal.schemas.plantao import PlantaoSchema
 
 
-class PlantaoRepository(BaseRepository):
+class PlantaoRepository(BaseRepository[PlantaoSchema, Plantao]):
     def __init__(self):
         super().__init__(PlantaoSchema, Plantao)
 

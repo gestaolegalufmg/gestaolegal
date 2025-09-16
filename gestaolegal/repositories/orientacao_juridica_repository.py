@@ -15,7 +15,9 @@ from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
 from gestaolegal.schemas.usuario import UsuarioSchema
 
 
-class OrientacaoJuridicaRepository(BaseRepository):
+class OrientacaoJuridicaRepository(
+    BaseRepository[OrientacaoJuridicaSchema, OrientacaoJuridica]
+):
     def __init__(self):
         super().__init__(OrientacaoJuridicaSchema, OrientacaoJuridica)
 

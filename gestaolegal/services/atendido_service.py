@@ -1,10 +1,11 @@
 import logging
 
+from gestaolegal.common import PageParams
 from gestaolegal.common.constants.atendido import TipoBusca
 from gestaolegal.models.assistido import Assistido
 from gestaolegal.models.atendido import Atendido
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
-from gestaolegal.repositories.base_repository import BaseRepository, PageParams
+from gestaolegal.repositories.base_repository import BaseRepository, WhereConditions
 from gestaolegal.schemas.assistido import AssistidoSchema
 from gestaolegal.services.endereco_service import EnderecoService
 
@@ -12,6 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 class AtendidoService:
+    repository: AtendidoRepository
+    assistido_repository: BaseRepository[AssistidoSchema, Assistido]
+    endereco_service: EnderecoService
+
     def __init__(self):
         self.repository = AtendidoRepository()
         self.assistido_repository = BaseRepository(AssistidoSchema, Assistido)
@@ -27,7 +32,7 @@ class AtendidoService:
         return self.repository.search(valor_busca, search_type, page_params)
 
     def find_by_email(self, email: str) -> Atendido | None:
-        return self.repository.find_by_field("email", email)
+        return self.repository.find(where_conditions=[("email", "eq", email)])
 
     def find_by_id(self, atendido_id: int) -> Atendido | None:
         return self.repository.find_by_id(atendido_id)
@@ -35,8 +40,8 @@ class AtendidoService:
     def get_by_ids(self, atendido_ids: list[int]) -> list[Atendido]:
         if not atendido_ids:
             return []
-        where_clauses = [self.repository.model_class.id.in_(atendido_ids)]
-        result = self.repository.get_all(where_clauses=where_clauses)
+        where_clauses: WhereConditions = [("id", "in", atendido_ids)]
+        result = self.repository.get(where_conditions=where_clauses)
         return result.items
 
     def create(self, atendido_data: dict) -> Atendido:
@@ -135,7 +140,7 @@ class AtendidoService:
                 f"Final atendido_data keys before creating atendido: {list(atendido_data.keys())}"
             )
             logger.info("Creating endereco...")
-            endereco = self.endereco_service.create(endereco_data)
+            endereco = self.endereco_service.create_or_update_from_data(endereco_data)
             logger.info(f"Created endereco with ID: {endereco.id}")
 
             atendido_data["endereco_id"] = endereco.id
@@ -155,7 +160,9 @@ class AtendidoService:
         if self.repository.find_by_id(atendido_id):
             raise ValueError(f"Atendido with id {atendido_id} not found")
 
-        if self.assistido_repository.find_by_field("id_atendido", atendido_id):
+        if self.assistido_repository.find(
+            where_conditions=[("id_atendido", "eq", atendido_id)]
+        ):
             raise ValueError(f"Assistido with id {atendido_id} already exists")
 
         assistido_data["id_atendido"] = atendido_id
@@ -171,7 +178,9 @@ class AtendidoService:
         if not atendido:
             raise ValueError(f"Atendido with id {id_atendido} not found")
 
-        assistido = self.assistido_repository.find_by_field("id_atendido", id_atendido)
+        assistido = self.assistido_repository.find(
+            where_conditions=[("id_atendido", "eq", id_atendido)]
+        )
         if not assistido:
             raise ValueError(
                 f"No assistido found for this atendido with id {id_atendido}"
@@ -187,13 +196,10 @@ class AtendidoService:
             "cidade": atendido_data.pop("cidade"),
             "estado": atendido_data.pop("estado"),
         }
-        if atendido.endereco_id:
-            self.endereco_service.create_or_update_from_data(
-                endereco_data, atendido.endereco_id
-            )
-        else:
-            endereco = self.endereco_service.create(endereco_data)
-            atendido_data["endereco_id"] = endereco.id
+
+        self.endereco_service.create_or_update_from_data(
+            endereco_data, atendido.endereco_id
+        )
 
         self.repository.update(atendido.id, atendido_data)
         updated_assistido = self.assistido_repository.update(
@@ -201,5 +207,5 @@ class AtendidoService:
         )
         return updated_assistido
 
-    def soft_delete(self, atendido_id: int) -> Atendido:
+    def soft_delete(self, atendido_id: int) -> bool:
         return self.repository.soft_delete(atendido_id)

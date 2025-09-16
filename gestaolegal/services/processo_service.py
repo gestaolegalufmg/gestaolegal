@@ -11,13 +11,16 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessoService:
+    repository: BaseRepository[ProcessoSchema, Processo]
+    caso_repository: CasoRepository
+
     def __init__(self):
         self.repository = BaseRepository(ProcessoSchema, Processo)
         self.caso_repository = CasoRepository()
 
     def create(self, processo_data: dict) -> Processo:
-        existing_processo = self.repository.find_by_field(
-            "numero", processo_data["numero"]
+        existing_processo = self.repository.find(
+            where_conditions=[("numero", "eq", processo_data["numero"])]
         )
         if existing_processo:
             raise ValueError("O número deste processo já está cadastrado no sistema")
@@ -32,10 +35,12 @@ class ProcessoService:
         return self.repository.find_by_id(processo_id)
 
     def get_processo_by_numero(self, numero_processo: int) -> Optional[Processo]:
-        return self.repository.find_by_field("numero", numero_processo)
+        return self.repository.find(
+            where_conditions=[("numero", "eq", numero_processo)]
+        )
 
     def get_processos_by_caso(self, caso_id: int) -> list[Processo]:
-        result = self.repository.get_by_fields({"id_caso": caso_id})
+        result = self.repository.get(where_conditions=[("id_caso", "eq", caso_id)])
         return result.items
 
     def update_processo(
@@ -56,8 +61,8 @@ class ProcessoService:
 
         self.repository.delete(processo_id)
 
-    def get_ultimo_processo_numero(self, caso_id: int) -> Optional[int]:
-        result = self.repository.get_by_fields({"id_caso": caso_id})
+    def get_ultimo_processo_numero(self, caso_id: int) -> int | None:
+        result = self.repository.get(where_conditions=[("id_caso", "eq", caso_id)])
         if result.items:
             return result.items[-1].numero
         return None
@@ -79,7 +84,7 @@ class ProcessoService:
         return False
 
     def update_ultimo_processo_dos_casos(self) -> None:
-        casos = self.caso_repository.get_all()
+        casos = self.caso_repository.get()
 
         for caso in casos.items:
             processos = self.get_processos_by_caso(caso.id)

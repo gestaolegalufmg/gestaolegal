@@ -1,7 +1,15 @@
-from operator import and_, or_
-from typing import Any, Generic, Literal, Sequence, TypedDict, TypeGuard, TypeVar, cast
+from collections.abc import Sequence
+from typing import Any, Generic, Literal, TypeGuard, TypeVar, cast
 
-from sqlalchemy import BinaryExpression, Column, UnaryExpression, asc, desc
+from sqlalchemy import (
+    Column,
+    ColumnElement,
+    UnaryExpression,
+    and_,
+    asc,
+    desc,
+    or_,
+)
 from sqlalchemy.orm import Query
 
 from gestaolegal.common import PageParams
@@ -43,13 +51,13 @@ QueryOperation = (
     | str
 )
 
-OrderableColumn = Column | UnaryExpression | str
+OrderableColumn = Column[Any] | UnaryExpression[Any] | str
 OrderByList = list[OrderableColumn] | OrderableColumn | None
 
 
 ExpressionOperator = Literal["and", "or"]
 
-SimpleCondition = tuple[str, str, Any]
+SimpleCondition = tuple[str, str, Any]  # basedpyright: ignore[reportExplicitAny]
 ConditionWithOperator = dict[ExpressionOperator, list[SimpleCondition]]
 WhereConditions = list[ConditionWithOperator | SimpleCondition]
 
@@ -77,7 +85,9 @@ class BaseRepository(Generic[SchemaType, ModelType]):
         self._has_status_field = _has_status(self.schema_class)
         self._delete_mode = delete_mode
 
-    def _apply_status_filter(self, query: Query, active_only: bool = True) -> Query:
+    def _apply_status_filter(
+        self, query: Query[SchemaType], active_only: bool = True
+    ) -> Query[SchemaType]:
         if active_only and hasattr(self.schema_class, "status"):
             return query.filter(self.schema_class.status)  # type: ignore[attr-defined]
         return query
@@ -101,7 +111,7 @@ class BaseRepository(Generic[SchemaType, ModelType]):
                 where_conditions = [where_conditions]
             query = self._apply_where(query, where_conditions)
 
-        if order_by:
+        if order_by is not None:
             query = self._apply_order(query, order_by, order_desc)
 
         total = query.count()
@@ -171,13 +181,13 @@ class BaseRepository(Generic[SchemaType, ModelType]):
 
     def update(
         self, id: int, data: dict[str, Any], active_only: bool = True
-    ) -> ModelType | None:
+    ) -> ModelType:
         query = self._create_query(id)
         query = self._apply_status_filter(query, active_only)
         entity = query.first()
 
         if not entity:
-            return None
+            raise ValueError(f"Entity with id {id} not found")
 
         for key, value in data.items():
             if hasattr(entity, key):
@@ -188,15 +198,15 @@ class BaseRepository(Generic[SchemaType, ModelType]):
 
     def delete(
         self, id: int, hard_delete: bool = False, active_only: bool = True
-    ) -> bool | None:
+    ) -> bool:
         query = self._create_query(id)
         query = self._apply_status_filter(query, active_only)
         entity = query.first()
 
         if not entity:
-            return False
+            raise ValueError(f"Entity with id {id} not found")
 
-        if hard_delete or not self._has_status_field:
+        if not hasattr(entity, "status") or hard_delete:
             self.session.delete(entity)
         else:
             entity.status = False
@@ -221,7 +231,7 @@ class BaseRepository(Generic[SchemaType, ModelType]):
         self.session.commit()
         return True
 
-    def _create_query(self, id: int | None = None) -> Query:
+    def _create_query(self, id: int | None = None) -> Query[SchemaType]:
         query = self.session.query(self.schema_class)
         if id:
             if not hasattr(self.schema_class, "id"):
@@ -249,15 +259,15 @@ class BaseRepository(Generic[SchemaType, ModelType]):
         return cast(ModelType, self.model_class.from_sqlalchemy(primary_schema))
 
     def _apply_order(
-        self, query: Query, order_by: OrderByList, order_desc: bool
-    ) -> Query:
-        if not order_by:
+        self, query: Query[SchemaType], order_by: OrderByList, order_desc: bool
+    ) -> Query[SchemaType]:
+        if order_by is None:
             return query
 
         if not isinstance(order_by, Sequence):
             order_by = [order_by]
 
-        order_expressions = []
+        order_expressions: list[ColumnElement[Any]] = []
 
         for column in order_by:
             if isinstance(column, UnaryExpression):
@@ -269,17 +279,13 @@ class BaseRepository(Generic[SchemaType, ModelType]):
 
         return query.order_by(*order_expressions)
 
-    def _apply_where(self, query: Query, where_conditions: WhereConditions) -> Query:
+    def _apply_where(
+        self, query: Query[SchemaType], where_conditions: WhereConditions
+    ) -> Query[SchemaType]:
         if not where_conditions:
             return query
 
-        condition_list = (
-            where_conditions
-            if isinstance(where_conditions, list)
-            else [where_conditions]
-        )
-
-        for condition in condition_list:
+        for condition in where_conditions:
             if isinstance(condition, dict):
                 operator = list(condition.keys())[0]
                 conditions = condition[operator]
@@ -304,9 +310,9 @@ class BaseRepository(Generic[SchemaType, ModelType]):
 
         return query
 
-    def _build_expression(self, condition: SimpleCondition) -> BinaryExpression:
+    def _build_expression(self, condition: SimpleCondition) -> ColumnElement[bool]:
         column, query_operator, value = condition
-        column_ref = getattr(self.schema_class, column)  # type: ignore[attr-defined]
+        column_ref: ColumnElement[Any] = getattr(self.schema_class, column)
 
         if query_operator == "eq":
             return column_ref == value

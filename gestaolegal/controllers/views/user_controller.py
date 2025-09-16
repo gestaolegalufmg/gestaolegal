@@ -13,13 +13,13 @@ from flask import (
 )
 from flask_login import current_user, login_user, logout_user
 
+from gestaolegal.common import PageParams
 from gestaolegal.common.constants import UserRole
 from gestaolegal.forms.usuario import (
     CadastrarUsuarioForm,
     EditarSenhaForm,
     EditarUsuarioForm,
 )
-from gestaolegal.common import PageParams
 from gestaolegal.services.usuario_service import UsuarioService
 from gestaolegal.utils.decorators import login_required
 

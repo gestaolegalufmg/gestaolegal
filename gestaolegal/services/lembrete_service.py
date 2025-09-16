@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 
 
 class LembreteService:
+    repository: BaseRepository[LembreteSchema, Lembrete]
+
     def __init__(self):
         self.repository = BaseRepository(LembreteSchema, Lembrete)
 
@@ -41,11 +43,10 @@ class LembreteService:
         return self.repository.create(lembrete_data)
 
     def get_lembretes_by_caso(self, caso_id: int) -> list[Lembrete]:
-        result = self.repository.get_by_fields(
-            {
-                "id_caso": caso_id,
-                "status": True,
-            },
+        result = self.repository.get(
+            where_conditions=[
+                ("id_caso", "eq", caso_id),
+            ],
             order_by="data_criacao",
             order_desc=True,
         )
@@ -57,13 +58,11 @@ class LembreteService:
     def get_lembrete_by_numero(
         self, caso_id: int, num_lembrete: int
     ) -> Lembrete | None:
-        return self.repository.find_by_field(
-            "num_lembrete",
-            num_lembrete,
-            {
-                "id_caso": caso_id,
-                "status": True,
-            },
+        return self.repository.find(
+            where_conditions=[
+                ("num_lembrete", "eq", num_lembrete),
+                ("id_caso", "eq", caso_id),
+            ]
         )
 
     def update_lembrete(
@@ -89,4 +88,4 @@ class LembreteService:
         if not lembrete:
             raise ValueError("Lembrete não encontrado")
 
-        return self.repository.delete(lembrete_id)
+        self.repository.delete(lembrete_id)

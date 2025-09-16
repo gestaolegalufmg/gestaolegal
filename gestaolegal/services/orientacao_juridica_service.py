@@ -1,57 +1,54 @@
 import json
 import logging
 
-from sqlalchemy import and_
-
+from gestaolegal.common import PageParams
 from gestaolegal.forms.plantao.orientacao_juridica_form import (
     OrientacaoJuridicaForm,
 )
-from gestaolegal.common import PageParams
+from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
+from gestaolegal.repositories.base_repository import WhereConditions
 from gestaolegal.repositories.orientacao_juridica_repository import (
     OrientacaoJuridicaRepository,
 )
-from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
+from gestaolegal.services import PaginatedResult
 from gestaolegal.services.atendido_service import AtendidoService
 
 logger = logging.getLogger(__name__)
 
 
 class OrientacaoJuridicaService:
+    repository: OrientacaoJuridicaRepository
+
     def __init__(self):
         self.repository = OrientacaoJuridicaRepository()
 
-    def find_by_id(self, id: int) -> OrientacaoJuridicaSchema | None:
+    def find_by_id(self, id: int) -> OrientacaoJuridica | None:
         return self.repository.find_by_id(id)
 
     def get_by_area_do_direito(
         self, area_do_direito: str, page_params: PageParams | None = None
-    ) -> list[OrientacaoJuridicaSchema]:
-        where_clauses = [
-            and_(
-                OrientacaoJuridicaSchema.area_direito.isnot(None),
-                OrientacaoJuridicaSchema.area_direito.ilike(f"%{area_do_direito}%"),
-            ),
+    ) -> PaginatedResult[OrientacaoJuridica]:
+        where_clauses: WhereConditions = [
+            ("area_direito", "ilike", f"%{area_do_direito}%"),
         ]
 
-        return self.repository.get_all(
-            where_clauses=where_clauses,
+        return self.repository.get(
+            where_conditions=where_clauses,
             order_by="data_criacao",
             order_desc=True,
             page_params=page_params,
         )
 
     def get_all(self, page_params: PageParams | None = None):
-        return self.repository.get_all_with_pagination(page_params)
+        return self.repository.get(page_params=page_params)
 
     def soft_delete(self, id: int):
         return self.repository.soft_delete(id)
 
-    def create(self, orientacao_data: dict) -> OrientacaoJuridicaSchema:
+    def create(self, orientacao_data: dict) -> OrientacaoJuridica:
         return self.repository.create(orientacao_data)
 
-    def create_orientacao_with_atendidos(
-        self, form, request
-    ) -> OrientacaoJuridicaSchema:
+    def create_orientacao_with_atendidos(self, form, request) -> OrientacaoJuridica:
         orientacao_data = OrientacaoJuridicaForm.to_dict(form)
 
         lista_atendidos = request.form.get("lista_atendidos")
@@ -91,7 +88,7 @@ class OrientacaoJuridicaService:
             orientacao_id, assistencia_id
         )
 
-    def get_perfil_data(self, orientacao_id: int) -> dict:
+    def get_perfil_data(self, orientacao_id: int):
         return self.repository.get_perfil_data(orientacao_id)
 
     def buscar_atendidos(self, termo: str, orientacao_id: str | None = None):
@@ -102,7 +99,7 @@ class OrientacaoJuridicaService:
             busca, PageParams(page=page, per_page=per_page)
         )
 
-    def update_orientacao_juridica(self, id_oj: int, form) -> OrientacaoJuridicaSchema:
+    def update_orientacao_juridica(self, id_oj: int, form) -> OrientacaoJuridica:
         orientacao_data = OrientacaoJuridicaForm.to_dict(form)
         orientacao_data["id"] = id_oj
         orientacao = self.repository.update(id_oj, orientacao_data)

@@ -18,7 +18,9 @@ filtro_busca_assistencia_judiciaria = assistencia_jud_areas_atendidas.copy()
 filtro_busca_assistencia_judiciaria["TODAS"] = ("todas", "Todas")
 
 
-class AssistenciaJudiciariaRepository(BaseRepository):
+class AssistenciaJudiciariaRepository(
+    BaseRepository[AssistenciaJudiciariaSchema, AssistenciaJudiciaria]
+):
     def __init__(self):
         super().__init__(AssistenciaJudiciariaSchema, AssistenciaJudiciaria)
 

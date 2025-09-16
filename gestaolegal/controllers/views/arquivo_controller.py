@@ -11,9 +11,10 @@ from flask import (
     url_for,
 )
 
+from gestaolegal.common import PageParams
 from gestaolegal.common.constants import UserRole
 from gestaolegal.forms.arquivo import ArquivoForm
-from gestaolegal.common import PageParams
+from gestaolegal.services.arquivo_service import ArquivoService
 from gestaolegal.utils.decorators import login_required
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ def index():
     page = request.args.get("page", 1, type=int)
     search = request.args.get("search", "").strip()
 
-    result = arquivo_service.get(
+    result = arquivo_service.search_by_titulo(
         search,
         page_params=PageParams(
             page=page, per_page=current_app.config["ARQUIVOS_POR_PAGINA"]
