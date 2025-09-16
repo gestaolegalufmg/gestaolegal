@@ -1,50 +1,75 @@
-(function($) {
-	$.fn.shorten = function (settings) {
-	
-		var config = {
-			showChars: 100,
-			ellipsesText: "...",
-			moreText: "Ver mais",
-			lessText: "Ver menos"
-		};
+// Native JavaScript implementation of jQuery shorten plugin
+window.TextShortener = {
+    config: {
+        showChars: 100,
+        ellipsesText: "...",
+        moreText: "Ver mais",
+        lessText: "Ver menos"
+    },
 
-		if (settings) {
-			$.extend(config, settings);
-		}
-		
-		$(document).off("click", '.morelink');
-		
-		$(document).on({click: function () {
+    init: function(settings) {
+        if (settings) {
+            Object.assign(this.config, settings);
+        }
+        
+        // Remove existing event listeners
+        document.removeEventListener("click", this.handleClick);
+        
+        // Add new event listener
+        document.addEventListener("click", this.handleClick.bind(this));
+    },
 
-				var $this = $(this);
-				if ($this.hasClass('less')) {
-					$this.removeClass('less');
-					$this.html(config.moreText);
-				} else {
-					$this.addClass('less');
-					$this.html(config.lessText);
-				}
-				$this.parent().prev().toggle();
-				$this.prev().toggle();
-				return false;
-			}
-		}, '.morelink');
+    handleClick: function(event) {
+        if (event.target.classList.contains('morelink')) {
+            event.preventDefault();
+            
+            const link = event.target;
+            const moreContent = link.closest('.morecontent');
+            const moreEllipses = moreContent.previousElementSibling;
+            
+            if (link.classList.contains('less')) {
+                link.classList.remove('less');
+                link.textContent = this.config.moreText;
+                moreEllipses.style.display = 'inline';
+                moreContent.querySelector('span').style.display = 'none';
+            } else {
+                link.classList.add('less');
+                link.textContent = this.config.lessText;
+                moreEllipses.style.display = 'none';
+                moreContent.querySelector('span').style.display = 'inline';
+            }
+        }
+    },
 
-		return this.each(function () {
-			var $this = $(this);
-			if($this.hasClass("shortened")) return;
-			
-			$this.addClass("shortened");
-			var content = $this.html();
-			if (content.length > config.showChars) {
-				var c = content.substr(0, config.showChars);
-				var h = content.substr(config.showChars, content.length - config.showChars);
-				var html = c + '<span class="moreellipses">' + config.ellipsesText + ' </span><span class="morecontent"><span>' + h + '</span> <a href="#" class="morelink">' + config.moreText + '</a></span>';
-				$this.html(html);
-				$(".morecontent span").hide();
-			}
-		});
-		
-	};
+    shorten: function(element, settings) {
+        const config = Object.assign({}, this.config);
+        if (settings) {
+            Object.assign(config, settings);
+        }
+        
+        if (element.classList.contains("shortened")) return;
+        
+        element.classList.add("shortened");
+        const content = element.innerHTML;
+        
+        if (content.length > config.showChars) {
+            const c = content.substr(0, config.showChars);
+            const h = content.substr(config.showChars, content.length - config.showChars);
+            const html = c + '<span class="moreellipses">' + config.ellipsesText + ' </span><span class="morecontent"><span style="display: none;">' + h + '</span> <a href="#" class="morelink">' + config.moreText + '</a></span>';
+            element.innerHTML = html;
+        }
+    }
+};
 
- })(jQuery);
+// Auto-initialize on DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+    TextShortener.init();
+});
+
+// Helper function to shorten text (similar to jQuery usage)
+window.shortenText = function(selector, settings) {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(element => {
+        TextShortener.shorten(element, settings);
+    });
+};

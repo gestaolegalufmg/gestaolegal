@@ -1,25 +1,27 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+
 if TYPE_CHECKING:
     from gestaolegal.schemas.arquivo import ArquivoSchema
 
 
 @dataclass(frozen=True)
-class Arquivo:
+class Arquivo(BaseModel):
     id: int
     titulo: str
     descricao: str | None
     nome: str
 
+    blob: bytes | None = None
+
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(arquivo: "ArquivoSchema") -> "Arquivo":
-        return Arquivo(
-            id=arquivo.id,
-            titulo=arquivo.titulo,
-            descricao=arquivo.descricao,
-            nome=arquivo.nome,
-        )
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "ArquivoSchema", shallow: bool = False
+    ) -> "Arquivo":
+        arquivo_items = schema.to_dict()
+        return Arquivo(**arquivo_items)

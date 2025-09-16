@@ -29,13 +29,13 @@ def register_atendido(page: Page):
 
 def test_register_atendido_required_fields(auth_page: Page):
     register_atendido(auth_page)
-    expect(auth_page).to_have_url(re.compile(r"/atendido/perfil_assistido/\d+"))
+    expect(auth_page).to_have_url(re.compile(r"/atendido/visualizar_atendido/\d+"))
 
 
 # TODO(Andre): Also check the inner card fields, not just the title
 def test_view_atendido_profile(auth_page: Page):
     register_atendido(auth_page)
-    auth_page.goto("/atendido/perfil_assistido/1")
+    auth_page.goto("/atendido/visualizar_atendido/1")
 
     expect(auth_page.get_by_text("Dados de Atendimento")).to_be_visible()
     expect(auth_page.get_by_text("Endereço")).to_be_visible()
@@ -46,7 +46,7 @@ def test_view_atendido_profile(auth_page: Page):
 
 def test_assistido_info_should_not_be_visible_on_atendido_page(auth_page: Page):
     register_atendido(auth_page)
-    auth_page.goto("/atendido/perfil_assistido/1")
+    auth_page.goto("/atendido/visualizar_atendido/1")
     expect(auth_page.get_by_text("Dados de Assistido")).to_be_hidden()
     expect(auth_page.get_by_text("Renda e Patrimônio")).to_be_hidden()
     expect(auth_page.get_by_text("Casos Vinculados")).to_be_hidden()

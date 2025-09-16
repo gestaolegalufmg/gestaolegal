@@ -51,6 +51,7 @@
     <link rel="stylesheet" href="{{url_for('static',filename='css/styles.css')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='css/utilities.css')}}">
     <link rel="stylesheet" href="{{url_for('static',filename='css/modal_styles.css')}}">
+    <link rel="stylesheet" href="{{url_for('static',filename='css/notifications.css')}}">
     <link rel='shortcut icon' type='image/x-icon' href="{{url_for('static', filename='imgs_daj/gestao_legal_home.png')}}" />
 
     {% include 'atendidos/componentes/sistema_cores.html' %}
@@ -135,7 +136,7 @@
         .dropdown__menu {
             position: absolute;
             top: 100%;
-            left: 0;
+            right: 0;
             background: var(--color-white);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
@@ -145,6 +146,7 @@
             transition: var(--transition);
             z-index: 1000;
             overflow: hidden;
+            width: 160px;
         }
 
         .dropdown__menu.show {
@@ -242,6 +244,8 @@
         }
 
         .nav__link:hover {
+            text-decoration: none;
+            color: var(--color-white);
             background-color: var(--nav-hover-bg);
         }
 
@@ -420,7 +424,7 @@
         }
 
         /* Mobile */
-        @media (max-width: 1024px) {
+        @media (max-width: 1200px) {
             .app {
                 grid-template: "header" var(--header-h) "main" 1fr / 1fr;
             }
@@ -758,12 +762,12 @@
                 {{ nav_link('usuario.listar_usuarios', 'Gestão de Usuários', 'user') }}
                 
                 {% call nav_dropdown('plantao', 'Plantão', 'globe') %}
-                    {{ submenu_item('plantao.pg_plantao', 'Página do Plantão') }}
-                    {{ submenu_item('plantao.reg_presenca', 'Registro de Presença') }}
-                    {% if current_user.urole in [ UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.COLAB_PROJETO.value ] %}
+                    <!-- {{ submenu_item('plantao.pg_plantao', 'Página do Plantão') }} -->
+                    <!-- {{ submenu_item('plantao.reg_presenca', 'Registro de Presença') }} -->
+                    <!-- {% if current_user.urole in [ UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.COLAB_PROJETO.value ] %}
                     {{ submenu_item('plantao.confirmar_presenca', 'Confirmar Presença', tabindex="0") }}
-                    {% endif %}
-                    {{ submenu_item('atendido.atendidos_assistidos', 'Atendidos e Assistidos', tabindex="0") }}
+                    {% endif %} -->
+                    {{ submenu_item('atendido.listagem_atendidos', 'Atendidos e Assistidos', tabindex="0") }}
                     {{ submenu_item('plantao.fila_atendimento', 'Fila de atendimento', tabindex="0") }}
                     {{ submenu_item('orientacao_juridica.orientacoes_juridicas', 'Orientações Jurídicas', tabindex="0") }}
                     {{ submenu_item('assistencia_judiciaria.listar_assistencias_judiciarias', 'Assistências Judiciárias', tabindex="0") }}
@@ -776,11 +780,11 @@
                     {% endif %}
                     {{ submenu_item('casos.index', 'Gestão de Casos', tabindex="0") }}
                     {% if current_user.urole in [ UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value, UserRole.COLAB_EXTERNO.value ] %}
-                    {{ submenu_item('casos.editar_roteiro', 'Gerenciar Roteiros', tabindex="0") }}
+                    <!-- {{ submenu_item('casos.editar_roteiro', 'Gerenciar Roteiros', tabindex="0") }} -->
                     {% endif %}
                 {% endcall %}
                 
-                {{ nav_link('notificacoes.index', 'Notificações', 'bell') }}
+                <!-- {{ nav_link('notificacoes.index', 'Notificações', 'bell') }} -->
                 
                 {% call nav_dropdown('arquivos', 'Arquivos', 'chart') %}
                     {{ submenu_item('arquivos.index', 'Ver Arquivos', tabindex="0") }}
@@ -821,7 +825,7 @@
                 this.userMenu = document.getElementById('user-menu');
                 this.fullscreenToggle = document.getElementById('fullscreen-toggle');
                 
-                this.isMobile = window.innerWidth <= 1024;
+                this.isMobile = window.innerWidth <= 1200;
                 this.isCollapsed = false;
                 
                 this.init();
@@ -956,7 +960,7 @@
             
             handleResize() {
                 const wasMobile = this.isMobile;
-                this.isMobile = window.innerWidth <= 1024;
+                this.isMobile = window.innerWidth <= 1200;
                 
                 if (wasMobile !== this.isMobile) {
                     this.nav?.classList.remove('show');
@@ -972,34 +976,27 @@
         });
     </script>
 
-    <!-- Global CSRF Token Setup for AJAX requests -->
     <script type="text/javascript">
-        // CSRF token for AJAX requests
         var csrf_token = "{{ csrf_token() }}";
         
-        // Setup jQuery AJAX to include CSRF token automatically
-        if (typeof $ !== 'undefined') {
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader("X-CSRFToken", csrf_token);
-                    }
-                }
-            });
-        }
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options = {}) {
+            if (!options.headers) {
+                options.headers = {};
+            }
+            if (options.method && !/^(GET|HEAD|OPTIONS|TRACE)$/i.test(options.method)) {
+                options.headers['X-CSRFToken'] = csrf_token;
+            }
+            return originalFetch(url, options);
+        };
         
-        // Setup Axios to include CSRF token automatically
         if (typeof axios !== 'undefined') {
             axios.defaults.headers.common["X-CSRFToken"] = csrf_token;
-        }
-        
-        // Function to get CSRF token for manual use
-        function getCSRFToken() {
-            return csrf_token;
         }
     </script>
 
     <script src="{{url_for('static',filename='js/modal_manager.js')}}"></script>
+    <script src="{{url_for('static',filename='js/base-utils.js')}}"></script>
     {%block scripts%}{% endblock %}
 </body>
 </html>

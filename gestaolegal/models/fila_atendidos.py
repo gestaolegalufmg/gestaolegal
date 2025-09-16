@@ -2,13 +2,15 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+
 if TYPE_CHECKING:
-    from gestaolegal.schemas.atendido import AtendidoSchema
+    from gestaolegal.models.atendido import Atendido
     from gestaolegal.schemas.fila_atendidos import FilaAtendidosSchema
 
 
 @dataclass(frozen=True)
-class FilaAtendidos:
+class FilaAtendidos(BaseModel):
     id: int
     psicologia: int
     prioridade: int
@@ -16,20 +18,26 @@ class FilaAtendidos:
     senha: str
     status: int
     id_atendido: int | None
-    atendido: "AtendidoSchema | None"
+    atendido: "Atendido | None"
 
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(fila_atendidos: "FilaAtendidosSchema") -> "FilaAtendidos":
-        return FilaAtendidos(
-            id=fila_atendidos.id,
-            psicologia=fila_atendidos.psicologia,
-            prioridade=fila_atendidos.prioridade,
-            data_criacao=fila_atendidos.data_criacao,
-            senha=fila_atendidos.senha,
-            status=fila_atendidos.status,
-            id_atendido=fila_atendidos.id_atendido,
-            atendido=fila_atendidos.atendido,
-        )
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "FilaAtendidosSchema", shallow: bool = False
+    ) -> "FilaAtendidos":
+        fila_atendidos_items = schema.to_dict()
+
+        if not shallow:
+            from gestaolegal.models.atendido import Atendido
+
+            fila_atendidos_items["atendido"] = (
+                Atendido.from_sqlalchemy(schema.atendido, shallow=True)
+                if schema.atendido
+                else None
+            )
+        else:
+            fila_atendidos_items["atendido"] = None
+
+        return FilaAtendidos(**fila_atendidos_items)

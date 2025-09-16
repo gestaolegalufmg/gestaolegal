@@ -117,9 +117,9 @@
                 <button type="button" class="btn btn-secondary" onclick="ModalManager.close('confirmacao')">Cancelar</button>
                 {{ form.hidden_tag() }}
                 <input type="hidden" id="hdnAjaxDuracao"
-                       value="{{ url_for('plantao.ajax_obter_duracao_plantao') }}">
+                       value="{{ url_for('api.obter_duracao_plantao') }}">
                 <input type="hidden" id="hdnAjaxSalvaConfig"
-                       value="{{ url_for('plantao.ajax_salva_config_plantao') }}">
+                       value="{{ url_for('api.salva_config_plantao') }}">
                 <button type="button" id="salva_configuracoes" class="btn btn-primary" onclick="ModalManager.close('confirmacao')">
                     Confirmar
                 </button>

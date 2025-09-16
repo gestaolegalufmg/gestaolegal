@@ -9,323 +9,62 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/table_styles.css') }}">
 {% endblock %}
 
+{% import 'macros/listing.html' as listui %}
 {% block conteudo %}
-<div class="page-container">
-  <div class="page-header">
-    <div class="search-section">
-      <div class="search-form" role="search" aria-label="Filtros de busca de arquivos">
-        <div class="search-field">
-          <label for="searchFile">Buscar:</label>
-          <input type="text" name="search" value="{{ search or '' }}" 
-                 placeholder="Título do arquivo..." id="searchFile"
-                 aria-describedby="search-help searchLoading"
-                 autocomplete="off">
-          <div id="searchLoading" class="search-loading" style="display: none;" 
-               role="status" aria-live="polite" aria-label="Buscando arquivos">
-            <i class="icon icon-spinner icon-spin" aria-hidden="true"></i>
-            <span class="sr-only">Buscando arquivos...</span>
-          </div>
-          <div id="search-help" class="sr-only">Digite o título do arquivo que deseja buscar</div>
-        </div>
-      </div>
-      
-      <div class="total-info">
-        <span>Total:</span>
-        <span class="total-badge">{{ arquivos.total if arquivos.total is defined else arquivos.items|length }}</span>
-      </div>
+{% macro page_link(p) %}{{ url_for('arquivos.index', page=p, search=search) }}{% endmacro %}
+{% macro titulo_label(row) %}{{ row.titulo }}{% endmacro %}
+{% macro actions_cell(row) %}
+{{ listui.action_buttons([
+  {'label':'Visualizar','href':url_for('arquivos.visualizar_arquivo', id=row.id),'visible':true,'variant':'btn-primary'},
+  {'label':'Editar','href':url_for('arquivos.editar_arquivo', id=row.id),'visible': current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value, UserRole.COLAB_EXTERNO.value, UserRole.PROFESSOR.value],'variant':'btn-primary'},
+  {'label':'Excluir','href':url_for('arquivos.excluir_arquivo', id=row.id),'visible':true,'variant':'btn-danger'}
+]) }}
+{% endmacro %}
+{% set columns = [
+  {'title':'Título do Arquivo','renderer': titulo_label},
+  {'title':'Ações','renderer': actions_cell}
+] %}
+{% call(list_slot) listui.listing_layout(url_for('arquivos.index'), total=(arquivos.total if arquivos.total is defined else (arquivos.items|length if arquivos and arquivos.items else 0)), aria_label='Filtros de busca de arquivos') %}
+  {% if list_slot == 'filters' %}
+    <div class="search-field">
+      <label for="searchFile">Buscar:</label>
+      <input type="text" name="search" value="{{ search or '' }}" placeholder="Título do arquivo..." id="searchFile" aria-describedby="search-help" autocomplete="off">
+      <div id="search-help" class="sr-only">Digite o título do arquivo que deseja buscar</div>
     </div>
-    
-    <div class="action-section">
-      {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value, UserRole.COLAB_EXTERNO.value, UserRole.PROFESSOR.value] %}
-      <a class="btn btn-primary" href="{{ url_for('arquivos.cadastrar_arquivo') }}">
-        Adicionar Arquivo
-      </a>
-      {% endif %}
-    </div>
-  </div>
-
-  {% if arquivos and arquivos.items and arquivos.items|length > 0 %}
-    <div class="table-container">
-      <table class="results-table" role="table" aria-label="Lista de arquivos do sistema">
-        <caption class="sr-only">Tabela com informações dos arquivos incluindo título e ações disponíveis</caption>
-        <thead>
-          <tr>
-            <th scope="col">Título do Arquivo</th>
-            <th scope="col">Ações</th>
-          </tr>
-        </thead>
-        <tbody id="files-table-body">
-          {% for arquivo in arquivos.items %}
-          <tr>
-            <td>{{ arquivo.titulo }}</td>
-            <td>
-              <div class="action-buttons">
-                <a href="{{ url_for('arquivos.visualizar_arquivo', id=arquivo.id) }}" 
-                   class="btn btn-primary">Visualizar</a>
-                {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value, UserRole.COLAB_EXTERNO.value, UserRole.PROFESSOR.value] %}
-                <a href="{{ url_for('arquivos.editar_arquivo', id=arquivo.id) }}" 
-                   class="btn btn-primary">Editar</a>
-                {% endif %}
-                <a href="{{ url_for('arquivos.excluir_arquivo', id=arquivo.id) }}" 
-                   class="btn btn-danger">Excluir</a>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    
-    {% if arquivos.pages > 1 %}
-    <div class="pagination-section">
-      <div class="pagination-info">
-        <span class="results-text">
-          Mostrando 
-          <strong>{{ arquivos.first_item }}</strong> 
-          até 
-          <strong>{{ arquivos.last_item }}</strong> 
-          de 
-          <strong>{{ arquivos.total }}</strong> 
-          registros
-        </span>
-        
-        <span class="page-info">
-          Página {{ arquivos.page }} de {{ arquivos.pages }}
-        </span>
-      </div>
-
-      <nav class="pagination-nav">
-        <ul class="pagination">
-          {% if arquivos.has_prev %}
-          <li class="page-item">
-            <a class="page-link" href="{{ url_for('arquivos.index', page=arquivos.prev_num) }}" aria-label="Previous">
-              <span aria-hidden="true">&laquo;</span>
-            </a>
-          </li>
-          {% endif %}
-          
-          {% for page_num in range(1, arquivos.pages + 1) %}
-          <li class="page-item {% if page_num == arquivos.page %}active{% endif %}">
-            <a class="page-link" href="{{ url_for('arquivos.index', page=page_num) }}">{{ page_num }}</a>
-          </li>
-          {% endfor %}
-          
-          {% if arquivos.has_next %}
-          <li class="page-item">
-            <a class="page-link" href="{{ url_for('arquivos.index', page=arquivos.next_num) }}" aria-label="Next">
-              <span aria-hidden="true">&raquo;</span>
-            </a>
-          </li>
-          {% endif %}
-        </ul>
-      </nav>
-    </div>
+  {% elif list_slot == 'header_actions' %}
+    {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value, UserRole.COLAB_EXTERNO.value, UserRole.PROFESSOR.value] %}
+    <a class="btn btn-primary" href="{{ url_for('arquivos.cadastrar_arquivo') }}">Adicionar Arquivo</a>
     {% endif %}
-    
-  {% else %}
-    <section class="empty-state" role="status" aria-live="polite">
-      <h2>Nenhum arquivo encontrado</h2>
-      <p class="empty-message">
-        {% if search %}
-          Não foram encontrados resultados para "{{ search }}"
-        {% else %}
-          Não há arquivos cadastrados no momento
-        {% endif %}
-      </p>
-      {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value, UserRole.COLAB_EXTERNO.value, UserRole.PROFESSOR.value] %}
-      <a href="{{ url_for('arquivos.cadastrar_arquivo') }}" class="btn btn-primary">
-        Adicionar novo arquivo
-      </a>
-      {% endif %}
-    </section>
+  {% elif list_slot == 'content' %}
+    {% if arquivos and arquivos.items and arquivos.items|length > 0 %}
+      {{ listui.table(columns, arquivos.items, 'Lista de arquivos do sistema') }}
+      {{ listui.pagination(arquivos, page_link) }}
+    {% else %}
+      {{ listui.empty_state('Nenhum arquivo encontrado', search and ('Não foram encontrados resultados para "' ~ search ~ '"') or 'Não há arquivos cadastrados no momento', (current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value, UserRole.COLAB_EXTERNO.value, UserRole.PROFESSOR.value]) and url_for('arquivos.cadastrar_arquivo') or None, (current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.COLAB_PROJETO.value, UserRole.COLAB_EXTERNO.value, UserRole.PROFESSOR.value]) and 'Adicionar novo arquivo' or None) }}
+    {% endif %}
   {% endif %}
-</div>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.querySelector('.search-form');
     const searchInput = document.querySelector("#searchFile");
-    const filesTableBody = document.querySelector("#files-table-body");
-    const searchLoading = document.querySelector("#searchLoading");
     
-    let searchTimeout;
-    const DEBOUNCE_DELAY = 500;
-    const MIN_SEARCH_LENGTH = 2;
-
-    function showLoading() {
-        if (searchLoading) {
-            searchLoading.style.display = 'block';
-            searchLoading.setAttribute('aria-hidden', 'false');
-        }
-        if (filesTableBody) {
-            filesTableBody.classList.add('table-loading');
-            filesTableBody.setAttribute('aria-busy', 'true');
-        }
-    }
-
-    function hideLoading() {
-        if (searchLoading) {
-            searchLoading.style.display = 'none';
-            searchLoading.setAttribute('aria-hidden', 'true');
-        }
-        if (filesTableBody) {
-            filesTableBody.classList.remove('table-loading');
-            filesTableBody.setAttribute('aria-busy', 'false');
-        }
-    }
-
-    function performSearch() {
-        const searchTerm = searchInput.value.trim();
-        
-        if (searchTerm.length > 0 && searchTerm.length < MIN_SEARCH_LENGTH) {
-            hideLoading();
-            return;
-        }
-
-        showLoading();
-
-        const params = new URLSearchParams();
-        if (searchTerm && searchTerm.length >= MIN_SEARCH_LENGTH) {
-            params.set('search', searchTerm);
-        }
-
-        const searchUrl = window.location.pathname + '?' + params.toString();
-        
-        fetch(searchUrl, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            updateTable(data);
-            updatePagination(data);
-            updateTotalInfo(data);
-            hideLoading();
-        })
-        .catch(error => {
-            console.error('Search error:', error);
-            hideLoading();
-        });
-    }
-
-    function updateTable(data) {
-        if (!filesTableBody) return;
-        
-        if (data.items && data.items.length > 0) {
-            filesTableBody.innerHTML = data.items.map(item => {
-                return `
-                    <tr>
-                        <td>${item.titulo}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <a href="${item.visualizar_url}" class="btn btn-primary">Visualizar</a>
-                                ${data.can_edit ? `<a href="${item.editar_url}" class="btn btn-primary">Editar</a>` : ''}
-                                <a href="${item.excluir_url}" class="btn btn-danger">Excluir</a>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        } else {
-            filesTableBody.innerHTML = '<tr><td colspan="2" class="text-center">Nenhum arquivo encontrado</td></tr>';
-        }
-    }
-
-    function updatePagination(data) {
-        const paginationSection = document.querySelector('.pagination-section');
-        if (!paginationSection) return;
-        
-        if (data.pages > 1) {
-            let paginationHTML = `
-                <div class="pagination-info">
-                    <span class="results-text">
-                        Mostrando 
-                        <strong>${data.first_item}</strong> 
-                        até 
-                        <strong>${data.last_item}</strong> 
-                        de 
-                        <strong>${data.total}</strong> 
-                        registros
-                    </span>
-                    
-                    <span class="page-info">
-                        Página ${data.page} de ${data.pages}
-                    </span>
-                </div>
-
-                <nav class="pagination-nav">
-                    <ul class="pagination">
-            `;
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(searchForm);
+            const params = new URLSearchParams();
             
-            if (data.has_prev) {
-                paginationHTML += `
-                    <li class="page-item">
-                        <a class="page-link" href="${window.location.pathname}?page=${data.prev_num}" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                `;
+            for (let [key, value] of formData.entries()) {
+                if (value && value.trim() !== '') {
+                    params.set(key, value);
+                }
             }
             
-            for (let pageNum = 1; pageNum <= data.pages; pageNum++) {
-                const activeClass = pageNum === data.page ? 'active' : '';
-                paginationHTML += `
-                    <li class="page-item ${activeClass}">
-                        <a class="page-link" href="${window.location.pathname}?page=${pageNum}">${pageNum}</a>
-                    </li>
-                `;
-            }
-            
-            if (data.has_next) {
-                paginationHTML += `
-                    <li class="page-item">
-                        <a class="page-link" href="${window.location.pathname}?page=${data.next_num}" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                `;
-            }
-            
-            paginationHTML += '</ul></nav>';
-            paginationSection.innerHTML = paginationHTML;
-        } else {
-            paginationSection.style.display = 'none';
-        }
-    }
-
-    function updateTotalInfo(data) {
-        const totalBadge = document.querySelector('.total-badge');
-        if (totalBadge) {
-            totalBadge.textContent = data.total;
-        }
-    }
-
-    function debouncedSearch() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            performSearch();
-        }, DEBOUNCE_DELAY);
-    }
-
-    if (searchInput) {
-        searchInput.addEventListener("input", debouncedSearch);
-        
-        searchInput.addEventListener("keydown", (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                clearTimeout(searchTimeout);
-                performSearch();
-            }
-            
-            if (e.key === 'Escape') {
-                searchInput.value = "";
-                clearTimeout(searchTimeout);
-                performSearch();
-                searchInput.focus();
-            }
+            window.location.href = searchForm.action + '?' + params.toString();
         });
     }
 });

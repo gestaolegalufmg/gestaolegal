@@ -2,14 +2,16 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+from gestaolegal.models.usuario import Usuario
+
 if TYPE_CHECKING:
     from gestaolegal.models.caso import Caso
-    from gestaolegal.models.usuario import Usuario
     from gestaolegal.schemas.evento import EventoSchema
 
 
 @dataclass(frozen=True)
-class Evento:
+class Evento(BaseModel):
     id: int
     id_caso: int
     caso: "Caso"
@@ -28,21 +30,23 @@ class Evento:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(evento: "EventoSchema") -> "Evento":
-        return Evento(
-            id=evento.id,
-            id_caso=evento.id_caso,
-            caso=evento.caso,
-            num_evento=evento.num_evento,
-            tipo=evento.tipo,
-            descricao=evento.descricao,
-            arquivo=evento.arquivo,
-            data_evento=evento.data_evento,
-            data_criacao=evento.data_criacao,
-            id_criado_por=evento.id_criado_por,
-            id_usuario_responsavel=evento.id_usuario_responsavel,
-            usuario_responsavel=evento.usuario_responsavel,
-            criado_por=evento.criado_por,
-            status=evento.status,
-        )
+    @classmethod
+    def from_sqlalchemy(cls, schema: "EventoSchema", shallow: bool = False) -> "Evento":
+        evento_items = schema.to_dict()
+
+        if not shallow:
+            from gestaolegal.models.caso import Caso
+
+            evento_items["caso"] = Caso.from_sqlalchemy(schema.caso, shallow=True)
+            evento_items["usuario_responsavel"] = (
+                Usuario.from_sqlalchemy(schema.usuario_responsavel)
+                if schema.usuario_responsavel
+                else None
+            )
+            evento_items["criado_por"] = Usuario.from_sqlalchemy(schema.criado_por)
+        else:
+            evento_items["caso"] = None
+            evento_items["usuario_responsavel"] = None
+            evento_items["criado_por"] = None
+
+        return Evento(**evento_items)

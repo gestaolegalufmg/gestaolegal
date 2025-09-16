@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class UsuarioSchema(Base):
-    __tablename__: Final = "usuarios"
+    __tablename__ = "usuarios"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(
@@ -70,7 +70,7 @@ class UsuarioSchema(Base):
     fim_bolsa: Mapped[datetime | None] = mapped_column(DateTime)
     endereco_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("enderecos.id"))
     endereco: Mapped["EnderecoSchema"] = relationship(
-        "EnderecoSchema", lazy="joined", back_populates="usuarios"
+        "EnderecoSchema", back_populates="usuarios"
     )
     chave_recuperacao: Mapped[bool] = mapped_column(
         Boolean, server_default=false(), nullable=True

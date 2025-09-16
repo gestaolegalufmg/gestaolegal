@@ -62,6 +62,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{url_for('static',filename='js/form_utilities.js')}}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector("form");
@@ -70,6 +71,17 @@
     const submitButton = document.getElementById('submit');
     const btnText = submitButton.querySelector('.btn-text');
     const passwordStrength = document.getElementById('password-strength');
+    
+    // Initialize form with FormUtils
+    FormUtils.initializeFormWithValidation({
+      formId: 'form',
+      buttonId: 'submit',
+      masks: [],
+      conditionalFields: [],
+      dateRanges: [],
+      preventWheel: true,
+      enableValidation: true
+    });
     
     const setLoading = (isLoading) => {
       if (isLoading) {
@@ -117,40 +129,10 @@
       }
     };
 
-    const validateForm = () => {
-      let isValid = true;
-      
-      document.querySelectorAll('.alert-danger').forEach(alert => alert.remove());
-      passwordInput.classList.remove('is-invalid');
-      confirmPasswordInput.classList.remove('is-invalid');
-      
-      if (!passwordInput.value.trim()) {
-        passwordInput.classList.add('is-invalid');
-        isValid = false;
-      } else if (passwordInput.value.length < 8) {
-        passwordInput.classList.add('is-invalid');
-        passwordInput.parentElement.insertAdjacentHTML('afterend', 
-          '<div class="alert alert-danger mt-2">A senha deve ter pelo menos 8 caracteres</div>');
-        isValid = false;
-      }
-      
-      if (!confirmPasswordInput.value.trim()) {
-        confirmPasswordInput.classList.add('is-invalid');
-        isValid = false;
-      } else if (passwordInput.value !== confirmPasswordInput.value) {
-        confirmPasswordInput.classList.add('is-invalid');
-        confirmPasswordInput.parentElement.insertAdjacentHTML('afterend', 
-          '<div class="alert alert-danger mt-2">As senhas não coincidem</div>');
-        isValid = false;
-      }
-      
-      return isValid;
-    };
-
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      if (!validateForm()) {
+      if (!FormUtils.validateForm(e)) {
         return;
       }
       
@@ -181,19 +163,7 @@
 
     passwordInput.addEventListener('input', () => {
       checkPasswordStrength(passwordInput.value);
-      if (passwordInput.classList.contains('is-invalid')) {
-        validateForm();
-      }
     });
-
-    confirmPasswordInput.addEventListener('input', () => {
-      if (confirmPasswordInput.classList.contains('is-invalid')) {
-        validateForm();
-      }
-    });
-
-    passwordInput.addEventListener('blur', validateForm);
-    confirmPasswordInput.addEventListener('blur', validateForm);
   });
 </script>
 {% endblock %}

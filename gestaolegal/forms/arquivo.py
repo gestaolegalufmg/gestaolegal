@@ -1,13 +1,15 @@
 from flask_wtf import FlaskForm
-from wtforms import FileField, StringField, SubmitField, TextAreaField
+from wtforms import FileField, StringField, TextAreaField
 from wtforms.validators import InputRequired, Length
 
+from gestaolegal.forms.plantao.base_form_mixin import BaseFormMixin
 
-class ArquivoForm(FlaskForm):
+
+class ArquivoForm(BaseFormMixin, FlaskForm):
     titulo = StringField(
         "Título",
         validators=[
-            InputRequired("Campo obrigatório"),
+            InputRequired(),
             Length(
                 max=150,
                 message="O título do arquivo deve ter até 150 caracteres de comprimento",
@@ -21,4 +23,3 @@ class ArquivoForm(FlaskForm):
         ],
     )
     arquivo = FileField("Arquivo")
-    submit = SubmitField("Enviar")

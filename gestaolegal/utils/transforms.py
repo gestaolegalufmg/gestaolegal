@@ -201,10 +201,10 @@ def dados_juridicos(assistido_pj: AssistidoPessoaJuridica) -> dict[str, str]:
         "Órgão competente": _safe_lookup(orgao_reg, assistido_pj.orgao_registro),
         "Faturamento anual": _format_currency(assistido_pj.faturamento_anual),
         "O balanço patrimonial do último ano foi negativo?": balance_map.get(
-            assistido_pj.ultimo_balanco_neg, "Não se aplica"
+            assistido_pj.ultimo_balanco_neg or "", "Não se aplica"
         ),
         "O resultado econômico do último ano foi negativo?": result_map.get(
-            assistido_pj.resultado_econ_neg, "Não se Aplica"
+            assistido_pj.resultado_econ_neg or "", "Não se Aplica"
         ),
         "Tem funcionários?": employees_map.get(
             assistido_pj.tem_funcionarios, "Não se Aplica"

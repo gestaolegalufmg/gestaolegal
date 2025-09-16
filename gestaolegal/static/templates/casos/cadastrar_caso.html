@@ -1,96 +1,22 @@
 {% extends "base/painel_principal.html" %}
+{% from "base/base_form.html" import form_field, form_section %}
 {%block titulo%}
     {{ title }}
 {%endblock%}
 
 {% block css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/form_styles.css') }}">
-    <link rel="stylesheet" href="{{url_for('static',filename='temas_externos/select2.min.css')}}">
-    <style>
-    .select2-search--inline {
-       display: contents; /*this will make the container disappear, making the child the one who sets the width of the element*/
-    }
-    .select2-search__field:placeholder-shown {
-        width: 100% !important; /*makes the placeholder to be 100% of the width while there are no options selected*/
-    }
-    #clientes-js + span  .select2-selection__rendered{
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    #clientes-js + span .select2-selection__choice{
-        float: none !important;
-        margin: 0;
-    }
-    
-    /* Files table styling */
-    .files-table {
-        margin: 1.5rem 0;
-        border-radius: 0.5rem;
-        overflow: hidden;
-        border: 1px solid var(--color-border, #e9ecef);
-    }
-    
-    .files-table table {
-        margin: 0;
-        width: 100%;
-    }
-    
-    .files-table th {
-        background-color: var(--color-background, #f8f9fa);
-        font-weight: 600;
-        text-align: left;
-        padding: 1rem;
-        border-bottom: 1px solid var(--color-border, #e9ecef);
-    }
-    
-    .files-table td {
-        padding: 1rem;
-        border-bottom: 1px solid var(--color-border, #e9ecef);
-        vertical-align: middle;
-    }
-    
-    .file-actions {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-    
-    .file-actions .btn {
-        font-size: 0.875rem;
-        padding: 0.375rem 0.75rem;
-    }
-    
-    /* Hidden class for conditional fields */
-    .hidden {
-        display: none !important;
-    }
-    </style>
-
+    <link rel="stylesheet" href="{{url_for('static',filename='css/native_select.css')}}">
+    <link rel="stylesheet" href="{{url_for('static',filename='css/table_styles.css')}}">
 {% endblock css %}
 
 {% block conteudo %}
 <div class="form-container" id="pessoa">
-    {% if caso %}
-    <div class="form-header">
-        <h3>Caso {{caso.id}}</h3>
-        {% for cliente in caso.clientes %}
-            <p>{{ cliente.nome }}</p>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="form-header">
-        <h3>Novo Caso</h3>
-    </div>
-    {% endif %}
-
-    <div class="form-content">
+    <div class="form-content" style="padding-top: 0;">
         <form class="cadastro-form" action="" method="POST" id="form" enctype="multipart/form-data">
             {% include "casos/formularios/formulario_base_caso.html" %}
             {% if arquivos %}
-            <div class="form-section">
-                <h3>Arquivos do Caso</h3>
-            </div>
+            {{ form_section("Arquivos do Caso") }}
             
             <div class="files-table">
                 <table class="table table-striped">
@@ -122,15 +48,13 @@
             </div>
             {% endif %}
 
-            <div class="form-section">
-                <h3>Adicionar Arquivo</h3>
-            </div>
+            {{ form_section("Adicionar Arquivo") }}
             
             <div class="form-field">
                 <div class="field-row">
                     <label for="arquivo">Upload de arquivo <span class="required">(.pdf)(Máx: 10MB)</span></label>
                     <div class="field-input">
-                        <input type="file" name="arquivo" class="form-input" accept=".pdf">
+                        <input type="file" name="arquivo" id="arquivo" accept=".pdf">
                     </div>
                 </div>
             </div>
@@ -144,137 +68,196 @@
     {% endblock %}
 
 {% block scripts %}
-    <script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
-    <script src="{{url_for('static',filename='js/subarea_caso.js')}}"></script>
+    <script src="{{url_for('static',filename='js/native_select.js')}}"></script>
+    <script src="{{url_for('static',filename='js/form_utilities.js')}}"></script>
     <script>
-        validarCampoAreaDireito();
-        document.getElementById("area_direito-js").onchange = function() {validarCampoAreaDireito()};
-        document.getElementById("sub_area-js").onchange = function() {validarCampoAreaDireito()};
-        document.getElementById("sub_area_admin-js").onchange = function() {validarCampoAreaDireito()};
+        document.addEventListener('DOMContentLoaded', function() {
+            FormUtils.initializeForm({
+                formId: 'form',
+                buttonId: 'submit',
+                masks: [],
+                conditionalFields: [
+                    {
+                        triggerId: 'area_direito',
+                        fieldsToToggle: ['div_sub_area'],
+                        condition: (trigger) => {
+                            const selectedText = trigger.options[trigger.selectedIndex]?.text;
+                            return selectedText === 'Civel';
+                        }
+                    },
+                    {
+                        triggerId: 'area_direito',
+                        fieldsToToggle: ['div_sub_area_admin'],
+                        condition: (trigger) => {
+                            const selectedText = trigger.options[trigger.selectedIndex]?.text;
+                            return selectedText === 'Administrativo';
+                        }
+                    }
+                ],
+                dateRanges: [],
+                preventWheel: true
+            });
+        });
     </script>
 
     <script>
-        $(document).ready(function(){
-
+        document.addEventListener('DOMContentLoaded', function(){
             trocaLinkRoteiro();
 
-            let placeholder_orientador = 'Pesquisar orientadores';
-            let placeholder_estagiario = 'Pesquisar estagiários';
-            let placeholder_colaborador = 'Pesquisar colaboradores';
+            const placeholders = {
+                orientador: 'Pesquisar orientadores',
+                estagiario: 'Pesquisar estagiários',
+                colaborador: 'Pesquisar colaboradores'
+            };
 
             {% if caso %}
-                {% if caso.orientador.nome %}
-                    placeholder_orientador =  '{{ caso.orientador.nome }}'
+                {% if caso.orientador and caso.orientador.nome %}
+                    placeholders.orientador = '{{ caso.orientador.nome }}';
                 {% endif %}
-                {% if caso.estagiario.nome %}
-                    placeholder_estagiario =  '{{ caso.estagiario.nome }}'
+                {% if caso.estagiario and caso.estagiario.nome %}
+                    placeholders.estagiario = '{{ caso.estagiario.nome }}';
                 {% endif %}
-                {% if caso.colaborador.nome %}
-                    placeholder_colaborador =  '{{ caso.colaborador.nome }}'
+                {% if caso.colaborador and caso.colaborador.nome %}
+                    placeholders.colaborador = '{{ caso.colaborador.nome }}';
                 {% endif %}
             {% endif %}
 
+            const apiEndpoints = {
+                orientador: document.getElementById('apiCasosBuscarOrientador').value,
+                estagiario: document.getElementById('apiCasosBuscarEstagiario').value,
+                colaborador: document.getElementById('apiCasosBuscarColaborador').value,
+                atendido: document.getElementById('apiCasosBuscarAtendido').value,
+                roteiro: document.getElementById('apiCasosBuscarRoteiro').value
+            };
 
+            initializeNativeSelectField('orientador-js', apiEndpoints.orientador, placeholders.orientador, 'orientador');
+            initializeNativeSelectField('estagiario-js', apiEndpoints.estagiario, placeholders.estagiario, 'estagiario');
+            initializeNativeSelectField('colaborador-js', apiEndpoints.colaborador, placeholders.colaborador, 'colaborador');
 
-    $('#orientador-js').select2({
-        ajax: {
-            url: $('#apiCasosBuscarOrientador').val(),
-            dataType: 'json',
-        },
-        delay: 500,
-        placeholder: placeholder_orientador,
-        width: '100%'
-    });
+            {% if not caso %}
+            initializeNativeSelectField('clientes-js', apiEndpoints.atendido, 'Pesquisar assistido', 'clientes', true);
+            {% endif %}
 
-    $('#orientador-js').on('change', function(){
-        $('#orientador').val($('#orientador-js').val());
-    });
+            const areaDireitoField = document.getElementById('area_direito');
+            if (areaDireitoField) {
+                areaDireitoField.addEventListener('change', trocaLinkRoteiro);
+            }
 
-    $('#estagiario-js').select2({
-        ajax: {
-            url: $('#apiCasosBuscarEstagiario').val(),
-            dataType: 'json',
-        },
-        delay: 500,
-        placeholder: placeholder_estagiario,
-        width: '100%'
-    })
+            function initializeNativeSelectField(selectId, apiUrl, placeholder, hiddenFieldId, multiple = false) {
+                const selectElement = document.getElementById(selectId);
+                const hiddenField = document.getElementById(hiddenFieldId);
+                
+                if (!selectElement) return;
 
-    $('#estagiario-js').on('change', function(){
-        $('#estagiario').val($('#estagiario-js').val());
-    });
+                const nativeSelect = new NativeSelect(selectElement, {
+                    ajax: {
+                        url: apiUrl,
+                        delay: 500,
+                        params: (searchTerm) => ({ q: searchTerm })
+                    },
+                    placeholder: placeholder,
+                    width: '100%',
+                    multiple: multiple,
+                    allowClear: true
+                });
 
-    $('#colaborador-js').select2({
-        ajax: {
-            url: $('#apiCasosBuscarColaborador').val(),
-            dataType: 'json',
-        },
-        delay: 500,
-        placeholder: placeholder_colaborador,
-        width: '100%'
-    })
+                {% if caso %}
+                    {% if selectId == 'orientador-js' and caso.orientador %}
+                        nativeSelect.val('{{ caso.orientador.id }}');
+                    {% elif selectId == 'estagiario-js' and caso.estagiario %}
+                        nativeSelect.val('{{ caso.estagiario.id }}');
+                    {% elif selectId == 'colaborador-js' and caso.colaborador %}
+                        nativeSelect.val('{{ caso.colaborador.id }}');
+                    {% endif %}
+                {% endif %}
 
-    $('#colaborador-js').on('change', function(){
-        $('#colaborador').val($('#colaborador-js').val());
-    });
+                selectElement.addEventListener('change', function() {
+                    if (hiddenField) {
+                        if (multiple) {
+                            const values = nativeSelect.val() || [];
+                            hiddenField.value = values.join(',');
+                        } else {
+                            hiddenField.value = nativeSelect.val() || '';
+                        }
+                    }
+                });
+            }
 
+            async function trocaLinkRoteiro(){
+                const areaField = document.getElementById('area_direito');
+                const linkElement = document.getElementById('link-roteiro');
+                
+                if (!areaField || !linkElement) return;
 
-    $('#clientes-js').select2({
-        ajax: {
-            url: $('#apiCasosBuscarAtendido').val(),
-            dataType: 'json',
-        },
-        multiple: true,
-        delay: 500,
-        placeholder: 'Pesquisar assistido ',
-        width: '100%',
-
-    });
-
-    $('#clientes-js').css('width', '100%');
-
-
-    $('#clientes-js').on('change', function(){
-        $('#clientes').val($('#clientes-js').val().join(','));
-    });
-
-
-    $('#area_direito-js').on('change',function(){
-        trocaLinkRoteiro();
-    });
-
-    function trocaLinkRoteiro(){
-        $.ajax({
-            url: $('#apiCasosBuscarRoteiro').val(),
-            data:{termo: $('#area_direito-js').val()}
-          }).done(function(data) {
-              if (data.link){
-                $('#link-roteiro').attr('href', data.link);
-                $('#link-roteiro').removeClass('disabled');
-              }else{
-                $('#link-roteiro').addClass('disabled');
-              }
-          });
-    }
-})
+                try {
+                    const response = await fetch(apiEndpoints.roteiro, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `termo=${encodeURIComponent(areaField.value)}`
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.link && linkElement) {
+                        linkElement.href = data.link;
+                        linkElement.classList.remove('disabled');
+                    } else {
+                        linkElement.classList.add('disabled');
+                    }
+                } catch (error) {
+                    console.error('Error fetching roteiro link:', error);
+                    if (linkElement) {
+                        linkElement.classList.add('disabled');
+                    }
+                }
+            }
+        });
     </script>
     <script defer>
-        window.onload = () => {
-            const orientacao = JSON.parse(localStorage.getItem("case"));
-            if(orientacao !== null){
-                // document.querySelector(".select2-search__field").click()
-                newOption = new Option(orientacao.nome_atendido, orientacao.id_atendido, false, false);
-                $('#clientes-js').append(newOption).trigger('change');
-                const form = document.querySelector("#form");
-                const evt = document.createEvent("HTMLEvents");
-                evt.initEvent("change", true, true);
-                form.area_direito.value = orientacao['area_direito-js'];
-                form.descricao.value = orientacao['descricao'];
-                form['sub_area_admin-js'].value = orientacao['sub_area_admin-js'];
-                form.area_direito.dispatchEvent(evt);
-                form.clientes.value = orientacao.id_atendido;
+        window.addEventListener('load', () => {
+            try {
+                const orientacao = JSON.parse(localStorage.getItem("case"));
+                if (orientacao !== null) {
+                    populateFormFromStorage(orientacao);
+                    localStorage.removeItem("case");
+                }
+            } catch (error) {
+                console.error('Error parsing case data from localStorage:', error);
+                localStorage.removeItem("case");
             }
-            localStorage.removeItem("case");
+        });
+
+        function populateFormFromStorage(data) {
+            if (data.nome_atendido && data.id_atendido) {
+                const clientesSelect = document.getElementById('clientes-js');
+                if (clientesSelect) {
+                    const newOption = new Option(data.nome_atendido, data.id_atendido, false, false);
+                    clientesSelect.appendChild(newOption);
+                    clientesSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+
+            const form = document.querySelector("#form");
+            if (form) {
+                if (data['area_direito-js']) {
+                    form.area_direito.value = data['area_direito-js'];
+                    form.area_direito.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                if (data.descricao) {
+                    form.descricao.value = data.descricao;
+                }
+
+                if (data['sub_area_admin-js']) {
+                    form['sub_area_admin-js'].value = data['sub_area_admin-js'];
+                }
+
+                if (data.id_atendido) {
+                    form.clientes.value = data.id_atendido;
+                }
+            }
         }
     </script>
 {% endblock scripts %}

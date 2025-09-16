@@ -7,9 +7,9 @@
             <div class="card-header">
               <h4>Dados do Processo:</h4>
               <button type="submit" class="ml-auto btn mr-1 btn-flat btn-primary btn-sm" name="button">
-                <a href="{{url_for('casos.editar_processo', id_processo=processo.id)}}" style="text-decoration: none;color: white;">Editar</a>
+                <a href="{{url_for('processo.editar_processo', id_processo=processo.id)}}" style="text-decoration: none;color: white;">Editar</a>
               </button>
-              <form action="{{url_for('casos.excluir_processo', id_processo = processo.id, id_caso = id_caso)}}" method="POST">
+              <form action="{{url_for('processo.excluir_processo', id_processo = processo.id, id_caso = id_caso)}}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <button type="submit" class="btn ml-1 btn-flat btn-danger btn-sm"

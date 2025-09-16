@@ -11,7 +11,7 @@ from wtforms import (
     SubmitField,
     TextAreaField,
 )
-from wtforms.validators import AnyOf, DataRequired, InputRequired, Optional
+from wtforms.validators import AnyOf, InputRequired, Optional
 
 from gestaolegal.common.constants import (
     area_do_direito,
@@ -19,10 +19,11 @@ from gestaolegal.common.constants import (
     se_administrativo,
     se_civel,
 )
+from gestaolegal.forms.plantao.base_form_mixin import BaseFormMixin
 from gestaolegal.utils.forms import RequiredIf
 
 
-class CasoForm(FlaskForm):
+class CasoForm(BaseFormMixin, FlaskForm):
     orientador = HiddenField()
     estagiario = HiddenField()
     colaborador = HiddenField()
@@ -105,14 +106,12 @@ class NovoCasoForm(CasoForm):
 
     clientes = HiddenField(
         validators=[
-            InputRequired(
-                "Por favor, selecione pelo menos um cliente para associar ao caso"
-            )
+            InputRequired(),
         ]
     )
 
 
-class RoteiroForm(FlaskForm):
+class RoteiroForm(BaseFormMixin, FlaskForm):
     area_direito = SelectField(
         "Área do Direito",
         choices=[
@@ -122,39 +121,35 @@ class RoteiroForm(FlaskForm):
             )
             for key in assistencia_jud_areas_atendidas
         ],
-        validators=[InputRequired("Campo obrigaatório")],
+        validators=[InputRequired()],
     )
     link = StringField("Link para o roteiro (http://exemplo.com.br)")
     submit = SubmitField("Atualizar")
 
 
-class JustificativaIndeferimento(FlaskForm):
+class JustificativaIndeferimento(BaseFormMixin, FlaskForm):
     justificativa = TextAreaField(
-        "Justificativa para o indeferimento do caso", validators=[DataRequired()]
+        "Justificativa para o indeferimento do caso", validators=[InputRequired()]
     )
     submit = SubmitField("Enviar")
 
 
-class LembreteForm(FlaskForm):
-    usuarios = HiddenField(
-        validators=[InputRequired("Por favor, selecione pelo menos um usuário")]
-    )
-    lembrete = TextAreaField("Descrião da tarefa", validators=[DataRequired()])
-    data = DateField("Data de notificação", validators=[DataRequired()])
+class LembreteForm(BaseFormMixin, FlaskForm):
+    usuarios = HiddenField(validators=[InputRequired()])
+    lembrete = TextAreaField("Descrião da tarefa", validators=[InputRequired()])
+    data = DateField("Data de notificação", validators=[InputRequired()])
     submit = SubmitField("Enviar")
 
 
-class ProcessoForm(FlaskForm):
+class ProcessoForm(BaseFormMixin, FlaskForm):
     especie = SelectField(
         "Espécie",
         choices=[("judicial", "Judicial"), ("extrajudicial", "Extrajudicial")],
-        validators=[DataRequired("Por favor selecione uma opção de espécie da lista")],
+        validators=[InputRequired()],
     )
     numero = IntegerField(
         "Número",
-        validators=[
-            DataRequired("Por favor, utilize apenas números para preencher o campo.")
-        ],
+        validators=[InputRequired()],
     )
     identificacao = StringField("Identificação")
     vara = StringField("Vara, unidade jurisdicional, turma e/ou câmara")
@@ -178,11 +173,11 @@ class ProcessoForm(FlaskForm):
     )
     valor_causa = FloatField(
         "Valor da Causa",
-        validators=[DataRequired("Por favor, informe o valor da causa.")],
+        validators=[InputRequired()],
     )
     data_distribuicao = DateField(
         "Data da distribuição",
-        validators=[DataRequired("Por favor, escolha uma Data de Distribuição.")],
+        validators=[InputRequired()],
     )
     data_transito_em_julgado = DateField(
         "Data do trânsito em julgado", validators=[Optional()]
@@ -192,7 +187,7 @@ class ProcessoForm(FlaskForm):
     save_button = SubmitField("Salvar Alterações")
 
 
-class EventoForm(FlaskForm):
+class EventoForm(BaseFormMixin, FlaskForm):
     usuario = HiddenField()
     tipo = SelectField(
         "Tipo de Evento",
@@ -209,34 +204,32 @@ class EventoForm(FlaskForm):
             ("documentos", "Documentos"),
             ("outros", "Outros"),
         ],
-        validators=[InputRequired("Por favor, selecione pelo menos uma opção")],
+        validators=[InputRequired()],
     )
-    data_evento = DateField(
-        "Data do Ocorrido", validators=[InputRequired("Por favor, selecione uma data")]
-    )
+    data_evento = DateField("Data do Ocorrido", validators=[InputRequired()])
     descricao = TextAreaField(
         "Descrição do Evento",
-        validators=[InputRequired("Por favor, selecione pelo menos uma opção")],
+        validators=[InputRequired()],
     )
     submit = SubmitField("Enviar")
 
 
-class ArquivoCasoForm(FlaskForm):
+class ArquivoCasoForm(BaseFormMixin, FlaskForm):
     arquivo = FileField("Arquivo")
     submit = SubmitField("Enviar")
 
 
-class ArquivosEventoForm(FlaskForm):
+class ArquivosEventoForm(BaseFormMixin, FlaskForm):
     arquivos = MultipleFileField("Arquivos")
     submit = SubmitField("Enviar")
 
 
-class EditarArquivoDeEventoForm(FlaskForm):
+class EditarArquivoDeEventoForm(BaseFormMixin, FlaskForm):
     arquivo = FileField("Arquivo")
     submit = SubmitField("Enviar")
 
 
-class RelatorioForm(FlaskForm):
+class RelatorioForm(BaseFormMixin, FlaskForm):
     tipo_relatorio = SelectField(
         "Tipo de relátorio",
         choices=[
@@ -251,6 +244,6 @@ class RelatorioForm(FlaskForm):
     )
     usuarios = HiddenField()
     area_direito = HiddenField()
-    data_inicio = DateField(validators=[DataRequired()])
-    data_final = DateField(validators=[DataRequired()])
+    data_inicio = DateField(validators=[InputRequired()])
+    data_final = DateField(validators=[InputRequired()])
     submit = SubmitField("Gerar Relatório")

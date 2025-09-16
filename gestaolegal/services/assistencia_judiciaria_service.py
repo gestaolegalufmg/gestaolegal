@@ -1,159 +1,125 @@
 import logging
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
-from sqlalchemy.orm import Query
-
+from gestaolegal.common import PageParams
+from gestaolegal.forms.plantao.assistencia_juridica_form import (
+    AssistenciaJudiciariaForm,
+)
 from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
+from gestaolegal.repositories.assistencia_judiciaria_repository import (
+    AssistenciaJudiciariaRepository,
+)
 from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
 from gestaolegal.schemas.assistido import AssistidoSchema as Assistido
-from gestaolegal.schemas.assistido_pessoa_juridica import (
-    AssistidoPessoaJuridicaSchema as AssistidoPessoaJuridica,
-)
-from gestaolegal.services.base_service import BaseService
-from gestaolegal.utils.plantao_utils import filtro_busca_assistencia_judiciaria
+from gestaolegal.services.endereco_service import EnderecoService
 
 T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
 
-class AssistenciaJudiciariaService(
-    BaseService[AssistenciaJudiciariaSchema, AssistenciaJudiciaria]
-):
-    def __init__(self):
-        super().__init__(AssistenciaJudiciariaSchema)
+class AssistenciaJudiciariaService:
+    repository: AssistenciaJudiciariaRepository
+    endereco_service: EnderecoService
 
-    def find_by_id(self, id: int) -> AssistenciaJudiciariaSchema | None:
-        return (
-            self.filter_active(self.session.query(AssistenciaJudiciariaSchema))
-            .filter(AssistenciaJudiciariaSchema.id == id)
-            .first()
+    def __init__(self):
+        self.repository = AssistenciaJudiciariaRepository()
+        self.endereco_service = EnderecoService()
+
+    def _prepare_assistencia_data(
+        self, assistencia_judiciaria_data: dict, endereco_id: int | None = None
+    ) -> dict:
+        prepared_data = assistencia_judiciaria_data.copy()
+
+        if endereco_id is not None:
+            prepared_data["endereco_id"] = endereco_id
+
+        prepared_data["status"] = 1
+        prepared_data["areas_atendidas"] = ",".join(prepared_data["areas_atendidas"])
+
+        return prepared_data
+
+    def create(self, assistencia_judiciaria_data: dict) -> AssistenciaJudiciaria:
+        assistencia_judiciaria_data = assistencia_judiciaria_data.pop("csrf_token")
+        endereco_data = {
+            "logradouro": assistencia_judiciaria_data.pop("logradouro"),
+            "numero": assistencia_judiciaria_data.pop("numero"),
+            "complemento": assistencia_judiciaria_data.pop("complemento"),
+            "bairro": assistencia_judiciaria_data.pop("bairro"),
+            "cep": assistencia_judiciaria_data.pop("cep"),
+            "cidade": assistencia_judiciaria_data.pop("cidade"),
+            "estado": assistencia_judiciaria_data.pop("estado"),
+        }
+
+        endereco = self.endereco_service.create_or_update_from_data(endereco_data)
+        prepared_data = self._prepare_assistencia_data(
+            assistencia_judiciaria_data, endereco.id
         )
+        return self.repository.create(prepared_data)
+
+    def update(
+        self,
+        id_assistencia_judiciaria: int,
+        assistencia_judiciaria_data: dict,
+    ) -> AssistenciaJudiciaria:
+        assistencia_judiciaria = self.repository.find_by_id(id_assistencia_judiciaria)
+        if not assistencia_judiciaria:
+            raise ValueError(
+                f"Assistência judiciária com id {id_assistencia_judiciaria} não encontrada"
+            )
+
+        endereco_data = {
+            "logradouro": assistencia_judiciaria_data.pop("logradouro"),
+            "numero": assistencia_judiciaria_data.pop("numero"),
+            "complemento": assistencia_judiciaria_data.pop("complemento"),
+            "bairro": assistencia_judiciaria_data.pop("bairro"),
+            "cep": assistencia_judiciaria_data.pop("cep"),
+            "cidade": assistencia_judiciaria_data.pop("cidade"),
+            "estado": assistencia_judiciaria_data.pop("estado"),
+        }
+
+        endereco = self.endereco_service.create_or_update_from_data(endereco_data)
+
+        prepared_data = self._prepare_assistencia_data(
+            assistencia_judiciaria_data, endereco.id
+        )
+        return self.repository.update(id_assistencia_judiciaria, prepared_data)
+
+    def soft_delete(self, id_assistencia_judiciaria: int) -> bool:
+        return self.repository.soft_delete(id_assistencia_judiciaria)
+
+    def find_by_id(self, id: int) -> AssistenciaJudiciaria | None:
+        return self.repository.find_by_id(id)
 
     def get_by_area_do_direito(
         self, area_do_direito: str
-    ) -> AssistenciaJudiciariaSchema | None:
-        return (
-            self.filter_active(self.session.query(AssistenciaJudiciariaSchema))
-            .filter(AssistenciaJudiciariaSchema.area_direito == area_do_direito)
-            .first()
+    ) -> AssistenciaJudiciaria | None:
+        return self.repository.find(
+            where_conditions=[("area_direito", "eq", area_do_direito)]
         )
 
     def get_by_areas_atendida(
         self,
         area_atendida: str,
         nome: str | None = None,
-        paginator: Callable[..., Any] | None = None,
+        page_params: PageParams | None = None,
     ):
-        query = self.session.query(AssistenciaJudiciariaSchema)
+        return self.repository.get_by_areas_atendida(area_atendida, nome, page_params)
 
-        if nome:
-            query = query.filter(AssistenciaJudiciariaSchema.nome == nome)
-
-        if area_atendida == filtro_busca_assistencia_judiciaria["TODAS"][0]:
-            query = self.filter_active(query).order_by(
-                AssistenciaJudiciariaSchema.nome.asc()
-            )
-
-        query = (
-            self.filter_active(query)
-            .filter(
-                (AssistenciaJudiciariaSchema.areas_atendidas.contains(area_atendida))
-            )
-            .order_by(AssistenciaJudiciariaSchema.nome.asc())
-        )
-
-        if paginator:
-            return paginator(query)
-
-        return query.all()
-
-    def get_by_name(self, name: str, paginator: Callable[..., Any] | None = None):
-        query = (
-            self.filter_active(self.session.query(AssistenciaJudiciariaSchema))
-            .filter(AssistenciaJudiciariaSchema.nome == name)
-            .order_by(AssistenciaJudiciariaSchema.nome)
-        )
-
-        if paginator:
-            return paginator(query)
-
-        return query.first()
+    def get_by_name(self, name: str, page_params: PageParams | None = None):
+        return self.repository.get_by_nome(name)
 
     def find_atendido_assistido_by_id(
         self, id_atendido: int
     ) -> tuple[AssistenciaJudiciariaSchema, Assistido] | None:
-        result = (
-            self.filter_active(
-                self.session.query(AssistenciaJudiciariaSchema, Assistido)
-            )
-            .where(AssistenciaJudiciariaSchema.id == id_atendido)
-            .first()
-        )
+        return self.repository.find_atendido_assistido_by_id(id_atendido)
 
-        return result.tuple() if result else None
+    def get_all(self, page_params: PageParams | None = None):
+        return self.repository.get(page_params=page_params)
 
-    def get_atendido_with_assistido_data(
-        self, atendido_id: int
-    ) -> (
-        tuple[
-            AssistenciaJudiciariaSchema,
-            Assistido | None,
-            AssistidoPessoaJuridica | None,
-        ]
-        | None
-    ):
-        result = (
-            self.filter_active(
-                self.session.query(
-                    AssistenciaJudiciariaSchema, Assistido, AssistidoPessoaJuridica
-                )
-            )
-            .outerjoin(
-                Assistido,
-                onclause=Assistido.id_atendido == AssistenciaJudiciariaSchema.id,
-            )
-            .outerjoin(
-                AssistidoPessoaJuridica,
-                onclause=AssistidoPessoaJuridica.id_assistido == Assistido.id,
-            )
-            .filter(AssistenciaJudiciariaSchema.id == atendido_id)
-            .first()
-        )
-
-        if not result:
-            return None
-
-        return result.tuple()
-
-    def get_all(self, paginator: Callable[..., Any] | None = None):
-        query = self.filter_active(
-            self.session.query(AssistenciaJudiciariaSchema)
-        ).order_by(AssistenciaJudiciariaSchema.nome)
-
-        if paginator:
-            return paginator(query)
-
-        return query.all()
-
-    def get_assistidos_by_id_atendido(self, atendido_ids: list[int]) -> list[Assistido]:
-        return (
-            self.filter_active(self.session.query(Assistido))
-            .where(Assistido.id_atendido.in_(atendido_ids))
-            .all()
-        )
-
-    def search_by_str(self, string: str, paginator: Callable[..., Any] | None = None):
-        result = (
-            self.session.query(AssistenciaJudiciariaSchema)
-            .filter(AssistenciaJudiciariaSchema.nome.ilike(f"%{string}%"))
-            .order_by(AssistenciaJudiciariaSchema.nome)
-        )
-
-        if paginator:
-            return paginator(result)
-
-        return result.all()
-
-    def filter_active(self, query: Query[T]) -> Query[T]:
-        return query.filter(AssistenciaJudiciariaSchema.status)
+    def get_encaminhar_assistencia_data(self, id_orientacao: int) -> dict[str, Any]:
+        try:
+            form = AssistenciaJudiciariaForm()
+            return {"success": True, "form": form}
+        except Exception:
+            return {"success": False, "form": None}

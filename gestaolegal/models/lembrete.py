@@ -2,14 +2,16 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+from gestaolegal.models.usuario import Usuario
+
 if TYPE_CHECKING:
     from gestaolegal.models.caso import Caso
-    from gestaolegal.models.usuario import Usuario
     from gestaolegal.schemas.lembrete import LembreteSchema
 
 
 @dataclass(frozen=True)
-class Lembrete:
+class Lembrete(BaseModel):
     id: int
     num_lembrete: int
     id_do_criador: int
@@ -26,19 +28,21 @@ class Lembrete:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(lembrete: "LembreteSchema") -> "Lembrete":
-        return Lembrete(
-            id=lembrete.id,
-            num_lembrete=lembrete.num_lembrete,
-            id_do_criador=lembrete.id_do_criador,
-            criador=lembrete.criador,
-            id_caso=lembrete.id_caso,
-            caso=lembrete.caso,
-            id_usuario=lembrete.id_usuario,
-            usuario=lembrete.usuario,
-            data_criacao=lembrete.data_criacao,
-            data_lembrete=lembrete.data_lembrete,
-            descricao=lembrete.descricao,
-            status=lembrete.status,
-        )
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "LembreteSchema", shallow: bool = False
+    ) -> "Lembrete":
+        lembrete_items = schema.to_dict()
+
+        if not shallow:
+            from gestaolegal.models.caso import Caso
+
+            lembrete_items["criador"] = Usuario.from_sqlalchemy(schema.criador)
+            lembrete_items["caso"] = Caso.from_sqlalchemy(schema.caso, shallow=True)
+            lembrete_items["usuario"] = Usuario.from_sqlalchemy(schema.usuario)
+        else:
+            lembrete_items["criador"] = None
+            lembrete_items["caso"] = None
+            lembrete_items["usuario"] = None
+
+        return Lembrete(**lembrete_items)

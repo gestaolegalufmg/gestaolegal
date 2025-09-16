@@ -1,8 +1,9 @@
+from typing import Any
+
 from flask import flash
 from flask_wtf import FlaskForm
 from wtforms import (
     DateField,
-    HiddenField,
     PasswordField,
     SelectField,
     StringField,
@@ -11,7 +12,6 @@ from wtforms import (
 )
 from wtforms.validators import (
     AnyOf,
-    DataRequired,
     Email,
     InputRequired,
     Length,
@@ -25,11 +25,8 @@ from gestaolegal.common.constants import (
     sexo_usuario,
     tipo_bolsaUsuario,
 )
+from gestaolegal.forms.plantao.base_form_mixin import BaseFormMixin
 from gestaolegal.utils.forms import RequiredIf
-
-#####################################################
-################## CONSTANTES #######################
-#####################################################
 
 MSG_NaoPodeEstarEmBranco = "{} não pode estar em branco!"
 MSG_SelecioneUmaOpcaoLista = "Por favor seleciona uma opção de {} da lista"
@@ -60,11 +57,11 @@ max_horario_atendimento = 30
 #####################################################
 
 
-class EnderecoForm(FlaskForm):
+class EnderecoFieldsMixin:
     logradouro = StringField(
         "Logradouro",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O logradouro")),
+            InputRequired(),
             Length(
                 max=max_logradouro,
                 message="Por favor, use no máximo {} caracteres para o logradouro.".format(
@@ -77,7 +74,7 @@ class EnderecoForm(FlaskForm):
     numero = StringField(
         "Número",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O numero")),
+            InputRequired(),
             Length(
                 max=max_numero,
                 message="Por favor, use no máximo {} caracteres para o número.".format(
@@ -103,7 +100,7 @@ class EnderecoForm(FlaskForm):
     bairro = StringField(
         "Bairro",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O bairro")),
+            InputRequired(),
             Length(
                 max=max_bairro,
                 message="Por favor, use no máximo {} caracteres para o bairro.".format(
@@ -116,7 +113,7 @@ class EnderecoForm(FlaskForm):
     cep = StringField(
         "CEP",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O CEP")),
+            InputRequired(),
             Length(
                 max=max_cep,
                 message="Por favor, use no máximo {} caracteres para o CEP.".format(
@@ -129,7 +126,7 @@ class EnderecoForm(FlaskForm):
     cidade = StringField(
         "Cidade",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("A cidade")),
+            InputRequired(),
             Length(
                 max=max_cidade,
                 message="Por favor, use no máximo {} caracteres para o nome da cidade.".format(
@@ -139,12 +136,10 @@ class EnderecoForm(FlaskForm):
         ],
     )
 
-    id_cidade = HiddenField()
-
     estado = StringField(
         "Estado",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("A cidade")),
+            InputRequired(),
             Length(
                 max=max_estado,
                 message="Por favor, use no máximo {} caracteres para o estado".format(
@@ -154,33 +149,8 @@ class EnderecoForm(FlaskForm):
         ],
     )
 
-    id_estado = HiddenField()
 
-    @staticmethod
-    def to_dict(form_instance):
-        return {
-            "logradouro": form_instance.logradouro.data,
-            "numero": form_instance.numero.data,
-            "complemento": form_instance.complemento.data,
-            "bairro": form_instance.bairro.data,
-            "cep": form_instance.cep.data,
-            "cidade": form_instance.cidade.data,
-            "estado": form_instance.estado.data,
-        }
-
-    @staticmethod
-    def from_model(form_instance, endereco_model):
-        if endereco_model:
-            form_instance.logradouro.data = endereco_model.logradouro
-            form_instance.numero.data = endereco_model.numero
-            form_instance.bairro.data = endereco_model.bairro
-            form_instance.cep.data = endereco_model.cep
-            form_instance.complemento.data = endereco_model.complemento
-            form_instance.cidade.data = endereco_model.cidade
-            form_instance.estado.data = endereco_model.estado
-
-
-class EditarUsuarioForm(EnderecoForm):
+class EditarUsuarioForm(EnderecoFieldsMixin, BaseFormMixin, FlaskForm):
     def validaData(form, field):
         if field.data <= form.data_entrada.data:
             flash("A data de saída deve ser posterior à data de entrada.", "warning")
@@ -200,7 +170,7 @@ class EditarUsuarioForm(EnderecoForm):
     nome = StringField(
         "Nome",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O nome")),
+            InputRequired(),
             Length(
                 max=max_nome,
                 message="O nome não pode conter mais de {} caracteres!".format(
@@ -213,7 +183,7 @@ class EditarUsuarioForm(EnderecoForm):
     email = StringField(
         "Endereço de e-mail",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O email")),
+            InputRequired(),
             Email(
                 "Formato de email inválido! Certifique-se de que ele foi digitado corretamente."
             ),
@@ -232,7 +202,7 @@ class EditarUsuarioForm(EnderecoForm):
             (UserRole.PROFESSOR, "Professor"),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format("urole")),
+            InputRequired(),
             AnyOf(
                 [role.value for role in UserRole],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -248,7 +218,7 @@ class EditarUsuarioForm(EnderecoForm):
             (sexo_usuario["OUTROS"][0], sexo_usuario["OUTROS"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format("sexo")),
+            InputRequired(),
             AnyOf(
                 [sexo_usuario[key][0] for key in sexo_usuario],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -259,7 +229,7 @@ class EditarUsuarioForm(EnderecoForm):
     rg = StringField(
         "RG",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O RG")),
+            InputRequired(),
             Length(
                 max=max_rg,
                 message="Por favor, use no máximo {} caracteres para o RG.".format(
@@ -285,7 +255,7 @@ class EditarUsuarioForm(EnderecoForm):
     profissao = StringField(
         "Profissão",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("A profissão")),
+            InputRequired(),
             Length(
                 max=max_profissao,
                 message="Por favor, use no máximo {} caracteres para descrever a profissão.".format(
@@ -309,7 +279,7 @@ class EditarUsuarioForm(EnderecoForm):
             (estado_civilUsuario["UNIAO"][0], estado_civilUsuario["UNIAO"][1]),
         ],
         validators=[
-            DataRequired(MSG_SelecioneUmaOpcaoLista.format("estado civil")),
+            InputRequired(),
             AnyOf(
                 [estado_civilUsuario[key][0] for key in estado_civilUsuario],
                 message="Desculpe, ocorreu um erro. Por favor, atualize a página.",
@@ -319,7 +289,7 @@ class EditarUsuarioForm(EnderecoForm):
 
     nascimento = DateField(
         "Data de nascimento",
-        validators=[DataRequired(MSG_EscolhaUmaData.format("de nascimento"))],
+        validators=[InputRequired()],
     )
 
     telefone = StringField(
@@ -338,7 +308,7 @@ class EditarUsuarioForm(EnderecoForm):
     celular = StringField(
         "Telefone celular",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("O telefone celular")),
+            InputRequired(),
             Length(
                 max=max_celular,
                 message="Por favor, use no máximo {} caracteres para o telefone celular.".format(
@@ -376,7 +346,7 @@ class EditarUsuarioForm(EnderecoForm):
 
     data_entrada = DateField(
         "Data de entrada",
-        validators=[DataRequired(MSG_EscolhaUmaData.format("de entrada"))],
+        validators=[InputRequired()],
     )
     data_saida = DateField("Data de saída", validators=[Optional(), validaData])
 
@@ -396,9 +366,8 @@ class EditarUsuarioForm(EnderecoForm):
     bolsista = SelectField(
         "É bolsista?",
         choices=[(True, "Sim"), (False, "Não")],
-        coerce=lambda x: x
-        == "True",  # https://stackoverflow.com/questions/33429510/wtforms-selectfield-not-properly-coercing-for-booleans
-        validators=[InputRequired(MSG_SelecioneUmaOpcaoLista.format("é bolsista?"))],
+        coerce=bool,
+        validators=[InputRequired()],
     )
 
     tipo_bolsa = SelectField(
@@ -465,7 +434,7 @@ class EditarUsuarioForm(EnderecoForm):
     cert_atuacao_DAJ = SelectField(
         "Usuário faz jus ao certificado de atuação na DAJ?",
         choices=[("sim", "Sim"), ("nao", "Não")],
-        validators=[DataRequired(MSG_SelecioneUmaOpcaoLista.format("atuação na DAJ"))],
+        validators=[InputRequired()],
     )
 
     inicio_bolsa = DateField(
@@ -482,75 +451,42 @@ class EditarUsuarioForm(EnderecoForm):
         "Data de fim da bolsa", validators=[Optional(), validaDatadaBolsa]
     )
 
-    senha = (
-        HiddenField()
-    )  # Não é usado no formulário, criado para o usuario_form.html funcionar
-
-    confirmacao = (
-        HiddenField()
-    )  # Não é usado no formulário, criado para o usuario_form.html funcionar
-
-    submit = SubmitField("Alterar dados")
-
-    @staticmethod
-    def to_dict(form_instance):
-        exclude_fields = {
-            "logradouro",
-            "numero",
-            "complemento",
-            "bairro",
-            "cep",
-            "cidade",
-            "estado",
-            "id_cidade",
-            "id_estado",
-            "submit",
-            "csrf_token",
-            "confirmacao",
-        }
-
-        if hasattr(form_instance, "senha") and isinstance(
-            form_instance.senha, HiddenField
-        ):
-            exclude_fields.add("senha")
-
-        user_data = {}
-        for field_name, field in form_instance._fields.items():
-            if field_name not in exclude_fields and hasattr(field, "data"):
-                user_data[field_name] = field.data
-
-        return user_data
-
-    @staticmethod
-    def from_model(form_instance, usuario_model):
-        if not usuario_model:
-            return
-
-        for field_name, field in form_instance._fields.items():
-            if hasattr(usuario_model, field_name) and hasattr(field, "data"):
-                setattr(field, "data", getattr(usuario_model, field_name))
-
-        if hasattr(usuario_model, "endereco"):
-            EnderecoForm.from_model(form_instance, usuario_model.endereco)
+    def _postprocess_data(self) -> dict[str, Any]:
+        result = dict(self.data)
+        return result
 
 
 class CadastrarUsuarioForm(EditarUsuarioForm):
     senha = PasswordField(
         "Senha",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("A senha")),
+            InputRequired(),
         ],
     )
 
     confirmacao = PasswordField(
         "Confirme a senha",
         validators=[
-            DataRequired(MSG_NaoPodeEstarEmBranco.format("A confirmação de senha")),
+            InputRequired(),
         ],
     )
 
-    id_cidade = HiddenField()
-
-    id_estado = HiddenField()
-
     submit = SubmitField("Cadastrar")
+
+
+class EditarSenhaForm(BaseFormMixin, FlaskForm):
+    senha = PasswordField(
+        "Nova senha",
+        validators=[
+            InputRequired(),
+        ],
+        render_kw={"placeholder": "Escolha uma senha segura", "maxlength": "60"},
+    )
+
+    confirmacao = PasswordField(
+        "Confirme sua senha",
+        validators=[
+            InputRequired(),
+        ],
+        render_kw={"placeholder": "Confirme sua senha", "maxlength": "60"},
+    )

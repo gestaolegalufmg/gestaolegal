@@ -1,21 +1,21 @@
 function deferir_caso(url) {
-    $('#deferir_confirm').attr('href', url);
-    $('#deferir').modal({
-        show: true
-    });
+    document.getElementById('deferir_confirm').href = url;
+    if (window.ModalManager && typeof window.ModalManager.open === 'function') {
+        window.ModalManager.open('deferir');
+    }
 }
 
 function indeferir_caso(url) {
-    $('#indeferir_confirm').attr('href', url);
-    $('#indeferir').modal({
-        show: true
-    });
+    document.getElementById('indeferir_confirm').href = url;
+    if (window.ModalManager && typeof window.ModalManager.open === 'function') {
+        window.ModalManager.open('indeferir');
+    }
 }
 
 function excluir_caso(url) {
-    $('#excluir_confirm').attr('href', url);
-    $('#excluir').modal({
-        show: true
-    });
+    document.getElementById('excluir_confirm').href = url;
+    if (window.ModalManager && typeof window.ModalManager.open === 'function') {
+        window.ModalManager.open('excluir');
+    }
 }
 

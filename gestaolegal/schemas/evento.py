@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class EventoSchema(Base):
-    __tablename__: Final = "eventos"
+    __tablename__ = "eventos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     id_caso: Mapped[int] = mapped_column(

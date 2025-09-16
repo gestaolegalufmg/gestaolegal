@@ -75,12 +75,24 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{url_for('static',filename='js/form_utilities.js')}}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector("form");
     const emailInput = document.getElementById('email');
     const submitButton = document.getElementById('submit');
     const btnText = submitButton.querySelector('.btn-text');
+    
+    // Initialize form with FormUtils
+    FormUtils.initializeFormWithValidation({
+      formId: 'form',
+      buttonId: 'submit',
+      masks: [],
+      conditionalFields: [],
+      dateRanges: [],
+      preventWheel: true,
+      enableValidation: true
+    });
     
     // Loading state management
     const setLoading = (isLoading) => {
@@ -93,29 +105,10 @@
       }
     };
 
-    const validateForm = () => {
-      let isValid = true;
-      
-      document.querySelectorAll('.alert-danger').forEach(alert => alert.remove());
-      emailInput.classList.remove('is-invalid');
-      
-      if (!emailInput.value.trim()) {
-        emailInput.classList.add('is-invalid');
-        isValid = false;
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value)) {
-        emailInput.classList.add('is-invalid');
-        emailInput.parentElement.insertAdjacentHTML('afterend', 
-          '<div class="alert alert-danger mt-2">Por favor, insira um email válido</div>');
-        isValid = false;
-      }
-      
-      return isValid;
-    };
-
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      if (!validateForm()) {
+      if (!FormUtils.validateForm(e)) {
         return;
       }
       
@@ -125,7 +118,7 @@
         const response = await fetch("{{url_for('usuario.esqueci_senha')}}", {
           method: "POST",
           headers: {
-            'X-CSRF-Token': "{{ csrf_token() }}",
+            'X-CSRF-Token': FormUtils.getCSRFToken(),
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ email: emailInput.value })
@@ -145,13 +138,6 @@
           '<div class="alert alert-danger mt-2">Erro ao processar solicitação. Tente novamente.</div>');
       } finally {
         setLoading(false);
-      }
-    });
-
-    emailInput.addEventListener('blur', validateForm);
-    emailInput.addEventListener('input', () => {
-      if (emailInput.classList.contains('is-invalid')) {
-        validateForm();
       }
     });
   });

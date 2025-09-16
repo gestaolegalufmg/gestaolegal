@@ -1,5 +1,5 @@
 from datetime import date
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -8,13 +8,14 @@ from gestaolegal.schemas import associacao_casos_atendidos
 from gestaolegal.schemas.base import Base
 
 if TYPE_CHECKING:
+    from gestaolegal.schemas.assistido import AssistidoSchema
     from gestaolegal.schemas.caso import CasoSchema
     from gestaolegal.schemas.endereco import EnderecoSchema
     from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
 
 
 class AtendidoSchema(Base):
-    __tablename__: Final = "atendidos"
+    __tablename__ = "atendidos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
@@ -27,8 +28,13 @@ class AtendidoSchema(Base):
     casos: Mapped[list["CasoSchema"]] = relationship(
         "CasoSchema", secondary=associacao_casos_atendidos, back_populates="clientes"
     )
+
+    assistido: Mapped["AssistidoSchema | None"] = relationship(
+        "AssistidoSchema", back_populates="atendido"
+    )
+
     endereco: Mapped["EnderecoSchema | None"] = relationship(
-        "EnderecoSchema", lazy="joined", back_populates="atendidos"
+        "EnderecoSchema", back_populates="atendidos"
     )
 
     # Dados básicos

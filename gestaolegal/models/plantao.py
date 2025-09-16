@@ -2,12 +2,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+
 if TYPE_CHECKING:
     from gestaolegal.schemas.plantao import PlantaoSchema
 
 
 @dataclass(frozen=True)
-class Plantao:
+class Plantao(BaseModel):
     id: int
     data_abertura: datetime | None
     data_fechamento: datetime | None
@@ -15,10 +17,9 @@ class Plantao:
     def __post_init__(self):
         return
 
-    @staticmethod
-    def from_sqlalchemy(plantao: "PlantaoSchema") -> "Plantao":
-        return Plantao(
-            id=plantao.id,
-            data_abertura=plantao.data_abertura,
-            data_fechamento=plantao.data_fechamento,
-        )
+    @classmethod
+    def from_sqlalchemy(
+        cls, schema: "PlantaoSchema", shallow: bool = False
+    ) -> "Plantao":
+        plantao_items = schema.to_dict()
+        return Plantao(**plantao_items)
