@@ -5,19 +5,19 @@ from typing import Optional
 
 import pytz
 from flask import current_app
-from sqlalchemy import and_
 
+from gestaolegal.common import PageParams
 from gestaolegal.common.constants import UserRole, situacao_deferimento
 from gestaolegal.common.constants.atendido import TipoBusca
 from gestaolegal.models.caso import Caso
 from gestaolegal.models.evento import Evento
 from gestaolegal.models.lembrete import Lembrete
+from gestaolegal.models.roteiro import Roteiro
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
-from gestaolegal.common import PageParams
+from gestaolegal.repositories.base_repository import WhereConditions
 from gestaolegal.repositories.caso_repository import CasoRepository
 from gestaolegal.repositories.roteiro_repository import RoteiroRepository
 from gestaolegal.repositories.user_repository import UserRepository
-from gestaolegal.schemas.caso import CasoSchema
 from gestaolegal.services.arquivo_service import ArquivoService
 from gestaolegal.services.atendido_service import AtendidoService
 from gestaolegal.services.evento_service import EventoService
@@ -32,6 +32,17 @@ logger = logging.getLogger(__name__)
 
 
 class CasosService:
+    repository: CasoRepository
+    user_repository: UserRepository
+    atendido_repository: AtendidoRepository
+    roteiro_repository: RoteiroRepository
+    evento_service: EventoService
+    lembrete_service: LembreteService
+    arquivo_service: ArquivoService
+    notification_service: NotificacaoService
+    historico_service: HistoricoService
+    atendido_service: AtendidoService
+
     def __init__(self):
         self.repository = CasoRepository()
         self.user_repository = UserRepository()
@@ -156,40 +167,23 @@ class CasosService:
             raise ValueError(f"Erro ao remover cliente {cliente_id} do caso {caso_id}")
 
     def search_casos(self, termo: str) -> list[dict]:
-        where_clauses = []
+        where_clauses: WhereConditions = []
 
         if termo:
-            where_clauses.append(
-                and_(CasoSchema.id.isnot(None), CasoSchema.id.like(termo + "%"))
-            )
+            where_clauses.append(("id", "like", f"{termo}%"))
 
         page_params = PageParams(page=1, per_page=5) if not termo else None
 
-        result = self.repository.get_all(
-            where_clauses=where_clauses, order_by=CasoSchema.id, page_params=page_params
+        result = self.repository.get(
+            where_conditions=where_clauses, order_by=["id"], page_params=page_params
         )
 
-        casos = result.items if hasattr(result, "items") else result
+        casos = result.items
 
         if not casos:
             return [{"id": 1, "text": "Não há casos cadastrados no sistema"}]
 
         return [{"id": caso.id, "text": f"Caso {caso.id}"} for caso in casos]
-
-    def validate_caso_permission(
-        self, caso_id: int, user_id: int, user_role: str
-    ) -> tuple[bool, str]:
-        caso = self.repository.find_by_id(caso_id)
-        if not caso:
-            return False, "Caso não encontrado"
-
-        if user_role == UserRole.COLAB_EXTERNO and caso.id_colaborador != user_id:
-            return False, "Você não tem permissão para editar esse caso."
-
-        if user_role == UserRole.ESTAGIARIO_DIREITO and caso.id_estagiario != user_id:
-            return False, "Você não tem permissão para editar esse caso."
-
-        return True, ""
 
     def validate_lembrete_permission(
         self, lembrete_id: int, user_id: int, user_role: str
@@ -210,7 +204,7 @@ class CasosService:
     def validate_evento_permission(
         self, evento_id: int, user_id: int, user_role: str
     ) -> bool:
-        evento = self.evento_service.get_evento_by_id(evento_id)
+        evento = self.evento_service.find_by_id(evento_id)
 
         if not evento:
             return False
@@ -302,18 +296,6 @@ class CasosService:
 
         return {"form": lembrete.to_dict(), "lembrete": lembrete}
 
-    def get_lembrete_by_id(self, lembrete_id: int) -> Lembrete:
-        return self.lembrete_service.get_lembrete_by_id(lembrete_id)
-
-    def get_lembrete_by_numero(self, caso_id: int, num_lembrete: int) -> Lembrete:
-        return self.lembrete_service.get_lembrete_by_numero(caso_id, num_lembrete)
-
-    def get_lembretes_by_caso(self, caso_id: int) -> list[Lembrete]:
-        return self.lembrete_service.get_lembretes_by_caso(caso_id)
-
-    def delete_lembrete(self, lembrete_id: int) -> None:
-        return self.lembrete_service.delete_lembrete(lembrete_id)
-
     def create_evento_with_files_and_notification(
         self, form, caso_id: int, current_user_id: int, request
     ) -> Evento:
@@ -349,14 +331,11 @@ class CasosService:
         return evento
 
     def get_editar_evento_data(self, evento_id: int) -> dict:
-        evento = self.evento_service.get_evento_by_id(evento_id)
+        evento = self.evento_service.find_by_id(evento_id)
         if not evento:
-            return {}
+            raise ValueError(f"Evento with id {evento_id} not found")
 
         return {"form": evento.to_dict(), "evento": evento}
-
-    def get_evento_by_id(self, evento_id: int) -> Evento:
-        return self.evento_service.get_evento_by_id(evento_id)
 
     def get_eventos_by_caso(
         self, caso_id: int, opcao_filtro: str, page_params: PageParams
@@ -390,26 +369,15 @@ class CasosService:
     def get_meus_casos(self, user_id: int, opcao_filtro: str, page_params: PageParams):
         return self.repository.get_meus_casos(user_id, opcao_filtro, page_params)
 
-    def create_or_update_roteiro(self, area_direito: str, link: str) -> None:
-        return self.roteiro_repository.create_or_update(area_direito, link)
+    def create_or_update_roteiro(self, area_direito: str, link: str) -> Roteiro:
+        roteiro = self.roteiro_repository.find_by_area_direito(area_direito)
+
+        if roteiro:
+            return self.roteiro_repository.update(roteiro.id, {"link": link})
+
+        return self.roteiro_repository.create(
+            {"area_direito": area_direito, "link": link}
+        )
 
     def get_all_roteiros(self):
-        return self.roteiro_repository.get_all()
-
-    def create_historico(self, id_usuario: int, id_caso: int):
-        return self.historico_service.create_historico(id_usuario, id_caso)
-
-    def get_historico_by_caso(self, caso_id: int, page_params: PageParams):
-        return self.historico_service.get_historico_by_caso(caso_id, page_params)
-
-    def get_evento_with_arquivos(self, num_evento: int, caso_id: int):
-        return self.evento_service.get_evento_with_arquivos(num_evento, caso_id)
-
-    def validate_arquivo_exists(self, arquivo_id: int) -> bool:
-        return self.arquivo_service.validate_arquivo_exists(arquivo_id)
-
-    def validate_arquivo_evento_exists(self, arquivo_id: int) -> bool:
-        return self.arquivo_service.validate_arquivo_evento_exists(arquivo_id)
-
-    def delete_arquivo_evento(self, arquivo_id: int) -> None:
-        return self.arquivo_service.delete_arquivo_evento(arquivo_id)
+        return self.roteiro_repository.get()

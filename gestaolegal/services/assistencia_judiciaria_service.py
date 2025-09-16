@@ -1,6 +1,7 @@
 import logging
 from typing import Any, TypeVar
 
+from gestaolegal.common import PageParams
 from gestaolegal.forms.plantao.assistencia_juridica_form import (
     AssistenciaJudiciariaForm,
 )
@@ -8,7 +9,6 @@ from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
 from gestaolegal.repositories.assistencia_judiciaria_repository import (
     AssistenciaJudiciariaRepository,
 )
-from gestaolegal.common import PageParams
 from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
 from gestaolegal.schemas.assistido import AssistidoSchema as Assistido
 from gestaolegal.services.endereco_service import EnderecoService
@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 class AssistenciaJudiciariaService:
+    repository: AssistenciaJudiciariaRepository
+    endereco_service: EnderecoService
+
     def __init__(self):
         self.repository = AssistenciaJudiciariaRepository()
         self.endereco_service = EnderecoService()
@@ -82,16 +85,18 @@ class AssistenciaJudiciariaService:
         )
         return self.repository.update(id_assistencia_judiciaria, prepared_data)
 
-    def soft_delete(self, id_assistencia_judiciaria: int) -> AssistenciaJudiciaria:
+    def soft_delete(self, id_assistencia_judiciaria: int) -> bool:
         return self.repository.soft_delete(id_assistencia_judiciaria)
 
-    def find_by_id(self, id: int) -> AssistenciaJudiciariaSchema | None:
+    def find_by_id(self, id: int) -> AssistenciaJudiciaria | None:
         return self.repository.find_by_id(id)
 
     def get_by_area_do_direito(
         self, area_do_direito: str
-    ) -> AssistenciaJudiciariaSchema | None:
-        return self.repository.find_by_field("area_direito", area_do_direito)
+    ) -> AssistenciaJudiciaria | None:
+        return self.repository.find(
+            where_conditions=[("area_direito", "eq", area_do_direito)]
+        )
 
     def get_by_areas_atendida(
         self,
@@ -110,7 +115,7 @@ class AssistenciaJudiciariaService:
         return self.repository.find_atendido_assistido_by_id(id_atendido)
 
     def get_all(self, page_params: PageParams | None = None):
-        return self.repository.get_all_with_pagination(page_params)
+        return self.repository.get(page_params=page_params)
 
     def get_encaminhar_assistencia_data(self, id_orientacao: int) -> dict[str, Any]:
         try:

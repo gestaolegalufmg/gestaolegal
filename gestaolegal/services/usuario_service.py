@@ -4,11 +4,11 @@ from typing import TypeVar
 
 from flask import current_app
 from flask_bcrypt import Bcrypt
-from itsdangerous import Serializer
+from itsdangerous import Serializer, URLSafeTimedSerializer
 
+from gestaolegal.common import PageParams
 from gestaolegal.common.constants import UserRole
 from gestaolegal.models.usuario import Usuario
-from gestaolegal.common import PageParams
 from gestaolegal.repositories.user_repository import UserRepository
 from gestaolegal.schemas.usuario import UsuarioSchema
 from gestaolegal.services.endereco_service import EnderecoService
@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 class UsuarioService:
+    repository: UserRepository
+    endereco_service: EnderecoService
+
     def __init__(self):
         self.repository = UserRepository()
         self.endereco_service = EnderecoService()
@@ -180,7 +183,7 @@ class UsuarioService:
         return self.repository.soft_delete(user_id)
 
     def set_password_recovery(self, email: str) -> bool:
-        usuario = self.repository.find_by_field("email", email)
+        usuario = self.repository.find(where_conditions=[("email", "eq", email)])
         if not usuario:
             return False
 
@@ -236,13 +239,13 @@ class UsuarioService:
         return True, ""
 
     def token_recovery(self, user_id: int, expires_in: int = 3600) -> str:
-        s = Serializer(current_app.config["SECRET_KEY"], expires_in)
-        return s.dumps({"user_id": user_id}).decode("utf-8")
+        s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+        return s.dumps({"user_id": user_id}, salt="recovery")
 
-    def verify_token(self, token: str) -> Usuario | None:
-        s = Serializer(current_app.config["SECRET_KEY"])
+    def verify_token(self, token: str, max_age: int = 3600) -> Usuario | None:
+        s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
         try:
-            user_id = s.loads(token)["user_id"]
+            user_id = s.loads(token, salt="recovery", max_age=max_age)["user_id"]
         except:
             return None
         return self.repository.find_by_id(user_id)

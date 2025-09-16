@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class Assistido(BaseModel):
-    id: int | None
+    id: int
     id_atendido: int
     sexo: str
     profissao: str

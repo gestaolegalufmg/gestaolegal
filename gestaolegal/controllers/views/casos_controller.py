@@ -13,6 +13,7 @@ from flask import (
 from flask_login import current_user
 from werkzeug.exceptions import RequestEntityTooLarge
 
+from gestaolegal.common import PageParams
 from gestaolegal.common.constants import (
     UserRole,
     assistencia_jud_areas_atendidas,
@@ -29,7 +30,6 @@ from gestaolegal.forms.relatorio import (
     NovoCasoForm,
     RoteiroForm,
 )
-from gestaolegal.common import PageParams
 from gestaolegal.services.arquivo_service import ArquivoService
 from gestaolegal.services.casos_service import CasosService
 from gestaolegal.services.notificacao_service import NotificacaoService

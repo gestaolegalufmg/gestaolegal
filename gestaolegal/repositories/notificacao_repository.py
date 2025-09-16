@@ -8,7 +8,7 @@ from gestaolegal.repositories.base_repository import (
 from gestaolegal.schemas.notificacao import NotificacaoSchema
 
 
-class NotificacaoRepository(BaseRepository):
+class NotificacaoRepository(BaseRepository[NotificacaoSchema, Notificacao]):
     def __init__(self):
         super().__init__(NotificacaoSchema, Notificacao)
 

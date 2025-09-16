@@ -1,16 +1,16 @@
 import logging
 import os
 from datetime import datetime
-from typing import Optional
 
 from flask import current_app
+from werkzeug.datastructures import FileStorage
 from werkzeug.exceptions import RequestEntityTooLarge
 
-from gestaolegal.common.constants import tipo_evento
-from gestaolegal.models.evento import Evento
 from gestaolegal.common import PageParams
+from gestaolegal.common.constants import tipo_evento
+from gestaolegal.models.arquivos_evento import ArquivosEvento
+from gestaolegal.models.evento import Evento
 from gestaolegal.repositories.evento_repository import EventoRepository
-from gestaolegal.schemas.arquivos_evento import ArquivosEventoSchema
 from gestaolegal.services.arquivo_service import ArquivoService
 
 opcoes_filtro_eventos = tipo_evento.copy()
@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 class EventoService:
+    repository: EventoRepository
+    arquivo_service: ArquivoService
+
     def __init__(self):
         self.repository = EventoRepository()
         self.arquivo_service = ArquivoService()
@@ -35,7 +38,7 @@ class EventoService:
         descricao: str,
         data_evento: datetime,
         id_criado_por: int,
-        id_usuario_responsavel: Optional[int] = None,
+        id_usuario_responsavel: int | None = None,
     ) -> Evento:
         evento_data = {
             "id_caso": caso_id,
@@ -58,15 +61,15 @@ class EventoService:
             caso_id, opcao_filtro, page_params
         )
 
-    def get_evento_by_id(self, evento_id: int) -> Optional[Evento]:
+    def find_by_id(self, evento_id: int) -> Evento | None:
         return self.repository.find_by_id(evento_id)
 
-    def get_evento_by_numero(self, num_evento: int, caso_id: int) -> Optional[Evento]:
+    def get_evento_by_numero(self, num_evento: int, caso_id: int) -> Evento | None:
         return self.repository.get_evento_by_numero(num_evento, caso_id)
 
     def get_evento_with_arquivos(
         self, num_evento: int, caso_id: int
-    ) -> tuple[Optional[Evento], list[ArquivosEventoSchema]]:
+    ) -> tuple[Evento | None, list[ArquivosEvento]]:
         evento = self.get_evento_by_numero(num_evento, caso_id)
         if not evento:
             return None, []
@@ -80,7 +83,7 @@ class EventoService:
         tipo: str,
         descricao: str,
         data_evento: datetime,
-        id_usuario_responsavel: Optional[int] = None,
+        id_usuario_responsavel: int | None = None,
     ) -> Evento:
         evento = self.repository.find_by_id(evento_id)
         if not evento:
@@ -100,7 +103,7 @@ class EventoService:
             raise ValueError("Evento não encontrado")
 
         # Handle file deletion if needed
-        if hasattr(evento, "arquivo") and evento.arquivo:
+        if evento.arquivo:
             local_arquivo = os.path.join(
                 current_app.root_path,
                 "static",
@@ -112,12 +115,12 @@ class EventoService:
 
         self.repository.delete(evento_id)
 
-    def get_arquivos_by_evento(self, evento_id: int) -> list[ArquivosEventoSchema]:
+    def get_arquivos_by_evento(self, evento_id: int) -> list[ArquivosEvento]:
         return self.arquivo_service.get_arquivos_by_evento(evento_id)
 
     def create_arquivo_evento(
         self, caso_id: int, evento_id: int, link_arquivo: str
-    ) -> ArquivosEventoSchema:
+    ) -> ArquivosEvento:
         return self.arquivo_service.create_arquivo_evento(
             caso_id, evento_id, link_arquivo
         )
@@ -128,8 +131,8 @@ class EventoService:
         tipo: str,
         descricao: str,
         data_evento: datetime,
-        id_usuario_responsavel: Optional[int] = None,
-        arquivos: Optional[list] = None,
+        id_usuario_responsavel: int | None = None,
+        arquivos: list[FileStorage] | None = None,
     ) -> Evento:
         evento = self.update_evento(
             evento_id=evento_id,
@@ -156,7 +159,7 @@ class EventoService:
 
         return evento
 
-    def save_arquivo(self, arquivo) -> str:
+    def save_arquivo(self, arquivo: FileStorage) -> str:
         if not arquivo or not arquivo.filename:
             raise ValueError("Nenhum arquivo fornecido")
 

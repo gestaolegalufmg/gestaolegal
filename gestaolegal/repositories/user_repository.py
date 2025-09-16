@@ -7,7 +7,7 @@ from gestaolegal.repositories.base_repository import (
 from gestaolegal.schemas.usuario import UsuarioSchema
 
 
-class UserRepository(BaseRepository):
+class UserRepository(BaseRepository[UsuarioSchema, Usuario]):
     def __init__(self):
         super().__init__(UsuarioSchema, Usuario)
 

@@ -3,7 +3,9 @@ from gestaolegal.repositories.base_repository import BaseRepository, WhereCondit
 from gestaolegal.schemas.dias_marcados_plantao import DiasMarcadosPlantaoSchema
 
 
-class DiasMarcadosRepository(BaseRepository):
+class DiasMarcadosRepository(
+    BaseRepository[DiasMarcadosPlantaoSchema, DiasMarcadosPlantao]
+):
     def __init__(self):
         super().__init__(DiasMarcadosPlantaoSchema, DiasMarcadosPlantao)
 

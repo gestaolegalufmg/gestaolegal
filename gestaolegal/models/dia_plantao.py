@@ -2,12 +2,14 @@ from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+
 if TYPE_CHECKING:
     from gestaolegal.schemas.dia_plantao import DiaPlantaoSchema
 
 
 @dataclass(frozen=True)
-class DiaPlantao:
+class DiaPlantao(BaseModel):
     id: int
     data: date | None
     status: bool

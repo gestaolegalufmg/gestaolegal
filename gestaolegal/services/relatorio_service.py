@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from gestaolegal.common.constants import assistencia_jud_areas_atendidas
 from gestaolegal.repositories.caso_repository import CasoRepository
@@ -16,6 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class RelatorioService:
+    orientacao_repo: OrientacaoJuridicaRepository
+    caso_repo: CasoRepository
+    usuario_repo: UserRepository
+    registro_entrada_repo: RegistroEntradaRepository
+    dias_marcados_repo: DiasMarcadosRepository
+
     def __init__(self):
         self.orientacao_repo = OrientacaoJuridicaRepository()
         self.caso_repo = CasoRepository()
@@ -33,36 +38,6 @@ class RelatorioService:
     ) -> list[tuple]:
         return self.caso_repo.get_casos_count_by_area(inicio, final, areas)
 
-    def get_relatorio_horarios(
-        self, inicio: str, final: str, usuarios: list[str] | str | None = None
-    ) -> dict[str, Any]:
-        if usuarios == "all":
-            usuarios_list = self.usuario_repo.get_all(order_by="nome")
-            usuarios_ids = [usuario.id for usuario in usuarios_list]
-            horarios = self.registro_entrada_repo.get_registros_with_join_by_date_range_and_users(
-                inicio, final, usuarios_ids
-            )
-        else:
-            if isinstance(usuarios, str):
-                usuarios_list = usuarios.split(",")
-            else:
-                usuarios_list = usuarios or []
-            horarios = self.registro_entrada_repo.get_registros_by_date_range_and_users(
-                inicio, final, usuarios_list
-            )
-
-        horarios_plantao = (
-            self.dias_marcados_repo.get_dias_marcados_by_date_range_and_users(
-                inicio, final, usuarios_ids if usuarios == "all" else usuarios_list
-            )
-        )
-
-        return {
-            "usuarios": usuarios_list,
-            "horarios": horarios,
-            "horarios_plantao": horarios_plantao,
-        }
-
     def get_casos_por_status(
         self,
         inicio: str,
@@ -79,7 +54,7 @@ class RelatorioService:
             result = self.usuario_repo.search_by_name(termo)
             return result.items
         else:
-            return self.usuario_repo.get_all(order_by="nome")
+            return self.usuario_repo.get(order_by="nome").items
 
     def buscar_area_direito(self, termo: str | None = None) -> list[dict[str, str]]:
         if not termo:
@@ -115,4 +90,4 @@ class RelatorioService:
         return self.caso_repo.get_casos_by_date_range(data_inicio, data_fim)
 
     def get_relatorio_usuarios(self):
-        return self.usuario_repo.get_all(order_by="nome")
+        return self.usuario_repo.get(order_by="nome").items

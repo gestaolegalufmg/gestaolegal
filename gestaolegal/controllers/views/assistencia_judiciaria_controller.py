@@ -11,12 +11,14 @@ from flask import (
     url_for,
 )
 
+from gestaolegal.common import PageParams
 from gestaolegal.common.constants import UserRole, assistencia_jud_areas_atendidas
 from gestaolegal.forms.plantao.assistencia_juridica_form import (
     AssistenciaJudiciariaForm,
 )
-from gestaolegal.common import PageParams
-from gestaolegal.services.assistencia_judiciaria_service import AssistenciaJudiciariaService
+from gestaolegal.services.assistencia_judiciaria_service import (
+    AssistenciaJudiciariaService,
+)
 from gestaolegal.utils.decorators import login_required
 
 filtro_busca_assistencia_judiciaria = assistencia_jud_areas_atendidas.copy()

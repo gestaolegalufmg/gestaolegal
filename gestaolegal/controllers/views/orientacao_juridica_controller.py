@@ -11,11 +11,11 @@ from flask import (
     url_for,
 )
 
+from gestaolegal.common import PageParams
 from gestaolegal.common.constants import UserRole
 from gestaolegal.forms.plantao.orientacao_juridica_form import (
     CadastroOrientacaoJuridicaForm,
 )
-from gestaolegal.common import PageParams
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
 from gestaolegal.utils.decorators import login_required
 

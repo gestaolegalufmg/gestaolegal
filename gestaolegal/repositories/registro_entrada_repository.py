@@ -5,7 +5,7 @@ from gestaolegal.repositories.base_repository import BaseRepository, WhereCondit
 from gestaolegal.schemas.registro_entrada import RegistroEntradaSchema
 
 
-class RegistroEntradaRepository(BaseRepository):
+class RegistroEntradaRepository(BaseRepository[RegistroEntradaSchema, RegistroEntrada]):
     def __init__(self):
         super().__init__(RegistroEntradaSchema, RegistroEntrada)
 

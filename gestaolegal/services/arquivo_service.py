@@ -4,28 +4,33 @@ import os
 from flask import current_app
 from werkzeug.datastructures import FileStorage
 
+from gestaolegal.common import PageParams
 from gestaolegal.models.arquivo import Arquivo
 from gestaolegal.models.arquivo_caso import ArquivoCaso
 from gestaolegal.models.arquivos_evento import ArquivosEvento
 from gestaolegal.repositories.arquivo_repository import ArquivoRepository
-from gestaolegal.common import PageParams
-from gestaolegal.schemas.arquivo import ArquivoSchema
+from gestaolegal.repositories.base_repository import WhereConditions
+from gestaolegal.services import PaginatedResult
 
 logger = logging.getLogger(__name__)
 
 
 class ArquivoService:
+    repository: ArquivoRepository
+
     def __init__(self):
         self.repository = ArquivoRepository()
 
-    def get(self, search: str | None, page_params: PageParams) -> list[Arquivo]:
-        where_clauses = []
+    def search_by_titulo(
+        self, search: str | None, page_params: PageParams
+    ) -> PaginatedResult[Arquivo]:
+        where_clauses: WhereConditions = []
 
         if search:
-            where_clauses.append(ArquivoSchema.titulo.ilike(f"%{search}%"))
+            where_clauses.append(("titulo", "ilike", f"%{search}%"))
 
-        result = self.repository.get_all(
-            where_clauses=where_clauses, page_params=page_params
+        result = self.repository.get(
+            where_conditions=where_clauses, page_params=page_params
         )
 
         logger.info(f"Result: {result.items}")
@@ -53,6 +58,8 @@ class ArquivoService:
 
     def delete(self, id: int) -> None:
         arquivo = self.repository.find_by_id(id)
+        if not arquivo:
+            raise ValueError("Arquivo não encontrado")
 
         self.__delete_arquivo_file(arquivo.nome)
         self.repository.delete(id)
@@ -138,6 +145,9 @@ class ArquivoService:
         try:
             arquivo = self.repository.find_by_id(id)
 
+            if not arquivo:
+                raise ValueError("Arquivo não encontrado")
+
             form_data = dict(form)
             form_data.pop("csrf_token", None)
 
@@ -160,7 +170,7 @@ class ArquivoService:
 
             updated_arquivo = self.repository.update(id, form_data)
 
-            return updated_arquivo
+            return updated_arquivo.to_dict()
         except Exception as e:
             logger.error(f"Error updating arquivo {id}: {str(e)}", exc_info=True)
             raise e

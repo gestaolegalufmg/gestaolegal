@@ -1,6 +1,6 @@
 import logging
 from datetime import date, datetime, time
-from typing import Any, Optional
+from typing import Any
 
 from gestaolegal.common.constants import UserRole, acoes
 from gestaolegal.models.dia_plantao import DiaPlantao
@@ -59,6 +59,14 @@ class PlantaoValidator:
 
 
 class PlantaoService:
+    plantao_repo: BaseRepository[PlantaoSchema, Plantao]
+    dia_plantao_repo: BaseRepository[DiaPlantaoSchema, DiaPlantao]
+    dias_marcados_repo: BaseRepository[DiasMarcadosPlantaoSchema, DiasMarcadosPlantao]
+    registro_entrada_repo: BaseRepository[RegistroEntradaSchema, RegistroEntrada]
+    fila_atendidos_repo: BaseRepository[FilaAtendidosSchema, FilaAtendidos]
+    notificacao_repo: BaseRepository[NotificacaoSchema, Notificacao]
+    validator: PlantaoValidator
+
     def __init__(self):
         self.plantao_repo = BaseRepository(PlantaoSchema, Plantao)
         self.dia_plantao_repo = BaseRepository(DiaPlantaoSchema, DiaPlantao)
@@ -73,9 +81,7 @@ class PlantaoService:
         self.validator = PlantaoValidator()
 
     def get_active_plantao(self) -> Plantao:
-        result = self.plantao_repo.get_by_fields(
-            filters={"status": True}, page_params={"page": 1, "per_page": 1}
-        )
+        result = self.plantao_repo.get(page_params={"page": 1, "per_page": 1})
 
         if not result or not result.items[0]:
             raise ValueError("No active plantão found")
@@ -84,14 +90,14 @@ class PlantaoService:
 
     def create_plantao(
         self,
-        data_abertura: Optional[datetime] = None,
-        data_fechamento: Optional[datetime] = None,
-    ) -> PlantaoSchema:
+        data_abertura: datetime | None = None,
+        data_fechamento: datetime | None = None,
+    ) -> Plantao:
         return self.plantao_repo.create(
-            data_abertura=data_abertura, data_fechamento=data_fechamento
+            {"data_abertura": data_abertura, "data_fechamento": data_fechamento}
         )
 
-    def update_plantao(self, plantao_id: int, **kwargs) -> Optional[Plantao]:
+    def update_plantao(self, plantao_id: int, **kwargs) -> Plantao | None:
         """Update plantão with provided data"""
         return self.plantao_repo.update(plantao_id, kwargs)
 
@@ -102,36 +108,38 @@ class PlantaoService:
             and plantao.data_fechamento < datetime.now()
         ):
             self.dia_plantao_repo.delete(id=plantao.id)
-            result = self.plantao_repo.get_by_fields(
-                filters={"status": True}, page_params={"page": 1, "per_page": 1}
+            result = self.plantao_repo.get(
+                where_conditions=[("status", "eq", True)],
+                page_params={"page": 1, "per_page": 1},
             )
             if result.items:
                 active_plantao = result.items[0]
                 self.plantao_repo.update(
-                    active_plantao.id, data_fechamento=None, data_abertura=None
+                    active_plantao.id, {"data_fechamento": None, "data_abertura": None}
                 )
             return True
         return False
 
     def get_user_scheduled_days(self, user_id: int) -> list[DiasMarcadosPlantao]:
         logger.info(f"Getting scheduled days for user: {user_id}")
-        result = self.dias_marcados_repo.get_by_fields(
-            filters={"id_usuario": user_id}, active_only=True
+        result = self.dias_marcados_repo.get(
+            where_conditions=[("id_usuario", "eq", user_id)], active_only=True
         )
-        return [DiasMarcadosPlantao.from_sqlalchemy(dia) for dia in result.items]
+        return [dia for dia in result.items]
 
     def get_available_days(self) -> list[date]:
-        dias_abertos = self.dia_plantao_repo.get_all()
-        return [dia.data for dia in dias_abertos]
+        dias_abertos = self.dia_plantao_repo.get().items
+        return [dia.data for dia in dias_abertos if dia.data]
 
     def schedule_day(self, data_marcada: date, user_id: int) -> bool:
-        return self.dias_marcados_repo.create(
-            data_marcada=data_marcada, id_usuario=user_id, status=True
+        self.dias_marcados_repo.create(
+            {"data_marcada": data_marcada, "id_usuario": user_id, "status": True}
         )
+        return True
 
     def cancel_user_schedules(self, user_id: int) -> bool:
-        result = self.dias_marcados_repo.get_by_fields(
-            filters={"id_usuario": user_id}, active_only=True
+        result = self.dias_marcados_repo.get(
+            where_conditions=[("id_usuario", "eq", user_id)], active_only=True
         )
         for dia in result.items:
             self.dias_marcados_repo.soft_delete(dia.id)
@@ -155,8 +163,8 @@ class PlantaoService:
         data_hora_atual = datetime.now(tz=pytz.timezone("America/Sao_Paulo"))
         status_presenca = "Entrada"
 
-        result = self.registro_entrada_repo.get_by_fields(
-            filters={"id_usuario": user_id, "status": True}
+        result = self.registro_entrada_repo.get(
+            where_conditions=[("id_usuario", "eq", user_id)]
         )
         verifica_historico = result.items
 
@@ -191,8 +199,8 @@ class PlantaoService:
         )
         data_hora_registrada = datetime.combine(data_atual, hora_formatada)
 
-        result = self.registro_entrada_repo.get_by_fields(
-            filters={"id_usuario": user_id, "status": True}
+        result = self.registro_entrada_repo.get(
+            where_conditions=[("id_usuario", "eq", user_id)]
         )
         verifica_historico = result.items
 
@@ -257,9 +265,9 @@ class PlantaoService:
         return [
             {
                 "id": f.id,
-                "nome": f.atendido.nome,
-                "cpf": f.atendido.cpf,
-                "celular": f.atendido.celular,
+                "nome": f.atendido.nome if f.atendido else None,
+                "cpf": f.atendido.cpf if f.atendido else None,
+                "celular": f.atendido.celular if f.atendido else None,
                 "senha": f.senha,
                 "hora": f.data_criacao,
                 "prioridade": f.prioridade,
@@ -272,35 +280,46 @@ class PlantaoService:
     # ===== REPORTING AND CONFIGURATION =====
 
     def get_plantao_schedule(self) -> list[dict[str, Any]]:
-        datas_ja_marcadas = self.dias_marcados_repo.get_all()
+        datas_ja_marcadas = self.dias_marcados_repo.get().items
 
         escala = []
         for registro in datas_ja_marcadas:
-            if registro.usuario.status:
+            if registro.usuario and registro.usuario.status:
                 escala.append(
                     {
                         "nome": registro.usuario.nome,
-                        "day": registro.data_marcada.day,
-                        "month": registro.data_marcada.month,
-                        "year": registro.data_marcada.year,
+                        "day": registro.data_marcada.day
+                        if registro.data_marcada
+                        else None,
+                        "month": registro.data_marcada.month
+                        if registro.data_marcada
+                        else None,
+                        "year": registro.data_marcada.year
+                        if registro.data_marcada
+                        else None,
                     }
                 )
         return escala
 
     def get_plantao_duration_days(self) -> list[date]:
-        dias_duracao_gravados = self.dia_plantao_repo.get_all()
-        return [dia_duracao.data for dia_duracao in dias_duracao_gravados]
+        dias_duracao_gravados = self.dia_plantao_repo.get().items
+        return [
+            dia_duracao.data
+            for dia_duracao in dias_duracao_gravados
+            if dia_duracao.data
+        ]
 
     def get_monthly_availability(
         self, ano: int, mes: int, user_role: str
     ) -> list[dict[str, Any]]:
-        """Get availability for a specific month."""
-        dias_abertos_plantao = self.dia_plantao_repo.get_all()
+        dias_abertos_plantao = self.dia_plantao_repo.get()
 
         lista_dias_abertos = [
             dia_aberto.data
-            for dia_aberto in dias_abertos_plantao
-            if dia_aberto.data.month == mes and dia_aberto.data.year == ano
+            for dia_aberto in dias_abertos_plantao.items
+            if dia_aberto.data
+            and dia_aberto.data.month == mes
+            and dia_aberto.data.year == ano
         ]
 
         dias = []
@@ -324,12 +343,15 @@ class PlantaoService:
         if data not in self.get_available_days():
             return 0
 
-        result = self.dias_marcados_repo.get_by_fields(
-            filters={"data_marcada": data, "usuario.urole": user_role}
+        result = self.dias_marcados_repo.get(
+            where_conditions=[
+                ("data_marcada", "eq", data),
+                ("usuario.urole", "eq", user_role),
+            ]
         )
         vagas_preenchidas = result.items
 
-        role_limit = self.validator.get_role_limits(user_role)
+        role_limit = self.validator.get_role_limits(UserRole(user_role))
         if not role_limit:
             return 999
 
@@ -337,11 +359,13 @@ class PlantaoService:
 
     def get_plantao_configuration(self) -> dict[str, Any]:
         hoje = datetime.now()
-        result = self.plantao_repo.get_by_fields(filters={"status": True})
+        result = self.plantao_repo.get()
         dias_plantao = result.items
 
         dias_front = [
-            (data.data.year, data.data.month, data.data.day) for data in dias_plantao
+            (data.data_abertura.year, data.data_abertura.month, data.data_abertura.day)
+            for data in dias_plantao
+            if data.data_abertura
         ]
 
         plantao = self.get_active_plantao()
@@ -408,8 +432,8 @@ class PlantaoService:
         for data_str in datas_duracao:
             processed_dates.append(datetime.strptime(data_str[0:10], "%d/%m/%Y").date())
 
-        existing_dates = self.dia_plantao_repo.get_all()
-        existing_date_list = [data.data for data in existing_dates]
+        existing_dates = self.dia_plantao_repo.get().items
+        existing_date_list = [data.data for data in existing_dates if data.data]
 
         for data in processed_dates:
             if data not in existing_date_list:
@@ -439,13 +463,11 @@ class PlantaoService:
         if not plantao:
             self.create_plantao(data_abertura=data_abertura_nova)
         else:
-            result = self.plantao_repo.get_by_fields(
-                filters={"status": True}, page_params={"page": 1, "per_page": 1}
-            )
+            result = self.plantao_repo.get(page_params={"page": 1, "per_page": 1})
             if result.items:
                 active_plantao = result.items[0]
                 self.plantao_repo.update(
-                    active_plantao.id, data_abertura=data_abertura_nova
+                    active_plantao.id, {"data_abertura": data_abertura_nova}
                 )
 
         self._create_opening_notification(user_id)
@@ -471,13 +493,11 @@ class PlantaoService:
         if not plantao:
             self.create_plantao(data_fechamento=data_fechamento_nova)
         else:
-            result = self.plantao_repo.get_by_fields(
-                filters={"status": True}, page_params={"page": 1, "per_page": 1}
-            )
+            result = self.plantao_repo.get(page_params={"page": 1, "per_page": 1})
             if result.items:
                 active_plantao = result.items[0]
                 self.plantao_repo.update(
-                    active_plantao.id, data_fechamento=data_fechamento_nova
+                    active_plantao.id, {"data_fechamento": data_fechamento_nova}
                 )
 
         return True
@@ -492,8 +512,8 @@ class PlantaoService:
 
     def get_numero_plantao_a_marcar(self, id_usuario: int) -> int:
         """Get the next plantao number for a user."""
-        result = self.dias_marcados_repo.get_by_fields(
-            filters={"id_usuario": id_usuario}, active_only=True
+        result = self.dias_marcados_repo.get(
+            where_conditions=[("id_usuario", "eq", id_usuario)]
         )
         return len(result.items) + 1
 

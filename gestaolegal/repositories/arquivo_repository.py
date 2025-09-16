@@ -7,7 +7,10 @@ from gestaolegal.schemas.arquivo_caso import ArquivoCasoSchema
 from gestaolegal.schemas.arquivos_evento import ArquivosEventoSchema
 
 
-class ArquivoRepository(BaseRepository):
+class ArquivoRepository(BaseRepository[ArquivoSchema, Arquivo]):
+    arquivo_caso_repo: BaseRepository[ArquivoCasoSchema, ArquivoCaso]
+    arquivos_evento_repo: BaseRepository[ArquivosEventoSchema, ArquivosEvento]
+
     def __init__(self):
         super().__init__(ArquivoSchema, Arquivo)
 

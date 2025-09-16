@@ -4,9 +4,9 @@ from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from gestaolegal.common import PageParams
 from gestaolegal.models.historico import Historico
 from gestaolegal.repositories.base_repository import BaseRepository
-from gestaolegal.common import PageParams
 from gestaolegal.schemas.historico import HistoricoSchema
 from gestaolegal.schemas.usuario import UsuarioSchema
 
@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class HistoricoService:
+    repository: BaseRepository[HistoricoSchema, Historico]
+
     def __init__(self):
         self.repository = BaseRepository(HistoricoSchema, Historico)
 
@@ -35,11 +37,11 @@ class HistoricoService:
     def get_historico_by_caso(
         self, caso_id: int, page_params: PageParams | None = None
     ) -> Any:
-        return self.repository.get_by_fields(
-            {
-                "id_caso": caso_id,
-                "id_usuario": UsuarioSchema.id,
-            },
+        return self.repository.get(
+            where_conditions=[
+                ("id_caso", "eq", caso_id),
+                ("id_usuario", "eq", UsuarioSchema.id),
+            ],
             page_params=page_params,
             order_by="data",
             order_desc=True,

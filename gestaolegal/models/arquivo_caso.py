@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from gestaolegal.models.base_model import BaseModel
+
 if TYPE_CHECKING:
     from gestaolegal.schemas.arquivo_caso import ArquivoCasoSchema
 
 
 @dataclass(frozen=True)
-class ArquivoCaso:
+class ArquivoCaso(BaseModel):
     id: int
     link_arquivo: str | None
     id_caso: int

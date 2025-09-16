@@ -1,15 +1,15 @@
 from sqlalchemy import desc
 
+from gestaolegal.common import PageParams
 from gestaolegal.models.evento import Evento
 from gestaolegal.repositories.base_repository import (
     BaseRepository,
     WhereConditions,
 )
-from gestaolegal.common import PageParams
 from gestaolegal.schemas.evento import EventoSchema
 
 
-class EventoRepository(BaseRepository):
+class EventoRepository(BaseRepository[EventoSchema, Evento]):
     def __init__(self):
         super().__init__(EventoSchema, Evento)
 

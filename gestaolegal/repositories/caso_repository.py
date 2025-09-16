@@ -12,7 +12,7 @@ from gestaolegal.schemas.atendido import AtendidoSchema
 from gestaolegal.schemas.caso import CasoSchema
 
 
-class CasoRepository(BaseRepository):
+class CasoRepository(BaseRepository[CasoSchema, Caso]):
     def __init__(self):
         super().__init__(CasoSchema, Caso)
 

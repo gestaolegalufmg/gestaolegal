@@ -8,7 +8,7 @@ from gestaolegal.repositories.base_repository import (
 from gestaolegal.schemas.atendido import AtendidoSchema
 
 
-class AtendidoRepository(BaseRepository):
+class AtendidoRepository(BaseRepository[AtendidoSchema, Atendido]):
     def __init__(self):
         super().__init__(AtendidoSchema, Atendido)
 

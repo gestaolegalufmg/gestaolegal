@@ -1,15 +1,17 @@
 import logging
 from datetime import datetime
 
+from gestaolegal.common import PageParams
 from gestaolegal.common.constants import UserRole
 from gestaolegal.models.notificacao import Notificacao
-from gestaolegal.common import PageParams
 from gestaolegal.repositories.notificacao_repository import NotificacaoRepository
 
 logger = logging.getLogger(__name__)
 
 
 class NotificacaoService:
+    repository: NotificacaoRepository
+
     def __init__(self):
         self.repository = NotificacaoRepository()
 
