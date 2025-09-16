@@ -25,129 +25,25 @@ from gestaolegal.common.constants import (
     sexo_usuario,
     tipo_bolsaUsuario,
 )
-from gestaolegal.forms.plantao.base_form_mixin import BaseFormMixin
-from gestaolegal.utils.forms import RequiredIf
-
-MSG_NaoPodeEstarEmBranco = "{} não pode estar em branco!"
-MSG_SelecioneUmaOpcaoLista = "Por favor seleciona uma opção de {} da lista"
-MSG_EscolhaUmaData = "Por favor, escolha uma data {}"
-
-max_nome = 80
-max_rg = 18
-max_cpf = 14
-max_profissao = 45
-max_telefone = 18
-max_celular = 18
-max_obs = 1000
-max_oab = 30
-max_matricula = 45
-max_suplente = 30
-max_ferias = 150
-max_logradouro = 100
-max_numero = 8
-max_complemento = 100
-max_bairro = 100
-max_cep = 9
-max_cidade = 100
-max_estado = 30
-max_horario_atendimento = 30
-
-#####################################################
-################## FORMS ############################
-#####################################################
-
-
-class EnderecoFieldsMixin:
-    logradouro = StringField(
-        "Logradouro",
-        validators=[
-            InputRequired(),
-            Length(
-                max=max_logradouro,
-                message="Por favor, use no máximo {} caracteres para o logradouro.".format(
-                    max_logradouro
-                ),
-            ),
-        ],
-    )
-
-    numero = StringField(
-        "Número",
-        validators=[
-            InputRequired(),
-            Length(
-                max=max_numero,
-                message="Por favor, use no máximo {} caracteres para o número.".format(
-                    max_numero
-                ),
-            ),
-        ],
-    )
-
-    complemento = StringField(
-        "Complemento",
-        validators=[
-            Optional(),
-            Length(
-                max=max_complemento,
-                message="Por favor, use no máximo {} caracteres para o complemento.".format(
-                    max_complemento
-                ),
-            ),
-        ],
-    )
-
-    bairro = StringField(
-        "Bairro",
-        validators=[
-            InputRequired(),
-            Length(
-                max=max_bairro,
-                message="Por favor, use no máximo {} caracteres para o bairro.".format(
-                    max_bairro
-                ),
-            ),
-        ],
-    )
-
-    cep = StringField(
-        "CEP",
-        validators=[
-            InputRequired(),
-            Length(
-                max=max_cep,
-                message="Por favor, use no máximo {} caracteres para o CEP.".format(
-                    max_cep
-                ),
-            ),
-        ],
-    )
-
-    cidade = StringField(
-        "Cidade",
-        validators=[
-            InputRequired(),
-            Length(
-                max=max_cidade,
-                message="Por favor, use no máximo {} caracteres para o nome da cidade.".format(
-                    max_cidade
-                ),
-            ),
-        ],
-    )
-
-    estado = StringField(
-        "Estado",
-        validators=[
-            InputRequired(),
-            Length(
-                max=max_estado,
-                message="Por favor, use no máximo {} caracteres para o estado".format(
-                    max_estado
-                ),
-            ),
-        ],
-    )
+from gestaolegal.forms import (
+    MSG_EscolhaUmaData,
+    MSG_SelecioneUmaOpcaoLista,
+    RequiredIf,
+    max_celular,
+    max_cpf,
+    max_ferias,
+    max_horario_atendimento,
+    max_matricula,
+    max_nome,
+    max_oab,
+    max_obs,
+    max_profissao,
+    max_rg,
+    max_suplente,
+    max_telefone,
+)
+from gestaolegal.forms.base_form_mixin import BaseFormMixin
+from gestaolegal.forms.endereco_form_mixin import EnderecoFieldsMixin
 
 
 class EditarUsuarioForm(EnderecoFieldsMixin, BaseFormMixin, FlaskForm):

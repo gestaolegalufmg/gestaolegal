@@ -8,9 +8,9 @@ from gestaolegal.common.constants import (
     se_administrativo,
     se_civel,
 )
+from gestaolegal.forms import RequiredIf
+from gestaolegal.forms.base_form_mixin import BaseFormMixin
 from gestaolegal.forms.plantao import MSG_SelecioneUmaOpcaoLista
-from gestaolegal.forms.plantao.base_form_mixin import BaseFormMixin
-from gestaolegal.utils.forms import RequiredIf
 
 
 class OrientacaoJuridicaForm(BaseFormMixin, FlaskForm):
