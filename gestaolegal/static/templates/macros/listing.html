@@ -1,22 +1,5 @@
 {% macro listing_layout(form_action, method='GET', total=None, aria_label=None) %}
 <div class="page-container">
-  <div class="page-header">
-    <div class="search-section">
-      <form method="{{ method }}" action="{{ form_action }}" class="search-form" role="search" aria-label="{{ aria_label or 'Filtros' }}">
-        {{ caller('filters') }}
-        <button type="submit" class="btn btn-primary">Buscar</button>
-      </form>
-      {% if total is not none %}
-      <div class="total-info">
-        <span>Total:</span>
-        <span class="total-badge">{{ total }}</span>
-      </div>
-      {% endif %}
-    </div>
-    <div class="action-section">
-      {{ caller('header_actions') }}
-    </div>
-  </div>
   {{ caller('content') }}
 </div>
 {% endmacro %}

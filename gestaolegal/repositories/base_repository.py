@@ -227,8 +227,8 @@ class BaseRepository(Generic[SchemaType, ModelType]):
         if not entity:
             return False
 
-        entity.status = False
-        self.session.commit()
+        entity.status = False # type: ignore[attr-defined]
+        self.session.commit() 
         return True
 
     def _create_query(self, id: int | None = None) -> Query[SchemaType]:
