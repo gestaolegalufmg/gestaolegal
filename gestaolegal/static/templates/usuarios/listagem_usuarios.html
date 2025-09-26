@@ -1,109 +1,186 @@
 {% extends "base/painel_principal.html" %}
+{% import 'macros/listing.html' as listui %}
+{% import 'macros/select_template.html' as select_template %}
+
+{% macro select_field(label, options, selected) %}
+<div class="search-field">
+  <label for="{{ label }}">{{ label }}:</label>
+  {{ select_template.select_template(options=options, selected=selected) }}
+</div>
+{% endmacro %}
+
+{% macro search_field(label, placeholder, value) %}
+<div class="search-field">
+  <label for="{{ label }}">{{ label }}:</label>
+  <input type="text" name="{{ label }}" value="{{ value }}" placeholder="{{ placeholder }}" id="{{ label }}">
+</div>
+{% endmacro %}
 
 {% block page_title %}Gestão de Usuários{% endblock page_title %}
 {% block titulo %}
-<h1>Gestão de Usuários</h1>
+<section class="page-header">
+  <h1>Gestão de Usuários</h1>
+
+  {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value] %}
+  <a class="btn btn-primary" href="{{ url_for('usuario.cadastrar_usuario') }}">Cadastrar Usuário</a>
+  {% endif %}
+</section>
 {% endblock titulo %}
 
 {% block css %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/form_styles.css')}}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/table_styles.css') }}">
+<style>
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .search-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .search-form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .search-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .search-input-field {
+    flex: 1;
+  }
+
+  .search-input-field input {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .filters-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 768px) {
+    .search-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-input-field input {
+      max-width: none;
+    }
+
+    .filters-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+</style>
 {% endblock %}
 
-{% import 'macros/listing.html' as listui %}
 {% block conteudo %}
-{% macro page_link(p) %}{{ url_for('usuario.listar_usuarios', page=p, search=search, funcao=funcao, status=status) }}{% endmacro %}
+<section class="page-container">
+    <div class="search-section">
+      <form method="{{ method }}" action="{{ form_action }}" class="search-form" role="search"
+        aria-label="{{ aria_label or 'Filtros' }}">
+        <div class="search-row">
+          {{ search_field(label='Buscar', placeholder='Nome, e-mail...', value=search) }}
+          <button type="submit" class="btn btn-primary">Buscar</button>
+        </div>
+        <div class="filters-row">
+            {{ select_field(label='Função', options=UserRole.choices(), selected=funcao) }}
+            {{ select_field(label='Status', options=status_choices, selected=status) }}
+        </div>
+      </form>
+  </div>
+</section>
+
+{% macro page_link(p) %}{{ url_for('usuario.listar_usuarios', page=p, search=search, funcao=funcao, status=status) }}{%
+endmacro %}
 {% macro funcao_label(row) %}{{ row.funcao_label or row.urole or '' }}{% endmacro %}
 {% macro status_label(row) %}{{ 'Ativo' if row.status else 'Inativo' }}{% endmacro %}
 {% macro actions_cell(row) %}
 {{ listui.action_buttons([
-  {'label':'Visualizar','href':url_for('usuario.perfil_usuario', id_user=row.id),'visible':true,'variant':'btn-primary'},
-  {'label':'Editar','href':url_for('usuario.editar_usuario', id_user=row.id),'visible': current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value],'variant':'btn-primary'},
-  {'label':'Excluir','href':url_for('usuario.excluir_usuario', id_user=row.id),'visible': current_user.urole == UserRole.ADMINISTRADOR.value,'variant':'btn-danger'}
+{'label':'Visualizar','href':url_for('usuario.perfil_usuario', id_user=row.id),'visible':true,'variant':'btn-primary'},
+{'label':'Editar','href':url_for('usuario.editar_usuario', id_user=row.id),'visible': current_user.urole in
+[UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value],'variant':'btn-primary'},
+{'label':'Excluir','href':url_for('usuario.excluir_usuario', id_user=row.id),'visible': current_user.urole ==
+UserRole.ADMINISTRADOR.value,'variant':'btn-danger'}
 ]) }}
 {% endmacro %}
+
 {% set columns = [
-  {'title':'Nome','key':'nome'},
-  {'title':'E-mail','key':'email'},
-  {'title':'Função','renderer': funcao_label},
-  {'title':'Status','renderer': status_label},
-  {'title':'Ações','is_actions': true, 'renderer': actions_cell}
+{'title':'Nome','key':'nome'},
+{'title':'E-mail','key':'email'},
+{'title':'Função','renderer': funcao_label},
+{'title':'Status','renderer': status_label},
+{'title':'Ações','is_actions': true, 'renderer': actions_cell}
 ] %}
-{% call(list_slot) listui.listing_layout(url_for('usuario.listar_usuarios'), total=usuarios.total, aria_label='Filtros de busca de usuários') %}
-  {% if list_slot == 'filters' %}
-    <div class="search-field">
-      <label for="searchUser">Buscar:</label>
-      <input type="text" name="search" value="{{ search }}" placeholder="Nome, e-mail..." id="searchUser" aria-describedby="search-help" autocomplete="off">
-      <div id="search-help" class="sr-only">Digite o nome ou e-mail do usuário que deseja buscar</div>
-    </div>
-    <div class="search-field">
-      <label for="urole">Função:</label>
-      <select name="funcao" id="urole" aria-label="Filtrar usuários por função">
-        <option value="all" {% if funcao == 'all' %}selected{% endif %}>Todas as funções</option>
-        <option value="admin" {% if funcao == 'admin' %}selected{% endif %}>Administrador</option>
-        <option value="orient" {% if funcao == 'orient' %}selected{% endif %}>Orientador</option>
-        <option value="colab_proj" {% if funcao == 'colab_proj' %}selected{% endif %}>Colaborador de projeto</option>
-        <option value="estag_direito" {% if funcao == 'estag_direito' %}selected{% endif %}>Estagiário de Direito</option>
-        <option value="colab_ext" {% if funcao == 'colab_ext' %}selected{% endif %}>Colaborador externo</option>
-        <option value="prof" {% if funcao == 'prof' %}selected{% endif %}>Professor</option>
-      </select>
-    </div>
-    <div class="search-field">
-      <label for="desativados">Status:</label>
-      <select name="status" id="desativados" aria-label="Filtrar usuários por status">
-        <option value="1" {% if status == '1' %}selected{% endif %}>Ativos</option>
-        <option value="0" {% if status == '0' %}selected{% endif %}>Inativos</option>
-      </select>
-    </div>
-  {% elif list_slot == 'header_actions' %}
-    {% if current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value] %}
-    <a class="btn btn-primary" href="{{ url_for('usuario.cadastrar_usuario') }}">Cadastrar Usuário</a>
-    {% endif %}
-  {% elif list_slot == 'content' %}
-    {% if usuarios and usuarios.items and usuarios.items|length > 0 %}
-      {{ listui.table(columns, usuarios.items, 'Lista de usuários do sistema') }}
-      {{ listui.pagination(usuarios, page_link) }}
-    {% else %}
-      {{ listui.empty_state('Nenhum usuário encontrado', search and ('Não foram encontrados resultados para "' ~ search ~ '"') or 'Não há usuários cadastrados no momento', (current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value]) and url_for('usuario.cadastrar_usuario') or None, (current_user.urole in [UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value]) and 'Cadastrar novo usuário' or None) }}
-    {% endif %}
-  {% endif %}
+{% call(list_slot) listui.listing_layout(url_for('usuario.listar_usuarios'), total=usuarios.total, aria_label='Filtros
+de busca de usuários') %}
+{% if list_slot == 'filters' %}
+{% elif list_slot == 'header_actions' %}
+{% elif list_slot == 'content' %}
+{% if usuarios and usuarios.items and usuarios.items|length > 0 %}
+{{ listui.table(columns, usuarios.items, 'Lista de usuários do sistema') }}
+{{ listui.pagination(usuarios, page_link) }}
+{% else %}
+{{ listui.empty_state('Nenhum usuário encontrado', search and ('Não foram encontrados resultados para "' ~ search ~ '"')
+or 'Não há usuários cadastrados no momento', (current_user.urole in [UserRole.ADMINISTRADOR.value,
+UserRole.PROFESSOR.value]) and url_for('usuario.cadastrar_usuario') or None, (current_user.urole in
+[UserRole.ADMINISTRADOR.value, UserRole.PROFESSOR.value]) and 'Cadastrar novo usuário' or None) }}
+{% endif %}
+{% endif %}
 {% endcall %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     const searchForm = document.querySelector('.search-form');
     const searchInput = document.querySelector("#searchUser");
     const uroleSelect = document.querySelector("#urole");
     const statusSelect = document.querySelector("#desativados");
-    
+
     if (searchForm) {
-        searchForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(searchForm);
-            const params = new URLSearchParams();
-            
-            for (let [key, value] of formData.entries()) {
-                if (value && value.trim() !== '') {
-                    params.set(key, value);
-                }
-            }
-            
-            window.location.href = searchForm.action + '?' + params.toString();
-        });
+      searchForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const formData = new FormData(searchForm);
+        const params = new URLSearchParams();
+
+        for (let [key, value] of formData.entries()) {
+          if (value && value.trim() !== '') {
+            params.set(key, value);
+          }
+        }
+
+        window.location.href = searchForm.action + '?' + params.toString();
+      });
     }
-    
+
     if (uroleSelect) {
-        uroleSelect.addEventListener("change", function() {
-            searchForm.submit();
-        });
+      uroleSelect.addEventListener("change", function () {
+        searchForm.submit();
+      });
     }
-    
+
     if (statusSelect) {
-        statusSelect.addEventListener("change", function() {
-            searchForm.submit();
-        });
+      statusSelect.addEventListener("change", function () {
+        searchForm.submit();
+      });
     }
-});
+  });
 </script>
 {% endblock %}

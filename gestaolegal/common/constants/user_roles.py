@@ -2,8 +2,6 @@ from enum import StrEnum
 
 
 class UserRole(StrEnum):
-    """User role enumeration."""
-
     USER = "user"
     ADMINISTRADOR = "admin"
     ORIENTADOR = "orient"
@@ -11,6 +9,10 @@ class UserRole(StrEnum):
     ESTAGIARIO_DIREITO = "estag_direito"
     COLAB_EXTERNO = "colab_ext"
     PROFESSOR = "prof"
+
+    @classmethod
+    def choices(cls) -> list[tuple[str, str]]:
+        return [(role.value, role.display_name) for role in UserRole]
 
     @property
     def display_name(self) -> str:

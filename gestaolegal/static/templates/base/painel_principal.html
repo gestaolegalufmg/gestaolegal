@@ -391,13 +391,6 @@
         }
 
 
-        .page__title {
-            font-size: 2rem;
-            font-weight: 600;
-            margin: 0;
-            color: var(--color-text);
-        }
-
         .footer {
             grid-area: footer;
             background: var(--color-white);
@@ -798,7 +791,7 @@
         <div class="overlay" id="overlay"></div>
 
         <main class="main" id="main-content" role="main">
-            <h1 class="page__title">{{self.titulo()}}</h1>
+            {{self.titulo()}}
             
             <div id="flashes" class="hidden" role="alert" aria-live="polite">
                 {% with messages = get_flashed_messages(with_categories=true) %}

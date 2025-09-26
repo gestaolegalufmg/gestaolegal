@@ -9,6 +9,7 @@ from itsdangerous import Serializer, URLSafeTimedSerializer
 from gestaolegal.common import PageParams
 from gestaolegal.common.constants import UserRole
 from gestaolegal.models.usuario import Usuario
+from gestaolegal.repositories.base_repository import WhereConditions
 from gestaolegal.repositories.user_repository import UserRepository
 from gestaolegal.schemas.usuario import UsuarioSchema
 from gestaolegal.services.endereco_service import EnderecoService
@@ -39,8 +40,8 @@ class UsuarioService:
         return self.repository.find(where_conditions=("email", "eq", email), active_only=False)
 
     def get_all(self, page_params: PageParams | None = None):
-        return self.repository.get_all(
-            page_params=page_params, order_by=UsuarioSchema.nome
+        return self.repository.get(
+            page_params=page_params, order_by=["nome"]
         )
 
     def search_by_name(self, string: str, page_params: PageParams | None = None):
@@ -58,16 +59,15 @@ class UsuarioService:
     def get_users_by_filters(
         self, funcao: str | None = None, status: str | None = None
     ):
-        """Get users filtered by role and status - simplified logic"""
-        filters = {}
+        filters: WhereConditions = []
 
         if status:
-            filters["status"] = status == "1"
+            filters.append(("status", "eq", status == "1"))
 
         if funcao and funcao != "all":
-            filters["urole"] = funcao
+            filters.append(("urole", "eq", funcao))
 
-        return self.repository.get_all(filters=filters)
+        return self.repository.get(where_conditions=filters)
 
     def authenticate_user(self, email: str, senha: str) -> Usuario | None:
         usuario = self.repository.find(where_conditions=("email", "eq", email))

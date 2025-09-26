@@ -1,0 +1,7 @@
+{% macro select_template(options, selected=None) %}
+<select name="{{ name }}" id="{{ id }}" class="form-control">
+  {% for option in options %}
+    <option value="{{ option.value }}" {% if option.value == selected %}selected{% endif %}>{{ option.label }}</option>
+  {% endfor %}
+</select>
+{% endmacro %}
