@@ -1,3 +1,4 @@
+from re import I
 from typing import Generic, TypeVar
 
 T = TypeVar("T")
@@ -55,3 +56,11 @@ class PaginatedResult(Generic[T]):
         start = max(self.page + right_current + 1, last - right_edge + 1)
         for num in range(start, last + 1):
             yield num
+
+    def to_dict(self):
+        return {
+            "items": self.items,
+            "total": self.total,
+            "page": self.page,
+            "per_page": self.per_page,
+        }
