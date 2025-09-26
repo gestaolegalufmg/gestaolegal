@@ -12,11 +12,7 @@ from flask import (
 from flask_login import current_user
 
 from gestaolegal.common.constants import UserRole
-from gestaolegal.forms.plantao import (
-    AbrirPlantaoForm,
-    FecharPlantaoForm,
-    SelecionarDuracaoPlantaoForm,
-)
+from gestaolegal.forms import AbrirPlantaoForm, FecharPlantaoForm, SelecionarDuracaoPlantaoForm
 from gestaolegal.services.plantao_service import PlantaoService
 from gestaolegal.utils.decorators import login_required
 

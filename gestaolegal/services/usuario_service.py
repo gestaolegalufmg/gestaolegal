@@ -30,13 +30,13 @@ class UsuarioService:
         return self.repository.find_by_id(id)
 
     def find_by_email(self, email: str) -> Usuario | None:
-        return self.repository.find_by_field("email", email)
+        return self.repository.find(where_conditions=("email", "eq", email))
 
     def find_by_id_with_inactive(self, id: int) -> Usuario | None:
         return self.repository.find_by_id(id, active_only=False)
 
     def find_by_email_with_inactive(self, email: str) -> Usuario | None:
-        return self.repository.find_by_field("email", email, active_only=False)
+        return self.repository.find(where_conditions=("email", "eq", email), active_only=False)
 
     def get_all(self, page_params: PageParams | None = None):
         return self.repository.get_all(
@@ -70,7 +70,7 @@ class UsuarioService:
         return self.repository.get_all(filters=filters)
 
     def authenticate_user(self, email: str, senha: str) -> Usuario | None:
-        usuario = self.repository.find_by_field("email", email)
+        usuario = self.repository.find(where_conditions=("email", "eq", email))
         if not usuario:
             logger.info(f"User not found: {email}")
             return None

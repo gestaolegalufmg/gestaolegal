@@ -21,12 +21,12 @@ from gestaolegal.common.constants import (
     raca_cor,
     sexo_usuario,
 )
+from gestaolegal.forms import MyFloatField, RequiredIf
+from gestaolegal.forms.base_form_mixin import BaseFormMixin
 from gestaolegal.forms.plantao import (
     MSG_NaoPodeEstarEmBranco,
     MSG_SelecioneUmaOpcaoLista,
 )
-from gestaolegal.forms.plantao.base_form_mixin import BaseFormMixin
-from gestaolegal.utils.forms import MyFloatField, RequiredIf
 
 
 class TornarAssistidoForm(FlaskForm, BaseFormMixin):

@@ -17,6 +17,7 @@ class BaseFormMixin:
             if value is None:
                 continue
             processed_data[name] = value
+
         return self._postprocess_data()
 
     def _postprocess_data(self: HasDataAttribute) -> dict[str, Any]:

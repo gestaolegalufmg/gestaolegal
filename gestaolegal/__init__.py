@@ -84,36 +84,24 @@ def register_blueprints(app):
 def register_context_processors(app):
     from gestaolegal.utils.context_processors import (
         inject_company_config,
-        insere_area_atuacao,
         insere_assistencia_jud_areas_atendidas,
         insere_assistencia_jud_regioes,
         insere_beneficio,
         insere_como_conheceu_dajUsuario,
         insere_contribuicao_inss,
-        insere_enquadramento,
-        insere_escolaridade,
-        insere_estado_civilUsuario,
         insere_moradia,
-        insere_orgao_reg,
         insere_participacao_renda,
         insere_qual_pessoa_doente,
         insere_regiao_bh,
-        insere_sexo_usuario,
         insere_situacao_deferimento,
-        insere_tipo_bolsaUsuario,
         insere_tipo_evento,
         insere_usuario_roles,
-        processor_formata_float,
         processor_tipo_classe,
     )
 
     app.context_processor(inject_company_config)
     app.context_processor(processor_tipo_classe)
-    app.context_processor(processor_formata_float)
     app.context_processor(insere_usuario_roles)
-    app.context_processor(insere_tipo_bolsaUsuario)
-    app.context_processor(insere_sexo_usuario)
-    app.context_processor(insere_estado_civilUsuario)
     app.context_processor(insere_como_conheceu_dajUsuario)
     app.context_processor(insere_assistencia_jud_areas_atendidas)
     app.context_processor(insere_assistencia_jud_regioes)
@@ -123,10 +111,6 @@ def register_context_processors(app):
     app.context_processor(insere_moradia)
     app.context_processor(insere_qual_pessoa_doente)
     app.context_processor(insere_regiao_bh)
-    app.context_processor(insere_escolaridade)
-    app.context_processor(insere_enquadramento)
-    app.context_processor(insere_area_atuacao)
-    app.context_processor(insere_orgao_reg)
     app.context_processor(insere_situacao_deferimento)
     app.context_processor(insere_tipo_evento)
 

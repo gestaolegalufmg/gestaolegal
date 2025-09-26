@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import FileField, StringField, TextAreaField
 from wtforms.validators import InputRequired, Length
 
-from gestaolegal.forms.plantao.base_form_mixin import BaseFormMixin
+from gestaolegal.forms.base_form_mixin import BaseFormMixin
 
 
 class ArquivoForm(BaseFormMixin, FlaskForm):

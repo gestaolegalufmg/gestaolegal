@@ -7,10 +7,8 @@ from gestaolegal.common.constants import (
     assistencia_jud_areas_atendidas,
     assistencia_jud_regioes,
 )
-from gestaolegal.forms.plantao.base_form_mixin import BaseFormMixin
-from gestaolegal.forms.usuario import (
-    EnderecoFieldsMixin,
-)
+from gestaolegal.forms.base_form_mixin import BaseFormMixin
+from gestaolegal.forms.endereco_form_mixin import EnderecoFieldsMixin
 
 
 class AssistenciaJudiciariaForm(EnderecoFieldsMixin, BaseFormMixin, FlaskForm):
