@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+from typing_extensions import override
 
 from gestaolegal.common.constants import como_conheceu_daj
 from gestaolegal.models.assistido import Assistido
@@ -37,7 +38,7 @@ class Atendido(BaseModel):
     procurou_qual_local: str | None
     obs: str | None
     pj_constituida: str
-    repres_legal: str | None
+    repres_legal: bool | None
     nome_repres_legal: str | None
     cpf_repres_legal: str | None
     contato_repres_legal: str | None
@@ -148,3 +149,13 @@ class Atendido(BaseModel):
             atendido_items["casos"] = []
 
         return Atendido(**atendido_items)
+
+    @override
+    def to_dict(self, with_endereco: bool = True, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        data = super().to_dict(*args, **kwargs)
+        
+        endereco: Endereco | None = data.pop("endereco")
+        if endereco and with_endereco:
+            data = {**data, **endereco.to_dict()}
+
+        return data

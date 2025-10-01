@@ -84,18 +84,6 @@ class CasosService:
         logger.info(f"Case created successfully with ID: {caso.id}")
         return caso
 
-    def search_available_assistidos_for_caso(
-        self, termo: str, caso_id: int
-    ) -> list[dict]:
-        atendidos = self.atendido_service.get(termo, TipoBusca.ASSISTIDOS)
-        caso = self.find_by_id(caso_id)
-
-        available = [
-            atendido for atendido in atendidos.items if atendido.id not in caso.clientes
-        ]
-
-        return available
-
     def update(self, caso_id: int, caso_data: dict) -> Caso:
         data = caso_data.copy()
         data.pop("csrf_token", None)

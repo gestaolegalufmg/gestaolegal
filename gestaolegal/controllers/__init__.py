@@ -2,7 +2,6 @@ from .api import api_controller
 from .api.auth_controller import auth_controller
 from .views.arquivo_controller import arquivo_controller
 from .views.assistencia_judiciaria_controller import assistencia_judiciaria_controller
-from .views.atendido_controller import atendido_controller
 from .views.casos_controller import casos_controller
 from .views.notificacoes_controller import notificacoes_controller
 from .views.orientacao_juridica_controller import orientacao_juridica_controller
@@ -32,7 +31,6 @@ routes = [
     (plantao_controller_api, "/api/plantao"),
     (arquivo_controller, "/arquivo"),
     (assistencia_judiciaria_controller, "/assistencia_judiciaria"),
-    (atendido_controller, "/atendido"),
     (casos_controller, "/casos"),
     (notificacoes_controller, "/notificacoes"),
     (orientacao_juridica_controller, "/orientacao_juridica"),

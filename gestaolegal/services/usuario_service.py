@@ -139,6 +139,30 @@ class UsuarioService:
     def soft_delete(self, user_id: int) -> bool:
         return self.repository.soft_delete(user_id)
 
+    def change_password(
+        self,
+        user_id: int,
+        current_password: str | None,
+        new_password: str,
+        is_admin_change: bool = False
+    ) -> User | None:
+        user = self.repository.find_by_id(user_id)
+        if not user:
+            raise ValueError(f"User with id {user_id} not found")
+
+        if not is_admin_change and current_password:
+            if not self.check_password(user, current_password):
+                raise ValueError("Current password is incorrect")
+
+        bcrypt = Bcrypt()
+        hashed_password = bcrypt.generate_password_hash(new_password).decode("utf-8")
+
+        user_data = user.to_dict(with_endereco=False)
+        user_data["senha"] = hashed_password
+        user_data["modificado"] = datetime.now()
+
+        return self.repository.update(user_id, User(**user_data))
+
     def __extract_endereco_data(self, user_data: dict[str, Any]):
         user_data.pop("endereco_id")
         return {

@@ -7,11 +7,9 @@ from flask_wtf.csrf import CSRFProtect
 
 from gestaolegal.common import PageParams
 from gestaolegal.common.constants import UserRole, situacao_deferimento, tipo_evento
-from gestaolegal.common.constants.atendido import TipoBusca
 from gestaolegal.services.assistencia_judiciaria_service import (
     AssistenciaJudiciariaService,
 )
-from gestaolegal.services.atendido_service import AtendidoService
 from gestaolegal.services.casos_service import CasosService
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
 from gestaolegal.services.plantao_service import PlantaoService
@@ -104,53 +102,6 @@ def filtro_meus_casos():
             "titulo_total": titulo_total,
         }
     )
-
-
-@api_controller.route("/casos/buscar_assistidos")
-@login_required()
-def buscar_assistidos():
-    try:
-        termo = request.args.get("termo", "", type=str).strip()
-        caso_id = request.args.get("caso_id", type=int)
-
-        casos_service = CasosService()
-
-        atendidos = casos_service.search_available_assistidos_for_caso(termo, caso_id)
-        if not atendidos:
-            return api_error("Caso não encontrado", status_code=404)
-
-        return api_success(atendidos)
-    except Exception as e:
-        logger.error(f"Error in api_buscar_assistidos: {str(e)}", exc_info=True)
-        return api_error(f"Erro interno do servidor: {str(e)}", status_code=500)
-
-
-@api_controller.route("/casos/buscar_assistido")
-@login_required()
-def casos_buscar_assistido():
-    atendido_service = AtendidoService()
-    termo = request.args.get("q", type=str)
-
-    page_params = PageParams(page=1, per_page=5) if not termo else None
-    result = atendido_service.get(termo, TipoBusca.ASSISTIDOS, page_params)
-    assistidos = result.items if hasattr(result, "items") else result
-
-    assistidos_clean = [
-        {
-            "id": assistido.id,
-            "text": assistido.nome,
-            "cpf": assistido.cpf,
-            "cnpj": assistido.cnpj,
-        }
-        for assistido in assistidos
-    ]
-
-    response = current_app.response_class(
-        response=json.dumps({"results": assistidos_clean}),
-        status=200,
-        mimetype="application/json",
-    )
-    return response
 
 
 @api_controller.route("/casos/buscar_usuario")
@@ -282,52 +233,6 @@ def filtro_eventos(id_caso):
     )
 
 
-@api_controller.route("/casos/assistidos_caso/<id_caso>")
-@login_required()
-def assistidos_caso(id_caso):
-    try:
-        casos_service = CasosService()
-        caso = casos_service.find_by_id(int(id_caso))
-        if not caso:
-            return api_error("Caso não encontrado", status_code=404)
-
-        assistidos = []
-        for cliente in caso.assistidos:
-            assistidos.append(
-                {"id": cliente.id, "nome": cliente.nome, "cpf": cliente.cpf}
-            )
-
-        return api_success({"assistidos": assistidos})
-    except Exception:
-        return api_error("Erro interno do servidor", status_code=500)
-
-
-@api_controller.route("/casos/adicionar_assistido_caso/<id_caso>/<id_assistido>")
-@login_required()
-def adicionar_assistido_caso(id_caso, id_assistido):
-    try:
-        casos_service = CasosService()
-        casos_service.add_cliente_to_caso(int(id_caso), int(id_assistido))
-        return api_success({"message": "Assistido adicionado com sucesso"})
-    except ValueError as e:
-        return api_error(str(e), status_code=400)
-    except Exception:
-        return api_error("Erro interno do servidor", status_code=500)
-
-
-@api_controller.route("/casos/remover_assistido_caso/<id_caso>/<id_assistido>")
-@login_required()
-def remover_assistido_caso(id_caso, id_assistido):
-    try:
-        casos_service = CasosService()
-        casos_service.remove_cliente_from_caso(int(id_caso), int(id_assistido))
-        return api_success({"message": "Assistido removido com sucesso"})
-    except ValueError as e:
-        return api_error(str(e), status_code=400)
-    except Exception:
-        return api_error("Erro interno do servidor", status_code=500)
-
-
 @api_controller.route("/orientacao_juridica/buscar_atendidos")
 @login_required()
 def orientacao_buscar_atendidos():
@@ -373,39 +278,6 @@ def orientacao_associar_atendido():
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return api_error(str(e), status_code=400)
         flash(str(e), "error")
-
-
-@api_controller.route("/atendido/tornar_assistido_modal", methods=["POST"])
-@login_required(
-    role=[
-        UserRole.ADMINISTRADOR,
-        UserRole.ORIENTADOR,
-        UserRole.ESTAGIARIO_DIREITO,
-    ]
-)
-def tornar_assistido_modal():
-    atendido_service = AtendidoService()
-
-    try:
-        data = request.get_json(silent=True, force=True)
-        assistido = atendido_service.create_assistido(
-            data["atendido_id"], data["assistido_data"]
-        )
-
-        return json.dumps(
-            {
-                "status": "success",
-                "message": "Assistido cadastrado com sucesso!",
-                "id": assistido.id,
-            }
-        )
-    except Exception as e:
-        return json.dumps(
-            {
-                "status": "error",
-                "message": f"Erro ao cadastrar assistido: {str(e)}",
-            }
-        )
 
 
 @api_controller.route("/plantao/obter_escala_plantao")
@@ -530,25 +402,6 @@ def fila_atendimento():
     return api_success(fila_obj)
 
 
-@api_controller.route("/plantao/atendido/fila-atendimento", methods=["GET", "POST"])
-@login_required()
-def cadastrar_atendido():
-    try:
-        logger.info("Entering api_cadastrar_atendido route")
-        atendido_service = AtendidoService()
-
-        if request.method == "GET":
-            return api_error("error to access the page", status_code=405)
-
-        data = request.get_json(silent=True, force=True)
-
-        created = atendido_service.create(data)
-        return api_success({"id": created.id})
-    except Exception as e:
-        logger.error(f"Error in api_cadastrar_atendido: {str(e)}", exc_info=True)
-        return api_error(f"error: {str(e)}")
-
-
 @api_controller.route("/usuarios/buscar_legacy")
 @login_required()
 def usuarios_buscar_legacy():
@@ -571,30 +424,6 @@ def usuarios_api_listar():
 
     usuarios = usuario_service.get_users_by_filters(funcao, status)
     return jsonify({"users": [x.as_dict() for x in usuarios]})
-
-
-@api_controller.route("/usuarios/recuperar_senha", methods=["POST"])
-def usuarios_recuperar_senha():
-    data = request.get_json(silent=True, force=True)
-    usuario_service = UsuarioService()
-    try:
-        usuario_service.process_password_recovery(data["email"])
-        return json.dumps(
-            {"success": True, "message": "Email de recuperação enviado com sucesso"}
-        )
-    except ValueError as e:
-        return json.dumps({"success": False, "message": str(e)})
-
-
-@api_controller.route("/usuarios/resetar_senha/<token>", methods=["POST"])
-def usuarios_resetar_senha(token):
-    data = request.get_json(silent=True, force=True)
-    usuario_service = UsuarioService()
-    try:
-        usuario_service.reset_password_with_token(token, data["password"])
-        return json.dumps({"success": True, "message": "Senha alterada com sucesso"})
-    except ValueError as e:
-        return json.dumps({"success": False, "message": str(e)})
 
 
 @api_controller.route("/relatorios/buscar_usuarios")
@@ -649,59 +478,6 @@ def pega_assistencias_judiciarias():
     assistencia_judiciaria_service = AssistenciaJudiciariaService()
     assistencias_judiciarias = assistencia_judiciaria_service.get_all()
     return api_success([x.as_dict() for x in assistencias_judiciarias.items])
-
-
-@api_controller.route(
-    "/casos/adicionar_assistido_caso_ajax/<id_caso>/<id_assistido>", methods=["POST"]
-)
-@login_required()
-def adicionar_assistido_caso_ajax(id_caso, id_assistido):
-    """AJAX endpoint to add an assistido to a caso"""
-    try:
-        casos_service = CasosService()
-        casos_service.add_cliente_to_caso(int(id_caso), int(id_assistido))
-        return api_success({"message": "Assistido adicionado com sucesso"})
-    except ValueError as e:
-        return api_error(str(e), status_code=400)
-    except Exception:
-        return api_error("Erro interno do servidor", status_code=500)
-
-
-@api_controller.route(
-    "/casos/excluir_assistido_caso_ajax/<id_caso>/<id_assistido>", methods=["POST"]
-)
-@login_required()
-def excluir_assistido_caso_ajax(id_caso, id_assistido):
-    """AJAX endpoint to remove an assistido from a caso"""
-    try:
-        casos_service = CasosService()
-        casos_service.remove_cliente_from_caso(int(id_caso), int(id_assistido))
-        return api_success({"message": "Assistido removido com sucesso"})
-    except ValueError as e:
-        return api_error(str(e), status_code=400)
-    except Exception:
-        return api_error("Erro interno do servidor", status_code=500)
-
-
-@api_controller.route("/casos/assistidos_caso_ajax/<id_caso>", methods=["GET"])
-@login_required()
-def assistidos_caso_ajax(id_caso):
-    """Get all assistidos for a specific caso"""
-    try:
-        casos_service = CasosService()
-        caso = casos_service.find_by_id(int(id_caso))
-        if not caso:
-            return api_error("Caso não encontrado", status_code=404)
-
-        assistidos = []
-        for cliente in caso.clientes:
-            assistidos.append(
-                {"id": cliente.id, "nome": cliente.nome, "cpf": cliente.cpf}
-            )
-
-        return api_success({"assistidos": assistidos})
-    except Exception:
-        return api_error("Erro interno do servidor", status_code=500)
 
 
 @api_controller.route("/plantao/fila-atendimento/criar", methods=["GET", "POST"])
