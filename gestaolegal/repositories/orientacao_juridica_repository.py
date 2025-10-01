@@ -12,7 +12,7 @@ from gestaolegal.schemas.atendido_x_orientacao_juridica import (
     Atendido_xOrientacaoJuridicaSchema,
 )
 from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
-from gestaolegal.schemas.usuario import UsuarioSchema
+from gestaolegal.schemas.user import UserSchema
 
 
 class OrientacaoJuridicaRepository(
@@ -65,7 +65,7 @@ class OrientacaoJuridicaRepository(
         usuario = None
         if orientacao.id_usuario:
             usuario = (
-                self.session.query(UsuarioSchema)
+                self.session.query(UserSchema)
                 .filter_by(id=orientacao.id_usuario)
                 .first()
             )

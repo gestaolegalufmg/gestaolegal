@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from gestaolegal.schemas.base import Base
 
 if TYPE_CHECKING:
-    from gestaolegal.schemas.usuario import UsuarioSchema
+    from gestaolegal.schemas.user import UserSchema
 
 
 class RegistroEntradaSchema(Base):
@@ -21,6 +21,6 @@ class RegistroEntradaSchema(Base):
         String(15, collation="latin1_general_ci"), nullable=False, default="aberto"
     )
     id_usuario: Mapped[int | None] = mapped_column(Integer, ForeignKey("usuarios.id"))
-    usuario: Mapped["UsuarioSchema | None"] = relationship(
-        "UsuarioSchema", backref="registro_entrada"
+    usuario: Mapped["UserSchema | None"] = relationship(
+        "UserSchema", backref="registro_entrada"
     )

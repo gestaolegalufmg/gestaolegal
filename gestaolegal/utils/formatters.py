@@ -1,5 +1,5 @@
 from gestaolegal.common.constants import situacao_deferimento
-from gestaolegal.schemas.usuario import UsuarioSchema
+from gestaolegal.schemas.user import UserSchema
 
 
 def formatarTipoDeEvento(string):
@@ -38,7 +38,7 @@ def formatarNomeDoUsuario(id_usuario, db):
         str: User name or "Não Há" if not found
     """
     if id_usuario:
-        entidade_usuario = db.session.get(UsuarioSchema, int(id_usuario))
+        entidade_usuario = db.session.get(UserSchema, int(id_usuario))
         return entidade_usuario.nome if entidade_usuario else "Não Há"
     else:
         return "Não Há"

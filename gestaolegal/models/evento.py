@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from gestaolegal.models.base_model import BaseModel
-from gestaolegal.models.usuario import Usuario
+from gestaolegal.models.user import User
 
 if TYPE_CHECKING:
     from gestaolegal.models.caso import Caso
@@ -23,8 +23,8 @@ class Evento(BaseModel):
     data_criacao: datetime
     id_criado_por: int
     id_usuario_responsavel: int | None
-    usuario_responsavel: "Usuario | None"
-    criado_por: "Usuario"
+    usuario_responsavel: "User | None"
+    criado_por: "User"
     status: bool
 
     def __post_init__(self):
@@ -39,11 +39,11 @@ class Evento(BaseModel):
 
             evento_items["caso"] = Caso.from_sqlalchemy(schema.caso, shallow=True)
             evento_items["usuario_responsavel"] = (
-                Usuario.from_sqlalchemy(schema.usuario_responsavel)
+                User.from_sqlalchemy(schema.usuario_responsavel)
                 if schema.usuario_responsavel
                 else None
             )
-            evento_items["criado_por"] = Usuario.from_sqlalchemy(schema.criado_por)
+            evento_items["criado_por"] = User.from_sqlalchemy(schema.criado_por)
         else:
             evento_items["caso"] = None
             evento_items["usuario_responsavel"] = None

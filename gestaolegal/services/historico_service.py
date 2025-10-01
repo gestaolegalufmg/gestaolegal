@@ -8,7 +8,7 @@ from gestaolegal.common import PageParams
 from gestaolegal.models.historico import Historico
 from gestaolegal.repositories.base_repository import BaseRepository
 from gestaolegal.schemas.historico import HistoricoSchema
-from gestaolegal.schemas.usuario import UsuarioSchema
+from gestaolegal.schemas.user import UserSchema
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class HistoricoService:
         return self.repository.get(
             where_conditions=[
                 ("id_caso", "eq", caso_id),
-                ("id_usuario", "eq", UsuarioSchema.id),
+                ("id_usuario", "eq", UserSchema.id),
             ],
             page_params=page_params,
             order_by="data",

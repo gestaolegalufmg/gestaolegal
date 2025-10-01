@@ -10,7 +10,7 @@ from gestaolegal.schemas.base import Base
 if TYPE_CHECKING:
     from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
     from gestaolegal.schemas.atendido import AtendidoSchema
-    from gestaolegal.schemas.usuario import UsuarioSchema
+    from gestaolegal.schemas.user import UserSchema
 
 
 class OrientacaoJuridicaSchema(Base):
@@ -42,8 +42,8 @@ class OrientacaoJuridicaSchema(Base):
         overlaps="atendido,atendido_xOrientacaoJuridica,orientacaoJuridica",
     )
     id_usuario: Mapped[int | None] = mapped_column(Integer, ForeignKey("usuarios.id"))
-    usuario: Mapped["UsuarioSchema | None"] = relationship(
-        "UsuarioSchema", backref="usuarios"
+    usuario: Mapped["UserSchema | None"] = relationship(
+        "UserSchema", backref="usuarios"
     )
 
     def setSubAreas(self, area_direito, sub_area, sub_areaAdmin):

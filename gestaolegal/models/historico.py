@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.caso import Caso
-from gestaolegal.models.usuario import Usuario
+from gestaolegal.models.user import User
 
 if TYPE_CHECKING:
     from gestaolegal.schemas.historico import HistoricoSchema
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class Historico(BaseModel):
     id: int
     id_usuario: int
-    usuario: "Usuario"
+    usuario: "User"
     id_caso: int
     caso: "Caso"
     data: datetime
@@ -30,7 +30,7 @@ class Historico(BaseModel):
 
         if not shallow:
             historico_items["usuario"] = (
-                Usuario.from_sqlalchemy(schema.usuario) if schema.usuario else None
+                User.from_sqlalchemy(schema.usuario) if schema.usuario else None
             )
             historico_items["caso"] = (
                 Caso.from_sqlalchemy(schema.caso, shallow=True) if schema.caso else None

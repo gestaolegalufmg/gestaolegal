@@ -11,6 +11,7 @@ on:
     tags:
       - v*
   pull_request:
+  workflow_dispatch:
 env:
   IMAGE_NAME: gestaolegal
 #

@@ -1,4 +1,12 @@
 services:
+  front_gl:
+    image: gestaolegal-front:latest
+    ports:
+      - "5001:3000"
+    restart: unless-stopped
+    environment:
+      - PUBLIC_GESTAOLEGAL_API_URL=http://app_gl:5000
+
   app_gl:
     build: .
     ports:

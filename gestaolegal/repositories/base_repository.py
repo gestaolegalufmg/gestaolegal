@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from typing import Any, Generic, Literal, TypeGuard, TypeVar, cast
 
@@ -20,6 +21,8 @@ from gestaolegal.services import PaginatedResult
 
 ModelType = TypeVar("ModelType", bound=BaseModel)
 SchemaType = TypeVar("SchemaType", bound=BaseSchema)
+
+logger = logging.getLogger(__name__)
 
 
 def _has_status(schema_cls: type[SchemaType]) -> TypeGuard[type[SchemaType]]:
@@ -88,8 +91,8 @@ class BaseRepository(Generic[SchemaType, ModelType]):
     def _apply_status_filter(
         self, query: Query[SchemaType], active_only: bool = True
     ) -> Query[SchemaType]:
-        if active_only and hasattr(self.schema_class, "status"):
-            return query.filter(self.schema_class.status)  # type: ignore[attr-defined]
+        if hasattr(self.schema_class, "status"):
+            return query.filter(self.schema_class.status == active_only)  # type: ignore[attr-defined]
         return query
 
     def get(
@@ -177,24 +180,20 @@ class BaseRepository(Generic[SchemaType, ModelType]):
 
         self.session.add(schema)
         self.session.commit()
+        self.session.flush()
         return self._build_model(schema)
 
     def update(
-        self, id: int, data: dict[str, Any], active_only: bool = True
+        self, id: int, data: ModelType, active_only: bool = True
     ) -> ModelType:
-        query = self._create_query(id)
-        query = self._apply_status_filter(query, active_only)
-        entity = query.first()
-
-        if not entity:
-            raise ValueError(f"Entity with id {id} not found")
-
-        for key, value in data.items():
-            if hasattr(entity, key):
-                setattr(entity, key, value)
-
+        self.session.query(self.schema_class).where(self.schema_class.id == id).update(data.to_dict())
         self.session.commit()
-        return self._build_model(entity)
+        
+        updated_entity = self.find_by_id(id, active_only)
+        if not updated_entity:
+            raise ValueError(f"Entity with id {id} not found after update")
+        
+        return updated_entity
 
     def delete(
         self, id: int, hard_delete: bool = False, active_only: bool = True

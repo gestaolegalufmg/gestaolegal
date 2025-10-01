@@ -24,6 +24,7 @@ def get_database_uri():
 def get_engine():
     database_uri = get_database_uri()
     engine_options = os.environ.get("SQLALCHEMY_ENGINE_OPTIONS", {})
+    engine_options["echo"] = True
     return create_engine(database_uri, **engine_options)
 
 

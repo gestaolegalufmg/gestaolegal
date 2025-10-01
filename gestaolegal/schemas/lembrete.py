@@ -8,7 +8,7 @@ from gestaolegal.schemas.base import Base
 
 if TYPE_CHECKING:
     from gestaolegal.schemas.caso import CasoSchema
-    from gestaolegal.schemas.usuario import UsuarioSchema
+    from gestaolegal.schemas.user import UserSchema
 
 
 class LembreteSchema(Base):
@@ -19,8 +19,8 @@ class LembreteSchema(Base):
     id_do_criador: Mapped[int] = mapped_column(
         Integer, ForeignKey("usuarios.id"), nullable=False
     )
-    criador: Mapped["UsuarioSchema"] = relationship(
-        "UsuarioSchema", foreign_keys=[id_do_criador]
+    criador: Mapped["UserSchema"] = relationship(
+        "UserSchema", foreign_keys=[id_do_criador]
     )
     id_caso: Mapped[int] = mapped_column(
         Integer, ForeignKey("casos.id"), nullable=False
@@ -29,8 +29,8 @@ class LembreteSchema(Base):
     id_usuario: Mapped[int] = mapped_column(
         Integer, ForeignKey("usuarios.id"), nullable=False
     )
-    usuario: Mapped["UsuarioSchema"] = relationship(
-        "UsuarioSchema", foreign_keys=[id_usuario]
+    usuario: Mapped["UserSchema"] = relationship(
+        "UserSchema", foreign_keys=[id_usuario]
     )
     data_criacao: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     data_lembrete: Mapped[datetime] = mapped_column(DateTime, nullable=False)
