@@ -8,7 +8,7 @@ from gestaolegal.schemas.base import Base
 
 if TYPE_CHECKING:
     from gestaolegal.schemas.caso import CasoSchema
-    from gestaolegal.schemas.usuario import UsuarioSchema
+    from gestaolegal.schemas.user import UserSchema
 
 
 class HistoricoSchema(Base):
@@ -18,7 +18,7 @@ class HistoricoSchema(Base):
     id_usuario: Mapped[int] = mapped_column(
         Integer, ForeignKey("usuarios.id"), nullable=False
     )
-    usuario: Mapped["UsuarioSchema"] = relationship("UsuarioSchema", lazy="joined")
+    usuario: Mapped["UserSchema"] = relationship("UserSchema", lazy="joined")
     id_caso: Mapped[int] = mapped_column(
         Integer, ForeignKey("casos.id"), nullable=False
     )

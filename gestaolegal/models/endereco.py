@@ -9,7 +9,6 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class Endereco(BaseModel):
-    id: int
     logradouro: str
     numero: str
     complemento: str | None
@@ -17,6 +16,8 @@ class Endereco(BaseModel):
     cep: str
     cidade: str
     estado: str
+
+    id: int | None = None
 
     def __post_init__(self):
         return
@@ -30,5 +31,5 @@ class Endereco(BaseModel):
 
     def to_dict(self, *args, **kwargs):
         data = super().to_dict(*args, **kwargs)
-        data["endereco_id"] = data.pop("id")
+        data.pop("id")
         return data

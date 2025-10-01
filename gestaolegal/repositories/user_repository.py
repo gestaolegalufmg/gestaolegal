@@ -1,15 +1,15 @@
-from gestaolegal.models.usuario import Usuario
+from gestaolegal.models.user import User
 from gestaolegal.repositories.base_repository import (
     BaseRepository,
     PageParams,
     WhereConditions,
 )
-from gestaolegal.schemas.usuario import UsuarioSchema
+from gestaolegal.schemas.user import UserSchema
 
 
-class UserRepository(BaseRepository[UsuarioSchema, Usuario]):
+class UserRepository(BaseRepository[UserSchema, User]):
     def __init__(self):
-        super().__init__(UsuarioSchema, Usuario)
+        super().__init__(UserSchema, User)
 
     def search_by_name(self, string: str, page_params: PageParams | None = None):
         return self.get(

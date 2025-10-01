@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from gestaolegal.schemas.base import Base
 
 if TYPE_CHECKING:
-    from gestaolegal.schemas.usuario import UsuarioSchema
+    from gestaolegal.schemas.user import UserSchema
 
 
 class NotificacaoSchema(Base):
@@ -25,9 +25,9 @@ class NotificacaoSchema(Base):
     )
     data: Mapped[datetime] = mapped_column(Date, nullable=False)
 
-    executor_acao: Mapped["UsuarioSchema | None"] = relationship(
-        "UsuarioSchema", foreign_keys=[id_executor_acao]
+    executor_acao: Mapped["UserSchema | None"] = relationship(
+        "UserSchema", foreign_keys=[id_executor_acao]
     )
-    usu_notificar: Mapped["UsuarioSchema | None"] = relationship(
-        "UsuarioSchema", foreign_keys=[id_usu_notificar]
+    usu_notificar: Mapped["UserSchema | None"] = relationship(
+        "UserSchema", foreign_keys=[id_usu_notificar]
     )

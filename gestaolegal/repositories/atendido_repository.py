@@ -6,7 +6,9 @@ from gestaolegal.repositories.base_repository import (
     WhereConditions,
 )
 from gestaolegal.schemas.atendido import AtendidoSchema
+import logging
 
+logger = logging.getLogger(__name__)
 
 class AtendidoRepository(BaseRepository[AtendidoSchema, Atendido]):
     def __init__(self):
@@ -17,15 +19,18 @@ class AtendidoRepository(BaseRepository[AtendidoSchema, Atendido]):
         search_term: str = "",
         search_type: str | None = None,
         page_params: PageParams | None = None,
+        show_inactive: bool = False,
     ):
         where_conditions: WhereConditions = []
         if search_term:
-            where_conditions.extend(
-                [
-                    ("nome", "ilike", f"%{search_term}%"),
-                    ("cpf", "ilike", f"%{search_term}%"),
-                    ("cnpj", "ilike", f"%{search_term}%"),
-                ]
+            where_conditions.append(
+                {
+                    "or": [
+                        ("nome", "ilike", f"%{search_term}%"),
+                        ("cpf", "ilike", f"%{search_term}%"),
+                        ("cnpj", "ilike", f"%{search_term}%"),
+                    ]
+                }
             )
 
         if search_type == "assistidos":
@@ -38,6 +43,7 @@ class AtendidoRepository(BaseRepository[AtendidoSchema, Atendido]):
             page_params=page_params,
             where_conditions=where_conditions,
             order_by=["nome"],
+            active_only=not show_inactive,
         )
 
     def search_assistidos_pfisica(

@@ -19,6 +19,14 @@ from gestaolegal.services.relatorio_service import RelatorioService
 from gestaolegal.services.usuario_service import UsuarioService
 from gestaolegal.utils import api_error, api_paginated, api_success
 from gestaolegal.utils.decorators import login_required
+from gestaolegal.controllers.api.atendido_controller import atendido_controller
+from gestaolegal.controllers.api.user_controller import user_controller
+from gestaolegal.controllers.api.caso_controller import caso_controller
+from gestaolegal.controllers.api.arquivo_controller import arquivo_controller
+from gestaolegal.controllers.api.notificacao_controller import notificacao_controller
+from gestaolegal.controllers.api.relatorio_controller import relatorio_controller
+from gestaolegal.controllers.api.unified_controller import unified_controller
+from gestaolegal.controllers.api.plantao_controller import plantao_controller
 
 csrf = CSRFProtect()
 
@@ -590,7 +598,6 @@ def usuarios_resetar_senha(token):
 
 
 @api_controller.route("/relatorios/buscar_usuarios")
-@csrf.exempt
 @login_required()
 def relatorios_buscar_usuarios():
     relatorio_service = RelatorioService()
@@ -608,7 +615,6 @@ def relatorios_buscar_usuarios():
 
 
 @api_controller.route("/relatorios/buscar_area_direito")
-@csrf.exempt
 @login_required()
 def relatorios_buscar_area_direito():
     relatorio_service = RelatorioService()
@@ -777,7 +783,7 @@ def busca_usuarios_ajax():
             ),
         )
     else:
-        usuarios = usuario_service.get_all(
+        usuarios = usuario_service.search(
             page_params=PageParams(
                 page=page, per_page=current_app.config["USUARIOS_POR_PAGINA"]
             )

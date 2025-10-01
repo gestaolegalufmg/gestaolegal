@@ -3,7 +3,7 @@ from datetime import date
 from typing import TYPE_CHECKING
 
 from gestaolegal.models.base_model import BaseModel
-from gestaolegal.models.usuario import Usuario
+from gestaolegal.models.user import User
 
 if TYPE_CHECKING:
     from gestaolegal.models.caso import Caso
@@ -29,7 +29,7 @@ class Processo(BaseModel):
     caso: "Caso"
     status: bool
     id_criado_por: int
-    criado_por: "Usuario"
+    criado_por: "User"
 
     def __post_init__(self):
         return
@@ -44,7 +44,7 @@ class Processo(BaseModel):
             from gestaolegal.models.caso import Caso
 
             processo_items["caso"] = Caso.from_sqlalchemy(schema.caso, shallow=True)
-            processo_items["criado_por"] = Usuario.from_sqlalchemy(schema.criado_por)
+            processo_items["criado_por"] = User.from_sqlalchemy(schema.criado_por)
         else:
             processo_items["caso"] = None
             processo_items["criado_por"] = None

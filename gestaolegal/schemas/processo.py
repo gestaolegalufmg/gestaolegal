@@ -8,7 +8,7 @@ from gestaolegal.schemas.base import Base
 
 if TYPE_CHECKING:
     from gestaolegal.schemas.caso import CasoSchema
-    from gestaolegal.schemas.usuario import UsuarioSchema
+    from gestaolegal.schemas.user import UserSchema
 
 
 class ProcessoSchema(Base):
@@ -45,6 +45,6 @@ class ProcessoSchema(Base):
     id_criado_por: Mapped[int] = mapped_column(
         Integer, ForeignKey("usuarios.id"), nullable=False, default=1
     )
-    criado_por: Mapped["UsuarioSchema"] = relationship(
-        "UsuarioSchema", foreign_keys=[id_criado_por]
+    criado_por: Mapped["UserSchema"] = relationship(
+        "UserSchema", foreign_keys=[id_criado_por]
     )

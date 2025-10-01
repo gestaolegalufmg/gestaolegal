@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from gestaolegal.models.base_model import BaseModel
-from gestaolegal.models.usuario import Usuario
+from gestaolegal.models.user import User
 
 if TYPE_CHECKING:
     from gestaolegal.models.atendido import Atendido
@@ -15,25 +15,25 @@ class Caso(BaseModel):
     id: int
 
     id_usuario_responsavel: int
-    usuario_responsavel: "Usuario"
+    usuario_responsavel: "User"
     area_direito: str
     sub_area: str | None
     clientes: list["Atendido"]
 
     id_orientador: int | None
-    orientador: "Usuario | None"
+    orientador: "User | None"
     id_estagiario: int | None
-    estagiario: "Usuario | None"
+    estagiario: "User | None"
     id_colaborador: int | None
-    colaborador: "Usuario | None"
+    colaborador: "User | None"
 
     data_criacao: datetime
     id_criado_por: int
-    criado_por: "Usuario"
+    criado_por: "User"
 
     data_modificacao: datetime | None
     id_modificado_por: int | None
-    modificado_por: "Usuario | None"
+    modificado_por: "User | None"
 
     situacao_deferimento: str
     justif_indeferimento: str | None
@@ -56,32 +56,32 @@ class Caso(BaseModel):
                 for cliente in schema.clientes
             ]
             caso_items["usuario_responsavel"] = (
-                Usuario.from_sqlalchemy(schema.usuario_responsavel)
+                User.from_sqlalchemy(schema.usuario_responsavel)
                 if schema.usuario_responsavel
                 else None
             )
             caso_items["orientador"] = (
-                Usuario.from_sqlalchemy(schema.orientador)
+                User.from_sqlalchemy(schema.orientador)
                 if schema.orientador
                 else None
             )
             caso_items["estagiario"] = (
-                Usuario.from_sqlalchemy(schema.estagiario)
+                User.from_sqlalchemy(schema.estagiario)
                 if schema.estagiario
                 else None
             )
             caso_items["colaborador"] = (
-                Usuario.from_sqlalchemy(schema.colaborador)
+                User.from_sqlalchemy(schema.colaborador)
                 if schema.colaborador
                 else None
             )
             caso_items["criado_por"] = (
-                Usuario.from_sqlalchemy(schema.criado_por)
+                User.from_sqlalchemy(schema.criado_por)
                 if schema.criado_por
                 else None
             )
             caso_items["modificado_por"] = (
-                Usuario.from_sqlalchemy(schema.modificado_por)
+                User.from_sqlalchemy(schema.modificado_por)
                 if schema.modificado_por
                 else None
             )

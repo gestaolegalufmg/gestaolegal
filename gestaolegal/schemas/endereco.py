@@ -8,7 +8,7 @@ from gestaolegal.schemas.base import Base
 if TYPE_CHECKING:
     from gestaolegal.schemas.assistencia_judiciaria import AssistenciaJudiciariaSchema
     from gestaolegal.schemas.atendido import AtendidoSchema
-    from gestaolegal.schemas.usuario import UsuarioSchema
+    from gestaolegal.schemas.user import UserSchema
 
 
 class EnderecoSchema(Base):
@@ -26,8 +26,8 @@ class EnderecoSchema(Base):
     estado: Mapped[str] = mapped_column(String(100, collation="latin1_general_ci"))
 
     # Relationships
-    usuarios: Mapped[list["UsuarioSchema"]] = relationship(
-        "UsuarioSchema", back_populates="endereco"
+    usuarios: Mapped[list["UserSchema"]] = relationship(
+        "UserSchema", back_populates="endereco"
     )
     atendidos: Mapped[list["AtendidoSchema"]] = relationship(
         "AtendidoSchema", back_populates="endereco"

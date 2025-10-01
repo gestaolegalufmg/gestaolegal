@@ -33,12 +33,12 @@ class RegistroEntradaRepository(BaseRepository[RegistroEntradaSchema, RegistroEn
         self, data_inicio: str, data_fim: str, usuarios_ids: Optional[list[str]] = None
     ):
         """Get registros with user join for reports"""
-        from gestaolegal.schemas.usuario import UsuarioSchema
+        from gestaolegal.schemas.user import UserSchema
 
         query = (
             self.session.query(RegistroEntradaSchema)
             .select_from(RegistroEntradaSchema)
-            .join(UsuarioSchema)
+            .join(UserSchema)
             .filter(
                 ~RegistroEntradaSchema.status,
                 RegistroEntradaSchema.data_saida >= data_inicio,

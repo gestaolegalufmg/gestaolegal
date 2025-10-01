@@ -24,12 +24,13 @@ class AtendidoService:
 
     def get(
         self,
-        valor_busca: str,
-        tipo_busca: TipoBusca,
+        valor_busca: str = "",
+        tipo_busca: TipoBusca = TipoBusca.TODOS,
         page_params: PageParams | None = None,
+        show_inactive: bool = False,
     ):
         search_type = tipo_busca.value if tipo_busca != TipoBusca.TODOS else None
-        return self.repository.search(valor_busca, search_type, page_params)
+        return self.repository.search(valor_busca, search_type, page_params, show_inactive)
 
     def find_by_email(self, email: str) -> Atendido | None:
         return self.repository.find(where_conditions=[("email", "eq", email)])

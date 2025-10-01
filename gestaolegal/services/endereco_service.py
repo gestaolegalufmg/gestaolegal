@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from gestaolegal.models.endereco import Endereco
 from gestaolegal.repositories.base_repository import BaseRepository
@@ -14,7 +15,7 @@ class EnderecoService:
         self.repository = BaseRepository(EnderecoSchema, Endereco)
 
     def create_or_update_from_data(
-        self, data: dict, endereco_id: int | None = None
+        self, data: dict[str, Any], endereco_id: int | None = None
     ) -> Endereco:
         if endereco_id:
             logger.info(f"Updating existing endereco with ID: {endereco_id}")

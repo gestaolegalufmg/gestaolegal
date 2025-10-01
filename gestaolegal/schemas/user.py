@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from gestaolegal.schemas.endereco import EnderecoSchema
 
 
-class UsuarioSchema(Base):
+class UserSchema(Base):
     __tablename__ = "usuarios"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -59,7 +59,7 @@ class UsuarioSchema(Base):
     tipo_bolsa: Mapped[str] = mapped_column(String(50, collation="latin1_general_ci"))
     horario_atendimento: Mapped[str] = mapped_column(
         String(30, collation="latin1_general_ci")
-    )  # !!!
+    )
     suplente: Mapped[str] = mapped_column(String(30, collation="latin1_general_ci"))
     ferias: Mapped[str] = mapped_column(String(150, collation="latin1_general_ci"))
     status: Mapped[bool] = mapped_column(Boolean, nullable=False)

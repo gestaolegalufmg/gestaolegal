@@ -9,7 +9,7 @@ from gestaolegal.schemas.base import Base
 
 if TYPE_CHECKING:
     from gestaolegal.schemas.atendido import AtendidoSchema
-    from gestaolegal.schemas.usuario import UsuarioSchema
+    from gestaolegal.schemas.user import UserSchema
 
 
 class CasoSchema(Base):
@@ -20,8 +20,8 @@ class CasoSchema(Base):
     id_usuario_responsavel: Mapped[int] = mapped_column(
         Integer, ForeignKey("usuarios.id"), nullable=False
     )
-    usuario_responsavel: Mapped["UsuarioSchema"] = relationship(
-        "UsuarioSchema", foreign_keys=[id_usuario_responsavel]
+    usuario_responsavel: Mapped["UserSchema"] = relationship(
+        "UserSchema", foreign_keys=[id_usuario_responsavel]
     )
 
     area_direito: Mapped[str] = mapped_column(
@@ -38,38 +38,38 @@ class CasoSchema(Base):
     id_orientador: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("usuarios.id")
     )
-    orientador: Mapped["UsuarioSchema | None"] = relationship(
-        "UsuarioSchema", foreign_keys=[id_orientador]
+    orientador: Mapped["UserSchema | None"] = relationship(
+        "UserSchema", foreign_keys=[id_orientador]
     )
 
     id_estagiario: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("usuarios.id")
     )
-    estagiario: Mapped["UsuarioSchema | None"] = relationship(
-        "UsuarioSchema", foreign_keys=[id_estagiario]
+    estagiario: Mapped["UserSchema | None"] = relationship(
+        "UserSchema", foreign_keys=[id_estagiario]
     )
 
     id_colaborador: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("usuarios.id")
     )
-    colaborador: Mapped["UsuarioSchema | None"] = relationship(
-        "UsuarioSchema", foreign_keys=[id_colaborador]
+    colaborador: Mapped["UserSchema | None"] = relationship(
+        "UserSchema", foreign_keys=[id_colaborador]
     )
 
     data_criacao: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     id_criado_por: Mapped[int] = mapped_column(
         Integer, ForeignKey("usuarios.id"), nullable=False
     )
-    criado_por: Mapped["UsuarioSchema"] = relationship(
-        "UsuarioSchema", foreign_keys=[id_criado_por]
+    criado_por: Mapped["UserSchema"] = relationship(
+        "UserSchema", foreign_keys=[id_criado_por]
     )
 
     data_modificacao: Mapped[datetime | None] = mapped_column(DateTime)
     id_modificado_por: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("usuarios.id")
     )
-    modificado_por: Mapped["UsuarioSchema | None"] = relationship(
-        "UsuarioSchema", foreign_keys=[id_modificado_por]
+    modificado_por: Mapped["UserSchema | None"] = relationship(
+        "UserSchema", foreign_keys=[id_modificado_por]
     )
 
     situacao_deferimento: Mapped[str] = mapped_column(

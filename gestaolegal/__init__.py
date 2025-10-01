@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_bcrypt import Bcrypt
+from flask_cors import CORS
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
@@ -9,6 +10,7 @@ from gestaolegal.utils.formatters import (
     formatarSituacaoDeferimento,
     formatarTipoDeEvento,
 )
+from gestaolegal.utils.json_encoder import CustomJSONEncoder
 
 bcrypt = Bcrypt()
 mail = Mail()
@@ -23,6 +25,9 @@ def create_app(config_object=None):
         app.config.from_object(config_object)
     else:
         configure_app(app)
+
+    # Set custom JSON encoder for ISO date format
+    app.json_encoder = CustomJSONEncoder
 
     # Initialize logging
     from gestaolegal.logging_config import setup_logging
@@ -61,6 +66,7 @@ def initialize_extensions(app):
     mail.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
+    CORS(app)
 
     login_manager.login_view = "usuario.login"
     login_manager.login_message = "Por favor, faça o login para acessar esta página."
@@ -78,6 +84,9 @@ def register_blueprints(app):
     from gestaolegal.controllers import routes
 
     for route, url_prefix in routes:
+        # Disable CSRF protection for API routes
+        if url_prefix.startswith('/api'):
+            csrf.exempt(route)
         app.register_blueprint(route, url_prefix=url_prefix)
 
 

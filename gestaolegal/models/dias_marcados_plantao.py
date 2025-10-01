@@ -3,7 +3,7 @@ from datetime import date
 from typing import TYPE_CHECKING
 
 from gestaolegal.models.base_model import BaseModel
-from gestaolegal.models.usuario import Usuario
+from gestaolegal.models.user import User
 
 if TYPE_CHECKING:
     from gestaolegal.schemas.dias_marcados_plantao import DiasMarcadosPlantaoSchema
@@ -16,7 +16,7 @@ class DiasMarcadosPlantao(BaseModel):
     confirmacao: str
     status: bool
     id_usuario: int | None
-    usuario: "Usuario | None"
+    usuario: "User | None"
 
     def __post_init__(self):
         return
@@ -29,7 +29,7 @@ class DiasMarcadosPlantao(BaseModel):
 
         if not shallow:
             dias_marcados_plantao_items["usuario"] = (
-                Usuario.from_sqlalchemy(schema.usuario) if schema.usuario else None
+                User.from_sqlalchemy(schema.usuario) if schema.usuario else None
             )
         else:
             dias_marcados_plantao_items["usuario"] = None

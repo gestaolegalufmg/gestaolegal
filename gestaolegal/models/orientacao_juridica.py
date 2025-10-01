@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from gestaolegal.models.base_model import BaseModel
-from gestaolegal.models.usuario import Usuario
+from gestaolegal.models.user import User
 
 if TYPE_CHECKING:
     from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
@@ -22,7 +22,7 @@ class OrientacaoJuridica(BaseModel):
     assistencias_judiciarias: list["AssistenciaJudiciaria"]
     atendidos: list["Atendido"]
     id_usuario: int | None
-    usuario: "Usuario | None"
+    usuario: "User | None"
 
     def __post_init__(self):
         return
@@ -48,7 +48,7 @@ class OrientacaoJuridica(BaseModel):
                 if atendido is not None
             ]
             orientacao_juridica_items["usuario"] = (
-                Usuario.from_sqlalchemy(schema.usuario) if schema.usuario else None
+                User.from_sqlalchemy(schema.usuario) if schema.usuario else None
             )
         else:
             orientacao_juridica_items["assistencias_judiciarias"] = []
