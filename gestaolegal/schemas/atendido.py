@@ -1,7 +1,7 @@
 from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from gestaolegal.schemas import associacao_casos_atendidos
@@ -67,9 +67,7 @@ class AtendidoSchema(Base):
     pj_constituida: Mapped[str] = mapped_column(
         String(80, collation="latin1_general_ci")
     )
-    repres_legal: Mapped[str | None] = mapped_column(
-        String(1, collation="latin1_general_ci")
-    )
+    repres_legal: Mapped[bool | None] = mapped_column(Boolean)
     nome_repres_legal: Mapped[str | None] = mapped_column(
         String(80, collation="latin1_general_ci")
     )

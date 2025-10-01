@@ -104,6 +104,16 @@ class User(BaseModel):
         
         endereco: Endereco | None = data.pop("endereco")
         if endereco and with_endereco:
-            data = {**data, **endereco.to_dict()}
+            data["logradouro"] = endereco.logradouro
+            data["numero"] = endereco.numero
+            data["complemento"] = endereco.complemento
+            data["bairro"] = endereco.bairro
+            data["cep"] = endereco.cep
+            data["cidade"] = endereco.cidade
+            data["estado"] = endereco.estado
+
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"returning dict: {data}")
 
         return data
