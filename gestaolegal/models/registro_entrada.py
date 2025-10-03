@@ -6,7 +6,7 @@ from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.user import User
 
 if TYPE_CHECKING:
-    from gestaolegal.schemas.registro_entrada import RegistroEntradaSchema
+    pass
 
 
 @dataclass(frozen=True)
@@ -21,18 +21,3 @@ class RegistroEntrada(BaseModel):
 
     def __post_init__(self):
         return
-
-    @classmethod
-    def from_sqlalchemy(
-        cls, schema: "RegistroEntradaSchema", shallow: bool = False
-    ) -> "RegistroEntrada":
-        registro_entrada_items = schema.to_dict()
-
-        if not shallow:
-            registro_entrada_items["usuario"] = (
-                User.from_sqlalchemy(schema.usuario) if schema.usuario else None
-            )
-        else:
-            registro_entrada_items["usuario"] = None
-
-        return RegistroEntrada(**registro_entrada_items)

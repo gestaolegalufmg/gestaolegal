@@ -9,9 +9,9 @@ from flask_bcrypt import Bcrypt
 from gestaolegal.common import PageParams
 from gestaolegal.models.endereco import Endereco
 from gestaolegal.models.user import User
-from gestaolegal.repositories.base_repository import BaseRepository, WhereConditions
+from gestaolegal.repositories.base_repository import WhereConditions
+from gestaolegal.repositories.endereco_repository import EnderecoRepository
 from gestaolegal.repositories.user_repository import UserRepository
-from gestaolegal.schemas.endereco import EnderecoSchema
 
 T = TypeVar("T")
 
@@ -20,11 +20,11 @@ logger = logging.getLogger(__name__)
 
 class UsuarioService:
     repository: UserRepository
-    endereco_repository: BaseRepository[EnderecoSchema, Endereco]
+    endereco_repository: EnderecoRepository
 
     def __init__(self):
         self.repository = UserRepository()
-        self.endereco_repository = BaseRepository(EnderecoSchema, Endereco)
+        self.endereco_repository = EnderecoRepository()
 
     def find_by_id(self, id: int) -> User | None:
         return self.repository.find_by_id(id)
@@ -32,7 +32,13 @@ class UsuarioService:
     def find_by_email(self, email: str) -> User | None:
         return self.repository.find(where_conditions=("email", "eq", email))
 
-    def search(self, search: str = "", page_params: PageParams | None = None, role: str = "all", show_inactive: bool = False):
+    def search(
+        self,
+        search: str = "",
+        page_params: PageParams | None = None,
+        role: str = "all",
+        show_inactive: bool = False,
+    ):
         where_conditions: WhereConditions = []
 
         if role != "all":
@@ -42,7 +48,10 @@ class UsuarioService:
             where_conditions.append(("nome", "ilike", f"%{search}%"))
 
         return self.repository.get(
-            page_params=page_params, order_by=["nome"], where_conditions=where_conditions, active_only=not show_inactive
+            page_params=page_params,
+            order_by=["nome"],
+            where_conditions=where_conditions,
+            active_only=not show_inactive,
         )
 
     def search_users_by_filters(
@@ -96,7 +105,6 @@ class UsuarioService:
         endereco_data = self.__extract_endereco_data(user_data)
         endereco = self.endereco_repository.create(endereco_data)
 
-
         user_data["endereco_id"] = endereco.id
         user_data["criadopor"] = criado_por
 
@@ -104,8 +112,12 @@ class UsuarioService:
 
         password_length = 12
         alphabet = string.ascii_letters + string.digits
-        random_password = ''.join(secrets.choice(alphabet) for _ in range(password_length))
-        user_data["senha"] = bcrypt.generate_password_hash(random_password).decode("utf-8")
+        random_password = "".join(
+            secrets.choice(alphabet) for _ in range(password_length)
+        )
+        user_data["senha"] = bcrypt.generate_password_hash(random_password).decode(
+            "utf-8"
+        )
 
         return self.repository.create(User(**user_data))
 
@@ -144,7 +156,7 @@ class UsuarioService:
         user_id: int,
         current_password: str | None,
         new_password: str,
-        is_admin_change: bool = False
+        is_admin_change: bool = False,
     ) -> User | None:
         user = self.repository.find_by_id(user_id)
         if not user:

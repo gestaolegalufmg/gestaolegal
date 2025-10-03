@@ -7,9 +7,9 @@ from gestaolegal.models.assistido import Assistido
 from gestaolegal.models.atendido import Atendido
 from gestaolegal.models.endereco import Endereco
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
-from gestaolegal.repositories.base_repository import BaseRepository, WhereConditions
-from gestaolegal.schemas.assistido import AssistidoSchema
-from gestaolegal.schemas.endereco import EnderecoSchema
+from gestaolegal.repositories.assistido_repository import AssistidoRepository
+from gestaolegal.repositories.base_repository import WhereConditions
+from gestaolegal.repositories.endereco_repository import EnderecoRepository
 from gestaolegal.services.endereco_service import EnderecoService
 
 logger = logging.getLogger(__name__)
@@ -17,26 +17,32 @@ logger = logging.getLogger(__name__)
 
 class AtendidoService:
     repository: AtendidoRepository
-    assistido_repository: BaseRepository[AssistidoSchema, Assistido]
-    endereco_repository: BaseRepository[EnderecoSchema, Endereco]
+    assistido_repository: AssistidoRepository
+    endereco_repository: EnderecoRepository
     endereco_service: EnderecoService
 
     def __init__(self):
         self.repository = AtendidoRepository()
-        self.assistido_repository = BaseRepository(AssistidoSchema, Assistido)
-        self.endereco_repository = BaseRepository(EnderecoSchema, Endereco)
+        self.assistido_repository = AssistidoRepository()
+        self.endereco_repository = EnderecoRepository()
         self.endereco_service = EnderecoService()
 
     def find_by_id(self, atendido_id: int) -> Atendido | None:
         return self.repository.find_by_id(atendido_id)
 
-    def search(self, search: str = "", page_params: PageParams | None = None, tipo_busca: str = "todos", show_inactive: bool = False):
+    def search(
+        self,
+        search: str = "",
+        page_params: PageParams | None = None,
+        tipo_busca: str = "todos",
+        show_inactive: bool = False,
+    ):
         search_type = tipo_busca if tipo_busca != "todos" else None
         return self.repository.search(
-            search_term=search, 
-            search_type=search_type, 
-            page_params=page_params, 
-            show_inactive=show_inactive
+            search_term=search,
+            search_type=search_type,
+            page_params=page_params,
+            show_inactive=show_inactive,
         )
 
     def get(
@@ -47,7 +53,9 @@ class AtendidoService:
         show_inactive: bool = False,
     ):
         search_type = tipo_busca.value if tipo_busca != TipoBusca.TODOS else None
-        return self.repository.search(valor_busca, search_type, page_params, show_inactive)
+        return self.repository.search(
+            valor_busca, search_type, page_params, show_inactive
+        )
 
     def get_by_ids(self, atendido_ids: list[int]) -> list[Atendido]:
         if not atendido_ids:
@@ -65,10 +73,10 @@ class AtendidoService:
         return self.repository.create(Atendido(**atendido_data))
 
     def update(
-        self, 
-        atendido_id: int, 
+        self,
+        atendido_id: int,
         atendido_data: dict[str, Any],
-        modificado_por: int | None = None
+        modificado_por: int | None = None,
     ) -> Atendido:
         atendido = self.repository.find_by_id(atendido_id)
         if not atendido:
@@ -77,9 +85,13 @@ class AtendidoService:
         endereco_data = self.__extract_endereco_data(atendido_data)
         endereco = atendido.endereco
         if not endereco or atendido.endereco_id is None:
-            raise ValueError(f"Atendido with id {atendido_id} does not have an endereco")
+            raise ValueError(
+                f"Atendido with id {atendido_id} does not have an endereco"
+            )
 
-        _ = self.endereco_repository.update(atendido.endereco_id, Endereco(**endereco_data))
+        _ = self.endereco_repository.update(
+            atendido.endereco_id, Endereco(**endereco_data)
+        )
 
         logger.info(f"Existing data: {atendido.to_dict()}")
         existing_data = atendido.to_dict(with_endereco=False)
@@ -121,8 +133,10 @@ class AtendidoService:
         if atendido_data:
             endereco_data = self.__extract_endereco_data(atendido_data)
             if atendido.endereco_id:
-                self.endereco_repository.update(atendido.endereco_id, Endereco(**endereco_data))
-            
+                self.endereco_repository.update(
+                    atendido.endereco_id, Endereco(**endereco_data)
+                )
+
             if atendido_data:
                 existing_atendido_data = atendido.to_dict(with_endereco=False)
                 existing_atendido_data.update(atendido_data)
@@ -131,9 +145,11 @@ class AtendidoService:
         if assistido_data:
             existing_assistido_data = assistido.to_dict()
             existing_assistido_data.update(assistido_data)
-            updated_assistido = self.assistido_repository.update(assistido.id, Assistido(**existing_assistido_data))
+            updated_assistido = self.assistido_repository.update(
+                assistido.id, Assistido(**existing_assistido_data)
+            )
             return updated_assistido
-        
+
         return assistido
 
     def soft_delete(self, atendido_id: int) -> bool:

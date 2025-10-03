@@ -7,7 +7,7 @@ from gestaolegal.models.caso import Caso
 from gestaolegal.models.user import User
 
 if TYPE_CHECKING:
-    from gestaolegal.schemas.historico import HistoricoSchema
+    pass
 
 
 @dataclass(frozen=True)
@@ -21,22 +21,3 @@ class Historico(BaseModel):
 
     def __post_init__(self):
         return
-
-    @classmethod
-    def from_sqlalchemy(
-        cls, schema: "HistoricoSchema", shallow: bool = False
-    ) -> "Historico":
-        historico_items = schema.to_dict()
-
-        if not shallow:
-            historico_items["usuario"] = (
-                User.from_sqlalchemy(schema.usuario) if schema.usuario else None
-            )
-            historico_items["caso"] = (
-                Caso.from_sqlalchemy(schema.caso, shallow=True) if schema.caso else None
-            )
-        else:
-            historico_items["usuario"] = None
-            historico_items["caso"] = None
-
-        return Historico(**historico_items)

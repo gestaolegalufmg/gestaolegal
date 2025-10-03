@@ -1,14 +1,15 @@
-from dateutil.parser import parse as parse_date
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
+
+from dateutil.parser import parse as parse_date
 from typing_extensions import override
 
 from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.endereco import Endereco
 
 if TYPE_CHECKING:
-    from gestaolegal.schemas.user import UserSchema
+    pass
 
 
 @dataclass(frozen=True)
@@ -41,7 +42,7 @@ class User(BaseModel):
     inicio_bolsa: datetime | None
     fim_bolsa: datetime | None
     endereco_id: int
-    
+
     id: int | None = None
 
     chave_recuperacao: bool | None = None
@@ -53,24 +54,34 @@ class User(BaseModel):
 
     def __post_init__(self):
         if isinstance(self.nascimento, str):
-            object.__setattr__(self, 'nascimento', self._parse_date_string(self.nascimento))
-        
+            object.__setattr__(
+                self, "nascimento", self._parse_date_string(self.nascimento)
+            )
+
         if isinstance(self.data_entrada, str):
-            object.__setattr__(self, 'data_entrada', self._parse_date_string(self.data_entrada))
-        
+            object.__setattr__(
+                self, "data_entrada", self._parse_date_string(self.data_entrada)
+            )
+
         if self.data_saida and isinstance(self.data_saida, str):
-            object.__setattr__(self, 'data_saida', self._parse_date_string(self.data_saida))
-        
+            object.__setattr__(
+                self, "data_saida", self._parse_date_string(self.data_saida)
+            )
+
         if self.inicio_bolsa and isinstance(self.inicio_bolsa, str):
-            object.__setattr__(self, 'inicio_bolsa', self._parse_date_string(self.inicio_bolsa))
-        
+            object.__setattr__(
+                self, "inicio_bolsa", self._parse_date_string(self.inicio_bolsa)
+            )
+
         if self.fim_bolsa and isinstance(self.fim_bolsa, str):
-            object.__setattr__(self, 'fim_bolsa', self._parse_date_string(self.fim_bolsa))
+            object.__setattr__(
+                self, "fim_bolsa", self._parse_date_string(self.fim_bolsa)
+            )
 
         if not self.bolsista:
-            object.__setattr__(self, 'inicio_bolsa', None)
-            object.__setattr__(self, 'fim_bolsa', None)
-            object.__setattr__(self, 'tipo_bolsa', None)
+            object.__setattr__(self, "inicio_bolsa", None)
+            object.__setattr__(self, "fim_bolsa", None)
+            object.__setattr__(self, "tipo_bolsa", None)
 
     @staticmethod
     def _parse_date_string(date_value: str | date | None) -> date | None:
@@ -82,26 +93,15 @@ class User(BaseModel):
         return parse_date(date_value)
 
     @classmethod
-    def from_sqlalchemy(
-        cls, schema: "UserSchema", shallow: bool = False
-    ) -> "User":
-        user_items = schema.to_dict()
-
-        if not shallow:
-            user_items["endereco"] = (
-                Endereco.from_sqlalchemy(schema.endereco) if schema.endereco else None
-            )
-        else:
-            user_items["endereco"] = None
-
-        return User(**user_items)
-
-
+    def from_dict(cls, data: dict[str, Any]) -> "User":
+        return User(**data)
 
     @override
-    def to_dict(self, with_endereco: bool = True, *args: Any, **kwargs: Any) -> dict[str, Any]:
+    def to_dict(
+        self, with_endereco: bool = True, *args: Any, **kwargs: Any
+    ) -> dict[str, Any]:
         data = super().to_dict(*args, **kwargs)
-        
+
         endereco: Endereco | None = data.pop("endereco")
         if endereco and with_endereco:
             data["logradouro"] = endereco.logradouro
@@ -113,6 +113,7 @@ class User(BaseModel):
             data["estado"] = endereco.estado
 
         import logging
+
         logger = logging.getLogger(__name__)
         logger.info(f"returning dict: {data}")
 

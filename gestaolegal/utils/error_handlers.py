@@ -1,12 +1,17 @@
+import json
 import logging
 
-from flask import flash, redirect, render_template, request
+from flask import flash, make_response, redirect, render_template, request
 
 logger = logging.getLogger(__name__)
 
 
 def error_404(error):
-    return render_template("principal/erros/404.html"), 404
+    return make_response(
+        json.dumps({"error": "Recurso não encontrado"}),
+        404,
+        {"Content-Type": "application/json"},
+    )
 
 
 def error_403(error):

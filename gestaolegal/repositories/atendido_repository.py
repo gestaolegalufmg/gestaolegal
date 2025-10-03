@@ -1,18 +1,19 @@
-from gestaolegal.models.atendido import Atendido
-from gestaolegal.repositories.base_repository import (
-    BaseRepository,
-    PageParams,
-    PaginatedResult,
-    WhereConditions,
-)
-from gestaolegal.schemas.atendido import AtendidoSchema
 import logging
+
+from sqlalchemy import select
+
+from gestaolegal.common import PageParams
+from gestaolegal.database import get_db
+from gestaolegal.models.atendido import Atendido
+from gestaolegal.repositories.base_repository import BaseRepository, PaginatedResult
+from gestaolegal.repositories.table_definitions import atendidos
 
 logger = logging.getLogger(__name__)
 
-class AtendidoRepository(BaseRepository[AtendidoSchema, Atendido]):
+
+class AtendidoRepository(BaseRepository[Atendido]):
     def __init__(self):
-        super().__init__(AtendidoSchema, Atendido)
+        super().__init__(atendidos, Atendido)
 
     def search(
         self,
@@ -20,69 +21,54 @@ class AtendidoRepository(BaseRepository[AtendidoSchema, Atendido]):
         search_type: str | None = None,
         page_params: PageParams | None = None,
         show_inactive: bool = False,
-    ):
-        where_conditions: WhereConditions = []
+    ) -> PaginatedResult[Atendido]:
+        stmt = select(self.table)
+
+        if not show_inactive:
+            stmt = stmt.where(self.table.c.status == 1)
+
         if search_term:
-            where_conditions.append(
-                {
-                    "or": [
-                        ("nome", "ilike", f"%{search_term}%"),
-                        ("cpf", "ilike", f"%{search_term}%"),
-                        ("cnpj", "ilike", f"%{search_term}%"),
-                    ]
-                }
-            )
+            if search_type == "nome":
+                stmt = stmt.where(self.table.c.nome.ilike(f"%{search_term}%"))
+            elif search_type == "cpf":
+                stmt = stmt.where(self.table.c.cpf.like(f"%{search_term}%"))
+            elif search_type == "cnpj":
+                stmt = stmt.where(self.table.c.cnpj.like(f"%{search_term}%"))
+            else:
+                stmt = stmt.where(
+                    (self.table.c.nome.ilike(f"%{search_term}%"))
+                    | (self.table.c.cpf.like(f"%{search_term}%"))
+                    | (self.table.c.cnpj.like(f"%{search_term}%"))
+                )
 
-        if search_type == "assistidos":
-            where_conditions.append(("id", "is_not_null", None))
+        count_stmt = select(stmt.alias().c.id.label("id"))
+        total = get_db().session.execute(count_stmt).fetchall()
+        total_count = len(total)
 
-        elif search_type == "atendidos":
-            where_conditions.append(("id", "is_null", None))
+        if page_params:
+            page = page_params.get("page", 1)
+            per_page = page_params.get("per_page", 10)
+            offset = (page - 1) * per_page
+            stmt = stmt.limit(per_page).offset(offset)
+        else:
+            page = 1
+            per_page = total_count
 
-        return self.get(
-            page_params=page_params,
-            where_conditions=where_conditions,
-            order_by=["nome"],
-            active_only=not show_inactive,
-        )
+        stmt = stmt.order_by(self.table.c.nome)
 
-    def search_assistidos_pfisica(
-        self, busca: str, page_params: PageParams | None = None
-    ):
-        where_conditions: WhereConditions = [
-            {
-                "or": [
-                    ("nome", "ilike", f"%{busca}%"),
-                    ("cpf", "contains", busca),
-                ]
-            }
-        ]
+        result = get_db().session.execute(stmt)
+        rows = result.fetchall()
+        items = [self._row_to_model(row) for row in rows]
 
-        return self.get(
-            page_params=page_params,
-            where_conditions=where_conditions,
-            order_by=["nome"],
-        )
-
-    def search_assistidos_pjuridica(
-        self, busca: str, page_params: PageParams | None = None
-    ):
-        where_conditions: WhereConditions = [
-            {
-                "or": [
-                    ("nome", "contains", busca),
-                    ("cpf", "contains", busca),
-                ]
-            }
-        ]
-
-        return self.get(
-            page_params=page_params,
-            where_conditions=where_conditions,
-            order_by=["nome"],
-        )
-
-    def _create_paginated_result(self, items, total, page_params):
         return PaginatedResult(
-            items, total, page_params["page"] or 1, page_params["per_page"] or total
+            items=items, total=total_count, page=page, per_page=per_page
         )
+
+    def soft_delete(self, id: int) -> bool:
+        from sqlalchemy import update
+
+        stmt = update(self.table).where(self.table.c.id == id).values(status=0)
+        result = get_db().session.execute(stmt)
+        get_db().session.commit()
+        return result.rowcount > 0
+

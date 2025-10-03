@@ -15,12 +15,12 @@ from gestaolegal.common.constants import (
     como_conheceu_daj,
     estado_civilUsuario,
 )
-from gestaolegal.forms.base_form_mixin import BaseFormMixin
-from gestaolegal.forms.endereco_form_mixin import EnderecoFieldsMixin
 from gestaolegal.forms import (
     MSG_NaoPodeEstarEmBranco,
     RequiredIf,
 )
+from gestaolegal.forms.base_form_mixin import BaseFormMixin
+from gestaolegal.forms.endereco_form_mixin import EnderecoFieldsMixin
 
 
 class CadastroAtendidoForm(EnderecoFieldsMixin, BaseFormMixin, FlaskForm):

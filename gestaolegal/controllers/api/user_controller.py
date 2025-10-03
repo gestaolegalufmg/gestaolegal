@@ -9,16 +9,17 @@ from gestaolegal.services.usuario_service import UsuarioService
 from gestaolegal.utils import StringBool
 from gestaolegal.utils.api_decorators import api_auth_required
 
-
 logger = logging.getLogger(__name__)
 
 user_controller = Blueprint("user", __name__)
+
 
 @user_controller.route("/me", methods=["GET"])
 @api_auth_required
 def get_me(current_user: User):
     logger.info(f"Getting me: {current_user}")
     return current_user.to_dict()
+
 
 @user_controller.route("/", methods=["GET"])
 @api_auth_required
@@ -27,11 +28,21 @@ def get():
     per_page = request.args.get("per_page", default=10, type=int)
     search = request.args.get("search", default="", type=str)
     funcao = request.args.get("funcao", default="all", type=str)
-    show_inactive = request.args.get("show_inactive", default=StringBool("false"), type=StringBool)
+    show_inactive = request.args.get(
+        "show_inactive", default=StringBool("false"), type=StringBool
+    )
 
     user_service = UsuarioService()
-    logger.info(f"Getting users with search: {search}, funcao: {funcao}, show_inactive: {show_inactive.value}")
-    return user_service.search(page_params=PageParams(page=page, per_page=per_page), search=search, show_inactive=show_inactive.value, role=funcao).to_dict()
+    logger.info(
+        f"Getting users with search: {search}, funcao: {funcao}, show_inactive: {show_inactive.value}"
+    )
+    return user_service.search(
+        page_params=PageParams(page=page, per_page=per_page),
+        search=search,
+        show_inactive=show_inactive.value,
+        role=funcao,
+    ).to_dict()
+
 
 @user_controller.route("/<int:id>", methods=["GET"])
 @api_auth_required
@@ -45,10 +56,11 @@ def find_by_id(id: int):
     logger.info(f"User found: {user}")
     return user.to_dict()
 
+
 @user_controller.route("/", methods=["POST"])
 @api_auth_required
 def create(current_user: User):
-    logger.info(f"Creating user")
+    logger.info("Creating user")
     user_service = UsuarioService()
 
     try:
@@ -61,6 +73,7 @@ def create(current_user: User):
     logger.info(f"User created: {user}")
 
     return user.to_dict()
+
 
 @user_controller.route("/<int:id>", methods=["PUT"])
 @api_auth_required
@@ -77,6 +90,7 @@ def update(id: int, current_user: User):
     logger.info(f"User updated: {user}")
     return user.to_dict()
 
+
 @user_controller.route("/me", methods=["PUT"])
 @api_auth_required
 def update_me(current_user: User):
@@ -85,9 +99,9 @@ def update_me(current_user: User):
     user_data: Any = request.get_json(force=True)
 
     user = user_service.update(
-        cast(int, current_user.id), # id cant be none here
+        cast(int, current_user.id),  # id cant be none here
         user_data,
-        current_user.id
+        current_user.id,
     )
 
     if not user:
@@ -96,6 +110,7 @@ def update_me(current_user: User):
 
     logger.info(f"User updated: {user}")
     return user.to_dict()
+
 
 @user_controller.route("/<int:id>", methods=["DELETE"])
 @api_auth_required
@@ -109,11 +124,12 @@ def delete(id: int):
 
     return make_response("User deactivated", 200)
 
+
 @user_controller.route("/<int:id>/password", methods=["PUT"])
 @api_auth_required
 def change_password(id: int, current_user: User):
     logger.info(f"Changing password for user: {id}")
-    
+
     try:
         data = cast(dict[str, Any], request.get_json(force=True))
         current_password = data.get("currentPassword")
@@ -137,7 +153,7 @@ def change_password(id: int, current_user: User):
             user_id=id,
             current_password=current_password,
             new_password=new_password,
-            is_admin_change=from_admin and is_admin
+            is_admin_change=from_admin and is_admin,
         )
 
         if not user:

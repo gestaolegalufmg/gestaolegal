@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from gestaolegal.models.base_model import BaseModel
 
 if TYPE_CHECKING:
-    from gestaolegal.schemas.arquivo import ArquivoSchema
+    pass
 
 
 @dataclass(frozen=True)
@@ -18,10 +18,3 @@ class Arquivo(BaseModel):
 
     def __post_init__(self):
         return
-
-    @classmethod
-    def from_sqlalchemy(
-        cls, schema: "ArquivoSchema", shallow: bool = False
-    ) -> "Arquivo":
-        arquivo_items = schema.to_dict()
-        return Arquivo(**arquivo_items)
