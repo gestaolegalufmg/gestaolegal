@@ -5,7 +5,6 @@ from gestaolegal.models.base_model import BaseModel
 
 if TYPE_CHECKING:
     from gestaolegal.models.assistido_pessoa_juridica import AssistidoPessoaJuridica
-    from gestaolegal.schemas.assistido import AssistidoSchema
 
 
 @dataclass(frozen=True)
@@ -69,26 +68,3 @@ class Assistido(BaseModel):
             raise ValueError(
                 "Os campos pessoa_doente e gastos_medicacao são obrigatórios se doenca_grave_familia for True"
             )
-
-    @classmethod
-    def from_sqlalchemy(
-        cls, schema: "AssistidoSchema", shallow: bool = False
-    ) -> "Assistido":
-        assistido_items = schema.to_dict()
-
-        if not shallow:
-            from gestaolegal.models.assistido_pessoa_juridica import (
-                AssistidoPessoaJuridica,
-            )
-
-            assistido_items["assistido_pessoa_juridica"] = (
-                AssistidoPessoaJuridica.from_sqlalchemy(
-                    schema.assistido_pessoa_juridica
-                )
-                if schema.assistido_pessoa_juridica
-                else None
-            )
-        else:
-            assistido_items["assistido_pessoa_juridica"] = None
-
-        return Assistido(**assistido_items)

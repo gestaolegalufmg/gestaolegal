@@ -85,7 +85,7 @@ def register_blueprints(app):
 
     for route, url_prefix in routes:
         # Disable CSRF protection for API routes
-        if url_prefix.startswith('/api'):
+        if url_prefix.startswith("/api"):
             csrf.exempt(route)
         app.register_blueprint(route, url_prefix=url_prefix)
 

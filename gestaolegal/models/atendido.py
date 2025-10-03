@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING, Any
+
 from typing_extensions import override
 
 from gestaolegal.common.constants import como_conheceu_daj
@@ -11,7 +12,6 @@ from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 
 if TYPE_CHECKING:
     from gestaolegal.models.caso import Caso
-    from gestaolegal.schemas.atendido import AtendidoSchema
 
 
 @dataclass(frozen=True)
@@ -117,43 +117,15 @@ class Atendido(BaseModel):
                 )
 
     @classmethod
-    def from_sqlalchemy(
-        cls, schema: "AtendidoSchema", shallow: bool = False
-    ) -> "Atendido":
-        atendido_items = schema.to_dict()
-
-        atendido_items["endereco"] = (
-            Endereco.from_sqlalchemy(schema.endereco) if schema.endereco else None
-        )
-
-        if not shallow:
-            from gestaolegal.models.caso import Caso
-
-            atendido_items["assistido"] = (
-                Assistido.from_sqlalchemy(schema.assistido)
-                if schema.assistido
-                else None
-            )
-            atendido_items["orientacoes_juridicas"] = [
-                OrientacaoJuridica.from_sqlalchemy(orientacao)
-                for orientacao in schema.orientacoesJuridicas
-                if orientacao is not None
-            ]
-
-            atendido_items["casos"] = [
-                Caso.from_sqlalchemy(caso, shallow=True) for caso in schema.casos
-            ]
-        else:
-            atendido_items["assistido"] = None
-            atendido_items["orientacoes_juridicas"] = []
-            atendido_items["casos"] = []
-
-        return Atendido(**atendido_items)
+    def from_dict(cls, data: dict[str, Any]) -> "Atendido":
+        return Atendido(**data)
 
     @override
-    def to_dict(self, with_endereco: bool = True, *args: Any, **kwargs: Any) -> dict[str, Any]:
+    def to_dict(
+        self, with_endereco: bool = True, *args: Any, **kwargs: Any
+    ) -> dict[str, Any]:
         data = super().to_dict(*args, **kwargs)
-        
+
         endereco: Endereco | None = data.pop("endereco")
         if endereco and with_endereco:
             data = {**data, **endereco.to_dict()}

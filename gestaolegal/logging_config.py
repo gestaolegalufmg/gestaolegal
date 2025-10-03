@@ -31,37 +31,6 @@ def setup_logging():
     root_logger.addHandler(console_handler)
     root_logger.addHandler(file_handler)
 
-    loggers = [
-        "gestaolegal.services.atendido_service",
-        "gestaolegal.services.assistencia_judiciaria_service",
-        "gestaolegal.services.base_service",
-        "gestaolegal.services.endereco_service",
-        "gestaolegal.services.notificacao_service",
-        "gestaolegal.services.orientacao_juridica_service",
-        "gestaolegal.services.plantao_service",
-        "gestaolegal.services.usuario_service",
-        "gestaolegal.repositories.base_repository",
-        "gestaolegal.repositories.atendido_repository",
-        "gestaolegal.repositories.usuario_repository",
-        "gestaolegal.controllers.views.arquivo_controller",
-        "gestaolegal.controllers.views.assistencia_judiciaria_controller",
-        "gestaolegal.controllers.views.atendido_controller",
-        "gestaolegal.controllers.views.casos_controller",
-        "gestaolegal.controllers.views.notificacoes_controller",
-        "gestaolegal.controllers.views.orientacao_juridica_controller",
-        "gestaolegal.controllers.views.plantao_controller",
-        "gestaolegal.controllers.views.principal_controller",
-        "gestaolegal.controllers.views.relatorio_controller",
-        "gestaolegal.controllers.views.user_controller",
-        "gestaolegal.controllers.views.processo_controller",
-        "gestaolegal",
-    ]
-
-    for logger_name in loggers:
-        logger = logging.getLogger(logger_name)
-        logger.setLevel(logging.DEBUG)
-        logger.propagate = True
-
     logging.getLogger("werkzeug").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy").setLevel(logging.WARNING)

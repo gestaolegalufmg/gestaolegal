@@ -1,18 +1,11 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from gestaolegal.schemas.assistido import AssistidoSchema
-    from gestaolegal.schemas.assistido_pessoa_juridica import (
-        AssistidoPessoaJuridicaSchema,
-    )
-
+from gestaolegal.models.assistido import Assistido
 
 @dataclass(frozen=True)
 class AssistidoPessoaJuridica:
     id: int | None
     id_assistido: int
-    assistido: "AssistidoSchema"
+    assistido: "Assistido"
     socios: str | None
     situacao_receita: str
     enquadramento: str
@@ -30,10 +23,3 @@ class AssistidoPessoaJuridica:
 
     def __post_init__(self):
         return
-
-    @classmethod
-    def from_sqlalchemy(
-        cls, schema: "AssistidoPessoaJuridicaSchema", shallow: bool = False
-    ) -> "AssistidoPessoaJuridica":
-        assistido_pessoa_juridica_items = schema.to_dict()
-        return AssistidoPessoaJuridica(**assistido_pessoa_juridica_items)

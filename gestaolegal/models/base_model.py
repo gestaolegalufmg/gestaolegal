@@ -29,5 +29,5 @@ class BaseModel(ABC):
 
     @classmethod
     @abstractmethod
-    def from_sqlalchemy(cls, schema: Any, shallow: bool = False) -> Self:
+    def from_dict(cls, data: dict[str, Any]) -> Self:
         pass

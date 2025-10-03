@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from gestaolegal.models.base_model import BaseModel
 
 if TYPE_CHECKING:
-    from gestaolegal.schemas.dia_plantao import DiaPlantaoSchema
+    pass
 
 
 @dataclass(frozen=True)
@@ -16,10 +16,3 @@ class DiaPlantao(BaseModel):
 
     def __post_init__(self):
         return
-
-    @classmethod
-    def from_sqlalchemy(
-        cls, schema: "DiaPlantaoSchema", shallow: bool = False
-    ) -> "DiaPlantao":
-        dia_plantao_items = schema.to_dict()
-        return DiaPlantao(**dia_plantao_items)

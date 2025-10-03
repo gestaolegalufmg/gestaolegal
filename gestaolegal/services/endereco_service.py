@@ -2,17 +2,16 @@ import logging
 from typing import Any
 
 from gestaolegal.models.endereco import Endereco
-from gestaolegal.repositories.base_repository import BaseRepository
-from gestaolegal.schemas.endereco import EnderecoSchema
+from gestaolegal.repositories.endereco_repository import EnderecoRepository
 
 logger = logging.getLogger(__name__)
 
 
 class EnderecoService:
-    repository: BaseRepository[EnderecoSchema, Endereco]
+    repository: EnderecoRepository
 
     def __init__(self):
-        self.repository = BaseRepository(EnderecoSchema, Endereco)
+        self.repository = EnderecoRepository()
 
     def create_or_update_from_data(
         self, data: dict[str, Any], endereco_id: int | None = None

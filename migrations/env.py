@@ -24,10 +24,10 @@ fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
 
 from gestaolegal.database import get_database_uri
-from gestaolegal.schemas.base import Base
+from gestaolegal.repositories.table_definitions import metadata
 
 config.set_main_option("sqlalchemy.url", get_database_uri())
-target_metadata = Base.metadata
+target_metadata = metadata
 
 
 def run_migrations_offline():

@@ -7,7 +7,6 @@ from gestaolegal.models.user import User
 
 if TYPE_CHECKING:
     from gestaolegal.models.atendido import Atendido
-    from gestaolegal.schemas.caso import CasoSchema
 
 
 @dataclass(frozen=True)
@@ -43,55 +42,3 @@ class Caso(BaseModel):
 
     def __post_init__(self):
         return
-
-    @classmethod
-    def from_sqlalchemy(cls, schema: "CasoSchema", shallow: bool = False) -> "Caso":
-        caso_items = schema.to_dict()
-
-        if not shallow:
-            from gestaolegal.models.atendido import Atendido
-
-            caso_items["clientes"] = [
-                Atendido.from_sqlalchemy(cliente, shallow=True)
-                for cliente in schema.clientes
-            ]
-            caso_items["usuario_responsavel"] = (
-                User.from_sqlalchemy(schema.usuario_responsavel)
-                if schema.usuario_responsavel
-                else None
-            )
-            caso_items["orientador"] = (
-                User.from_sqlalchemy(schema.orientador)
-                if schema.orientador
-                else None
-            )
-            caso_items["estagiario"] = (
-                User.from_sqlalchemy(schema.estagiario)
-                if schema.estagiario
-                else None
-            )
-            caso_items["colaborador"] = (
-                User.from_sqlalchemy(schema.colaborador)
-                if schema.colaborador
-                else None
-            )
-            caso_items["criado_por"] = (
-                User.from_sqlalchemy(schema.criado_por)
-                if schema.criado_por
-                else None
-            )
-            caso_items["modificado_por"] = (
-                User.from_sqlalchemy(schema.modificado_por)
-                if schema.modificado_por
-                else None
-            )
-        else:
-            caso_items["clientes"] = []
-            caso_items["usuario_responsavel"] = None
-            caso_items["orientador"] = None
-            caso_items["estagiario"] = None
-            caso_items["colaborador"] = None
-            caso_items["criado_por"] = None
-            caso_items["modificado_por"] = None
-
-        return Caso(**caso_items)

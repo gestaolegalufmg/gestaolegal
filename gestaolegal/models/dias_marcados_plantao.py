@@ -6,7 +6,7 @@ from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.user import User
 
 if TYPE_CHECKING:
-    from gestaolegal.schemas.dias_marcados_plantao import DiasMarcadosPlantaoSchema
+    pass
 
 
 @dataclass(frozen=True)
@@ -20,18 +20,3 @@ class DiasMarcadosPlantao(BaseModel):
 
     def __post_init__(self):
         return
-
-    @classmethod
-    def from_sqlalchemy(
-        cls, schema: "DiasMarcadosPlantaoSchema", shallow: bool = False
-    ) -> "DiasMarcadosPlantao":
-        dias_marcados_plantao_items = schema.to_dict()
-
-        if not shallow:
-            dias_marcados_plantao_items["usuario"] = (
-                User.from_sqlalchemy(schema.usuario) if schema.usuario else None
-            )
-        else:
-            dias_marcados_plantao_items["usuario"] = None
-
-        return DiasMarcadosPlantao(**dias_marcados_plantao_items)
