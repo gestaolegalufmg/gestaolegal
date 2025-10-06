@@ -1,169 +1,206 @@
 import logging
-from typing import Any
 
 from gestaolegal.common import PageParams
-from gestaolegal.common.constants.atendido import TipoBusca
 from gestaolegal.models.assistido import Assistido
+from gestaolegal.models.assistido_input import (
+    AssistidoCreateInput,
+    AssistidoUpdateInput,
+)
 from gestaolegal.models.atendido import Atendido
-from gestaolegal.models.endereco import Endereco
+from gestaolegal.models.atendido_input import (
+    AtendidoCreateInput,
+    AtendidoUpdateInput,
+    ListAtendido,
+)
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
-from gestaolegal.repositories.assistido_repository import AssistidoRepository
-from gestaolegal.repositories.base_repository import WhereConditions
 from gestaolegal.repositories.endereco_repository import EnderecoRepository
-from gestaolegal.services.endereco_service import EnderecoService
+from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.repositories.repository import (
+    ComplexWhereClause,
+    GetParams,
+    WhereClause,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class AtendidoService:
     repository: AtendidoRepository
-    assistido_repository: AssistidoRepository
     endereco_repository: EnderecoRepository
-    endereco_service: EnderecoService
 
     def __init__(self):
         self.repository = AtendidoRepository()
-        self.assistido_repository = AssistidoRepository()
         self.endereco_repository = EnderecoRepository()
-        self.endereco_service = EnderecoService()
 
     def find_by_id(self, atendido_id: int) -> Atendido | None:
-        return self.repository.find_by_id(atendido_id)
+        logger.info(f"Finding atendido by id: {atendido_id}")
+        atendido = self.repository.find_by_id(atendido_id)
+        if atendido:
+            if atendido.endereco_id:
+                atendido.endereco = self.endereco_repository.find_by_id(
+                    atendido.endereco_id
+                )
+            atendido.assistido = self.repository.find_assistido_by_atendido_id(
+                atendido_id
+            )
+            logger.info(
+                f"Atendido found with id: {atendido_id}, has assistido: {atendido.assistido is not None}"
+            )
+        else:
+            logger.warning(f"Atendido not found with id: {atendido_id}")
+        return atendido
 
     def search(
         self,
-        search: str = "",
-        page_params: PageParams | None = None,
+        search: str,
+        page_params: PageParams,
         tipo_busca: str = "todos",
         show_inactive: bool = False,
-    ):
-        search_type = tipo_busca if tipo_busca != "todos" else None
-        return self.repository.search(
-            search_term=search,
-            search_type=search_type,
+    ) -> PaginatedResult[ListAtendido]:
+        logger.info(
+            f"AtendidoService.search called with search_term: '{search}', tipo_busca: {tipo_busca}, "
+            + f"page_params: {page_params}, show_inactive: {show_inactive}"
+        )
+
+        clauses: list[WhereClause] = [
+            WhereClause(
+                column="status", operator="==", value=0 if show_inactive else 1
+            ),
+        ]
+
+        if search:
+            clauses.append(
+                WhereClause(column="nome", operator="ilike", value=f"%{search}%")
+            )
+
+        where = (
+            ComplexWhereClause(clauses=clauses, operator="and")
+            if len(clauses) > 1
+            else clauses[0]
+        )
+
+        params = GetParams(
             page_params=page_params,
-            show_inactive=show_inactive,
+            where=where,
         )
 
-    def get(
-        self,
-        valor_busca: str = "",
-        tipo_busca: TipoBusca = TipoBusca.TODOS,
-        page_params: PageParams | None = None,
-        show_inactive: bool = False,
-    ):
-        search_type = tipo_busca.value if tipo_busca != TipoBusca.TODOS else None
-        return self.repository.search(
-            valor_busca, search_type, page_params, show_inactive
+        result = self.repository.search(params=params, tipo_busca=tipo_busca)
+
+        endereco_ids = [a["endereco_id"] for a in result.items if a["endereco_id"]]
+        if endereco_ids:
+            enderecos = self.endereco_repository.get_by_ids(endereco_ids)
+            endereco_map = {e.id: e for e in enderecos}
+            for atendido in result.items:
+                if atendido["endereco_id"]:
+                    atendido["endereco"] = endereco_map.get(atendido["endereco_id"])
+
+        converted_result = PaginatedResult(
+            items=[ListAtendido.model_validate(a) for a in result.items],
+            total=result.total,
+            page=result.page,
+            per_page=result.per_page,
         )
 
-    def get_by_ids(self, atendido_ids: list[int]) -> list[Atendido]:
-        if not atendido_ids:
-            return []
-        where_clauses: WhereConditions = [("id", "in", atendido_ids)]
-        result = self.repository.get(where_conditions=where_clauses)
-        return result.items
+        logger.info(
+            f"AtendidoService.search returning {result.total} total results, {len(result.items)} items on this page"
+        )
 
-    def create(self, atendido_data: dict[str, Any]) -> Atendido:
-        endereco_data = self.__extract_endereco_data(atendido_data)
-        endereco = self.endereco_repository.create(endereco_data)
+        return converted_result
 
-        atendido_data["endereco_id"] = endereco.id
-
-        return self.repository.create(Atendido(**atendido_data))
+    def create(self, atendido_input: AtendidoCreateInput) -> Atendido:
+        logger.info(
+            f"Creating atendido with nome: {atendido_input.nome}, cpf: {atendido_input.cpf}"
+        )
+        atendido_data = atendido_input.model_dump()
+        atendido = Atendido(
+            id=0,
+            status=1,
+            orientacoes_juridicas=[],
+            casos=[],
+            assistido=None,
+            endereco_id=None,
+            **atendido_data,
+        )
+        atendido_id = self.repository.create(atendido)
+        logger.info(f"Atendido created successfully with id: {atendido_id}")
+        return self.find_by_id(atendido_id)
 
     def update(
         self,
         atendido_id: int,
-        atendido_data: dict[str, Any],
-        modificado_por: int | None = None,
-    ) -> Atendido:
-        atendido = self.repository.find_by_id(atendido_id)
+        atendido_input: AtendidoUpdateInput,
+    ) -> Atendido | None:
+        logger.info(f"Updating atendido with id: {atendido_id}")
+        existing = self.repository.find_by_id(atendido_id)
+        if not existing:
+            logger.error(f"Update failed: atendido not found with id: {atendido_id}")
+            raise ValueError(f"Atendido with id {atendido_id} not found")
+
+        update_data = atendido_input.model_dump(exclude_none=True)
+        updated_data = {**existing.model_dump(), **update_data}
+        atendido = Atendido(**updated_data)
+        self.repository.update(atendido_id, atendido)
+        logger.info(f"Atendido updated successfully with id: {atendido_id}")
+        return self.find_by_id(atendido_id)
+
+    def create_assistido(
+        self, id_atendido: int, assistido_input: AssistidoCreateInput
+    ) -> Assistido:
+        logger.info(f"Creating assistido for atendido id: {id_atendido}")
+        atendido = self.repository.find_by_id(id_atendido)
         if not atendido:
-            raise ValueError(f"Atendido with id {atendido_id} not found")
-
-        endereco_data = self.__extract_endereco_data(atendido_data)
-        endereco = atendido.endereco
-        if not endereco or atendido.endereco_id is None:
-            raise ValueError(
-                f"Atendido with id {atendido_id} does not have an endereco"
+            logger.error(
+                f"Create assistido failed: atendido not found with id: {id_atendido}"
             )
+            raise ValueError(f"Atendido with id {id_atendido} not found")
 
-        _ = self.endereco_repository.update(
-            atendido.endereco_id, Endereco(**endereco_data)
+        assistido_data = assistido_input.model_dump()
+        assistido = Assistido(id=0, id_atendido=id_atendido, **assistido_data)
+
+        assistido_id = self.repository.create_assistido(assistido)
+        logger.info(
+            f"Assistido created successfully with id: {assistido_id} for atendido: {id_atendido}"
         )
-
-        logger.info(f"Existing data: {atendido.to_dict()}")
-        existing_data = atendido.to_dict(with_endereco=False)
-        existing_data.update(atendido_data)
-
-        logger.info(f"Updated data to be saved: {existing_data}")
-        return self.repository.update(atendido_id, Atendido(**existing_data))
-
-    def create_assistido(self, atendido_id: int, assistido_data: dict) -> Assistido:
-        if not self.repository.find_by_id(atendido_id):
-            raise ValueError(f"Atendido with id {atendido_id} not found")
-
-        if self.assistido_repository.find(
-            where_conditions=[("id_atendido", "eq", atendido_id)]
-        ):
-            raise ValueError(f"Assistido with id {atendido_id} already exists")
-
-        assistido_data["id_atendido"] = atendido_id
-        return self.assistido_repository.create(assistido_data)
+        return self.repository.find_assistido_by_atendido_id(id_atendido)
 
     def update_assistido(
         self,
         id_atendido: int,
-        atendido_data: dict[str, Any],
-        assistido_data: dict[str, Any],
+        atendido_input: AtendidoUpdateInput | None,
+        assistido_input: AssistidoUpdateInput,
     ) -> Assistido:
+        logger.info(f"Updating assistido for atendido id: {id_atendido}")
         atendido = self.repository.find_by_id(id_atendido)
         if not atendido:
+            logger.error(
+                f"Update assistido failed: atendido not found with id: {id_atendido}"
+            )
             raise ValueError(f"Atendido with id {id_atendido} not found")
 
-        assistido = self.assistido_repository.find(
-            where_conditions=[("id_atendido", "eq", id_atendido)]
-        )
+        if atendido_input:
+            update_data = atendido_input.model_dump(exclude_none=True)
+            updated_data = {**atendido.model_dump(), **update_data}
+            atendido_obj = Atendido(**updated_data)
+            self.repository.update(id_atendido, atendido_obj)
+            logger.info(f"Updated atendido data for id: {id_atendido}")
+
+        assistido = self.repository.find_assistido_by_atendido_id(id_atendido)
         if not assistido:
+            logger.error(
+                f"Update assistido failed: atendido {id_atendido} does not have an assistido record"
+            )
             raise ValueError(
-                f"No assistido found for this atendido with id {id_atendido}"
+                f"Atendido {id_atendido} does not have an assistido record"
             )
 
-        if atendido_data:
-            endereco_data = self.__extract_endereco_data(atendido_data)
-            if atendido.endereco_id:
-                self.endereco_repository.update(
-                    atendido.endereco_id, Endereco(**endereco_data)
-                )
+        assistido_update_data = assistido_input.model_dump(exclude_none=True)
+        assistido_data = {**assistido.model_dump(), **assistido_update_data}
+        assistido_obj = Assistido(**assistido_data)
+        self.repository.update_assistido(id_atendido, assistido_obj)
+        logger.info(f"Assistido updated successfully for atendido id: {id_atendido}")
+        return self.repository.find_assistido_by_atendido_id(id_atendido)
 
-            if atendido_data:
-                existing_atendido_data = atendido.to_dict(with_endereco=False)
-                existing_atendido_data.update(atendido_data)
-                self.repository.update(atendido.id, Atendido(**existing_atendido_data))
-
-        if assistido_data:
-            existing_assistido_data = assistido.to_dict()
-            existing_assistido_data.update(assistido_data)
-            updated_assistido = self.assistido_repository.update(
-                assistido.id, Assistido(**existing_assistido_data)
-            )
-            return updated_assistido
-
-        return assistido
-
-    def soft_delete(self, atendido_id: int) -> bool:
-        return self.repository.soft_delete(atendido_id)
-
-    def __extract_endereco_data(self, atendido_data: dict[str, Any]) -> dict[str, Any]:
-        atendido_data.pop("endereco_id", None)
-        atendido_data.pop("csrf_token", None)
-        return {
-            "logradouro": atendido_data.pop("logradouro"),
-            "numero": atendido_data.pop("numero"),
-            "cidade": atendido_data.pop("cidade"),
-            "estado": atendido_data.pop("estado"),
-            "complemento": atendido_data.pop("complemento"),
-            "bairro": atendido_data.pop("bairro"),
-            "cep": atendido_data.pop("cep"),
-        }
+    def soft_delete(self, atendido_id: int):
+        logger.info(f"Soft deleting atendido with id: {atendido_id}")
+        self.repository.soft_delete(atendido_id)
+        logger.info(f"Atendido soft deleted successfully with id: {atendido_id}")

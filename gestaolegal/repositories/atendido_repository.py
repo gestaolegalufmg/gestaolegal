@@ -1,74 +1,147 @@
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, insert, select
+from sqlalchemy import update as sql_update
 
-from gestaolegal.common import PageParams
-from gestaolegal.database import get_db
+from gestaolegal.database.tables import assistidos, atendidos
+from gestaolegal.models.assistido import Assistido
 from gestaolegal.models.atendido import Atendido
-from gestaolegal.repositories.base_repository import BaseRepository, PaginatedResult
-from gestaolegal.repositories.table_definitions import atendidos
+from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.repositories.repository import BaseRepository, CountParams, GetParams
 
 logger = logging.getLogger(__name__)
 
 
-class AtendidoRepository(BaseRepository[Atendido]):
+class AtendidoRepository(BaseRepository):
     def __init__(self):
-        super().__init__(atendidos, Atendido)
+        super().__init__()
+
+    def find_by_id(self, id: int) -> Atendido | None:
+        stmt = select(atendidos).where(atendidos.c.id == id)
+        result = self.session.execute(stmt).one_or_none()
+        return Atendido.model_validate(result) if result else None
+
+    def find_by_email(self, email: str) -> Atendido | None:
+        stmt = select(atendidos).where(atendidos.c.email == email)
+        result = self.session.execute(stmt).one_or_none()
+        return Atendido.model_validate(result) if result else None
 
     def search(
-        self,
-        search_term: str = "",
-        search_type: str | None = None,
-        page_params: PageParams | None = None,
-        show_inactive: bool = False,
-    ) -> PaginatedResult[Atendido]:
-        stmt = select(self.table)
+        self, params: GetParams, tipo_busca: str = "todos"
+    ) -> PaginatedResult[dict]:
+        stmt = select(
+            atendidos.c.id,
+            atendidos.c.nome,
+            atendidos.c.cpf,
+            atendidos.c.telefone,
+            atendidos.c.celular,
+            atendidos.c.email,
+            atendidos.c.status,
+            atendidos.c.data_nascimento,
+            atendidos.c.endereco_id,
+            func.count().over().label("total_count"),
+            (assistidos.c.id_atendido.is_not(None)).label("is_assistido"),
+        ).outerjoin(assistidos, assistidos.c.id_atendido == atendidos.c.id)
 
-        if not show_inactive:
-            stmt = stmt.where(self.table.c.status == 1)
+        stmt = self._apply_where_clause(stmt, params.get("where"), atendidos)
 
-        if search_term:
-            if search_type == "nome":
-                stmt = stmt.where(self.table.c.nome.ilike(f"%{search_term}%"))
-            elif search_type == "cpf":
-                stmt = stmt.where(self.table.c.cpf.like(f"%{search_term}%"))
-            elif search_type == "cnpj":
-                stmt = stmt.where(self.table.c.cnpj.like(f"%{search_term}%"))
-            else:
-                stmt = stmt.where(
-                    (self.table.c.nome.ilike(f"%{search_term}%"))
-                    | (self.table.c.cpf.like(f"%{search_term}%"))
-                    | (self.table.c.cnpj.like(f"%{search_term}%"))
-                )
+        if tipo_busca == "atendidos":
+            stmt = stmt.where(assistidos.c.id_atendido.is_(None))
+        elif tipo_busca == "assistidos":
+            stmt = stmt.where(assistidos.c.id_atendido.is_not(None))
 
-        count_stmt = select(stmt.alias().c.id.label("id"))
-        total = get_db().session.execute(count_stmt).fetchall()
-        total_count = len(total)
+        stmt = stmt.order_by(atendidos.c.nome)
+        stmt = self._apply_pagination(stmt, params.get("page_params"))
 
-        if page_params:
-            page = page_params.get("page", 1)
-            per_page = page_params.get("per_page", 10)
-            offset = (page - 1) * per_page
-            stmt = stmt.limit(per_page).offset(offset)
-        else:
-            page = 1
-            per_page = total_count
+        results = self.session.execute(stmt).mappings().all()
+        total = results[0].total_count if results else 0
 
-        stmt = stmt.order_by(self.table.c.nome)
+        items = [dict(row) for row in results]
 
-        result = get_db().session.execute(stmt)
-        rows = result.fetchall()
-        items = [self._row_to_model(row) for row in rows]
-
+        page_params = params.get("page_params")
         return PaginatedResult(
-            items=items, total=total_count, page=page, per_page=per_page
+            items=items,
+            total=total,
+            page=page_params["page"] if page_params else 1,
+            per_page=page_params["per_page"] if page_params else total,
         )
 
-    def soft_delete(self, id: int) -> bool:
-        from sqlalchemy import update
+    def find_one(self, params: GetParams) -> Atendido | None:
+        stmt = select(atendidos)
+        stmt = self._apply_where_clause(stmt, params.get("where"), atendidos)
+        result = self.session.execute(stmt).one_or_none()
+        return Atendido.model_validate(result) if result else None
 
-        stmt = update(self.table).where(self.table.c.id == id).values(status=0)
-        result = get_db().session.execute(stmt)
-        get_db().session.commit()
+    def count(self, params: CountParams) -> int:
+        stmt = select(func.count()).select_from(atendidos)
+        stmt = self._apply_where_clause(stmt, params.get("where"), atendidos)
+
+        result = self.session.execute(stmt).scalar()
+        return result or 0
+
+    def create(self, data: Atendido) -> int:
+        atendido_dict = data.model_dump(
+            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"}
+        )
+        stmt = insert(atendidos).values(**atendido_dict)
+        result = self.session.execute(stmt)
+        self.session.flush()
+        return result.lastrowid
+
+    def update(self, id: int, data: Atendido) -> None:
+        check_stmt = select(atendidos).where(atendidos.c.id == id)
+        existing = self.session.execute(check_stmt).first()
+
+        if not existing:
+            raise ValueError(f"Atendido with id {id} not found")
+
+        atendido_dict = data.model_dump(
+            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"}
+        )
+        stmt = sql_update(atendidos).where(atendidos.c.id == id).values(**atendido_dict)
+        self.session.execute(stmt)
+        self.session.flush()
+
+    def delete(self, id: int) -> bool:
+        stmt = sql_update(atendidos).where(atendidos.c.id == id).values(status=0)
+        result = self.session.execute(stmt)
+        self.session.flush()
+
         return result.rowcount > 0
 
+    def find_assistido_by_atendido_id(self, atendido_id: int) -> Assistido | None:
+        stmt = select(assistidos).where(assistidos.c.id_atendido == atendido_id)
+        result = self.session.execute(stmt).one_or_none()
+        return Assistido.model_validate(result) if result else None
+
+    def get_assistidos_by_atendido_ids(
+        self, atendido_ids: list[int]
+    ) -> list[Assistido]:
+        if not atendido_ids:
+            return []
+        stmt = select(assistidos).where(assistidos.c.id_atendido.in_(atendido_ids))
+        results = self.session.execute(stmt).all()
+        return [Assistido.model_validate(row) for row in results]
+
+    def create_assistido(self, assistido: Assistido) -> int:
+        assistido_dict = assistido.model_dump(exclude={"id"})
+        stmt = insert(assistidos).values(**assistido_dict)
+        result = self.session.execute(stmt)
+        self.session.flush()
+        return result.lastrowid
+
+    def update_assistido(self, id_atendido: int, assistido: Assistido) -> None:
+        check_stmt = select(assistidos).where(assistidos.c.id_atendido == id_atendido)
+        existing = self.session.execute(check_stmt).first()
+
+        if not existing:
+            raise ValueError(f"Assistido for atendido {id_atendido} not found")
+
+        assistido_dict = assistido.model_dump(exclude={"id"})
+        stmt = (
+            sql_update(assistidos)
+            .where(assistidos.c.id_atendido == id_atendido)
+            .values(**assistido_dict)
+        )
+        self.session.execute(stmt)
+        self.session.flush()

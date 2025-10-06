@@ -1,22 +1,17 @@
-from dataclasses import dataclass
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Any
+from typing import Literal
 
 from dateutil.parser import parse as parse_date
-from typing_extensions import override
+from pydantic import field_validator
 
 from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.endereco import Endereco
 
-if TYPE_CHECKING:
-    pass
 
-
-@dataclass(frozen=True)
 class User(BaseModel):
     email: str
     senha: str
-    urole: str
+    urole: Literal["admin", "colab_proj", "orient", "estag_direito", "colab_ext"]
     nome: str
     sexo: str
     rg: str
@@ -52,69 +47,29 @@ class User(BaseModel):
     modificado: datetime = datetime.now()
     criado: datetime = datetime.now()
 
-    def __post_init__(self):
-        if isinstance(self.nascimento, str):
-            object.__setattr__(
-                self, "nascimento", self._parse_date_string(self.nascimento)
-            )
+    @field_validator("nascimento", mode="before")
+    def parse_nascimento_rfc(cls, v):
+        if isinstance(v, str):
+            try:
+                return parse_date(v).date()
+            except Exception:
+                pass
+        return v
 
-        if isinstance(self.data_entrada, str):
-            object.__setattr__(
-                self, "data_entrada", self._parse_date_string(self.data_entrada)
-            )
+    @field_validator("data_entrada", mode="before")
+    def parse_data_entrada_rfc(cls, v):
+        if isinstance(v, str):
+            try:
+                return parse_date(v).date()
+            except Exception:
+                pass
+        return v
 
-        if self.data_saida and isinstance(self.data_saida, str):
-            object.__setattr__(
-                self, "data_saida", self._parse_date_string(self.data_saida)
-            )
-
-        if self.inicio_bolsa and isinstance(self.inicio_bolsa, str):
-            object.__setattr__(
-                self, "inicio_bolsa", self._parse_date_string(self.inicio_bolsa)
-            )
-
-        if self.fim_bolsa and isinstance(self.fim_bolsa, str):
-            object.__setattr__(
-                self, "fim_bolsa", self._parse_date_string(self.fim_bolsa)
-            )
-
-        if not self.bolsista:
-            object.__setattr__(self, "inicio_bolsa", None)
-            object.__setattr__(self, "fim_bolsa", None)
-            object.__setattr__(self, "tipo_bolsa", None)
-
-    @staticmethod
-    def _parse_date_string(date_value: str | date | None) -> date | None:
-        if date_value is None:
-            return None
-        if isinstance(date_value, date):
-            return date_value
-
-        return parse_date(date_value)
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "User":
-        return User(**data)
-
-    @override
-    def to_dict(
-        self, with_endereco: bool = True, *args: Any, **kwargs: Any
-    ) -> dict[str, Any]:
-        data = super().to_dict(*args, **kwargs)
-
-        endereco: Endereco | None = data.pop("endereco")
-        if endereco and with_endereco:
-            data["logradouro"] = endereco.logradouro
-            data["numero"] = endereco.numero
-            data["complemento"] = endereco.complemento
-            data["bairro"] = endereco.bairro
-            data["cep"] = endereco.cep
-            data["cidade"] = endereco.cidade
-            data["estado"] = endereco.estado
-
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.info(f"returning dict: {data}")
-
-        return data
+    @field_validator("data_saida", mode="before")
+    def parse_data_saida_rfc(cls, v):
+        if isinstance(v, str):
+            try:
+                return parse_date(v).date()
+            except Exception:
+                pass
+        return v

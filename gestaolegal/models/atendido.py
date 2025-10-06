@@ -1,26 +1,21 @@
-from dataclasses import dataclass
 from datetime import date
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from typing_extensions import override
-
-from gestaolegal.common.constants import como_conheceu_daj
 from gestaolegal.models.assistido import Assistido
 from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.endereco import Endereco
-from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 
 if TYPE_CHECKING:
     from gestaolegal.models.caso import Caso
+    from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 
 
-@dataclass(frozen=True)
 class Atendido(BaseModel):
     id: int
 
-    orientacoes_juridicas: list["OrientacaoJuridica"]
-    casos: list["Caso"]
-    endereco: "Endereco | None"
+    orientacoes_juridicas: list["OrientacaoJuridica"] | None = None
+    casos: list["Caso"] | None = None
+    endereco: "Endereco | None" = None
 
     nome: str
     data_nascimento: date
@@ -48,86 +43,3 @@ class Atendido(BaseModel):
     status: int
 
     assistido: "Assistido | None" = None
-
-    def __post_init__(self):
-        return
-        if self.como_conheceu == como_conheceu_daj["ORGAOSPUBLICOS"][0]:
-            for field, msg in [
-                (
-                    "indicacao_orgao",
-                    "O campo 'indicacao_orgao' é obrigatório se 'como_conheceu' for 'Orgaos Públicos'",
-                ),
-                (
-                    "procurou_outro_local",
-                    "O campo 'procurou_outro_local' é obrigatório se 'como_conheceu' for 'Orgaos Públicos'",
-                ),
-                (
-                    "procurou_qual_local",
-                    "O campo 'procurou_qual_local' é obrigatório se 'como_conheceu' for 'Orgaos Públicos'",
-                ),
-                (
-                    "pj_constituida",
-                    "O campo 'pj_constituida' é obrigatório se 'como_conheceu' for 'Orgaos Públicos'",
-                ),
-            ]:
-                if getattr(self, field) is None:
-                    raise ValueError(msg)
-
-        if self.pj_constituida:
-            if self.cnpj is None:
-                raise ValueError(
-                    "O campo 'cnpj' é obrigatório se 'pj_constituida' for verdadeiro"
-                )
-            if self.repres_legal is None:
-                raise ValueError(
-                    "O campo 'repres_legal' é obrigatório se 'pj_constituida' for verdadeiro"
-                )
-
-        if (not self.repres_legal) and self.pj_constituida:
-            required_fields = [
-                (
-                    "nome_repres_legal",
-                    "O campo 'nome_repres_legal' é obrigatório se 'repres_legal' for falso e 'pj_constituida' for verdadeiro",
-                ),
-                (
-                    "cpf_repres_legal",
-                    "O campo 'cpf_repres_legal' é obrigatório se 'repres_legal' for falso e 'pj_constituida' for verdadeiro",
-                ),
-                (
-                    "contato_repres_legal",
-                    "O campo 'contato_repres_legal' é obrigatório se 'repres_legal' for falso e 'pj_constituida' for verdadeiro",
-                ),
-                (
-                    "rg_repres_legal",
-                    "O campo 'rg_repres_legal' é obrigatório se 'repres_legal' for falso e 'pj_constituida' for verdadeiro",
-                ),
-                (
-                    "nascimento_repres_legal",
-                    "O campo 'nascimento_repres_legal' é obrigatório se 'repres_legal' for falso e 'pj_constituida' for verdadeiro",
-                ),
-            ]
-            for field, msg in required_fields:
-                if getattr(self, field) is None:
-                    raise ValueError(msg)
-
-        if self.procurou_outro_local:
-            if self.procurou_qual_local is None:
-                raise ValueError(
-                    "O campo 'procurou_qual_local' é obrigatório se 'procurou_outro_local' for verdadeiro"
-                )
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Atendido":
-        return Atendido(**data)
-
-    @override
-    def to_dict(
-        self, with_endereco: bool = True, *args: Any, **kwargs: Any
-    ) -> dict[str, Any]:
-        data = super().to_dict(*args, **kwargs)
-
-        endereco: Endereco | None = data.pop("endereco")
-        if endereco and with_endereco:
-            data = {**data, **endereco.to_dict()}
-
-        return data

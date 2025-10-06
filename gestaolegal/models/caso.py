@@ -1,6 +1,5 @@
-from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.user import User
@@ -9,7 +8,6 @@ if TYPE_CHECKING:
     from gestaolegal.models.atendido import Atendido
 
 
-@dataclass(frozen=True)
 class Caso(BaseModel):
     id: int
 
@@ -42,3 +40,14 @@ class Caso(BaseModel):
 
     def __post_init__(self):
         return
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Caso":
+        data.setdefault("usuario_responsavel", None)
+        data.setdefault("clientes", [])
+        data.setdefault("orientador", None)
+        data.setdefault("estagiario", None)
+        data.setdefault("colaborador", None)
+        data.setdefault("criado_por", None)
+        data.setdefault("modificado_por", None)
+        return Caso(**data)

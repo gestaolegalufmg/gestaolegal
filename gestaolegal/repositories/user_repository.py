@@ -1,58 +1,82 @@
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, insert, select
+from sqlalchemy import update as sql_update
+from sqlalchemy.orm import Session
 
-from gestaolegal.common import PageParams
-from gestaolegal.database import get_db
+from gestaolegal.database.tables import usuarios
 from gestaolegal.models.user import User
-from gestaolegal.repositories.base_repository import BaseRepository, PaginatedResult
-from gestaolegal.repositories.table_definitions import usuarios
+from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.repositories.repository import BaseRepository, CountParams, GetParams
 
 logger = logging.getLogger(__name__)
 
 
-class UserRepository(BaseRepository[User]):
+class UserRepository(BaseRepository):
+    session: Session
+
     def __init__(self):
-        super().__init__(usuarios, User)
+        super().__init__()
 
-    def search(
-        self,
-        search_term: str = "",
-        role: str = "all",
-        status: str = "1",
-        page_params: PageParams | None = None,
-    ) -> PaginatedResult[User]:
-        stmt = select(self.table)
+    def find_by_id(self, id: int) -> User | None:
+        stmt = select(usuarios).where(usuarios.c.id == id)
+        result = self.session.execute(stmt).one_or_none()
+        return User.model_validate(result) if result else None
 
-        if status != "all":
-            stmt = stmt.where(self.table.c.status == (status == "1"))
+    def find_by_email(self, email: str) -> User | None:
+        stmt = select(usuarios).where(usuarios.c.email == email)
+        result = self.session.execute(stmt).one_or_none()
+        return User.model_validate(result) if result else None
 
-        if role != "all":
-            stmt = stmt.where(self.table.c.urole == role)
+    def search(self, params: GetParams) -> PaginatedResult[User]:
+        stmt = select(usuarios, func.count().over().label("total_count"))
 
-        if search_term:
-            stmt = stmt.where(self.table.c.nome.ilike(f"%{search_term}%"))
+        stmt = self._apply_where_clause(stmt, params.get("where"), usuarios)
+        stmt = stmt.order_by(usuarios.c.nome)
+        stmt = self._apply_pagination(stmt, params.get("page_params"))
 
-        count_stmt = select(stmt.alias().c.id.label("id"))
-        total = get_db().session.execute(count_stmt).fetchall()
-        total_count = len(total)
+        results = self.session.execute(stmt).all()
+        total = results[0].total_count if results else 0
 
-        if page_params:
-            page = page_params.get("page", 1)
-            per_page = page_params.get("per_page", 10)
-            offset = (page - 1) * per_page
-            stmt = stmt.limit(per_page).offset(offset)
-        else:
-            page = 1
-            per_page = total_count
-
-        stmt = stmt.order_by(self.table.c.nome)
-
-        result = get_db().session.execute(stmt)
-        rows = result.fetchall()
-        items = [self._row_to_model(row) for row in rows]
+        items = [User.model_validate(row) for row in results]
+        page_params = params.get("page_params")
 
         return PaginatedResult(
-            items=items, total=total_count, page=page, per_page=per_page
+            items=items,
+            total=total,
+            page=page_params["page"] if page_params else 1,
+            per_page=page_params["per_page"] if page_params else total,
         )
 
+    def find_one(self, params: GetParams) -> User | None:
+        stmt = select(usuarios)
+        stmt = self._apply_where_clause(stmt, params.get("where"), usuarios)
+        result = self.session.execute(stmt).one_or_none()
+        return User.model_validate(result) if result else None
+
+    def count(self, params: CountParams) -> int:
+        stmt = select(func.count()).select_from(usuarios)
+        stmt = self._apply_where_clause(stmt, params.get("where"), usuarios)
+
+        result = self.session.execute(stmt).scalar()
+        return result or 0
+
+    def create(self, data: User) -> int:
+        user_dict = data.model_dump(exclude={"id", "endereco"})
+        stmt = insert(usuarios).values(**user_dict)
+        result = self.session.execute(stmt)
+        self.session.commit()
+        return result.lastrowid
+
+    def update(self, id: int, data: User) -> None:
+        user_dict = data.model_dump(exclude={"id", "endereco"})
+        stmt = sql_update(usuarios).where(usuarios.c.id == id).values(**user_dict)
+        self.session.execute(stmt)
+        self.session.commit()
+
+    def delete(self, id: int) -> bool:
+        stmt = sql_update(usuarios).where(usuarios.c.id == id).values(status=False)
+        result = self.session.execute(stmt)
+        self.session.flush()
+
+        return result.rowcount > 0

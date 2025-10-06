@@ -1,8 +1,12 @@
-from dataclasses import dataclass
-from gestaolegal.models.assistido import Assistido
+from typing import TYPE_CHECKING
 
-@dataclass(frozen=True)
-class AssistidoPessoaJuridica:
+from gestaolegal.models.base_model import BaseModel
+
+if TYPE_CHECKING:
+    from gestaolegal.models.assistido import Assistido
+
+
+class AssistidoPessoaJuridica(BaseModel):
     id: int | None
     id_assistido: int
     assistido: "Assistido"
@@ -20,6 +24,3 @@ class AssistidoPessoaJuridica:
     resultado_econ_neg: str | None
     tem_funcionarios: str
     qtd_funcionarios: str | None
-
-    def __post_init__(self):
-        return

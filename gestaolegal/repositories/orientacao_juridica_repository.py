@@ -1,53 +1,83 @@
-import logging
+from sqlalchemy import func, insert, select
+from sqlalchemy import update as sql_update
+from sqlalchemy.orm import Session
 
-from sqlalchemy import select
-
-from gestaolegal.common import PageParams
-from gestaolegal.database import get_db
+from gestaolegal.database.tables import orientacao_juridica
 from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
-from gestaolegal.repositories.base_repository import BaseRepository, PaginatedResult
-from gestaolegal.repositories.table_definitions import orientacao_juridica
-
-logger = logging.getLogger(__name__)
+from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.repositories.repository import BaseRepository, CountParams, GetParams
 
 
-class OrientacaoJuridicaRepository(BaseRepository[OrientacaoJuridica]):
+class OrientacaoJuridicaRepository(BaseRepository):
+    session: Session
+
     def __init__(self):
-        super().__init__(orientacao_juridica, OrientacaoJuridica)
+        super().__init__()
 
-    def search(
-        self, search: str = "", page_params: PageParams | None = None
-    ) -> PaginatedResult[OrientacaoJuridica]:
-        stmt = select(self.table)
+    def find_by_id(self, id: int) -> OrientacaoJuridica | None:
+        stmt = select(orientacao_juridica).where(orientacao_juridica.c.id == id)
+        result = self.session.execute(stmt).one_or_none()
+        return OrientacaoJuridica.model_validate(result) if result else None
 
-        if search:
-            search_pattern = f"%{search}%"
-            stmt = stmt.where(
-                (self.table.c.area_direito.ilike(search_pattern))
-                | (self.table.c.sub_area.ilike(search_pattern))
-                | (self.table.c.descricao.ilike(search_pattern))
-            )
+    def search(self, params: GetParams) -> PaginatedResult[OrientacaoJuridica]:
+        stmt = select(orientacao_juridica, func.count().over().label("total_count"))
 
-        count_stmt = select(stmt.alias().c.id.label("id"))
-        total = get_db().session.execute(count_stmt).fetchall()
-        total_count = len(total)
+        stmt = self._apply_where_clause(stmt, params.get("where"), orientacao_juridica)
+        stmt = stmt.order_by(orientacao_juridica.c.data_criacao.desc())
+        stmt = self._apply_pagination(stmt, params.get("page_params"))
 
-        if page_params:
-            page = page_params.get("page", 1)
-            per_page = page_params.get("per_page", 10)
-            offset = (page - 1) * per_page
-            stmt = stmt.limit(per_page).offset(offset)
-        else:
-            page = 1
-            per_page = total_count
+        results = self.session.execute(stmt).all()
+        total = results[0].total_count if results else 0
 
-        stmt = stmt.order_by(self.table.c.data_criacao.desc())
+        items = [OrientacaoJuridica.model_validate(row) for row in results]
 
-        result = get_db().session.execute(stmt)
-        rows = result.fetchall()
-        items = [self._row_to_model(row) for row in rows]
-
+        page_params = params.get("page_params")
         return PaginatedResult(
-            items=items, total=total_count, page=page, per_page=per_page
+            items=items,
+            total=total,
+            page=page_params["page"] if page_params else 1,
+            per_page=page_params["per_page"] if page_params else total,
         )
 
+    def find_one(self, params: GetParams) -> OrientacaoJuridica | None:
+        stmt = select(orientacao_juridica)
+        stmt = self._apply_where_clause(stmt, params.get("where"), orientacao_juridica)
+        result = self.session.execute(stmt).one_or_none()
+        return OrientacaoJuridica.model_validate(result) if result else None
+
+    def count(self, params: CountParams) -> int:
+        stmt = select(func.count()).select_from(orientacao_juridica)
+        stmt = self._apply_where_clause(stmt, params.get("where"), orientacao_juridica)
+
+        result = self.session.execute(stmt).scalar()
+        return result or 0
+
+    def create(self, data: OrientacaoJuridica) -> int:
+        orientacao_dict = data.model_dump(
+            exclude={"id", "atendidos", "usuario", "assistencias_judiciarias"}
+        )
+        stmt = insert(orientacao_juridica).values(**orientacao_dict)
+        result = self.session.execute(stmt)
+        self.session.commit()
+        return result.lastrowid
+
+    def update(self, id: int, data: OrientacaoJuridica) -> None:
+        orientacao_dict = data.model_dump(
+            exclude={"id", "atendidos", "usuario", "assistencias_judiciarias"}
+        )
+        stmt = (
+            sql_update(orientacao_juridica)
+            .where(orientacao_juridica.c.id == id)
+            .values(**orientacao_dict)
+        )
+        self.session.execute(stmt)
+        self.session.commit()
+
+    def delete(self, id: int) -> None:
+        stmt = (
+            sql_update(orientacao_juridica)
+            .where(orientacao_juridica.c.id == id)
+            .values(status=0)
+        )
+        self.session.execute(stmt)
+        self.session.commit()
