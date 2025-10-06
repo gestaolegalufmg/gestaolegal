@@ -83,10 +83,13 @@ class CasoService:
         caso_data = caso_input.model_dump(exclude={"ids_clientes"})
 
         caso_data["data_criacao"] = datetime.now()
+        caso_data["data_modificacao"] = datetime.now()
         caso_data["id_criado_por"] = criado_por_id
+        caso_data["id_modificado_por"] = criado_por_id
+        caso_data["numero_ultimo_processo"] = None
         caso_data["status"] = True
 
-        caso = Caso.from_dict(caso_data)
+        caso = Caso.model_validate(caso_data)
         caso_id = self.repository.create(caso)
 
         if caso_input.ids_clientes:
@@ -123,7 +126,7 @@ class CasoService:
         caso_data["id_modificado_por"] = modificado_por_id
 
         updated_data = {**existing.model_dump(), **caso_data}
-        caso = Caso.from_dict(updated_data)
+        caso = Caso.model_validate(updated_data)
 
         self.repository.update(caso_id, caso)
 
