@@ -24,7 +24,7 @@ class CasoRepository(BaseRepository):
         if not result:
             return None
 
-        caso = Caso.from_dict(dict(result._mapping))
+        caso = Caso.model_validate(dict(result._mapping))
 
         caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
         caso.criado_por = (
@@ -56,7 +56,7 @@ class CasoRepository(BaseRepository):
 
         items = []
         for row in results:
-            caso = Caso.from_dict(dict(row._mapping))
+            caso = Caso.model_validate(dict(row._mapping))
             caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
             caso.criado_por = (
                 self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None
@@ -90,7 +90,7 @@ class CasoRepository(BaseRepository):
         if not result:
             return None
 
-        caso = Caso.from_dict(dict(result._mapping))
+        caso = Caso.model_validate(dict(result._mapping))
         caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
         caso.criado_por = (
             self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None

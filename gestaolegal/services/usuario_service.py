@@ -59,11 +59,7 @@ class UsuarioService:
         show_inactive: bool = False,
     ) -> PaginatedResult[User]:
         logger.info(
-            "Handling search request with params: ",
-            page_params,
-            search,
-            role,
-            show_inactive,
+            f"Handling search request with params: page_params={page_params}, search='{search}', role='{role}', show_inactive={show_inactive}"
         )
         status = False if show_inactive else True
 
