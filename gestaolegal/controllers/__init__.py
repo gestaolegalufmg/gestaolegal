@@ -1,17 +1,21 @@
-from .api.atendido_controller import atendido_controller as atendido_controller_api
-from .api.auth_controller import auth_controller
-from .api.caso_controller import caso_controller
-from .api.orientacao_juridica_controller import (
+from .assistencia_judiciaria_controller import (
+    assistencia_judiciaria_controller as assistencia_judiciaria_controller_api,
+)
+from .atendido_controller import atendido_controller as atendido_controller_api
+from .auth_controller import auth_controller
+from .caso_controller import caso_controller
+from .orientacao_juridica_controller import (
     orientacao_juridica_controller as orientacao_juridica_controller_api,
 )
-from .api.plantao_controller import plantao_controller as plantao_controller_api
-from .api.user_controller import user_controller
+from .search_controller import search_controller
+from .user_controller import user_controller
 
 routes = [
     (auth_controller, "/api/auth"),
     (user_controller, "/api/user"),
     (atendido_controller_api, "/api/atendido"),
     (caso_controller, "/api/caso"),
-    (plantao_controller_api, "/api/plantao"),
     (orientacao_juridica_controller_api, "/api/orientacao_juridica"),
+    (assistencia_judiciaria_controller_api, "/api/assistencia_judiciaria"),
+    (search_controller, "/api/search"),
 ]

@@ -1,37 +1,28 @@
 import logging
 import os
-from datetime import datetime
+
+
+class LastPartFilter(logging.Filter):
+    def filter(self, record):
+        record.name_last = record.name.rsplit(".", 1)[-1]
+        return True
 
 
 def setup_logging():
-    log_dir = os.path.join(os.path.dirname(__file__), "..", "logs")
-    os.makedirs(log_dir, exist_ok=True)
-
-    log_filename = os.path.join(
-        log_dir, f"gestaolegal_{datetime.now().strftime('%Y%m%d')}.log"
-    )
-
     log_format = (
-        "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
+        "[%(levelname)s] [%(asctime)s] [%(name_last)s@%(funcName)s]: %(message)s"
     )
+    date_format = "%Y-%m-%d %H:%M:%S"
 
     root_logger = logging.getLogger()
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
 
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG)
-    console_handler.setFormatter(logging.Formatter(log_format))
 
-    file_handler = logging.FileHandler(log_filename, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter(log_format))
+    env = os.environ.get("FLASK_ENV", "production")
+    console_handler.setLevel(logging.DEBUG if env == "development" else logging.INFO)
 
-    root_logger.setLevel(logging.DEBUG)
+    console_handler.setFormatter(logging.Formatter(log_format, datefmt=date_format))
+    console_handler.addFilter(LastPartFilter())
+
+    root_logger.setLevel(logging.DEBUG if env == "development" else logging.INFO)
     root_logger.addHandler(console_handler)
-    root_logger.addHandler(file_handler)
-
-    logging.getLogger("werkzeug").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
-    logging.getLogger("flask").setLevel(logging.WARNING)

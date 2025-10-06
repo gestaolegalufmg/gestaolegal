@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from gestaolegal.models.base_model import BaseModel
@@ -7,7 +6,6 @@ if TYPE_CHECKING:
     pass
 
 
-@dataclass(frozen=True)
 class Endereco(BaseModel):
     logradouro: str
     numero: str

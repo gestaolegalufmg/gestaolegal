@@ -8,6 +8,9 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from gestaolegal.config import Config
+from gestaolegal.database.tables import metadata
+
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
@@ -23,10 +26,7 @@ if not config.config_file_name:
 fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
 
-from gestaolegal.database import get_database_uri
-from gestaolegal.repositories.table_definitions import metadata
-
-config.set_main_option("sqlalchemy.url", get_database_uri())
+config.set_main_option("sqlalchemy.url", Config.SQLALCHEMY_DATABASE_URI)
 target_metadata = metadata
 
 
@@ -55,7 +55,7 @@ def run_migrations_online():
                 logger.info("No changes in schema detected.")
 
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
+        config.get_section(config.config_ini_section) or {},
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

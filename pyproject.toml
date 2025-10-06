@@ -32,6 +32,7 @@ dependencies = [
     "toml==0.10.1",
     "wtforms==3.0.1",
     "pyjwt>=2.10.1",
+    "pydantic>=2.11.9",
 ]
 
 [tool.setuptools]

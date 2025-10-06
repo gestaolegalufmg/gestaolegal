@@ -1,26 +1,20 @@
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from gestaolegal.models.base_model import BaseModel
-from gestaolegal.models.endereco import Endereco
-from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 
 if TYPE_CHECKING:
-    pass
+    from gestaolegal.models.endereco import Endereco
+    from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 
 
-@dataclass(frozen=True)
 class AssistenciaJudiciaria(BaseModel):
-    id: int
+    id: int | None = None
     nome: str
     regiao: str
     areas_atendidas: str
     endereco_id: int | None
-    endereco: "Endereco | None"
+    endereco: "Endereco | None" = None
     telefone: str
     email: str
     status: int
-    orientacoes_juridicas: list["OrientacaoJuridica"]
-
-    def __post_init__(self):
-        return
+    orientacoes_juridicas: list["OrientacaoJuridica"] | None = None
