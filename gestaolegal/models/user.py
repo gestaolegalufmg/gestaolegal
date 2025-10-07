@@ -44,7 +44,7 @@ class User(BaseModel):
     endereco: "Endereco | None" = None
     status: bool = True
 
-    modificado: datetime = datetime.now()
+    modificado: datetime | None = None
     criado: datetime = datetime.now()
 
     @field_validator("nascimento", mode="before")

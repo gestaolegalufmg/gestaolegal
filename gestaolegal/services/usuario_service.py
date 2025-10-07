@@ -135,6 +135,10 @@ class UsuarioService:
 
         user_data["endereco_id"] = endereco_id
         user_data["criadopor"] = criado_por
+        user_data["modificadopor"] = criado_por
+        user_data["modificado"] = datetime.now()
+        user_data["criado"] = datetime.now()
+        user_data["status"] = True
 
         bcrypt = Bcrypt()
 
@@ -212,7 +216,9 @@ class UsuarioService:
                 raise ValueError("Current password is incorrect")
 
         bcrypt = Bcrypt()
+        logger.info(f"Hashing password: {new_password}")
         hashed_password = bcrypt.generate_password_hash(new_password).decode("utf-8")
+        logger.info(f"Hashed password: {hashed_password}")
 
         user_data = user.model_dump(exclude={"endereco"})
         user_data["senha"] = hashed_password
@@ -223,7 +229,6 @@ class UsuarioService:
         return self.find_by_id(user_id)
 
     def __extract_endereco_data(self, user_data: dict[str, Any]):
-        user_data.pop("endereco_id")
         return {
             "logradouro": user_data.pop("logradouro"),
             "numero": user_data.pop("numero"),
