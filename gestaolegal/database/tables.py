@@ -1,4 +1,5 @@
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     Date,
@@ -191,4 +192,41 @@ casos_atendidos = Table(
     metadata,
     Column("id_caso", Integer, ForeignKey("casos.id"), nullable=True),
     Column("id_atendido", Integer, ForeignKey("atendidos.id"), nullable=True),
+)
+
+processos = Table(
+    "processos",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("especie", String(25), nullable=False),
+    Column("numero", BigInteger, nullable=True, unique=True),
+    Column("identificacao", Text, nullable=True),
+    Column("vara", String(200), nullable=True),
+    Column("link", String(1000), nullable=True),
+    Column("probabilidade", String(25), nullable=True),
+    Column("posicao_assistido", String(25), nullable=True),
+    Column("valor_causa_inicial", Integer, nullable=True),
+    Column("valor_causa_atual", Integer, nullable=True),
+    Column("data_distribuicao", Date, nullable=True),
+    Column("data_transito_em_julgado", Date, nullable=True),
+    Column("obs", Text, nullable=True),
+    Column("id_caso", Integer, ForeignKey("casos.id"), nullable=False),
+    Column("status", Boolean, nullable=False),
+    Column("id_criado_por", Integer, ForeignKey("usuarios.id"), nullable=False),
+)
+
+eventos = Table(
+    "eventos",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("id_caso", Integer, ForeignKey("casos.id"), nullable=False),
+    Column("num_evento", Integer, nullable=True),
+    Column("tipo", String(50), nullable=False),
+    Column("descricao", Text, nullable=True),
+    Column("arquivo", String(100), nullable=True),
+    Column("data_evento", Date, nullable=False),
+    Column("data_criacao", DateTime, nullable=False),
+    Column("id_criado_por", Integer, ForeignKey("usuarios.id"), nullable=False),
+    Column("id_usuario_responsavel", Integer, ForeignKey("usuarios.id"), nullable=True),
+    Column("status", Boolean, nullable=False),
 )

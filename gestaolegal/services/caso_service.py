@@ -147,3 +147,47 @@ class CasoService:
         else:
             logger.warning(f"Soft delete failed for caso with id: {caso_id}")
         return result
+
+    def deferir(self, caso_id: int, modificado_por_id: int) -> Caso | None:
+        logger.info(
+            f"Deferring caso with id: {caso_id}, modified by: {modificado_por_id}"
+        )
+        existing = self.repository.find_by_id(caso_id)
+        if not existing:
+            logger.error(f"Defer failed: caso not found with id: {caso_id}")
+            raise ValueError(f"Caso with id {caso_id} not found")
+
+        caso_data = existing.model_dump()
+        caso_data["situacao_deferimento"] = "ativo"
+        caso_data["justif_indeferimento"] = None
+        caso_data["data_modificacao"] = datetime.now()
+        caso_data["id_modificado_por"] = modificado_por_id
+
+        caso = Caso.model_validate(caso_data)
+        self.repository.update(caso_id, caso)
+
+        logger.info(f"Caso deferred successfully with id: {caso_id}")
+        return self.repository.find_by_id(caso_id)
+
+    def indeferir(
+        self, caso_id: int, justificativa: str, modificado_por_id: int
+    ) -> Caso | None:
+        logger.info(
+            f"Indeferring caso with id: {caso_id}, modified by: {modificado_por_id}"
+        )
+        existing = self.repository.find_by_id(caso_id)
+        if not existing:
+            logger.error(f"Indefer failed: caso not found with id: {caso_id}")
+            raise ValueError(f"Caso with id {caso_id} not found")
+
+        caso_data = existing.model_dump()
+        caso_data["situacao_deferimento"] = "indeferido"
+        caso_data["justif_indeferimento"] = justificativa
+        caso_data["data_modificacao"] = datetime.now()
+        caso_data["id_modificado_por"] = modificado_por_id
+
+        caso = Caso.model_validate(caso_data)
+        self.repository.update(caso_id, caso)
+
+        logger.info(f"Caso indeferred successfully with id: {caso_id}")
+        return self.repository.find_by_id(caso_id)

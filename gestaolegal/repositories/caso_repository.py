@@ -3,9 +3,16 @@ from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
 
-from gestaolegal.database.tables import atendidos, casos, casos_atendidos, usuarios
+from gestaolegal.database.tables import (
+    atendidos,
+    casos,
+    casos_atendidos,
+    processos,
+    usuarios,
+)
 from gestaolegal.models.atendido import Atendido
 from gestaolegal.models.caso import Caso
+from gestaolegal.models.processo import Processo
 from gestaolegal.models.user import User
 from gestaolegal.repositories.pagination_result import PaginatedResult
 from gestaolegal.repositories.repository import BaseRepository, CountParams, GetParams
@@ -24,7 +31,7 @@ class CasoRepository(BaseRepository):
         if not result:
             return None
 
-        caso = Caso.model_validate(dict(result._mapping))
+        caso = Caso.model_validate(dict(result._mapping))  # type: ignore
 
         caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
         caso.criado_por = (
@@ -41,6 +48,7 @@ class CasoRepository(BaseRepository):
             caso.modificado_por = self._get_user_by_id(caso.id_modificado_por)
 
         caso.clientes = self._get_atendidos_by_caso_id(id)
+        caso.processos = self._get_processos_by_caso_id(id)
 
         return caso
 
@@ -56,7 +64,7 @@ class CasoRepository(BaseRepository):
 
         items = []
         for row in results:
-            caso = Caso.model_validate(dict(row._mapping))
+            caso = Caso.model_validate(dict(row._mapping))  # type: ignore
             caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
             caso.criado_por = (
                 self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None
@@ -71,7 +79,7 @@ class CasoRepository(BaseRepository):
             if caso.id_modificado_por:
                 caso.modificado_por = self._get_user_by_id(caso.id_modificado_por)
 
-            caso.clientes = self._get_atendidos_by_caso_id(caso.id)
+            caso.clientes = self._get_atendidos_by_caso_id(caso.id) if caso.id else []
             items.append(caso)
 
         page_params = params.get("page_params")
@@ -90,12 +98,12 @@ class CasoRepository(BaseRepository):
         if not result:
             return None
 
-        caso = Caso.model_validate(dict(result._mapping))
+        caso = Caso.model_validate(dict(result._mapping))  # type: ignore
         caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
         caso.criado_por = (
             self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None
         )
-        caso.clientes = self._get_atendidos_by_caso_id(caso.id)
+        caso.clientes = self._get_atendidos_by_caso_id(caso.id) if caso.id else []
 
         return caso
 
@@ -178,3 +186,15 @@ class CasoRepository(BaseRepository):
 
         results = self.session.execute(stmt).all()
         return [Atendido.model_validate(row) for row in results]
+
+    def _get_processos_by_caso_id(self, caso_id: int) -> list[Processo]:
+        stmt = select(processos).where(processos.c.id_caso == caso_id)
+
+        results = self.session.execute(stmt).all()
+        processos_list: list[Processo] = []
+        for row in results:
+            processo = Processo.model_validate(dict(row._mapping))  # type: ignore
+            processo.criado_por = self._get_user_by_id(processo.id_criado_por)
+            processos_list.append(processo)
+
+        return processos_list

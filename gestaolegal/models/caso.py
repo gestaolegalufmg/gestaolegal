@@ -6,6 +6,7 @@ from gestaolegal.models.user import User
 
 if TYPE_CHECKING:
     from gestaolegal.models.atendido import Atendido
+    from gestaolegal.models.processo import Processo
 
 
 class Caso(BaseModel):
@@ -37,3 +38,4 @@ class Caso(BaseModel):
     status: bool
     descricao: str | None
     numero_ultimo_processo: int | None
+    processos: list["Processo"] | None = None
