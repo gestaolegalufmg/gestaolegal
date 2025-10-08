@@ -79,7 +79,7 @@ def global_search():
                 "total": casos_result.total,
             },
             "orientacoes_juridicas": {
-                "items": [item.model_dump() for item in orientacoes_result.items],
+                "items": [item for item in orientacoes_result.items],
                 "total": orientacoes_result.total,
             },
             "assistencias_judiciarias": {
