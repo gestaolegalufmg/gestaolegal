@@ -1,14 +1,14 @@
 from gestaolegal.models.base_model import BaseModel
 
 
-class OrientacaoJuridicaCreateInput(BaseModel):
+class OrientacaoJuridicaCreate(BaseModel):
     area_direito: str
     sub_area: str | None = None
     descricao: str
     atendidos_ids: list[int] = []
 
 
-class OrientacaoJuridicaUpdateInput(BaseModel):
+class OrientacaoJuridicaUpdate(BaseModel):
     area_direito: str | None = None
     sub_area: str | None = None
     descricao: str | None = None

@@ -8,7 +8,7 @@ from gestaolegal.repositories.caso_repository import CasoRepository
 from gestaolegal.repositories.pagination_result import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
-    GetParams,
+    SearchParams,
     WhereClause,
 )
 
@@ -65,7 +65,7 @@ class CasoService:
         elif len(clauses) == 1:
             where = clauses[0]
 
-        params = GetParams(
+        params = SearchParams(
             page_params=page_params,
             where=where,
         )

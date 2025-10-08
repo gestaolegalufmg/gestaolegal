@@ -14,7 +14,17 @@ T = TypeVar("T", bound=BaseModel)
 class WhereClause(TypedDict):
     column: str
     operator: str
-    value: str | int | float | bool | None
+    value: (
+        str
+        | int
+        | float
+        | bool
+        | list[str]
+        | list[int]
+        | list[float]
+        | list[bool]
+        | None
+    )
 
 
 class ComplexWhereClause(TypedDict):
@@ -23,6 +33,10 @@ class ComplexWhereClause(TypedDict):
 
 
 class GetParams(TypedDict):
+    where: WhereClause | ComplexWhereClause | None
+
+
+class SearchParams(TypedDict):
     where: WhereClause | ComplexWhereClause | None
     page_params: PageParams | None
 
@@ -117,9 +131,9 @@ class Repository(Protocol[T]):
 
     def find_by_email(self, email: str) -> T | None: ...
 
-    def find_one(self, params: GetParams) -> T | None: ...
+    def find_one(self, params: SearchParams) -> T | None: ...
 
-    def search(self, params: GetParams) -> PaginatedResult[T]: ...
+    def search(self, params: SearchParams) -> PaginatedResult[T]: ...
 
     def count(self, params: CountParams) -> int: ...
 

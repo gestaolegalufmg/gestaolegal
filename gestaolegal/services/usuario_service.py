@@ -13,7 +13,7 @@ from gestaolegal.repositories.endereco_repository import EnderecoRepository
 from gestaolegal.repositories.pagination_result import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
-    GetParams,
+    SearchParams,
     WhereClause,
 )
 from gestaolegal.repositories.user_repository import UserRepository
@@ -86,7 +86,7 @@ class UsuarioService:
             else clauses[0]
         )
 
-        params = GetParams(
+        params = SearchParams(
             page_params=page_params,
             where=where,
         )

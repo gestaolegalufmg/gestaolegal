@@ -3,11 +3,20 @@ import logging
 from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 
-from gestaolegal.database.tables import assistidos, atendidos
+from gestaolegal.database.tables import (
+    assistidos,
+    atendido_xOrientacaoJuridica,
+    atendidos,
+)
 from gestaolegal.models.assistido import Assistido
 from gestaolegal.models.atendido import Atendido
 from gestaolegal.repositories.pagination_result import PaginatedResult
-from gestaolegal.repositories.repository import BaseRepository, CountParams, GetParams
+from gestaolegal.repositories.repository import (
+    BaseRepository,
+    CountParams,
+    GetParams,
+    SearchParams,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +35,55 @@ class AtendidoRepository(BaseRepository):
         result = self.session.execute(stmt).one_or_none()
         return Atendido.model_validate(result) if result else None
 
+    def get(self, params: GetParams) -> list[Atendido]:
+        stmt = select(atendidos)
+        stmt = self._apply_where_clause(stmt, params.get("where"), atendidos)
+        result = self.session.execute(stmt).all()
+        return [Atendido.model_validate(row) for row in result]
+
+    # TODO: Avaliar se existe uma forma melhor de modelar este método (e o comportamento como um todo).
+    #
+    # Explicação:
+    # Como as dependências (entidades relacionadas) neste caso são obtidas por meio de uma tabela auxiliar,
+    # não é possível implementar a lógica de carregamento das dependências no service, como normalmente fazemos.
+    # Por isso, este método retorna não apenas as entidades, mas também um mapa para relacionar cada orientação jurídica com seus atendidos.
+    #
+    # Observação:
+    # Recebemos uma lista de IDs de orientação jurídica, em vez de um único ID, para evitar o problema de "N+1 queries".
+    def get_related_with_orientacao_juridica(
+        self, orientacao_juridica_ids: list[int]
+    ) -> tuple[list[Atendido], dict[int, list[int]]]:
+        stmt = select(
+            atendidos, atendido_xOrientacaoJuridica.c.id_orientacaoJuridica
+        ).join(
+            atendido_xOrientacaoJuridica,
+            atendido_xOrientacaoJuridica.c.id_atendido == atendidos.c.id,
+        )
+        stmt = stmt.where(
+            atendido_xOrientacaoJuridica.c.id_orientacaoJuridica.in_(
+                orientacao_juridica_ids
+            )
+        )
+
+        result = self.session.execute(stmt).mappings().all()
+
+        orientacao_juridica_map: dict[int, list[int]] = {}
+        atendidos_list = []
+
+        for row in result:
+            orientacao_id = row["id_orientacaoJuridica"]
+            atendido_id = row["id"]
+
+            if orientacao_id not in orientacao_juridica_map:
+                orientacao_juridica_map[orientacao_id] = []
+            orientacao_juridica_map[orientacao_id].append(atendido_id)
+
+            atendidos_list.append(Atendido.model_validate(row))
+
+        return atendidos_list, orientacao_juridica_map
+
     def search(
-        self, params: GetParams, tipo_busca: str = "todos"
+        self, params: SearchParams, tipo_busca: str = "todos"
     ) -> PaginatedResult[dict]:
         stmt = select(
             atendidos.c.id,
@@ -66,7 +122,7 @@ class AtendidoRepository(BaseRepository):
             per_page=page_params["per_page"] if page_params else total,
         )
 
-    def find_one(self, params: GetParams) -> Atendido | None:
+    def find_one(self, params: SearchParams) -> Atendido | None:
         stmt = select(atendidos)
         stmt = self._apply_where_clause(stmt, params.get("where"), atendidos)
         result = self.session.execute(stmt).one_or_none()
@@ -124,7 +180,9 @@ class AtendidoRepository(BaseRepository):
         return [Assistido.model_validate(row) for row in results]
 
     def create_assistido(self, assistido: Assistido) -> int:
-        assistido_dict = assistido.model_dump(exclude={"id"})
+        assistido_dict = assistido.model_dump(
+            exclude={"id", "assistido_pessoa_juridica"}
+        )
         stmt = insert(assistidos).values(**assistido_dict)
         result = self.session.execute(stmt)
         self.session.commit()

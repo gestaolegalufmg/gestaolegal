@@ -1,12 +1,13 @@
 import logging
+from dataclasses import asdict
 from typing import Any, cast
 
 from flask import Blueprint, make_response, request
 
 from gestaolegal.common import PageParams
 from gestaolegal.models.orientacao_juridica_input import (
-    OrientacaoJuridicaCreateInput,
-    OrientacaoJuridicaUpdateInput,
+    OrientacaoJuridicaCreate,
+    OrientacaoJuridicaUpdate,
 )
 from gestaolegal.models.user import User
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
@@ -44,11 +45,11 @@ def get():
 def find_by_id(id: int):
     orientacao_juridica_service = OrientacaoJuridicaService()
 
-    orientacao_data = orientacao_juridica_service.find_by_id(id)
-    if not orientacao_data:
+    orientacao = orientacao_juridica_service.find_by_id(id)
+    if not orientacao:
         return make_response("Orientação jurídica não encontrada", 404)
 
-    return orientacao_data.model_dump()
+    return asdict(orientacao)
 
 
 @orientacao_juridica_controller.route("/<int:id>", methods=["DELETE"])
@@ -68,7 +69,7 @@ def create(current_user: User):
     try:
         json_data = cast(dict[str, Any], request.get_json(force=True))
 
-        orientacao_input = OrientacaoJuridicaCreateInput(**json_data)
+        orientacao_input = OrientacaoJuridicaCreate(**json_data)
         orientacao = orientacao_juridica_service.create(
             orientacao_input, cast(int, current_user.id)
         )
@@ -76,7 +77,7 @@ def create(current_user: User):
         logger.error(f"Error creating orientacao juridica: {str(e)}", exc_info=True)
         return make_response(str(e), 500)
 
-    return orientacao.model_dump()
+    return asdict(orientacao)
 
 
 @orientacao_juridica_controller.route("/<int:id>", methods=["PUT"])
@@ -86,7 +87,7 @@ def update(id: int):
 
     try:
         json_data = cast(dict[str, Any], request.get_json(force=True))
-        orientacao_input = OrientacaoJuridicaUpdateInput(**json_data)
+        orientacao_input = OrientacaoJuridicaUpdate(**json_data)
         orientacao = orientacao_juridica_service.update(id, orientacao_input)
     except Exception as e:
         logger.error(
@@ -94,4 +95,4 @@ def update(id: int):
         )
         return make_response(str(e), 500)
 
-    return orientacao.model_dump()
+    return asdict(orientacao)
