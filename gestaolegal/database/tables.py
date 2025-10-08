@@ -151,19 +151,6 @@ atendido_xOrientacaoJuridica = Table(
     Column("id_atendido", Integer, ForeignKey("atendidos.id"), nullable=True),
 )
 
-assistencias_judiciarias = Table(
-    "assistencias_judiciarias",
-    metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("nome", String(150), nullable=False),
-    Column("regiao", String(80), nullable=False),
-    Column("areas_atendidas", String(1000), nullable=False),
-    Column("endereco_id", Integer, ForeignKey("enderecos.id"), nullable=True),
-    Column("telefone", String(18), nullable=False),
-    Column("email", String(80), nullable=False, unique=True),
-    Column("status", Integer, nullable=False),
-)
-
 casos = Table(
     "casos",
     metadata,

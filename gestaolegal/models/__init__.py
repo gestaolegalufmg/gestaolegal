@@ -1,4 +1,3 @@
-from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
 from gestaolegal.models.assistido import Assistido
 from gestaolegal.models.assistido_pessoa_juridica import AssistidoPessoaJuridica
 from gestaolegal.models.atendido import Atendido
@@ -12,7 +11,6 @@ from gestaolegal.models.user import User
 
 Assistido.model_rebuild()
 Atendido.model_rebuild()
-AssistenciaJudiciaria.model_rebuild()
 OrientacaoJuridica.model_rebuild()
 Caso.model_rebuild()
 Processo.model_rebuild()
@@ -25,7 +23,6 @@ __all__ = [
     "Assistido",
     "AssistidoPessoaJuridica",
     "Atendido",
-    "AssistenciaJudiciaria",
     "OrientacaoJuridica",
     "Caso",
     "Processo",

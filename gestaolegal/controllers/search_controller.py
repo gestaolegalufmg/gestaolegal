@@ -2,9 +2,6 @@ import logging
 
 from flask import Blueprint, request
 
-from gestaolegal.services.assistencia_judiciaria_service import (
-    AssistenciaJudiciariaService,
-)
 from gestaolegal.services.atendido_service import AtendidoService
 from gestaolegal.services.caso_service import CasoService
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
@@ -29,7 +26,6 @@ def global_search():
                 "atendidos": [],
                 "casos": [],
                 "orientacoes_juridicas": [],
-                "assistencias_judiciarias": [],
                 "usuarios": [],
             }
         }
@@ -37,7 +33,6 @@ def global_search():
     atendido_service = AtendidoService()
     caso_service = CasoService()
     orientacao_service = OrientacaoJuridicaService()
-    assistencia_service = AssistenciaJudiciariaService()
     usuario_service = UsuarioService()
 
     from gestaolegal.common import PageParams
@@ -53,10 +48,6 @@ def global_search():
     )
 
     orientacoes_result = orientacao_service.search(
-        search=query, page_params=page_params, show_inactive=False
-    )
-
-    assistencias_result = assistencia_service.search(
         search=query, page_params=page_params, show_inactive=False
     )
 
@@ -81,10 +72,6 @@ def global_search():
             "orientacoes_juridicas": {
                 "items": [item for item in orientacoes_result.items],
                 "total": orientacoes_result.total,
-            },
-            "assistencias_judiciarias": {
-                "items": [item.model_dump() for item in assistencias_result.items],
-                "total": assistencias_result.total,
             },
             "usuarios": {
                 "items": [item.model_dump() for item in usuarios_result.items],
