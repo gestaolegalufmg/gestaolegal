@@ -64,7 +64,7 @@ class OrientacaoJuridicaRepository(BaseRepository):
 
     def create(self, data: OrientacaoJuridica) -> int:
         orientacao_dict = data.model_dump(
-            exclude={"id", "atendidos", "usuario", "assistencias_judiciarias"}
+            exclude={"id", "atendidos", "usuario"}
         )
         stmt = insert(orientacao_juridica).values(**orientacao_dict)
         result = self.session.execute(stmt)
@@ -73,7 +73,7 @@ class OrientacaoJuridicaRepository(BaseRepository):
 
     def update(self, id: int, data: OrientacaoJuridica) -> None:
         orientacao_dict = data.model_dump(
-            exclude={"id", "atendidos", "usuario", "assistencias_judiciarias"}
+            exclude={"id", "atendidos", "usuario"}
         )
         stmt = (
             sql_update(orientacao_juridica)

@@ -1,6 +1,3 @@
-from .assistencia_judiciaria_controller import (
-    assistencia_judiciaria_controller as assistencia_judiciaria_controller_api,
-)
 from .atendido_controller import atendido_controller as atendido_controller_api
 from .auth_controller import auth_controller
 from .caso_controller import caso_controller
@@ -16,6 +13,5 @@ routes = [
     (atendido_controller_api, "/api/atendido"),
     (caso_controller, "/api/caso"),
     (orientacao_juridica_controller_api, "/api/orientacao_juridica"),
-    (assistencia_judiciaria_controller_api, "/api/assistencia_judiciaria"),
     (search_controller, "/api/search"),
 ]
