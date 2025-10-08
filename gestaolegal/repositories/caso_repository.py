@@ -15,7 +15,11 @@ from gestaolegal.models.caso import Caso
 from gestaolegal.models.processo import Processo
 from gestaolegal.models.user import User
 from gestaolegal.repositories.pagination_result import PaginatedResult
-from gestaolegal.repositories.repository import BaseRepository, CountParams, GetParams
+from gestaolegal.repositories.repository import (
+    BaseRepository,
+    CountParams,
+    SearchParams,
+)
 
 
 class CasoRepository(BaseRepository):
@@ -52,7 +56,7 @@ class CasoRepository(BaseRepository):
 
         return caso
 
-    def search(self, params: GetParams) -> PaginatedResult[Caso]:
+    def search(self, params: SearchParams) -> PaginatedResult[Caso]:
         stmt = select(casos, func.count().over().label("total_count"))
 
         stmt = self._apply_where_clause(stmt, params.get("where"), casos)
@@ -90,7 +94,7 @@ class CasoRepository(BaseRepository):
             per_page=page_params["per_page"] if page_params else total,
         )
 
-    def find_one(self, params: GetParams) -> Caso | None:
+    def find_one(self, params: SearchParams) -> Caso | None:
         stmt = select(casos)
         stmt = self._apply_where_clause(stmt, params.get("where"), casos)
         result = self.session.execute(stmt).one_or_none()

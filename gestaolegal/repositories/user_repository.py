@@ -7,7 +7,12 @@ from sqlalchemy.orm import Session
 from gestaolegal.database.tables import usuarios
 from gestaolegal.models.user import User
 from gestaolegal.repositories.pagination_result import PaginatedResult
-from gestaolegal.repositories.repository import BaseRepository, CountParams, GetParams
+from gestaolegal.repositories.repository import (
+    BaseRepository,
+    CountParams,
+    GetParams,
+    SearchParams,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +33,13 @@ class UserRepository(BaseRepository):
         result = self.session.execute(stmt).one_or_none()
         return User.model_validate(result) if result else None
 
-    def search(self, params: GetParams) -> PaginatedResult[User]:
+    def get(self, params: GetParams) -> list[User]:
+        stmt = select(usuarios)
+        stmt = self._apply_where_clause(stmt, params.get("where"), usuarios)
+        result = self.session.execute(stmt).all()
+        return [User.model_validate(row) for row in result]
+
+    def search(self, params: SearchParams) -> PaginatedResult[User]:
         stmt = select(usuarios, func.count().over().label("total_count"))
 
         stmt = self._apply_where_clause(stmt, params.get("where"), usuarios)
@@ -48,7 +59,7 @@ class UserRepository(BaseRepository):
             per_page=page_params["per_page"] if page_params else total,
         )
 
-    def find_one(self, params: GetParams) -> User | None:
+    def find_one(self, params: SearchParams) -> User | None:
         stmt = select(usuarios)
         stmt = self._apply_where_clause(stmt, params.get("where"), usuarios)
         result = self.session.execute(stmt).one_or_none()

@@ -17,7 +17,7 @@ from gestaolegal.repositories.endereco_repository import EnderecoRepository
 from gestaolegal.repositories.pagination_result import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
-    GetParams,
+    SearchParams,
     WhereClause,
 )
 
@@ -79,7 +79,7 @@ class AtendidoService:
             else clauses[0]
         )
 
-        params = GetParams(
+        params = SearchParams(
             page_params=page_params,
             where=where,
         )
@@ -155,7 +155,8 @@ class AtendidoService:
             raise ValueError(f"Atendido with id {id_atendido} not found")
 
         assistido_data = assistido_input.model_dump()
-        assistido = Assistido(id=0, id_atendido=id_atendido, **assistido_data)
+        assistido_data["id_atendido"] = id_atendido
+        assistido = Assistido(**assistido_data)
 
         assistido_id = self.repository.create_assistido(assistido)
         logger.info(
@@ -202,5 +203,5 @@ class AtendidoService:
 
     def soft_delete(self, atendido_id: int):
         logger.info(f"Soft deleting atendido with id: {atendido_id}")
-        self.repository.soft_delete(atendido_id)
+        self.repository.delete(atendido_id)
         logger.info(f"Atendido soft deleted successfully with id: {atendido_id}")

@@ -6,7 +6,11 @@ from gestaolegal.database.tables import eventos, usuarios
 from gestaolegal.models.evento import Evento
 from gestaolegal.models.user import User
 from gestaolegal.repositories.pagination_result import PaginatedResult
-from gestaolegal.repositories.repository import BaseRepository, CountParams, GetParams
+from gestaolegal.repositories.repository import (
+    BaseRepository,
+    CountParams,
+    SearchParams,
+)
 
 
 class EventoRepository(BaseRepository):
@@ -55,7 +59,7 @@ class EventoRepository(BaseRepository):
             per_page=len(eventos_list),
         )
 
-    def search(self, params: GetParams) -> PaginatedResult[Evento]:
+    def search(self, params: SearchParams) -> PaginatedResult[Evento]:
         stmt = select(eventos, func.count().over().label("total_count"))
 
         stmt = self._apply_where_clause(stmt, params.get("where"), eventos)
@@ -85,7 +89,7 @@ class EventoRepository(BaseRepository):
             per_page=page_params["per_page"] if page_params else total,
         )
 
-    def find_one(self, params: GetParams) -> Evento | None:
+    def find_one(self, params: SearchParams) -> Evento | None:
         stmt = select(eventos)
         stmt = self._apply_where_clause(stmt, params.get("where"), eventos)
         result = self.session.execute(stmt).one_or_none()
@@ -146,7 +150,11 @@ class EventoRepository(BaseRepository):
 
     # TODO: Isso deveria ser uma coluna com autoincrement
     def count_by_caso_id(self, caso_id: int) -> int:
-        stmt = select(func.count()).select_from(eventos).where(eventos.c.id_caso == caso_id)
+        stmt = (
+            select(func.count())
+            .select_from(eventos)
+            .where(eventos.c.id_caso == caso_id)
+        )
         result = self.session.execute(stmt).scalar()
         return result or 0
 

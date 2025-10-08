@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 
 class Assistido(BaseModel):
-    id: int
+    id: int | None = None
     id_atendido: int
     sexo: str
     profissao: str

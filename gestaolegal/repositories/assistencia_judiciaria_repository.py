@@ -5,7 +5,11 @@ from sqlalchemy.orm import Session
 from gestaolegal.database.tables import assistencias_judiciarias
 from gestaolegal.models.assistencia_judiciaria import AssistenciaJudiciaria
 from gestaolegal.repositories.pagination_result import PaginatedResult
-from gestaolegal.repositories.repository import BaseRepository, CountParams, GetParams
+from gestaolegal.repositories.repository import (
+    BaseRepository,
+    CountParams,
+    SearchParams,
+)
 
 
 class AssistenciaJudiciariaRepository(BaseRepository):
@@ -21,7 +25,7 @@ class AssistenciaJudiciariaRepository(BaseRepository):
         result = self.session.execute(stmt).one_or_none()
         return AssistenciaJudiciaria.model_validate(result) if result else None
 
-    def search(self, params: GetParams) -> PaginatedResult[AssistenciaJudiciaria]:
+    def search(self, params: SearchParams) -> PaginatedResult[AssistenciaJudiciaria]:
         stmt = select(
             assistencias_judiciarias, func.count().over().label("total_count")
         )
@@ -45,7 +49,7 @@ class AssistenciaJudiciariaRepository(BaseRepository):
             per_page=page_params["per_page"] if page_params else total,
         )
 
-    def find_one(self, params: GetParams) -> AssistenciaJudiciaria | None:
+    def find_one(self, params: SearchParams) -> AssistenciaJudiciaria | None:
         stmt = select(assistencias_judiciarias)
         stmt = self._apply_where_clause(
             stmt, params.get("where"), assistencias_judiciarias

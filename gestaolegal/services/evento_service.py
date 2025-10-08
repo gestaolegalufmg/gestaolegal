@@ -8,7 +8,7 @@ from gestaolegal.repositories.evento_repository import EventoRepository
 from gestaolegal.repositories.pagination_result import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
-    GetParams,
+    SearchParams,
     WhereClause,
 )
 
@@ -69,7 +69,7 @@ class EventoService:
         elif len(clauses) == 1:
             where = clauses[0]
 
-        params = GetParams(
+        params = SearchParams(
             page_params=page_params,
             where=where,
         )
@@ -88,7 +88,9 @@ class EventoService:
 
         evento_data["data_criacao"] = datetime.now()
         evento_data["id_criado_por"] = criado_por_id
-        evento_data["num_evento"] = self.repository.count_by_caso_id(evento_input.id_caso) + 1
+        evento_data["num_evento"] = (
+            self.repository.count_by_caso_id(evento_input.id_caso) + 1
+        )
 
         evento = Evento.model_validate(evento_data)
         evento_id = self.repository.create(evento)

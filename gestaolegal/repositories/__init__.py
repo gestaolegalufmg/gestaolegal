@@ -8,8 +8,8 @@ from gestaolegal.repositories.repository import (
     BaseRepository,
     ComplexWhereClause,
     CountParams,
-    GetParams,
     Repository,
+    SearchParams,
     WhereClause,
 )
 from gestaolegal.repositories.user_repository import UserRepository
@@ -21,7 +21,7 @@ __all__ = [
     "UserRepository",
     "PaginatedResult",
     "BaseRepository",
-    "GetParams",
+    "SearchParams",
     "CountParams",
     "WhereClause",
     "ComplexWhereClause",

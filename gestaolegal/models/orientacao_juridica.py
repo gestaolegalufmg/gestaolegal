@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -21,3 +22,27 @@ class OrientacaoJuridica(BaseModel):
     id_usuario: int | None = None
     status: int = 1
     data_criacao: datetime = datetime.now()
+
+
+@dataclass
+class OrientacaoJuridicaDetail:
+    id: int
+    area_direito: str
+    sub_area: str | None
+    data_criacao: datetime
+    status: bool
+    atendidos: list["Atendido"]
+    descricao: str
+    usuario: "User | None"
+
+
+@dataclass
+class OrientacaoJuridicaListItem:
+    id: int
+    area_direito: str
+    sub_area: str | None
+    descricao: str
+    atendidos: list[str]
+    usuario: "User | None"
+    data_criacao: datetime
+    status: bool
