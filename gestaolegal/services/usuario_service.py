@@ -4,7 +4,7 @@ import string
 from datetime import datetime
 from typing import Any
 
-from flask_bcrypt import Bcrypt
+import bcrypt
 
 from gestaolegal.common import PageParams
 from gestaolegal.models.user import User
@@ -121,8 +121,7 @@ class UsuarioService:
         return None
 
     def check_password(self, user: User, senha: str) -> bool:
-        bcrypt = Bcrypt()
-        return bcrypt.check_password_hash(user.senha, senha)
+        return bcrypt.checkpw(senha.encode('utf-8'), user.senha.encode('utf-8'))
 
     def create(self, user_input: UserCreateInput, criado_por: int) -> User:
         logger.info(
@@ -140,16 +139,14 @@ class UsuarioService:
         user_data["criado"] = datetime.now()
         user_data["status"] = True
 
-        bcrypt = Bcrypt()
-
         password_length = 12
         alphabet = string.ascii_letters + string.digits
         random_password = "".join(
             secrets.choice(alphabet) for _ in range(password_length)
         )
-        user_data["senha"] = bcrypt.generate_password_hash(random_password).decode(
-            "utf-8"
-        )
+        user_data["senha"] = bcrypt.hashpw(
+            random_password.encode('utf-8'), bcrypt.gensalt()
+        ).decode("utf-8")
 
         user_id = self.repository.create(User(**user_data))
         user = self.find_by_id(user_id)
@@ -215,9 +212,10 @@ class UsuarioService:
                 )
                 raise ValueError("Current password is incorrect")
 
-        bcrypt = Bcrypt()
         logger.info(f"Hashing password: {new_password}")
-        hashed_password = bcrypt.generate_password_hash(new_password).decode("utf-8")
+        hashed_password = bcrypt.hashpw(
+            new_password.encode('utf-8'), bcrypt.gensalt()
+        ).decode("utf-8")
         logger.info(f"Hashed password: {hashed_password}")
 
         user_data = user.model_dump(exclude={"endereco"})
