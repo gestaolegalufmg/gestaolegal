@@ -1,11 +1,9 @@
 from flask import Flask
-from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_mail import Mail
 
 from gestaolegal.utils.json_encoder import CustomJSONEncoder
 
-bcrypt = Bcrypt()
 mail = Mail()
 
 
@@ -40,14 +38,8 @@ def configure_app(app):
 
 
 def initialize_extensions(app):
-    bcrypt.init_app(app)
     mail.init_app(app)
     CORS(app)
-
-    from gestaolegal.middleware import ReverseProxied
-
-    app.wsgi_app = ReverseProxied(app.wsgi_app)
-
 
 def register_blueprints(app):
     from gestaolegal.controllers import routes
