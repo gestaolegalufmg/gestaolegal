@@ -97,7 +97,6 @@ class ProcessoRepository(BaseRepository):
         )
         stmt = insert(processos).values(**processo_dict)
         result = self.session.execute(stmt)
-        self.session.commit()
         return result.lastrowid
 
     def update(self, id: int, data: Processo) -> None:
@@ -110,13 +109,10 @@ class ProcessoRepository(BaseRepository):
         )
         stmt = sql_update(processos).where(processos.c.id == id).values(**processo_dict)
         self.session.execute(stmt)
-        self.session.commit()
 
     def delete(self, id: int) -> bool:
         stmt = sql_update(processos).where(processos.c.id == id).values(status=False)
         result = self.session.execute(stmt)
-        self.session.commit()
-
         return result.rowcount > 0
 
     def _get_user_by_id(self, user_id: int) -> User | None:

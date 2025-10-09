@@ -68,7 +68,6 @@ class OrientacaoJuridicaRepository(BaseRepository):
         )
         stmt = insert(orientacao_juridica).values(**orientacao_dict)
         result = self.session.execute(stmt)
-        self.session.commit()
         return result.lastrowid
 
     def update(self, id: int, data: OrientacaoJuridica) -> None:
@@ -81,7 +80,6 @@ class OrientacaoJuridicaRepository(BaseRepository):
             .values(**orientacao_dict)
         )
         self.session.execute(stmt)
-        self.session.commit()
 
     def add_related_atendidos(
         self, orientacao_id: int, atendidos_ids: list[int]
@@ -97,8 +95,6 @@ class OrientacaoJuridicaRepository(BaseRepository):
             )
             self.session.execute(stmt)
 
-        self.session.commit()
-
     def delete(self, id: int) -> None:
         stmt = (
             sql_update(orientacao_juridica)
@@ -106,4 +102,3 @@ class OrientacaoJuridicaRepository(BaseRepository):
             .values(status=0)
         )
         self.session.execute(stmt)
-        self.session.commit()

@@ -76,18 +76,14 @@ class UserRepository(BaseRepository):
         user_dict = data.model_dump(exclude={"id", "endereco"})
         stmt = insert(usuarios).values(**user_dict)
         result = self.session.execute(stmt)
-        self.session.commit()
         return result.lastrowid
 
     def update(self, id: int, data: User) -> None:
         user_dict = data.model_dump(exclude={"id", "endereco"})
         stmt = sql_update(usuarios).where(usuarios.c.id == id).values(**user_dict)
         self.session.execute(stmt)
-        self.session.commit()
 
     def delete(self, id: int) -> bool:
         stmt = sql_update(usuarios).where(usuarios.c.id == id).values(status=0)
         result = self.session.execute(stmt)
-        self.session.commit()
-
         return result.rowcount > 0

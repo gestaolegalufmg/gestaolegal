@@ -141,7 +141,6 @@ class AtendidoRepository(BaseRepository):
         )
         stmt = insert(atendidos).values(**atendido_dict)
         result = self.session.execute(stmt)
-        self.session.commit()
         return result.lastrowid
 
     def update(self, id: int, data: Atendido) -> None:
@@ -156,13 +155,10 @@ class AtendidoRepository(BaseRepository):
         )
         stmt = sql_update(atendidos).where(atendidos.c.id == id).values(**atendido_dict)
         self.session.execute(stmt)
-        self.session.commit()
 
     def delete(self, id: int) -> bool:
         stmt = sql_update(atendidos).where(atendidos.c.id == id).values(status=0)
         result = self.session.execute(stmt)
-        self.session.commit()
-
         return result.rowcount > 0
 
     def find_assistido_by_atendido_id(self, atendido_id: int) -> Assistido | None:
@@ -185,7 +181,6 @@ class AtendidoRepository(BaseRepository):
         )
         stmt = insert(assistidos).values(**assistido_dict)
         result = self.session.execute(stmt)
-        self.session.commit()
         return result.lastrowid
 
     def update_assistido(self, id_atendido: int, assistido: Assistido) -> None:
@@ -202,4 +197,3 @@ class AtendidoRepository(BaseRepository):
             .values(**assistido_dict)
         )
         self.session.execute(stmt)
-        self.session.commit()

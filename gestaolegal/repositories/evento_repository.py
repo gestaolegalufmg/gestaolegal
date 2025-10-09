@@ -125,7 +125,6 @@ class EventoRepository(BaseRepository):
         )
         stmt = insert(eventos).values(**evento_dict)
         result = self.session.execute(stmt)
-        self.session.commit()
         return result.lastrowid
 
     def update(self, id: int, data: Evento) -> None:
@@ -139,13 +138,10 @@ class EventoRepository(BaseRepository):
         )
         stmt = sql_update(eventos).where(eventos.c.id == id).values(**evento_dict)
         self.session.execute(stmt)
-        self.session.commit()
 
     def delete(self, id: int) -> bool:
         stmt = sql_update(eventos).where(eventos.c.id == id).values(status=False)
         result = self.session.execute(stmt)
-        self.session.commit()
-
         return result.rowcount > 0
 
     # TODO: Isso deveria ser uma coluna com autoincrement
