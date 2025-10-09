@@ -1,7 +1,0 @@
-{% from "base/base_form.html" import form_field, form_section %}
-
-{{ form.csrf_token }}
-
-{{ form_field(form.titulo, required=true) }}
-{{ form_field(form.descricao, field_type="textarea", extra_classes="w-100") }}
-{{ form_field(form.arquivo, field_type="file") }}

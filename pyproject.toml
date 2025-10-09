@@ -9,27 +9,18 @@ description = "Sistema de Gestão Legal"
 requires-python = ">=3.11"
 dependencies = [
     "alembic==1.13.1",
-    "certifi==2019.11.28",
-    "email_validator==2.1.0.post1",
+    "bcrypt>=4.0.0",
     "flask==3.1.0",
-    "flask-bcrypt",
-    "flask-login",
     "flask-mail",
-    "flask-marshmallow",
-    "flask-paginate",
-    "flask-wtf",
+    "flask-cors",
     "gunicorn==20.0.4",
     "pymysql",
-    "pytz",
-    "jinja2==3.1.6",
-    "marshmallow==3.6.1",
-    "marshmallow-sqlalchemy==0.23.1",
     "python-dateutil==2.8.1",
     "python-dotenv==1.0.0",
-    "python-editor==1.0.4",
     "sqlalchemy==2.0.27",
-    "toml==0.10.1",
     "wtforms==3.0.1",
+    "pyjwt>=2.10.1",
+    "pydantic>=2.11.9",
 ]
 
 [tool.setuptools]
@@ -38,6 +29,9 @@ py-modules = []
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+
+[tool.basedpyright]
+reportUnusedCallResult = false
 
 [dependency-groups]
 dev = [

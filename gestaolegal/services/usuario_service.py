@@ -1,291 +1,238 @@
 import logging
+import secrets
+import string
 from datetime import datetime
-from typing import TypeVar
+from typing import Any
 
-from flask import current_app
-from flask_bcrypt import Bcrypt
-from itsdangerous import Serializer, URLSafeTimedSerializer
+import bcrypt
 
 from gestaolegal.common import PageParams
-from gestaolegal.common.constants import UserRole
-from gestaolegal.models.usuario import Usuario
+from gestaolegal.models.user import User
+from gestaolegal.models.user_input import UserCreateInput, UserUpdateInput
+from gestaolegal.repositories.endereco_repository import EnderecoRepository
+from gestaolegal.common import PaginatedResult
+from gestaolegal.repositories.repository import (
+    ComplexWhereClause,
+    SearchParams,
+    WhereClause,
+)
 from gestaolegal.repositories.user_repository import UserRepository
-from gestaolegal.schemas.usuario import UsuarioSchema
-from gestaolegal.services.endereco_service import EnderecoService
-
-T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
 
 class UsuarioService:
     repository: UserRepository
-    endereco_service: EnderecoService
+    endereco_repository: EnderecoRepository
 
     def __init__(self):
         self.repository = UserRepository()
-        self.endereco_service = EnderecoService()
+        self.endereco_repository = EnderecoRepository()
 
-    def find_by_id(self, id: int) -> Usuario | None:
-        return self.repository.find_by_id(id)
+    def find_by_id(self, id: int) -> User | None:
+        logger.info(f"Finding user by id: {id}")
+        user = self.repository.find_by_id(id)
+        if user:
+            if user.endereco_id:
+                user.endereco = self.endereco_repository.find_by_id(user.endereco_id)
+            logger.info(f"User found with id: {id}")
+        else:
+            logger.warning(f"User not found with id: {id}")
+        return user
 
-    def find_by_email(self, email: str) -> Usuario | None:
-        return self.repository.find(where_conditions=("email", "eq", email))
+    def find_by_email(self, email: str) -> User | None:
+        logger.info(f"Finding user by email: {email}")
+        user = self.repository.find_by_email(email)
+        if user:
+            if user.endereco_id:
+                user.endereco = self.endereco_repository.find_by_id(user.endereco_id)
+            logger.info(f"User found with email: {email}")
+        else:
+            logger.warning(f"User not found with email: {email}")
+        return user
 
-    def find_by_id_with_inactive(self, id: int) -> Usuario | None:
-        return self.repository.find_by_id(id, active_only=False)
-
-    def find_by_email_with_inactive(self, email: str) -> Usuario | None:
-        return self.repository.find(where_conditions=("email", "eq", email), active_only=False)
-
-    def get_all(self, page_params: PageParams | None = None):
-        return self.repository.get_all(
-            page_params=page_params, order_by=UsuarioSchema.nome
-        )
-
-    def search_by_name(self, string: str, page_params: PageParams | None = None):
-        return self.repository.search_by_name(string, page_params)
-
-    def search_users_by_filters(
+    def search(
         self,
-        valor_busca: str = "",
-        funcao: str = "all",
-        status: str = "1",
-        page_params: PageParams | None = None,
-    ):
-        return self.repository.search(valor_busca, funcao, status, page_params)
-
-    def get_users_by_filters(
-        self, funcao: str | None = None, status: str | None = None
-    ):
-        """Get users filtered by role and status - simplified logic"""
-        filters = {}
-
-        if status:
-            filters["status"] = status == "1"
-
-        if funcao and funcao != "all":
-            filters["urole"] = funcao
-
-        return self.repository.get_all(filters=filters)
-
-    def authenticate_user(self, email: str, senha: str) -> Usuario | None:
-        usuario = self.repository.find(where_conditions=("email", "eq", email))
-        if not usuario:
-            logger.info(f"User not found: {email}")
-            return None
-
-        if self.check_password(usuario, senha):
-            logger.info(f"User authenticated successfully: {email}")
-            return usuario
-
-        logger.warning(f"Invalid password for user: {email}")
-        return None
-
-    def check_password(self, usuario: Usuario, senha: str) -> bool:
-        bcrypt = Bcrypt()
-        return bcrypt.check_password_hash(usuario.senha, senha)
-
-    def create(self, user_data: dict, criado_por: int) -> Usuario:
-        user_data.pop("csrf_token")
-        endereco_data = {
-            "logradouro": user_data.pop("logradouro"),
-            "numero": user_data.pop("numero"),
-            "complemento": user_data.pop("complemento"),
-            "bairro": user_data.pop("bairro"),
-            "cep": user_data.pop("cep"),
-        }
-        endereco = self.endereco_service.create_or_update_from_data(endereco_data)
-
-        if "bolsista" in user_data:
-            user_data["bolsista"] = user_data["bolsista"]
-            if user_data["bolsista"]:
-                user_data["inicio_bolsa"] = user_data.get("inicio_bolsa")
-                user_data["fim_bolsa"] = user_data.get("fim_bolsa")
-                user_data["tipo_bolsa"] = user_data.get("tipo_bolsa")
-            else:
-                user_data["inicio_bolsa"] = None
-                user_data["fim_bolsa"] = None
-                user_data["tipo_bolsa"] = None
-
-        user_data["endereco_id"] = endereco.id
-        user_data["criado"] = datetime.now()
-        user_data["criadopor"] = criado_por
-        user_data["status"] = True
-
-        bcrypt = Bcrypt()
-
-        user_data["senha"] = bcrypt.generate_password_hash(user_data["senha"]).decode(
-            "utf-8"
+        page_params: PageParams,
+        search: str = "",
+        role: str = "all",
+        show_inactive: bool = False,
+    ) -> PaginatedResult[User]:
+        logger.info(
+            f"Handling search request with params: page_params={page_params}, search='{search}', role='{role}', show_inactive={show_inactive}"
         )
+        status = False if show_inactive else True
 
-        return self.repository.create(user_data)
+        clauses: list[WhereClause] = [
+            WhereClause(column="status", operator="==", value=status),
+        ]
 
-    def update(
-        self, user_id: int, user_data: dict, modificado_por: int | None
-    ) -> Usuario | None:
-        usuario = self.repository.find_by_id(user_id)
-        if not usuario:
-            raise ValueError(f"Usuario with id {user_id} not found")
-
-        user_data.pop("csrf_token")
-        endereco_data = {
-            "logradouro": user_data.pop("logradouro"),
-            "numero": user_data.pop("numero"),
-            "complemento": user_data.pop("complemento"),
-            "bairro": user_data.pop("bairro"),
-            "cep": user_data.pop("cep"),
-        }
-
-        endereco = self.endereco_service.create_or_update_from_data(
-            endereco_data, usuario.endereco_id
-        )
-        user_data["endereco_id"] = endereco.id
-
-        if "bolsista" in user_data:
-            user_data["bolsista"] = user_data["bolsista"]
-            if user_data["bolsista"]:
-                user_data["inicio_bolsa"] = user_data.get("inicio_bolsa")
-                user_data["fim_bolsa"] = user_data.get("fim_bolsa")
-                user_data["tipo_bolsa"] = user_data.get("tipo_bolsa")
-            else:
-                user_data["inicio_bolsa"] = None
-                user_data["fim_bolsa"] = None
-                user_data["tipo_bolsa"] = None
-
-        if "senha" in user_data and (
-            user_data["senha"] is None or user_data["senha"] == ""
-        ):
-            user_data.pop("senha")
-
-        user_data["modificado"] = datetime.now()
-        user_data["modificadopor"] = modificado_por
-
-        return self.repository.update(user_id, user_data)
-
-    def update_password(
-        self, user_id: int, new_password: str, from_admin: bool = False
-    ) -> bool:
-        if not self.repository.find_by_id(user_id):
-            return False
-
-        bcrypt = Bcrypt()
-        update_data = {
-            "senha": bcrypt.generate_password_hash(new_password).decode("utf-8")
-        }
-
-        if from_admin:
-            update_data["chave_recuperacao"] = False
-
-        return self.repository.update(user_id, update_data) is not None
-
-    def soft_delete(self, user_id: int) -> bool:
-        return self.repository.soft_delete(user_id)
-
-    def set_password_recovery(self, email: str) -> bool:
-        usuario = self.repository.find(where_conditions=[("email", "eq", email)])
-        if not usuario:
-            return False
-
-        return (
-            self.repository.update(usuario.id, {"chave_recuperacao": True}) is not None
-        )
-
-    def reset_password_with_token(self, token: str, new_password: str) -> bool:
-        try:
-            s = Serializer(current_app.config["SECRET_KEY"])
-            user_id = s.loads(token)["user_id"]
-            usuario = self.repository.find_by_id(user_id)
-
-            if not usuario or not usuario.chave_recuperacao:
-                return False
-
-            bcrypt = Bcrypt()
-            update_data = {
-                "senha": bcrypt.generate_password_hash(new_password).decode("utf-8"),
-                "chave_recuperacao": False,
-            }
-
-            return self.repository.update(usuario.id, update_data) is not None
-        except Exception:
-            return False
-
-    def validate_user_permissions(
-        self,
-        user_id: int,
-        current_user_id: int,
-        current_user_role: UserRole,
-        admin_padrao_id: int,
-    ) -> tuple[bool, str]:
-        if (
-            current_user_role not in [UserRole.ADMINISTRADOR, UserRole.PROFESSOR]
-            and current_user_id != user_id
-        ):
-            return False, "Você não tem permissão para editar outro usuário."
-
-        if user_id == admin_padrao_id and current_user_id != admin_padrao_id:
-            return False, "O administrador padrão só pode ser alterado por si próprio."
-
-        return True, ""
-
-    def validate_user_status(self, user_id: int) -> tuple[bool, str]:
-        usuario = self.repository.find_by_id(user_id)
-        if not usuario:
-            return False, "Usuário não encontrado."
-
-        if not usuario.status:
-            return False, "Este usuário está inativo."
-
-        return True, ""
-
-    def token_recovery(self, user_id: int, expires_in: int = 3600) -> str:
-        s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
-        return s.dumps({"user_id": user_id}, salt="recovery")
-
-    def verify_token(self, token: str, max_age: int = 3600) -> Usuario | None:
-        s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
-        try:
-            user_id = s.loads(token, salt="recovery", max_age=max_age)["user_id"]
-        except:
-            return None
-        return self.repository.find_by_id(user_id)
-
-    def validate_password(self, senha: str) -> tuple[bool, str]:
-        caracteresEspeciais = [".", ",", ";", "@", "#"]
-
-        if len(senha) < 6:
-            return False, "Sua senha deve conter pelo menos 6 caracteres."
-
-        if not any(char.isdigit() for char in senha):
-            return False, "Sua senha precisa conter pelo menos um número."
-
-        if not any(char.isupper() for char in senha):
-            return False, "Sua senha precisa conter pelo menos uma letra maiúscula."
-
-        if not any(char in caracteresEspeciais for char in senha):
-            return (
-                False,
-                "Sua senha precisa conter pelo menos um caractere especial, sendo eles: '.' ',' ';' '@','#' .",
+        if search:
+            clauses.append(
+                WhereClause(column="nome", operator="ilike", value=f"%{search}%")
             )
 
-        if not any(char.isalpha() for char in senha):
-            return False, "Sua senha precisa conter pelo menos uma letra do alfabeto."
+        if role != "all":
+            clauses.append(
+                WhereClause(column="urole", operator="ilike", value=f"%{role}%")
+            )
 
-        return True, ""
+        where = (
+            ComplexWhereClause(
+                clauses=clauses,
+                operator="and",
+            )
+            if len(clauses) > 1
+            else clauses[0]
+        )
 
-    def process_login(self, login: str, senha: str) -> Usuario:
-        usuario = self.authenticate_user(login, senha)
-        if not usuario:
-            raise ValueError("Login ou senha inválidos")
-        return usuario
+        params = SearchParams(
+            page_params=page_params,
+            where=where,
+        )
 
-    def process_password_recovery(self, email: str) -> bool:
-        if not self.set_password_recovery(email):
-            raise ValueError("Email não encontrado no sistema")
-        return True
+        logger.info("Performing search with processed params: ", params)
+        result = self.repository.search(params=params)
 
-    def validate_password_reset_token(self, token: str) -> Usuario:
-        usuario = self.verify_token(token)
-        if not usuario or not usuario.chave_recuperacao:
-            raise ValueError("Token inválido ou expirado")
-        return usuario
+        endereco_ids = [u.endereco_id for u in result.items if u.endereco_id]
+        if endereco_ids:
+            enderecos = self.endereco_repository.get_by_ids(endereco_ids)
+            endereco_map = {e.id: e for e in enderecos}
+            for user in result.items:
+                if user.endereco_id:
+                    user.endereco = endereco_map.get(user.endereco_id)
+
+        logger.info(
+            f"Returning result with {result.per_page} of total {result.total} found items"
+        )
+
+        return result
+
+    def authenticate(self, email: str, senha: str) -> User | None:
+        logger.info(f"Authenticating user with email: {email}")
+        user = self.find_by_email(email)
+        if not user:
+            logger.warning(f"Authentication failed: user not found for email: {email}")
+            return None
+        if self.check_password(user, senha):
+            logger.info(f"Authentication successful for email: {email}")
+            return user
+        logger.warning(f"Authentication failed: incorrect password for email: {email}")
+        return None
+
+    def check_password(self, user: User, senha: str) -> bool:
+        return bcrypt.checkpw(senha.encode('utf-8'), user.senha.encode('utf-8'))
+
+    def create(self, user_input: UserCreateInput, criado_por: int) -> User:
+        logger.info(
+            f"Creating user with email: {user_input.email}, role: {user_input.urole}, created by: {criado_por}"
+        )
+        user_data = user_input.model_dump()
+
+        endereco_data = self.__extract_endereco_data(user_data)
+        endereco_id = self.endereco_repository.create(endereco_data)
+
+        user_data["endereco_id"] = endereco_id
+        user_data["criadopor"] = criado_por
+        user_data["modificadopor"] = criado_por
+        user_data["modificado"] = datetime.now()
+        user_data["criado"] = datetime.now()
+        user_data["status"] = True
+
+        password_length = 12
+        alphabet = string.ascii_letters + string.digits
+        random_password = "".join(
+            secrets.choice(alphabet) for _ in range(password_length)
+        )
+        user_data["senha"] = bcrypt.hashpw(
+            random_password.encode('utf-8'), bcrypt.gensalt()
+        ).decode("utf-8")
+
+        user_id = self.repository.create(User(**user_data))
+        user = self.find_by_id(user_id)
+        if not user:
+            logger.error(f"Failed to create user with email: {user_input.email}")
+            raise ValueError("Failed to create user")
+        logger.info(
+            f"User created successfully with id: {user_id}, email: {user_input.email}"
+        )
+        return user
+
+    def update(
+        self,
+        user_id: int,
+        user_input: UserUpdateInput,
+        modificado_por: int | None,
+    ) -> User | None:
+        logger.info(f"Updating user with id: {user_id}, modified by: {modificado_por}")
+        existing = self.repository.find_by_id(user_id)
+        if not existing:
+            logger.error(f"Update failed: user not found with id: {user_id}")
+            raise ValueError(f"User with id {user_id} not found")
+
+        user_data = user_input.model_dump()
+        user_data["modificadopor"] = modificado_por
+        user_data["modificado"] = datetime.now()
+
+        updated_data = {**existing.model_dump(), **user_data}
+        user = User(**updated_data)
+
+        self.repository.update(user_id, user)
+        logger.info(f"User updated successfully with id: {user_id}")
+        return self.find_by_id(user_id)
+
+    def soft_delete(self, user_id: int) -> bool:
+        logger.info(f"Soft deleting user with id: {user_id}")
+        result = self.repository.delete(user_id)
+        if result:
+            logger.info(f"User soft deleted successfully with id: {user_id}")
+        else:
+            logger.warning(f"Soft delete failed for user with id: {user_id}")
+        return result
+
+    def change_password(
+        self,
+        user_id: int,
+        current_password: str | None,
+        new_password: str,
+        is_admin_change: bool = False,
+    ) -> User | None:
+        logger.info(
+            f"Changing password for user id: {user_id}, is_admin_change: {is_admin_change}"
+        )
+        user = self.repository.find_by_id(user_id)
+        if not user:
+            logger.error(f"Password change failed: user not found with id: {user_id}")
+            raise ValueError(f"User with id {user_id} not found")
+
+        if not is_admin_change and current_password:
+            if not self.check_password(user, current_password):
+                logger.warning(
+                    f"Password change failed: incorrect current password for user id: {user_id}"
+                )
+                raise ValueError("Current password is incorrect")
+
+        logger.info(f"Hashing password: {new_password}")
+        hashed_password = bcrypt.hashpw(
+            new_password.encode('utf-8'), bcrypt.gensalt()
+        ).decode("utf-8")
+        logger.info(f"Hashed password: {hashed_password}")
+
+        user_data = user.model_dump(exclude={"endereco"})
+        user_data["senha"] = hashed_password
+        user_data["modificado"] = datetime.now()
+
+        self.repository.update(user_id, User(**user_data))
+        logger.info(f"Password changed successfully for user id: {user_id}")
+        return self.find_by_id(user_id)
+
+    def __extract_endereco_data(self, user_data: dict[str, Any]):
+        return {
+            "logradouro": user_data.pop("logradouro"),
+            "numero": user_data.pop("numero"),
+            "cidade": user_data.pop("cidade"),
+            "estado": user_data.pop("estado"),
+            "complemento": user_data.pop("complemento"),
+            "bairro": user_data.pop("bairro"),
+            "cep": user_data.pop("cep"),
+        }

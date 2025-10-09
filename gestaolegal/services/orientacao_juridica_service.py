@@ -1,150 +1,276 @@
-import json
 import logging
+from datetime import datetime
 
 from gestaolegal.common import PageParams
-from gestaolegal.forms.plantao.orientacao_juridica_form import (
-    OrientacaoJuridicaForm,
+from gestaolegal.models.orientacao_juridica import (
+    OrientacaoJuridica,
+    OrientacaoJuridicaDetail,
+    OrientacaoJuridicaListItem,
 )
-from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
-from gestaolegal.repositories.base_repository import WhereConditions
+from gestaolegal.models.orientacao_juridica_input import (
+    OrientacaoJuridicaCreate,
+    OrientacaoJuridicaUpdate,
+)
+from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.orientacao_juridica_repository import (
     OrientacaoJuridicaRepository,
 )
-from gestaolegal.services import PaginatedResult
-from gestaolegal.services.atendido_service import AtendidoService
+from gestaolegal.common import PaginatedResult
+from gestaolegal.repositories.repository import (
+    ComplexWhereClause,
+    GetParams,
+    SearchParams,
+    WhereClause,
+)
+from gestaolegal.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
 
 class OrientacaoJuridicaService:
     repository: OrientacaoJuridicaRepository
+    user_repository: UserRepository
+    atendido_repository: AtendidoRepository
 
     def __init__(self):
         self.repository = OrientacaoJuridicaRepository()
+        self.user_repository = UserRepository()
+        self.atendido_repository = AtendidoRepository()
 
-    def find_by_id(self, id: int) -> OrientacaoJuridica | None:
-        return self.repository.find_by_id(id)
+    def find_by_id(self, id: int) -> OrientacaoJuridicaDetail | None:
+        logger.info(f"Finding orientacao juridica by id: {id}")
+        orientacao = self.repository.find_by_id(id)
+        if not orientacao:
+            logger.warning(f"Orientacao juridica with id: {id} not found")
+            return None
 
-    def get_by_area_do_direito(
-        self, area_do_direito: str, page_params: PageParams | None = None
-    ) -> PaginatedResult[OrientacaoJuridica]:
-        where_clauses: WhereConditions = [
-            ("area_direito", "ilike", f"%{area_do_direito}%"),
+        logger.info(f"Orientacao juridica with id: {id} found")
+
+        assert orientacao.id is not None
+
+        # INFO: O caso em que id_usuario é None provavelmente ocorre apenas em dados antigos, onde possivelmente essa relação não existia
+        # Por hora vamos retornar None, porem idealmente deveriamos associar um usuario, por exemplo o Admin do sistema
+        if not orientacao.id_usuario:
+            logger.warning(
+                f"There is no associated user for orientacao juridica with id: {id}"
+            )
+
+        usuario = (
+            self.user_repository.find_by_id(orientacao.id_usuario)
+            if orientacao.id_usuario
+            else None
+        )
+
+        atendidos = self.atendido_repository.get_related_with_orientacao_juridica(
+            [orientacao.id]
+        )[0]
+
+        if not usuario and orientacao.id_usuario:
+            logger.error(
+                f"Could not find associated user for orientacao juridica with id: {id}"
+            )
+
+        return OrientacaoJuridicaDetail(
+            id=orientacao.id,
+            area_direito=orientacao.area_direito,
+            sub_area=orientacao.sub_area,
+            data_criacao=orientacao.data_criacao,
+            status=orientacao.status == 1,
+            atendidos=atendidos,
+            descricao=orientacao.descricao,
+            usuario=usuario if usuario else None,
+        )
+
+    def search(
+        self,
+        search: str = "",
+        page_params: PageParams | None = None,
+        show_inactive: bool = False,
+        area: str = "",
+    ) -> PaginatedResult[OrientacaoJuridicaListItem]:
+        logger.info(
+            f"Searching orientacoes juridicas with search: '{search}', area: {area}, show_inactive: {show_inactive}"
+        )
+        clauses = [
+            WhereClause(
+                column="status", operator="==", value=0 if show_inactive else 1
+            ),
         ]
 
-        return self.repository.get(
-            where_conditions=where_clauses,
-            order_by="data_criacao",
-            order_desc=True,
+        if search:
+            clauses.append(
+                WhereClause(column="descricao", operator="ilike", value=f"%{search}%")
+            )
+
+        if area and area != "todas":
+            clauses.append(
+                WhereClause(column="area_direito", operator="==", value=area)
+            )
+
+        where = (
+            ComplexWhereClause(clauses=clauses, operator="and")
+            if len(clauses) > 1
+            else clauses[0]
+        )
+
+        params = SearchParams(
             page_params=page_params,
+            where=where,
         )
 
-    def get_all(self, page_params: PageParams | None = None):
-        return self.repository.get(page_params=page_params)
+        result = self.repository.search(params=params)
 
-    def soft_delete(self, id: int):
-        return self.repository.soft_delete(id)
-
-    def create(self, orientacao_data: dict) -> OrientacaoJuridica:
-        return self.repository.create(orientacao_data)
-
-    def create_orientacao_with_atendidos(self, form, request) -> OrientacaoJuridica:
-        orientacao_data = OrientacaoJuridicaForm.to_dict(form)
-
-        lista_atendidos = request.form.get("lista_atendidos")
-        if lista_atendidos:
-            atendidos_data = json.loads(lista_atendidos)
-            atendidos_ids = atendidos_data.get("id", [])
-
-            atendido_service = AtendidoService()
-            atendidos = atendido_service.get_by_ids(atendidos_ids)
-            orientacao_data["atendidos"] = atendidos
-
-        orientacao = self.create(orientacao_data)
-
-        if form.encaminhar_outras_aj.data and orientacao.id:
-            assistencia_id = request.form.get("assistencia_judiciaria")
-            if assistencia_id:
-                success = self.associate_assistencia_judiciaria(
-                    orientacao.id, int(assistencia_id)
+        users_orientacao_map = {
+            item.id_usuario: item.id for item in result.items if item.id_usuario
+        }
+        users = self.user_repository.get(
+            params=GetParams(
+                where=WhereClause(
+                    column="id", operator="in", value=list(users_orientacao_map.keys())
                 )
-                if not success:
-                    logger.warning(
-                        f"Failed to associate assistência judiciária {assistencia_id} with orientação {orientacao.id}"
+            )
+        )
+        logger.info(
+            f"Returning {len(result.items)} orientacoes juridicas of total {result.total} found"
+        )
+
+        atendidos, atendidos_map = (
+            self.atendido_repository.get_related_with_orientacao_juridica(
+                [item.id for item in result.items if item.id is not None]
+            )
+        )
+
+        filled_items: list[OrientacaoJuridicaListItem] = []
+        for item in result.items:
+            related_user = (
+                next(
+                    (
+                        user
+                        for user in users
+                        if user.id == users_orientacao_map[item.id_usuario]
+                    ),
+                    None,
+                )
+                if item.id_usuario
+                else None
+            )
+            related_atendidos = (
+                [
+                    atendido
+                    for atendido in atendidos
+                    if atendido.id in atendidos_map.get(item.id, [])
+                ]
+                if item.id
+                else []
+            )
+
+            assert item.id is not None
+            filled_items.append(
+                OrientacaoJuridicaListItem(
+                    id=item.id,
+                    area_direito=item.area_direito,
+                    sub_area=item.sub_area,
+                    descricao=item.descricao,
+                    atendidos=[atendido.nome for atendido in related_atendidos],
+                    usuario=related_user,
+                    data_criacao=item.data_criacao,
+                    status=item.status == 1,
+                )
+            )
+
+        return PaginatedResult(
+            items=filled_items,
+            total=result.total,
+            page=result.page,
+            per_page=result.per_page,
+        )
+
+    def delete(self, id: int):
+        logger.info(f"Deleting orientacao juridica with id: {id}")
+        result = self.repository.delete(id)
+        logger.info(f"Orientacao juridica deleted successfully with id: {id}")
+        return result
+
+    # TODO: Devemos usar transactions aqui
+    def create(
+        self, orientacao_input: OrientacaoJuridicaCreate, id_usuario: int
+    ) -> OrientacaoJuridica:
+        logger.info(
+            f"Creating orientacao juridica with area_direito: {orientacao_input.area_direito}, created by user: {id_usuario}, atendidos count: {len(orientacao_input.atendidos_ids) if orientacao_input.atendidos_ids else 0}"
+        )
+
+        orientacao_data = orientacao_input.model_dump(exclude={"atendidos_ids"})
+        orientacao_data["id_usuario"] = id_usuario
+        orientacao_data["status"] = 1
+        orientacao_data["data_criacao"] = datetime.now()
+        orientacao = OrientacaoJuridica.model_validate(
+            obj=orientacao_data,
+        )
+
+        orientacao_id = self.repository.create(orientacao)
+
+        if orientacao_input.atendidos_ids:
+            atendidos = self.atendido_repository.get(
+                params=GetParams(
+                    where=WhereClause(
+                        column="id", operator="in", value=orientacao_input.atendidos_ids
                     )
+                )
+            )
+            logger.info(
+                f"Linked {len(orientacao_input.atendidos_ids)} atendidos to orientacao juridica: {orientacao_id}"
+            )
+            self.repository.add_related_atendidos(
+                orientacao_id, [atendido.id for atendido in atendidos]
+            )
 
-        return orientacao
+        created_orientacao = self.repository.find_by_id(orientacao_id)
+        if not created_orientacao:
+            logger.error(
+                f"Could not find created orientacao juridica with id: {orientacao_id}"
+            )
+            raise ValueError("Something went wrong while creating orientacao juridica")
 
-    def associate_atendido(self, orientacao_id: int, atendido_id: int) -> bool:
-        return self.repository.associate_atendido(orientacao_id, atendido_id)
-
-    def disassociate_atendido(self, orientacao_id: int, atendido_id: int) -> bool:
-        return self.repository.disassociate_atendido(orientacao_id, atendido_id)
-
-    def associate_assistencia_judiciaria(
-        self, orientacao_id: int, assistencia_id: int
-    ) -> bool:
-        return self.repository.associate_assistencia_judiciaria(
-            orientacao_id, assistencia_id
+        logger.info(
+            f"Orientacao juridica created successfully with id: {orientacao_id}"
         )
+        return created_orientacao
 
-    def get_perfil_data(self, orientacao_id: int):
-        return self.repository.get_perfil_data(orientacao_id)
+    def update(
+        self, id: int, orientacao_input: OrientacaoJuridicaUpdate
+    ) -> OrientacaoJuridica:
+        logger.info(f"Updating orientacao juridica with id: {id}")
+        existing = self.repository.find_by_id(id)
+        if not existing:
+            logger.error(f"Update failed: orientacao juridica not found with id: {id}")
+            raise ValueError(f"Orientacao juridica with id {id} not found")
 
-    def buscar_atendidos(self, termo: str, orientacao_id: str | None = None):
-        return self.repository.buscar_atendidos(termo, orientacao_id)
-
-    def buscar_orientacoes_por_atendido(self, busca: str, page: int, per_page: int):
-        return self.repository.buscar_orientacoes_por_atendido(
-            busca, PageParams(page=page, per_page=per_page)
+        update_data = orientacao_input.model_dump(
+            exclude_none=True, exclude={"atendidos_ids"}
         )
+        updated_data = {**existing.model_dump(), **update_data}
+        orientacao = OrientacaoJuridica.model_validate(updated_data)
 
-    def update_orientacao_juridica(self, id_oj: int, form) -> OrientacaoJuridica:
-        orientacao_data = OrientacaoJuridicaForm.to_dict(form)
-        orientacao_data["id"] = id_oj
-        orientacao = self.repository.update(id_oj, orientacao_data)
-        if not orientacao:
-            raise ValueError("Orientação jurídica não encontrada.")
-        return orientacao
+        self.repository.update(id, orientacao)
 
-    def get_editar_orientacao_data(self, id_oj: int) -> dict:
-        orientacao = self.find_by_id(id_oj)
-        if not orientacao:
-            return {}
+        if orientacao_input.atendidos_ids is not None:
+            atendidos = self.atendido_repository.get(
+                params=GetParams(
+                    where=WhereClause(
+                        column="id", operator="in", value=orientacao_input.atendidos_ids
+                    )
+                )
+            )
+            self.repository.add_related_atendidos(
+                id, [atendido.id for atendido in atendidos]
+            )
+            logger.info(
+                f"Updated orientacao juridica {id} with {len(orientacao_input.atendidos_ids)} linked atendidos"
+            )
 
-        return {
-            "id": orientacao.id,
-            "area_direito": orientacao.area_direito,
-            "sub_area": orientacao.sub_area,
-            "descricao": orientacao.descricao,
-        }
+        logger.info(f"Orientacao juridica updated successfully with id: {id}")
 
-    def validate_orientacao_exists(self, orientacao_id: int) -> bool:
-        orientacao = self.find_by_id(orientacao_id)
-        return orientacao is not None
+        updated = self.repository.find_by_id(id)
+        assert updated is not None
 
-    def associate_atendido_to_orientacao(
-        self, orientacao_id: int, atendido_id: int
-    ) -> bool:
-        return self.associate_atendido(orientacao_id, atendido_id)
-
-    def get_associacao_page_data(self, orientacao_id: int) -> dict:
-        orientacao = self.find_by_id(orientacao_id)
-        if not orientacao:
-            return {}
-
-        perfil_data = self.get_perfil_data(orientacao_id)
-        return {
-            "orientacao": orientacao,
-            "atendidos": perfil_data.get("atendidos", []),
-        }
-
-    def get_paginated_orientacoes(self, page: int, per_page: int):
-        return self.get_all(page_params=PageParams(page=page, per_page=per_page))
-
-    def buscar_orientacoes_por_atendido_or_all(
-        self, busca: str, page: int, per_page: int
-    ):
-        if busca and busca.strip():
-            return self.buscar_orientacoes_por_atendido(busca, page, per_page)
-        return self.get_paginated_orientacoes(page, per_page)
+        return updated
