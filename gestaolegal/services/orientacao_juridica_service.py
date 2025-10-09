@@ -15,7 +15,7 @@ from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.orientacao_juridica_repository import (
     OrientacaoJuridicaRepository,
 )
-from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     GetParams,

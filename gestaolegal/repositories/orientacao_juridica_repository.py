@@ -8,7 +8,7 @@ from gestaolegal.database.tables import (
     orientacao_juridica,
 )
 from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
-from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,

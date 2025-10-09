@@ -14,7 +14,7 @@ from gestaolegal.models.atendido_input import (
 )
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.endereco_repository import EnderecoRepository
-from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     SearchParams,

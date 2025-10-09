@@ -5,7 +5,7 @@ from gestaolegal.common import PageParams
 from gestaolegal.models.caso import Caso
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
 from gestaolegal.repositories.caso_repository import CasoRepository
-from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     SearchParams,
