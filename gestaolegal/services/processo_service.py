@@ -1,101 +1,129 @@
 import logging
-from typing import Optional
 
-from gestaolegal.common.constants.user_roles import UserRole
+from gestaolegal.common import PageParams
 from gestaolegal.models.processo import Processo
-from gestaolegal.repositories.base_repository import BaseRepository
-from gestaolegal.repositories.caso_repository import CasoRepository
-from gestaolegal.schemas.processo import ProcessoSchema
+from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
+from gestaolegal.common import PaginatedResult
+from gestaolegal.repositories.processo_repository import ProcessoRepository
+from gestaolegal.repositories.repository import (
+    ComplexWhereClause,
+    SearchParams,
+    WhereClause,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class ProcessoService:
-    repository: BaseRepository[ProcessoSchema, Processo]
-    caso_repository: CasoRepository
+    repository: ProcessoRepository
 
     def __init__(self):
-        self.repository = BaseRepository(ProcessoSchema, Processo)
-        self.caso_repository = CasoRepository()
+        self.repository = ProcessoRepository()
 
-    def create(self, processo_data: dict) -> Processo:
-        existing_processo = self.repository.find(
-            where_conditions=[("numero", "eq", processo_data["numero"])]
-        )
-        if existing_processo:
-            raise ValueError("O número deste processo já está cadastrado no sistema")
-
-        processo = self.repository.create(processo_data)
-        logger.info(
-            f"Processo associado com sucesso ao caso {processo_data.get('id_caso', 'N/A')}"
-        )
+    def find_by_id(self, id: int) -> Processo | None:
+        logger.info(f"Finding processo by id: {id}")
+        processo = self.repository.find_by_id(id)
+        if processo:
+            logger.info(f"Processo found with id: {id}")
+        else:
+            logger.warning(f"Processo not found with id: {id}")
         return processo
 
-    def find_by_id(self, processo_id: int) -> Optional[Processo]:
-        return self.repository.find_by_id(processo_id)
+    def find_by_caso_id(self, caso_id: int) -> list[Processo]:
+        logger.info(f"Finding processos by caso_id: {caso_id}")
+        processos = self.repository.find_by_caso_id(caso_id)
+        logger.info(f"Found {len(processos)} processos for caso_id: {caso_id}")
+        return processos
 
-    def get_processo_by_numero(self, numero_processo: int) -> Optional[Processo]:
-        return self.repository.find(
-            where_conditions=[("numero", "eq", numero_processo)]
+    def search(
+        self,
+        page_params: PageParams,
+        search: str = "",
+        show_inactive: bool = False,
+        caso_id: int | None = None,
+    ) -> PaginatedResult[Processo]:
+        logger.info(
+            f"Searching processos with search: '{search}', caso_id: {caso_id}, show_inactive: {show_inactive}, page: {page_params['page']}, per_page: {page_params['per_page']}"
+        )
+        clauses: list[WhereClause] = []
+
+        if not show_inactive:
+            clauses.append(WhereClause(column="status", operator="==", value=True))
+
+        if caso_id:
+            clauses.append(WhereClause(column="id_caso", operator="==", value=caso_id))
+
+        if search:
+            clauses.append(
+                WhereClause(
+                    column="identificacao", operator="ilike", value=f"%{search}%"
+                )
+            )
+
+        where = None
+        if len(clauses) > 1:
+            where = ComplexWhereClause(clauses=clauses, operator="and")
+        elif len(clauses) == 1:
+            where = clauses[0]
+
+        params = SearchParams(
+            page_params=page_params,
+            where=where,
         )
 
-    def get_processos_by_caso(self, caso_id: int) -> list[Processo]:
-        result = self.repository.get(where_conditions=[("id_caso", "eq", caso_id)])
-        return result.items
+        result = self.repository.search(params=params)
+        logger.info(
+            f"Returning {len(result.items)} processos of total {result.total} found"
+        )
+        return result
 
-    def update_processo(
+    def create(
+        self, processo_input: ProcessoCreateInput, criado_por_id: int
+    ) -> Processo:
+        logger.info(
+            f"Creating processo with especie: {processo_input.especie}, caso_id: {processo_input.id_caso}, created by: {criado_por_id}"
+        )
+        processo_data = processo_input.model_dump()
+
+        processo_data["id_criado_por"] = criado_por_id
+
+        processo = Processo.model_validate(processo_data)
+        processo_id = self.repository.create(processo)
+
+        created_processo = self.find_by_id(processo_id)
+        if not created_processo:
+            logger.error("Failed to create processo")
+            raise ValueError("Failed to create processo")
+
+        logger.info(f"Processo created successfully with id: {processo_id}")
+        return created_processo
+
+    def update(
         self,
         processo_id: int,
-        processo_data: dict,
-    ) -> Processo:
-        processo = self.repository.find_by_id(processo_id)
-        if not processo:
-            raise ValueError("Processo não encontrado")
+        processo_input: ProcessoUpdateInput,
+    ) -> Processo | None:
+        logger.info(f"Updating processo with id: {processo_id}")
+        existing = self.repository.find_by_id(processo_id)
+        if not existing:
+            logger.error(f"Update failed: processo not found with id: {processo_id}")
+            raise ValueError(f"Processo with id {processo_id} not found")
 
-        return self.repository.update(processo_id, processo_data)
+        processo_data = processo_input.model_dump(exclude_none=True)
 
-    def delete_processo(self, processo_id: int) -> None:
-        processo = self.repository.find_by_id(processo_id)
-        if not processo:
-            raise ValueError("Processo não encontrado")
+        updated_data = {**existing.model_dump(), **processo_data}
+        processo = Processo.model_validate(updated_data)
 
-        self.repository.delete(processo_id)
+        self.repository.update(processo_id, processo)
 
-    def get_ultimo_processo_numero(self, caso_id: int) -> int | None:
-        result = self.repository.get(where_conditions=[("id_caso", "eq", caso_id)])
-        if result.items:
-            return result.items[-1].numero
-        return None
+        logger.info(f"Processo updated successfully with id: {processo_id}")
+        return self.repository.find_by_id(processo_id)
 
-    def validate_processo_permission(
-        self, processo_id: int, user_id: int, user_role: str
-    ) -> bool:
-        processo = self.find_by_id(processo_id)
-
-        if not processo:
-            return False
-
-        if user_role == UserRole.ADMINISTRADOR:
-            return True
-
-        if user_id == processo.id_criado_por:
-            return True
-
-        return False
-
-    def update_ultimo_processo_dos_casos(self) -> None:
-        casos = self.caso_repository.get()
-
-        for caso in casos.items:
-            processos = self.get_processos_by_caso(caso.id)
-            if processos:
-                ultimo_processo = (
-                    processos[-1]
-                    if isinstance(processos, list)
-                    else processos.items[-1]
-                    if hasattr(processos, "items")
-                    else processos
-                )
-                caso_data = caso.to_dict()
-                caso_data["numero_ultimo_processo"] = ultimo_processo.numero
-                self.caso_repository.update(caso.id, caso_data)
+    def soft_delete(self, processo_id: int) -> bool:
+        logger.info(f"Soft deleting processo with id: {processo_id}")
+        result = self.repository.delete(processo_id)
+        if result:
+            logger.info(f"Processo soft deleted successfully with id: {processo_id}")
+        else:
+            logger.warning(f"Soft delete failed for processo with id: {processo_id}")
+        return result

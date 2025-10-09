@@ -1,176 +1,198 @@
-from typing import Optional
+from sqlalchemy import delete as sql_delete
+from sqlalchemy import func, insert, select
+from sqlalchemy import update as sql_update
+from sqlalchemy.orm import Session
 
-from sqlalchemy import func
-
-from gestaolegal.models.caso import Caso
-from gestaolegal.repositories.base_repository import (
-    BaseRepository,
-    PageParams,
-    WhereConditions,
+from gestaolegal.database.tables import (
+    atendidos,
+    casos,
+    casos_atendidos,
+    processos,
+    usuarios,
 )
-from gestaolegal.schemas.atendido import AtendidoSchema
-from gestaolegal.schemas.caso import CasoSchema
+from gestaolegal.models.atendido import Atendido
+from gestaolegal.models.caso import Caso
+from gestaolegal.models.processo import Processo
+from gestaolegal.models.user import User
+from gestaolegal.common import PaginatedResult
+from gestaolegal.repositories.repository import (
+    BaseRepository,
+    CountParams,
+    SearchParams,
+)
 
 
-class CasoRepository(BaseRepository[CasoSchema, Caso]):
+class CasoRepository(BaseRepository):
+    session: Session
+
     def __init__(self):
-        super().__init__(CasoSchema, Caso)
+        super().__init__()
 
-    def create_with_clientes(
-        self, caso_data: dict, clientes_ids: Optional[str] = None
-    ) -> Caso:
-        caso = self.create(caso_data)
+    def find_by_id(self, id: int) -> Caso | None:
+        stmt = select(casos).where(casos.c.id == id)
+        result = self.session.execute(stmt).one_or_none()
 
-        if clientes_ids:
-            caso_schema = self.session.get(CasoSchema, caso.id)
-            for id_cliente in clientes_ids.split(","):
-                cliente = self.session.get(AtendidoSchema, int(id_cliente))
-                if cliente:
-                    caso_schema.clientes.append(cliente)
-            self.session.commit()
+        if not result:
+            return None
+
+        caso = Caso.model_validate(dict(result._mapping))  # type: ignore
+
+        caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
+        caso.criado_por = (
+            self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None
+        )
+
+        if caso.id_orientador:
+            caso.orientador = self._get_user_by_id(caso.id_orientador)
+        if caso.id_estagiario:
+            caso.estagiario = self._get_user_by_id(caso.id_estagiario)
+        if caso.id_colaborador:
+            caso.colaborador = self._get_user_by_id(caso.id_colaborador)
+        if caso.id_modificado_por:
+            caso.modificado_por = self._get_user_by_id(caso.id_modificado_por)
+
+        caso.clientes = self._get_atendidos_by_caso_id(id)
+        caso.processos = self._get_processos_by_caso_id(id)
 
         return caso
 
-    def add_cliente_to_caso(self, caso_id: int, cliente_id: int) -> bool:
-        caso_schema = self.session.get(CasoSchema, caso_id)
-        if not caso_schema:
-            return False
+    def search(self, params: SearchParams) -> PaginatedResult[Caso]:
+        stmt = select(casos, func.count().over().label("total_count"))
 
-        cliente = self.session.get(AtendidoSchema, cliente_id)
-        if not cliente:
-            return False
+        stmt = self._apply_where_clause(stmt, params.get("where"), casos)
+        stmt = stmt.order_by(casos.c.data_criacao.desc())
+        stmt = self._apply_pagination(stmt, params.get("page_params"))
 
-        caso_schema.clientes.append(cliente)
-        self.session.commit()
-        return True
+        results = self.session.execute(stmt).all()
+        total = results[0].total_count if results else 0
 
-    def remove_cliente_from_caso(self, caso_id: int, cliente_id: int) -> bool:
-        caso_schema = self.session.get(CasoSchema, caso_id)
-        if not caso_schema:
-            return False
+        items = []
+        for row in results:
+            caso = Caso.model_validate(dict(row._mapping))  # type: ignore
+            caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
+            caso.criado_por = (
+                self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None
+            )
 
-        cliente = self.session.get(AtendidoSchema, cliente_id)
-        if not cliente or cliente not in caso_schema.clientes:
-            return False
+            if caso.id_orientador:
+                caso.orientador = self._get_user_by_id(caso.id_orientador)
+            if caso.id_estagiario:
+                caso.estagiario = self._get_user_by_id(caso.id_estagiario)
+            if caso.id_colaborador:
+                caso.colaborador = self._get_user_by_id(caso.id_colaborador)
+            if caso.id_modificado_por:
+                caso.modificado_por = self._get_user_by_id(caso.id_modificado_por)
 
-        caso_schema.clientes.remove(cliente)
-        self.session.commit()
-        return True
+            caso.clientes = self._get_atendidos_by_caso_id(caso.id) if caso.id else []
+            items.append(caso)
 
-    def get_arquivos_by_caso(self, caso_id: int):
-        from gestaolegal.schemas.arquivo_caso import ArquivoCasoSchema
-
-        return (
-            self.session.query(ArquivoCasoSchema)
-            .filter(ArquivoCasoSchema.id_caso == caso_id)
-            .all()
-        )
-
-    def delete_arquivos_by_caso(self, caso_id: int) -> None:
-        from gestaolegal.schemas.arquivo_caso import ArquivoCasoSchema
-
-        arquivos = self.session.query(ArquivoCasoSchema).filter(
-            ArquivoCasoSchema.id_caso == caso_id
-        )
-        for arquivo in arquivos:
-            self.session.delete(arquivo)
-        self.session.commit()
-
-    def get_casos_with_filters(self, opcao_filtro: str, page_params: PageParams):
-        where_conditions: WhereConditions = []
-
-        if opcao_filtro != "todos":
-            where_conditions.append(("situacao_deferimento", "eq", opcao_filtro))
-
-        return self.get(
-            page_params=page_params,
-            where_conditions=where_conditions if where_conditions else None,
-            order_by=["data_criacao"],
-            order_desc=True,
-        )
-
-    def get_casos_count_by_area(
-        self, data_inicio: str, data_fim: str, areas: Optional[list[str]] = None
-    ) -> list[tuple]:
-        query = self.session.query(
-            CasoSchema.area_direito, func.count(CasoSchema.area_direito)
-        ).filter(
-            CasoSchema.status,
-            CasoSchema.data_criacao >= data_inicio,
-            CasoSchema.data_criacao <= data_fim,
-        )
-
-        if areas:
-            query = query.filter(CasoSchema.area_direito.in_(areas))
-
-        return query.group_by(CasoSchema.area_direito).all()
-
-    def get_casos_by_status_and_area(
-        self,
-        data_inicio: str,
-        data_fim: str,
-        areas: Optional[list[str]] = None,
-        situacoes: Optional[list[str]] = None,
-    ) -> list[Caso]:
-        where_conditions: WhereConditions = [
-            ("data_criacao", "gte", data_inicio),
-            ("data_criacao", "lte", data_fim),
-        ]
-
-        if areas:
-            where_conditions.append(("area_direito", "in", areas))
-
-        if situacoes:
-            where_conditions.append(("situacao_deferimento", "in", situacoes))
-
-        result = self.get(
-            where_conditions=where_conditions,
-            order_by=["data_criacao"],
-            order_desc=True,
-        )
-        return result.items
-
-    def get_casos_by_date_range(self, data_inicio: str, data_fim: str) -> list[Caso]:
-        where_conditions: WhereConditions = [
-            ("data_criacao", "gte", data_inicio),
-            ("data_criacao", "lte", data_fim),
-        ]
-
-        result = self.get(
-            where_conditions=where_conditions,
-            order_by=["data_criacao"],
-            order_desc=True,
-        )
-        return result.items
-
-    def _create_paginated_result(self, items, total, page_params):
-        from gestaolegal.repositories.base_repository import PaginatedResult
-
+        page_params = params.get("page_params")
         return PaginatedResult(
-            items, total, page_params["page"] or 1, page_params["per_page"] or total
+            items=items,
+            total=total,
+            page=page_params["page"] if page_params else 1,
+            per_page=page_params["per_page"] if page_params else total,
         )
 
-    def get_meus_casos(
-        self, id_usuario: int, opcao_filtro: str, page_params: PageParams
-    ):
-        where_conditions: WhereConditions = [
-            {
-                "or": [
-                    ("id_usuario_responsavel", "eq", id_usuario),
-                    ("id_orientador", "eq", id_usuario),
-                    ("id_estagiario", "eq", id_usuario),
-                ]
+    def find_one(self, params: SearchParams) -> Caso | None:
+        stmt = select(casos)
+        stmt = self._apply_where_clause(stmt, params.get("where"), casos)
+        result = self.session.execute(stmt).one_or_none()
+
+        if not result:
+            return None
+
+        caso = Caso.model_validate(dict(result._mapping))  # type: ignore
+        caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
+        caso.criado_por = (
+            self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None
+        )
+        caso.clientes = self._get_atendidos_by_caso_id(caso.id) if caso.id else []
+
+        return caso
+
+    def count(self, params: CountParams) -> int:
+        stmt = select(func.count()).select_from(casos)
+        stmt = self._apply_where_clause(stmt, params.get("where"), casos)
+
+        result = self.session.execute(stmt).scalar()
+        return result or 0
+
+    def create(self, data: Caso) -> int:
+        caso_dict = data.model_dump(
+            exclude={
+                "id",
+                "usuario_responsavel",
+                "clientes",
+                "orientador",
+                "estagiario",
+                "colaborador",
+                "criado_por",
+                "modificado_por",
             }
-        ]
-
-        if opcao_filtro == "cad_por_mim":
-            where_conditions.append(("id_criado_por", "eq", id_usuario))
-        elif opcao_filtro != "todos":
-            where_conditions.append(("situacao_deferimento", "eq", opcao_filtro))
-
-        return self.get(
-            page_params=page_params,
-            where_conditions=where_conditions,
-            order_by=["data_criacao"],
-            order_desc=True,
         )
+        stmt = insert(casos).values(**caso_dict)
+        result = self.session.execute(stmt)
+        return result.lastrowid
+
+    def update(self, id: int, data: Caso) -> None:
+        caso_dict = data.model_dump(
+            exclude={
+                "id",
+                "usuario_responsavel",
+                "clientes",
+                "orientador",
+                "estagiario",
+                "colaborador",
+                "criado_por",
+                "modificado_por",
+            }
+        )
+        stmt = sql_update(casos).where(casos.c.id == id).values(**caso_dict)
+        self.session.execute(stmt)
+
+    def delete(self, id: int) -> bool:
+        stmt = sql_update(casos).where(casos.c.id == id).values(status=False)
+        result = self.session.execute(stmt)
+        return result.rowcount > 0
+
+    def link_atendidos(self, caso_id: int, atendido_ids: list[int]) -> None:
+        stmt = sql_delete(casos_atendidos).where(casos_atendidos.c.id_caso == caso_id)
+        self.session.execute(stmt)
+
+        for atendido_id in atendido_ids:
+            stmt = insert(casos_atendidos).values(
+                id_caso=caso_id, id_atendido=atendido_id
+            )
+            self.session.execute(stmt)
+
+    def _get_user_by_id(self, user_id: int) -> User | None:
+        stmt = select(usuarios).where(usuarios.c.id == user_id)
+        result = self.session.execute(stmt).one_or_none()
+        return User.model_validate(result) if result else None
+
+    def _get_atendidos_by_caso_id(self, caso_id: int) -> list[Atendido]:
+        stmt = (
+            select(atendidos)
+            .select_from(
+                casos_atendidos.join(
+                    atendidos, casos_atendidos.c.id_atendido == atendidos.c.id
+                )
+            )
+            .where(casos_atendidos.c.id_caso == caso_id)
+        )
+
+        results = self.session.execute(stmt).all()
+        return [Atendido.model_validate(row) for row in results]
+
+    def _get_processos_by_caso_id(self, caso_id: int) -> list[Processo]:
+        stmt = select(processos).where(processos.c.id_caso == caso_id)
+
+        results = self.session.execute(stmt).all()
+        processos_list: list[Processo] = []
+        for row in results:
+            processo = Processo.model_validate(dict(row._mapping))  # type: ignore
+            processo.criado_por = self._get_user_by_id(processo.id_criado_por)
+            processos_list.append(processo)
+
+        return processos_list

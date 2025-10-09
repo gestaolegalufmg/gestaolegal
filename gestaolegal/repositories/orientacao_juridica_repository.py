@@ -1,238 +1,104 @@
-from typing import Optional
+from sqlalchemy import delete as sql_delete
+from sqlalchemy import func, insert, select
+from sqlalchemy import update as sql_update
+from sqlalchemy.orm import Session
 
-from sqlalchemy import func, or_
-
+from gestaolegal.database.tables import (
+    atendido_xOrientacaoJuridica,
+    orientacao_juridica,
+)
 from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
-from gestaolegal.repositories.base_repository import BaseRepository, PageParams
-from gestaolegal.schemas.assistencia_judiciaria_x_orientacao_juridica import (
-    AssistenciaJudiciaria_xOrientacaoJuridicaSchema,
+from gestaolegal.common import PaginatedResult
+from gestaolegal.repositories.repository import (
+    BaseRepository,
+    CountParams,
+    SearchParams,
 )
-from gestaolegal.schemas.atendido import AtendidoSchema
-from gestaolegal.schemas.atendido_x_orientacao_juridica import (
-    Atendido_xOrientacaoJuridicaSchema,
-)
-from gestaolegal.schemas.orientacao_juridica import OrientacaoJuridicaSchema
-from gestaolegal.schemas.usuario import UsuarioSchema
 
 
-class OrientacaoJuridicaRepository(
-    BaseRepository[OrientacaoJuridicaSchema, OrientacaoJuridica]
-):
+class OrientacaoJuridicaRepository(BaseRepository):
+    session: Session
+
     def __init__(self):
-        super().__init__(OrientacaoJuridicaSchema, OrientacaoJuridica)
+        super().__init__()
 
-    def get_orientacoes_count_by_area(
-        self, data_inicio: str, data_fim: str, areas: Optional[list[str]] = None
-    ) -> list[tuple]:
-        query = self.session.query(
-            OrientacaoJuridicaSchema.area_direito,
-            func.count(OrientacaoJuridicaSchema.area_direito),
-        ).filter(
-            OrientacaoJuridicaSchema.status,
-            OrientacaoJuridicaSchema.data_criacao >= data_inicio,
-            OrientacaoJuridicaSchema.data_criacao <= data_fim,
-        )
+    def find_by_id(self, id: int) -> OrientacaoJuridica | None:
+        stmt = select(orientacao_juridica).where(orientacao_juridica.c.id == id)
+        result = self.session.execute(stmt).one_or_none()
 
-        if areas:
-            query = query.filter(OrientacaoJuridicaSchema.area_direito.in_(areas))
+        orientacao = OrientacaoJuridica.model_validate(result) if result else None
+        return orientacao
 
-        return query.group_by(OrientacaoJuridicaSchema.area_direito).all()
+    def search(self, params: SearchParams) -> PaginatedResult[OrientacaoJuridica]:
+        stmt = select(orientacao_juridica, func.count().over().label("total_count"))
 
-    def get_all_with_pagination(self, page_params: PageParams | None = None):
-        return self.get(
-            order_by=["data_criacao"],
-            order_desc=True,
-            page_params=page_params,
-        )
+        stmt = self._apply_where_clause(stmt, params.get("where"), orientacao_juridica)
+        stmt = stmt.order_by(orientacao_juridica.c.data_criacao.desc())
+        stmt = self._apply_pagination(stmt, params.get("page_params"))
 
-    def get_perfil_data(self, orientacao_id: int):
-        orientacao = self.find_by_id(orientacao_id)
-        if not orientacao:
-            return None
+        results = self.session.execute(stmt).all()
+        total = results[0].total_count if results else 0
 
-        atendidos_envolvidos = (
-            self.session.query(AtendidoSchema)
-            .join(Atendido_xOrientacaoJuridicaSchema)
-            .filter(
-                Atendido_xOrientacaoJuridicaSchema.id_orientacaoJuridica
-                == orientacao.id,
-                AtendidoSchema.status,
-            )
-            .order_by(AtendidoSchema.nome)
-            .all()
-        )
+        items = [OrientacaoJuridica.model_validate(row) for row in results]
 
-        usuario = None
-        if orientacao.id_usuario:
-            usuario = (
-                self.session.query(UsuarioSchema)
-                .filter_by(id=orientacao.id_usuario)
-                .first()
-            )
-
-        assistencias_envolvidas = (
-            self.session.query(AssistenciaJudiciaria_xOrientacaoJuridicaSchema)
-            .filter_by(id_orientacaoJuridica=orientacao.id)
-            .all()
-        )
-
-        return {
-            "orientacao": orientacao,
-            "atendidos": atendidos_envolvidos,
-            "assistencias": assistencias_envolvidas,
-            "usuario": usuario or {"nome": "--"},
-        }
-
-    def buscar_atendidos(
-        self, termo: str, orientacao_id: str | None = None
-    ) -> list[AtendidoSchema]:
-        from sqlalchemy import or_
-
-        query = self.session.query(AtendidoSchema).filter(AtendidoSchema.status)
-
-        if orientacao_id and orientacao_id != "0":
-            query = query.outerjoin(Atendido_xOrientacaoJuridicaSchema).filter(
-                (
-                    Atendido_xOrientacaoJuridicaSchema.id_orientacaoJuridica
-                    != int(orientacao_id)
-                )
-                | (Atendido_xOrientacaoJuridicaSchema.id_orientacaoJuridica.is_(None))
-            )
-
-        if termo:
-            query = query.filter(
-                or_(
-                    AtendidoSchema.nome.ilike(f"%{termo}%"),
-                    AtendidoSchema.cpf.ilike(f"%{termo}%"),
-                    AtendidoSchema.cnpj.ilike(f"%{termo}%"),
-                )
-            )
-
-        return query.order_by(AtendidoSchema.nome).limit(20).all()
-
-    def buscar_orientacoes_por_atendido(self, busca: str, page_params: PageParams):
-        query = (
-            self.session.query(OrientacaoJuridicaSchema)
-            .filter(OrientacaoJuridicaSchema.status)
-            .outerjoin(
-                Atendido_xOrientacaoJuridicaSchema,
-                OrientacaoJuridicaSchema.id
-                == Atendido_xOrientacaoJuridicaSchema.id_orientacaoJuridica,
-            )
-            .outerjoin(
-                AtendidoSchema,
-                AtendidoSchema.id == Atendido_xOrientacaoJuridicaSchema.id_atendido,
-            )
-            .filter(
-                or_(
-                    AtendidoSchema.nome.contains(busca),
-                    AtendidoSchema.cpf.contains(busca),
-                )
-            )
-            .order_by(OrientacaoJuridicaSchema.data_criacao.desc())
-        )
-
-        total = query.count()
-        page = page_params["page"]
-        per_page = page_params["per_page"]
-        items = query.offset((page - 1) * per_page).limit(per_page).all()
-
-        from gestaolegal.repositories.base_repository import PaginatedResult
-
+        page_params = params.get("page_params")
         return PaginatedResult(
-            items=[self._build_model(e) for e in items],
+            items=items,
             total=total,
-            page=page,
-            per_page=per_page,
+            page=page_params["page"] if page_params else 1,
+            per_page=page_params["per_page"] if page_params else total,
         )
 
-    def associate_atendido(self, orientacao_id: int, atendido_id: int) -> bool:
-        try:
-            orientacao = self.find_by_id(orientacao_id)
-            if not orientacao:
-                return False
+    def find_one(self, params: SearchParams) -> OrientacaoJuridica | None:
+        stmt = select(orientacao_juridica)
+        stmt = self._apply_where_clause(stmt, params.get("where"), orientacao_juridica)
+        result = self.session.execute(stmt).one_or_none()
+        return OrientacaoJuridica.model_validate(result) if result else None
 
-            existing = (
-                self.session.query(Atendido_xOrientacaoJuridicaSchema)
-                .filter_by(id_orientacaoJuridica=orientacao_id, id_atendido=atendido_id)
-                .first()
-            )
-            if existing:
-                return False
+    def count(self, params: CountParams) -> int:
+        stmt = select(func.count()).select_from(orientacao_juridica)
+        stmt = self._apply_where_clause(stmt, params.get("where"), orientacao_juridica)
 
-            association = Atendido_xOrientacaoJuridicaSchema(
-                id_orientacaoJuridica=orientacao_id,
-                id_atendido=atendido_id,
-            )
-            self.session.add(association)
-            self.session.commit()
-            return True
-        except Exception:
-            self.session.rollback()
-            return False
+        result = self.session.execute(stmt).scalar()
+        return result or 0
 
-    def disassociate_atendido(self, orientacao_id: int, atendido_id: int) -> bool:
-        try:
-            association = (
-                self.session.query(Atendido_xOrientacaoJuridicaSchema)
-                .filter_by(id_orientacaoJuridica=orientacao_id, id_atendido=atendido_id)
-                .first()
-            )
-            if not association:
-                return False
-
-            self.session.delete(association)
-            self.session.commit()
-            return True
-        except Exception:
-            self.session.rollback()
-            return False
-
-    def associate_assistencia_judiciaria(
-        self, orientacao_id: int, assistencia_id: int
-    ) -> bool:
-        try:
-            orientacao = self.find_by_id(orientacao_id)
-            if not orientacao:
-                return False
-
-            from gestaolegal.schemas.assistencia_judiciaria import (
-                AssistenciaJudiciariaSchema,
-            )
-
-            assistencia = (
-                self.session.query(AssistenciaJudiciariaSchema)
-                .filter_by(id=assistencia_id, status=True)
-                .first()
-            )
-            if not assistencia:
-                return False
-
-            existing = (
-                self.session.query(AssistenciaJudiciaria_xOrientacaoJuridicaSchema)
-                .filter_by(
-                    id_orientacaoJuridica=orientacao_id,
-                    id_assistenciaJudiciaria=assistencia_id,
-                )
-                .first()
-            )
-            if existing:
-                return False
-
-            association = AssistenciaJudiciaria_xOrientacaoJuridicaSchema(
-                id_orientacaoJuridica=orientacao_id,
-                id_assistenciaJudiciaria=assistencia_id,
-            )
-            self.session.add(association)
-            self.session.commit()
-            return True
-        except Exception:
-            self.session.rollback()
-            return False
-
-    def _create_paginated_result(self, items, total, page_params):
-        from gestaolegal.repositories.base_repository import PaginatedResult
-
-        return PaginatedResult(
-            items, total, page_params["page"] or 1, page_params["per_page"] or total
+    def create(self, data: OrientacaoJuridica) -> int:
+        orientacao_dict = data.model_dump(
+            exclude={"id", "atendidos", "usuario"}
         )
+        stmt = insert(orientacao_juridica).values(**orientacao_dict)
+        result = self.session.execute(stmt)
+        return result.lastrowid
+
+    def update(self, id: int, data: OrientacaoJuridica) -> None:
+        orientacao_dict = data.model_dump(
+            exclude={"id", "atendidos", "usuario"}
+        )
+        stmt = (
+            sql_update(orientacao_juridica)
+            .where(orientacao_juridica.c.id == id)
+            .values(**orientacao_dict)
+        )
+        self.session.execute(stmt)
+
+    def add_related_atendidos(
+        self, orientacao_id: int, atendidos_ids: list[int]
+    ) -> None:
+        stmt = sql_delete(atendido_xOrientacaoJuridica).where(
+            atendido_xOrientacaoJuridica.c.id_orientacaoJuridica == orientacao_id
+        )
+        self.session.execute(stmt)
+
+        for atendido_id in atendidos_ids:
+            stmt = insert(atendido_xOrientacaoJuridica).values(
+                id_orientacao_juridica=orientacao_id, id_atendido=atendido_id
+            )
+            self.session.execute(stmt)
+
+    def delete(self, id: int) -> None:
+        stmt = (
+            sql_update(orientacao_juridica)
+            .where(orientacao_juridica.c.id == id)
+            .values(status=0)
+        )
+        self.session.execute(stmt)

@@ -1,68 +1,28 @@
 import logging
 import os
-from datetime import datetime
+
+
+class LastPartFilter(logging.Filter):
+    def filter(self, record):
+        record.name_last = record.name.rsplit(".", 1)[-1]
+        return True
 
 
 def setup_logging():
-    log_dir = os.path.join(os.path.dirname(__file__), "..", "logs")
-    os.makedirs(log_dir, exist_ok=True)
-
-    log_filename = os.path.join(
-        log_dir, f"gestaolegal_{datetime.now().strftime('%Y%m%d')}.log"
-    )
-
     log_format = (
-        "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
+        "[%(levelname)s] [%(asctime)s] [%(name_last)s@%(funcName)s]: %(message)s"
     )
+    date_format = "%Y-%m-%d %H:%M:%S"
 
     root_logger = logging.getLogger()
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
 
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG)
-    console_handler.setFormatter(logging.Formatter(log_format))
 
-    file_handler = logging.FileHandler(log_filename, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter(log_format))
+    env = os.environ.get("FLASK_ENV", "production")
+    console_handler.setLevel(logging.DEBUG if env == "development" else logging.INFO)
 
-    root_logger.setLevel(logging.DEBUG)
+    console_handler.setFormatter(logging.Formatter(log_format, datefmt=date_format))
+    console_handler.addFilter(LastPartFilter())
+
+    root_logger.setLevel(logging.DEBUG if env == "development" else logging.INFO)
     root_logger.addHandler(console_handler)
-    root_logger.addHandler(file_handler)
-
-    loggers = [
-        "gestaolegal.services.atendido_service",
-        "gestaolegal.services.assistencia_judiciaria_service",
-        "gestaolegal.services.base_service",
-        "gestaolegal.services.endereco_service",
-        "gestaolegal.services.notificacao_service",
-        "gestaolegal.services.orientacao_juridica_service",
-        "gestaolegal.services.plantao_service",
-        "gestaolegal.services.usuario_service",
-        "gestaolegal.repositories.base_repository",
-        "gestaolegal.repositories.atendido_repository",
-        "gestaolegal.repositories.usuario_repository",
-        "gestaolegal.controllers.views.arquivo_controller",
-        "gestaolegal.controllers.views.assistencia_judiciaria_controller",
-        "gestaolegal.controllers.views.atendido_controller",
-        "gestaolegal.controllers.views.casos_controller",
-        "gestaolegal.controllers.views.notificacoes_controller",
-        "gestaolegal.controllers.views.orientacao_juridica_controller",
-        "gestaolegal.controllers.views.plantao_controller",
-        "gestaolegal.controllers.views.principal_controller",
-        "gestaolegal.controllers.views.relatorio_controller",
-        "gestaolegal.controllers.views.user_controller",
-        "gestaolegal.controllers.views.processo_controller",
-        "gestaolegal",
-    ]
-
-    for logger_name in loggers:
-        logger = logging.getLogger(logger_name)
-        logger.setLevel(logging.DEBUG)
-        logger.propagate = True
-
-    logging.getLogger("werkzeug").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
-    logging.getLogger("flask").setLevel(logging.WARNING)
