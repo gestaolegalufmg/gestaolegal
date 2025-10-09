@@ -10,7 +10,7 @@ from gestaolegal.common import PageParams
 from gestaolegal.models.user import User
 from gestaolegal.models.user_input import UserCreateInput, UserUpdateInput
 from gestaolegal.repositories.endereco_repository import EnderecoRepository
-from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     SearchParams,

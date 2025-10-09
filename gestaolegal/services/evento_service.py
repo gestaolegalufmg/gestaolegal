@@ -5,7 +5,7 @@ from gestaolegal.common import PageParams
 from gestaolegal.models.evento import Evento
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
 from gestaolegal.repositories.evento_repository import EventoRepository
-from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     SearchParams,

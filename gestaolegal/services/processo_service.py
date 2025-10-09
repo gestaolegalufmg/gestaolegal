@@ -3,7 +3,7 @@ import logging
 from gestaolegal.common import PageParams
 from gestaolegal.models.processo import Processo
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
-from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.processo_repository import ProcessoRepository
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,

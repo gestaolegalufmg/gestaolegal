@@ -10,7 +10,7 @@ from gestaolegal.database.tables import (
 )
 from gestaolegal.models.assistido import Assistido
 from gestaolegal.models.atendido import Atendido
-from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,

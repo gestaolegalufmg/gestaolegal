@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from gestaolegal.common import PageParams
 from gestaolegal.database.session import get_session
 from gestaolegal.models.base_model import BaseModel
-from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.common import PaginatedResult
 
 T = TypeVar("T", bound=BaseModel)
 

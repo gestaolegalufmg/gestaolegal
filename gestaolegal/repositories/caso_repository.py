@@ -14,7 +14,7 @@ from gestaolegal.models.atendido import Atendido
 from gestaolegal.models.caso import Caso
 from gestaolegal.models.processo import Processo
 from gestaolegal.models.user import User
-from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,

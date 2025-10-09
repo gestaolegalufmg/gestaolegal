@@ -4,6 +4,8 @@ services:
     restart: unless-stopped
     ports:
       - "5001:3000"
+    environment:
+      - GESTAOLEGAL_API_URL=http://app_gl:5000
 
   app_gl:
     build: .

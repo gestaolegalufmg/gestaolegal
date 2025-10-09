@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from gestaolegal.database.tables import eventos, usuarios
 from gestaolegal.models.evento import Evento
 from gestaolegal.models.user import User
-from gestaolegal.repositories.pagination_result import PaginatedResult
+from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,
