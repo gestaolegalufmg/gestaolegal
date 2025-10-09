@@ -1,6 +1,6 @@
 from flask import Flask
 
-from gestaolegal.database.session import get_session
+from gestaolegal.database.session import cleanup_session, get_session
 
 
 def register_handlers(app: Flask):
@@ -11,13 +11,16 @@ def register_handlers(app: Flask):
     @app.teardown_appcontext
     def teardown_appcontext(exception: Exception | None):  # pyright: ignore[reportUnusedFunction]
         session = get_session()
-        if exception:
-            session.rollback()
-        else:
-            if session:
-                session.commit()
-
         if session:
-            session.close()
+            try:
+                if exception:
+                    session.rollback()
+                else:
+                    session.commit()
+            except Exception:
+                session.rollback()
+            finally:
+                session.close()
+                cleanup_session()
 
     return app

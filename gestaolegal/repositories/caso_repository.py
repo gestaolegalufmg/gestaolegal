@@ -133,7 +133,6 @@ class CasoRepository(BaseRepository):
         )
         stmt = insert(casos).values(**caso_dict)
         result = self.session.execute(stmt)
-        self.session.commit()
         return result.lastrowid
 
     def update(self, id: int, data: Caso) -> None:
@@ -151,13 +150,10 @@ class CasoRepository(BaseRepository):
         )
         stmt = sql_update(casos).where(casos.c.id == id).values(**caso_dict)
         self.session.execute(stmt)
-        self.session.commit()
 
     def delete(self, id: int) -> bool:
         stmt = sql_update(casos).where(casos.c.id == id).values(status=False)
         result = self.session.execute(stmt)
-        self.session.commit()
-
         return result.rowcount > 0
 
     def link_atendidos(self, caso_id: int, atendido_ids: list[int]) -> None:
@@ -169,8 +165,6 @@ class CasoRepository(BaseRepository):
                 id_caso=caso_id, id_atendido=atendido_id
             )
             self.session.execute(stmt)
-
-        self.session.commit()
 
     def _get_user_by_id(self, user_id: int) -> User | None:
         stmt = select(usuarios).where(usuarios.c.id == user_id)

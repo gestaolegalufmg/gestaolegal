@@ -15,11 +15,8 @@ def create_app(config_object=None):
     else:
         configure_app(app)
 
-    # Set custom JSON encoder for ISO date format
-    app.json_default_provider_class = CustomJSONEncoder
-    app.json = CustomJSONEncoder(app)
+    app.json_provider_class = CustomJSONEncoder
 
-    # Initialize logging
     from gestaolegal.logging_config import setup_logging
 
     setup_logging()

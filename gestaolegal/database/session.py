@@ -13,7 +13,7 @@ engine = create_engine(
 
 
 def create_session():
-    return sessionmaker(autocommit=False, autoflush=False, bind=engine)()
+    return sessionmaker(autocommit=False, autoflush=True, bind=engine)()
 
 
 def get_session():
@@ -22,3 +22,7 @@ def get_session():
         session = create_session()
         CurrentSession.set(session)
     return session
+
+
+def cleanup_session():
+    CurrentSession.set(None)
