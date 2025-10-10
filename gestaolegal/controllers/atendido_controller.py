@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 from typing import Any, cast
 
 from flask import Blueprint, make_response, request
@@ -47,7 +48,7 @@ def find_by_id(id: int):
     if not atendido:
         return make_response("Atendido not found", 404)
 
-    return atendido.model_dump()
+    return asdict(atendido)
 
 
 @atendido_controller.route("/", methods=["POST"])
@@ -63,7 +64,7 @@ def create():
         logger.error(f"Error creating atendido: {str(e)}", exc_info=True)
         return make_response(str(e), 500)
 
-    return atendido.model_dump()
+    return asdict(atendido)
 
 
 @atendido_controller.route("/<int:id>", methods=["PUT"])
@@ -79,7 +80,7 @@ def update(id: int):
         logger.error(f"Error updating atendido {id}: {str(e)}", exc_info=True)
         return make_response(str(e), 500)
 
-    return atendido.model_dump()
+    return asdict(atendido)
 
 
 @atendido_controller.route("/<int:id>", methods=["DELETE"])
@@ -104,7 +105,8 @@ def tornar_assistido(id: int):
         logger.error(f"Error creating assistido: {str(e)}", exc_info=True)
         return make_response(str(e), 500)
 
-    return assistido.model_dump()
+    atendido = atendido_service.find_by_id(id)
+    return asdict(atendido)
 
 
 @atendido_controller.route("/<int:id>/assistido", methods=["PUT"])
@@ -159,4 +161,5 @@ def update_assistido(id: int):
         logger.error(f"Error updating assistido: {str(e)}", exc_info=True)
         return make_response(str(e), 500)
 
-    return updated_assistido.model_dump()
+    atendido = atendido_service.find_by_id(id)
+    return asdict(atendido)

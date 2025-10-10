@@ -18,7 +18,6 @@ dependencies = [
     "python-dateutil==2.8.1",
     "python-dotenv==1.0.0",
     "sqlalchemy==2.0.27",
-    "wtforms==3.0.1",
     "pyjwt>=2.10.1",
     "pydantic>=2.11.9",
 ]
@@ -39,8 +38,6 @@ dev = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest-base-url>=2.1.0",
-    "pytest-playwright==0.7.0",
-    "aiosmtpd==1.4.6",
-    "pytest-base-url",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
 ]

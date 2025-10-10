@@ -174,7 +174,7 @@ class UsuarioService:
         user_data["modificadopor"] = modificado_por
         user_data["modificado"] = datetime.now()
 
-        updated_data = {**existing.model_dump(), **user_data}
+        updated_data = {**asdict(existing), **user_data}
         user = User(**updated_data)
 
         self.repository.update(user_id, user)
@@ -218,7 +218,8 @@ class UsuarioService:
         ).decode("utf-8")
         logger.info(f"Hashed password: {hashed_password}")
 
-        user_data = user.model_dump(exclude={"endereco"})
+        user_data = asdict(user)
+        user_data.pop("endereco", None)
         user_data["senha"] = hashed_password
         user_data["modificado"] = datetime.now()
 

@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 from typing import Any, cast
 
 from flask import Blueprint, make_response, request
@@ -18,7 +19,7 @@ user_controller = Blueprint("user", __name__)
 @user_controller.route("/me", methods=["GET"])
 @api_auth_required
 def get_me(current_user: User):
-    return current_user.model_dump()
+    return asdict(current_user)
 
 
 @user_controller.route("/", methods=["GET"])
@@ -50,7 +51,7 @@ def find_by_id(id: int):
     if not user:
         return make_response("User not found", 404)
 
-    return user.model_dump()
+    return asdict(user)
 
 
 @user_controller.route("/", methods=["POST"])
@@ -66,7 +67,7 @@ def create(current_user: User):
         logger.error(f"Error creating user: {str(e)}", exc_info=True)
         return make_response(str(e), 500)
 
-    return user.model_dump()
+    return asdict(user)
 
 
 @user_controller.route("/<int:id>", methods=["PUT"])
@@ -80,7 +81,7 @@ def update(id: int, current_user: User):
     if not user:
         return make_response("User not found", 404)
 
-    return user.model_dump()
+    return asdict(user)
 
 
 @user_controller.route("/me", methods=["PUT"])
@@ -99,7 +100,7 @@ def update_me(current_user: User):
     if not user:
         return make_response("Error wh updating user", 404)
 
-    return user.model_dump()
+    return asdict(user)
 
 
 @user_controller.route("/<int:id>", methods=["DELETE"])

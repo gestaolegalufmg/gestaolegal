@@ -1,8 +1,6 @@
 from dataclasses import asdict, dataclass, is_dataclass
 from typing import Generic, TypeVar
 
-from gestaolegal.models.base_model import BaseModel
-
 T = TypeVar("T")
 
 
@@ -28,13 +26,13 @@ class PaginatedResult(Generic[T]):
         return self.page > 1
 
     def _serialize_item(self, item: T) -> dict[str, object]:
-        if isinstance(item, BaseModel):
-            return item.model_dump()
+        if isinstance(item, dict):
+            return item
         elif is_dataclass(item) and not isinstance(item, type):
             return asdict(item)
         else:
             raise TypeError(
-                f"Cannot serialize item of type {type(item).__name__}. Item must be a BaseModel, implement model_dump(), or be a dataclass."
+                f"Cannot serialize item of type {type(item).__name__}. Item must be a dict or dataclass."
             )
 
     def to_dict(self) -> dict[str, object]:

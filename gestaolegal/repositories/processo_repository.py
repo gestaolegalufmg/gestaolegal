@@ -11,6 +11,7 @@ from gestaolegal.repositories.repository import (
     CountParams,
     SearchParams,
 )
+from gestaolegal.utils.dataclass_utils import from_dict, to_dict
 
 
 class ProcessoRepository(BaseRepository):
@@ -26,8 +27,11 @@ class ProcessoRepository(BaseRepository):
         if not result:
             return None
 
-        processo = Processo.model_validate(dict(result._mapping))  # type: ignore
-        processo.criado_por = self._get_user_by_id(processo.id_criado_por)
+        processo_temp = from_dict(Processo, dict(result._mapping))
+        processo = Processo(
+            **{k: v for k, v in processo_temp.__dict__.items()},
+            criado_por=self._get_user_by_id(processo_temp.id_criado_por)
+        )
 
         return processo
 
@@ -37,8 +41,11 @@ class ProcessoRepository(BaseRepository):
 
         processos_list = []
         for row in results:
-            processo = Processo.model_validate(dict(row._mapping))
-            processo.criado_por = self._get_user_by_id(processo.id_criado_por)
+            processo_temp = from_dict(Processo, dict(row._mapping))
+            processo = Processo(
+                **{k: v for k, v in processo_temp.__dict__.items()},
+                criado_por=self._get_user_by_id(processo_temp.id_criado_por)
+            )
             processos_list.append(processo)
 
         return processos_list
@@ -55,8 +62,11 @@ class ProcessoRepository(BaseRepository):
 
         items: list[Processo] = []
         for row in results:
-            processo = Processo.model_validate(dict(row._mapping))  # type: ignore
-            processo.criado_por = self._get_user_by_id(processo.id_criado_por)
+            processo_temp = from_dict(Processo, dict(row._mapping))
+            processo = Processo(
+                **{k: v for k, v in processo_temp.__dict__.items()},
+                criado_por=self._get_user_by_id(processo_temp.id_criado_por)
+            )
             items.append(processo)
 
         page_params = params.get("page_params")
@@ -75,8 +85,11 @@ class ProcessoRepository(BaseRepository):
         if not result:
             return None
 
-        processo = Processo.model_validate(dict(result._mapping))  # type: ignore
-        processo.criado_por = self._get_user_by_id(processo.id_criado_por)
+        processo_temp = from_dict(Processo, dict(result._mapping))
+        processo = Processo(
+            **{k: v for k, v in processo_temp.__dict__.items()},
+            criado_por=self._get_user_by_id(processo_temp.id_criado_por)
+        )
 
         return processo
 
@@ -88,7 +101,8 @@ class ProcessoRepository(BaseRepository):
         return result or 0
 
     def create(self, data: Processo) -> int:
-        processo_dict = data.model_dump(
+        processo_dict = to_dict(
+            data,
             exclude={
                 "id",
                 "caso",
@@ -100,7 +114,8 @@ class ProcessoRepository(BaseRepository):
         return result.lastrowid
 
     def update(self, id: int, data: Processo) -> None:
-        processo_dict = data.model_dump(
+        processo_dict = to_dict(
+            data,
             exclude={
                 "id",
                 "caso",
@@ -118,4 +133,4 @@ class ProcessoRepository(BaseRepository):
     def _get_user_by_id(self, user_id: int) -> User | None:
         stmt = select(usuarios).where(usuarios.c.id == user_id)
         result = self.session.execute(stmt).one_or_none()
-        return User.model_validate(result) if result else None
+        return from_dict(User, dict(result._mapping)) if result else None
