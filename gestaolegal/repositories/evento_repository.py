@@ -33,8 +33,9 @@ class EventoRepository(BaseRepository):
         if evento_temp.id_usuario_responsavel:
             usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
         
+        exclude_fields = {'criado_por', 'usuario_responsavel', 'caso'}
         evento = Evento(
-            **{k: v for k, v in evento_temp.__dict__.items()},
+            **{k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields},
             criado_por=self._get_user_by_id(evento_temp.id_criado_por),
             usuario_responsavel=usuario_resp
         )
@@ -53,8 +54,9 @@ class EventoRepository(BaseRepository):
             if evento_temp.id_usuario_responsavel:
                 usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
             
+            exclude_fields = {'criado_por', 'usuario_responsavel', 'caso'}
             evento = Evento(
-                **{k: v for k, v in evento_temp.__dict__.items()},
+                **{k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields},
                 criado_por=self._get_user_by_id(evento_temp.id_criado_por),
                 usuario_responsavel=usuario_resp
             )
@@ -86,8 +88,9 @@ class EventoRepository(BaseRepository):
             if evento_temp.id_usuario_responsavel:
                 usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
             
+            exclude_fields = {'criado_por', 'usuario_responsavel', 'caso'}
             evento = Evento(
-                **{k: v for k, v in evento_temp.__dict__.items()},
+                **{k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields},
                 criado_por=self._get_user_by_id(evento_temp.id_criado_por),
                 usuario_responsavel=usuario_resp
             )
@@ -116,8 +119,9 @@ class EventoRepository(BaseRepository):
         if evento_temp.id_usuario_responsavel:
             usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
         
+        exclude_fields = {'criado_por', 'usuario_responsavel', 'caso'}
         evento = Evento(
-            **{k: v for k, v in evento_temp.__dict__.items()},
+            **{k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields},
             criado_por=self._get_user_by_id(evento_temp.id_criado_por),
             usuario_responsavel=usuario_resp
         )

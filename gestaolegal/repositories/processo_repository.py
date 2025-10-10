@@ -28,8 +28,9 @@ class ProcessoRepository(BaseRepository):
             return None
 
         processo_temp = from_dict(Processo, dict(result._mapping))
+        exclude_fields = {'criado_por', 'caso'}
         processo = Processo(
-            **{k: v for k, v in processo_temp.__dict__.items()},
+            **{k: v for k, v in processo_temp.__dict__.items() if k not in exclude_fields},
             criado_por=self._get_user_by_id(processo_temp.id_criado_por)
         )
 
@@ -42,8 +43,9 @@ class ProcessoRepository(BaseRepository):
         processos_list = []
         for row in results:
             processo_temp = from_dict(Processo, dict(row._mapping))
+            exclude_fields = {'criado_por', 'caso'}
             processo = Processo(
-                **{k: v for k, v in processo_temp.__dict__.items()},
+                **{k: v for k, v in processo_temp.__dict__.items() if k not in exclude_fields},
                 criado_por=self._get_user_by_id(processo_temp.id_criado_por)
             )
             processos_list.append(processo)
@@ -63,8 +65,9 @@ class ProcessoRepository(BaseRepository):
         items: list[Processo] = []
         for row in results:
             processo_temp = from_dict(Processo, dict(row._mapping))
+            exclude_fields = {'criado_por', 'caso'}
             processo = Processo(
-                **{k: v for k, v in processo_temp.__dict__.items()},
+                **{k: v for k, v in processo_temp.__dict__.items() if k not in exclude_fields},
                 criado_por=self._get_user_by_id(processo_temp.id_criado_por)
             )
             items.append(processo)
@@ -86,8 +89,9 @@ class ProcessoRepository(BaseRepository):
             return None
 
         processo_temp = from_dict(Processo, dict(result._mapping))
+        exclude_fields = {'criado_por', 'caso'}
         processo = Processo(
-            **{k: v for k, v in processo_temp.__dict__.items()},
+            **{k: v for k, v in processo_temp.__dict__.items() if k not in exclude_fields},
             criado_por=self._get_user_by_id(processo_temp.id_criado_por)
         )
 
