@@ -151,6 +151,7 @@ def indeferir(current_user: User, id: int):
 
 
 @caso_controller.route("/<int:caso_id>/processos", methods=["GET"])
+@caso_controller.route("/<int:caso_id>/processo", methods=["GET"])
 @api_auth_required
 def get_processos_by_caso(current_user: User, caso_id: int):
     processo_service = ProcessoService()
@@ -171,6 +172,7 @@ def get_processos_by_caso(current_user: User, caso_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/processos", methods=["POST"])
+@caso_controller.route("/<int:caso_id>/processo", methods=["POST"])
 @api_auth_required
 def create_processo(current_user: User, caso_id: int):
     processo_service = ProcessoService()
@@ -255,43 +257,62 @@ def delete_processo(current_user: User, caso_id: int, processo_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/eventos", methods=["POST"])
+@caso_controller.route("/<int:caso_id>/evento", methods=["POST"])
 @api_auth_required
 def create_evento(current_user: User, caso_id: int):
     evento_service = EventoService()
 
     try:
-        form_data: dict[str, Any] = {
-            "id_caso": caso_id,
-            "tipo": request.form.get("tipo"),
-            "data_evento": request.form.get("data_evento"),
-            "status": request.form.get("status", "true").lower() == "true",
-        }
+        if request.is_json:
+            json_data = cast(dict[str, Any], request.get_json(force=True))
+            form_data: dict[str, Any] = {
+                "id_caso": caso_id,
+                "tipo": json_data.get("tipo_evento") or json_data.get("tipo"),
+                "data_evento": json_data.get("data_evento"),
+                "status": json_data.get("status", True),
+            }
+            
+            if json_data.get("num_evento"):
+                form_data["num_evento"] = json_data.get("num_evento")
+            
+            if json_data.get("descricao"):
+                form_data["descricao"] = json_data.get("descricao")
+            
+            if json_data.get("id_usuario_responsavel"):
+                form_data["id_usuario_responsavel"] = json_data.get("id_usuario_responsavel")
+        else:
+            form_data = {
+                "id_caso": caso_id,
+                "tipo": request.form.get("tipo"),
+                "data_evento": request.form.get("data_evento"),
+                "status": request.form.get("status", "true").lower() == "true",
+            }
 
-        if request.form.get("num_evento"):
-            form_data["num_evento"] = int(request.form.get("num_evento"))
+            if request.form.get("num_evento"):
+                form_data["num_evento"] = int(request.form.get("num_evento"))
 
-        if request.form.get("descricao"):
-            form_data["descricao"] = request.form.get("descricao")
+            if request.form.get("descricao"):
+                form_data["descricao"] = request.form.get("descricao")
 
-        if request.form.get("id_usuario_responsavel"):
-            form_data["id_usuario_responsavel"] = int(
-                request.form.get("id_usuario_responsavel")
-            )
+            if request.form.get("id_usuario_responsavel"):
+                form_data["id_usuario_responsavel"] = int(
+                    request.form.get("id_usuario_responsavel")
+                )
 
-        if "arquivo" in request.files:
-            file = request.files["arquivo"]
-            if file and file.filename:
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"{timestamp}_{filename}"
+            if "arquivo" in request.files:
+                file = request.files["arquivo"]
+                if file and file.filename:
+                    filename = secure_filename(file.filename)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"{timestamp}_{filename}"
 
-                upload_dir = os.path.join(Config.UPLOADS, str(caso_id), "eventos")
-                os.makedirs(upload_dir, exist_ok=True)
+                    upload_dir = os.path.join(Config.UPLOADS, str(caso_id), "eventos")
+                    os.makedirs(upload_dir, exist_ok=True)
 
-                filepath = os.path.join(upload_dir, filename)
-                file.save(filepath)
+                    filepath = os.path.join(upload_dir, filename)
+                    file.save(filepath)
 
-                form_data["arquivo"] = filepath
+                    form_data["arquivo"] = filepath
 
         evento_input = EventoCreateInput(**form_data)
         evento = evento_service.create(evento_input, criado_por_id=current_user.id)
@@ -303,6 +324,7 @@ def create_evento(current_user: User, caso_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/eventos", methods=["GET"])
+@caso_controller.route("/<int:caso_id>/evento", methods=["GET"])
 @api_auth_required
 def get_eventos_by_caso(caso_id: int):
     evento_service = EventoService()

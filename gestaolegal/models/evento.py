@@ -9,18 +9,18 @@ if TYPE_CHECKING:
 
 @dataclass
 class Evento:
-    id: int | None
     id_caso: int
-    num_evento: int | None
     tipo: str
-    descricao: str | None
-    arquivo: str | None
     data_evento: date
     data_criacao: datetime
     id_criado_por: int
-    id_usuario_responsavel: int | None
     status: bool
-
+    
+    id: int | None = None
+    num_evento: int | None = None
+    descricao: str | None = None
+    arquivo: str | None = None
+    id_usuario_responsavel: int | None = None
     caso: "Caso | None" = None
     criado_por: "User | None" = None
     usuario_responsavel: "User | None" = None
