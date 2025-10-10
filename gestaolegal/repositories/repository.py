@@ -3,10 +3,9 @@ from typing import Literal, Protocol, TypedDict, TypeVar
 from sqlalchemy import ColumnElement, Select, Table, and_, or_
 from sqlalchemy.orm import Session
 
-from gestaolegal.common import PageParams
+from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.database.session import get_session
 from gestaolegal.models.base_model import BaseModel
-from gestaolegal.common import PaginatedResult
 
 T = TypeVar("T", bound=BaseModel)
 

@@ -19,7 +19,9 @@ def test_create_caso_success(
     assert isinstance(data["id"], int)
 
 
-def test_create_caso_requires_auth(client: FlaskClient, sample_caso_data: dict[str, Any]) -> None:
+def test_create_caso_requires_auth(
+    client: FlaskClient, sample_caso_data: dict[str, Any]
+) -> None:
     response = client.post("/api/caso/", json=sample_caso_data)
 
     assert response.status_code == 401
@@ -30,7 +32,9 @@ def test_get_caso_by_id(
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    create_response = client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
     assert create_response.json is not None
     caso_id = create_response.json["id"]
 
@@ -54,12 +58,16 @@ def test_update_caso(
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    create_response = client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
     assert create_response.json is not None
     caso_id = create_response.json["id"]
 
     update_data = {**sample_caso_data, "descricao": "Descrição atualizada"}
-    response = client.put(f"/api/caso/{caso_id}", json=update_data, headers=auth_headers)
+    response = client.put(
+        f"/api/caso/{caso_id}", json=update_data, headers=auth_headers
+    )
 
     assert response.status_code == 200
     data = response.json
@@ -73,7 +81,9 @@ def test_delete_caso(
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    create_response = client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
     assert create_response.json is not None
     caso_id = create_response.json["id"]
 
@@ -87,7 +97,9 @@ def test_deferir_caso(
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    create_response = client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
     assert create_response.json is not None
     caso_id = create_response.json["id"]
 
@@ -104,7 +116,9 @@ def test_indeferir_caso(
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    create_response = client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
     assert create_response.json is not None
     caso_id = create_response.json["id"]
 
@@ -141,7 +155,9 @@ def test_create_processo_for_caso(
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    create_response = client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
     assert create_response.json is not None
     caso_id = create_response.json["id"]
 
@@ -165,12 +181,16 @@ def test_get_processos_by_caso(
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    create_response = client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
     assert create_response.json is not None
     caso_id = create_response.json["id"]
 
     processo_data = {"especie": "Ação Civil Pública", "status": True}
-    client.post(f"/api/caso/{caso_id}/processo", json=processo_data, headers=auth_headers)
+    client.post(
+        f"/api/caso/{caso_id}/processo", json=processo_data, headers=auth_headers
+    )
 
     response = client.get(f"/api/caso/{caso_id}/processo", headers=auth_headers)
 
@@ -185,7 +205,9 @@ def test_create_evento_for_caso(
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    create_response = client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
     assert create_response.json is not None
     caso_id = create_response.json["id"]
 
@@ -211,7 +233,9 @@ def test_get_eventos_by_caso(
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    create_response = client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
     assert create_response.json is not None
     caso_id = create_response.json["id"]
 
@@ -230,7 +254,9 @@ def test_filter_casos_by_situacao(
 ) -> None:
     client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
 
-    response = client.get("/api/caso/?situacao_deferimento=deferido", headers=auth_headers)
+    response = client.get(
+        "/api/caso/?situacao_deferimento=deferido", headers=auth_headers
+    )
 
     assert response.status_code == 200
     data = response.json
@@ -240,3 +266,101 @@ def test_filter_casos_by_situacao(
     for item in items:
         assert item["situacao_deferimento"] == "deferido"
 
+
+def test_caso_show_inactive_false_excludes_inactive(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    active_caso_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
+    assert active_caso_response.json is not None
+    active_caso_id = active_caso_response.json["id"]
+
+    inactive_caso_data = {**sample_caso_data, "area_direito": "civil"}
+    inactive_caso_response = client.post(
+        "/api/caso/", json=inactive_caso_data, headers=auth_headers
+    )
+    assert inactive_caso_response.json is not None
+    inactive_caso_id = inactive_caso_response.json["id"]
+
+    delete_response = client.delete(
+        f"/api/caso/{inactive_caso_id}", headers=auth_headers
+    )
+    assert delete_response.status_code == 200
+
+    search_response = client.get("/api/caso/?show_inactive=false", headers=auth_headers)
+    assert search_response.status_code == 200
+    data = search_response.json
+    assert data is not None
+
+    caso_ids = [caso["id"] for caso in data["items"]]
+    assert active_caso_id in caso_ids
+    assert inactive_caso_id not in caso_ids
+
+
+def test_caso_show_inactive_true_includes_inactive(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    active_caso_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
+    assert active_caso_response.json is not None
+    active_caso_id = active_caso_response.json["id"]
+
+    inactive_caso_data = {**sample_caso_data, "area_direito": "trabalhista"}
+    inactive_caso_response = client.post(
+        "/api/caso/", json=inactive_caso_data, headers=auth_headers
+    )
+    assert inactive_caso_response.json is not None
+    inactive_caso_id = inactive_caso_response.json["id"]
+
+    delete_response = client.delete(
+        f"/api/caso/{inactive_caso_id}", headers=auth_headers
+    )
+    assert delete_response.status_code == 200
+
+    search_response = client.get("/api/caso/?show_inactive=true", headers=auth_headers)
+    assert search_response.status_code == 200
+    data = search_response.json
+    assert data is not None
+
+    caso_ids = [caso["id"] for caso in data["items"]]
+    assert active_caso_id in caso_ids
+    assert inactive_caso_id in caso_ids
+
+
+def test_caso_show_inactive_default_excludes_inactive(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    active_caso_response = client.post(
+        "/api/caso/", json=sample_caso_data, headers=auth_headers
+    )
+    assert active_caso_response.json is not None
+    active_caso_id = active_caso_response.json["id"]
+
+    inactive_caso_data = {**sample_caso_data, "area_direito": "consumidor"}
+    inactive_caso_response = client.post(
+        "/api/caso/", json=inactive_caso_data, headers=auth_headers
+    )
+    assert inactive_caso_response.json is not None
+    inactive_caso_id = inactive_caso_response.json["id"]
+
+    delete_response = client.delete(
+        f"/api/caso/{inactive_caso_id}", headers=auth_headers
+    )
+    assert delete_response.status_code == 200
+
+    search_response = client.get("/api/caso/", headers=auth_headers)
+    assert search_response.status_code == 200
+    data = search_response.json
+    assert data is not None
+
+    caso_ids = [caso["id"] for caso in data["items"]]
+    assert active_caso_id in caso_ids
+    assert inactive_caso_id not in caso_ids

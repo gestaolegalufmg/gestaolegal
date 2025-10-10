@@ -2,10 +2,10 @@ from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
 
+from gestaolegal.common import PaginatedResult
 from gestaolegal.database.tables import eventos, usuarios
 from gestaolegal.models.evento import Evento
 from gestaolegal.models.user import User
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,
@@ -28,16 +28,18 @@ class EventoRepository(BaseRepository):
             return None
 
         evento_temp = from_dict(Evento, dict(result._mapping))
-        
+
         usuario_resp = None
         if evento_temp.id_usuario_responsavel:
             usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
-        
-        exclude_fields = {'criado_por', 'usuario_responsavel', 'caso'}
+
+        exclude_fields = {"criado_por", "usuario_responsavel", "caso"}
         evento = Evento(
-            **{k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields},
+            **{
+                k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields
+            },
             criado_por=self._get_user_by_id(evento_temp.id_criado_por),
-            usuario_responsavel=usuario_resp
+            usuario_responsavel=usuario_resp,
         )
 
         return evento
@@ -49,16 +51,20 @@ class EventoRepository(BaseRepository):
         eventos_list = []
         for row in results:
             evento_temp = from_dict(Evento, dict(row._mapping))
-            
+
             usuario_resp = None
             if evento_temp.id_usuario_responsavel:
                 usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
-            
-            exclude_fields = {'criado_por', 'usuario_responsavel', 'caso'}
+
+            exclude_fields = {"criado_por", "usuario_responsavel", "caso"}
             evento = Evento(
-                **{k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields},
+                **{
+                    k: v
+                    for k, v in evento_temp.__dict__.items()
+                    if k not in exclude_fields
+                },
                 criado_por=self._get_user_by_id(evento_temp.id_criado_por),
-                usuario_responsavel=usuario_resp
+                usuario_responsavel=usuario_resp,
             )
 
             eventos_list.append(evento)
@@ -83,16 +89,20 @@ class EventoRepository(BaseRepository):
         items: list[Evento] = []
         for row in results:
             evento_temp = from_dict(Evento, dict(row._mapping))
-            
+
             usuario_resp = None
             if evento_temp.id_usuario_responsavel:
                 usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
-            
-            exclude_fields = {'criado_por', 'usuario_responsavel', 'caso'}
+
+            exclude_fields = {"criado_por", "usuario_responsavel", "caso"}
             evento = Evento(
-                **{k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields},
+                **{
+                    k: v
+                    for k, v in evento_temp.__dict__.items()
+                    if k not in exclude_fields
+                },
                 criado_por=self._get_user_by_id(evento_temp.id_criado_por),
-                usuario_responsavel=usuario_resp
+                usuario_responsavel=usuario_resp,
             )
 
             items.append(evento)
@@ -114,16 +124,18 @@ class EventoRepository(BaseRepository):
             return None
 
         evento_temp = from_dict(Evento, dict(result._mapping))
-        
+
         usuario_resp = None
         if evento_temp.id_usuario_responsavel:
             usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
-        
-        exclude_fields = {'criado_por', 'usuario_responsavel', 'caso'}
+
+        exclude_fields = {"criado_por", "usuario_responsavel", "caso"}
         evento = Evento(
-            **{k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields},
+            **{
+                k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields
+            },
             criado_por=self._get_user_by_id(evento_temp.id_criado_por),
-            usuario_responsavel=usuario_resp
+            usuario_responsavel=usuario_resp,
         )
 
         return evento
@@ -143,7 +155,7 @@ class EventoRepository(BaseRepository):
                 "caso",
                 "criado_por",
                 "usuario_responsavel",
-            }
+            },
         )
         stmt = insert(eventos).values(**evento_dict)
         result = self.session.execute(stmt)
@@ -157,7 +169,7 @@ class EventoRepository(BaseRepository):
                 "caso",
                 "criado_por",
                 "usuario_responsavel",
-            }
+            },
         )
         stmt = sql_update(eventos).where(eventos.c.id == id).values(**evento_dict)
         self.session.execute(stmt)

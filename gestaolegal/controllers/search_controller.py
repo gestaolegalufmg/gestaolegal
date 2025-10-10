@@ -1,5 +1,5 @@
 import logging
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict
 
 from flask import Blueprint, request
 

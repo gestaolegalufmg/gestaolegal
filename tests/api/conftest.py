@@ -20,9 +20,9 @@ from sqlalchemy import create_engine, orm, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
+import gestaolegal.database.session as db_session_module
 from gestaolegal import create_app
 from gestaolegal.database.tables import metadata
-import gestaolegal.database.session as db_session_module
 
 TEST_ADMIN_EMAIL = "admin@gl.com"
 TEST_ADMIN_PASSWORD = "123456"
@@ -33,7 +33,6 @@ test_engine: Engine = create_engine("sqlite:///:memory:", echo=False)
 @pytest.fixture(scope="session", autouse=True)
 def _setup_db_session_module() -> None:
     db_session_module.engine = test_engine
-    original_create_session = db_session_module.create_session
 
     def test_create_session() -> Session:
         return orm.sessionmaker(autocommit=False, autoflush=True, bind=test_engine)()
@@ -79,11 +78,16 @@ def create_admin_user(app: Flask) -> None:
     with app.app_context():
         session = db_session_module.get_session()
 
-        result = session.execute(text("SELECT id FROM usuarios WHERE email = :email"), {"email": TEST_ADMIN_EMAIL})
+        result = session.execute(
+            text("SELECT id FROM usuarios WHERE email = :email"),
+            {"email": TEST_ADMIN_EMAIL},
+        )
         if result.fetchone():
             return
 
-        hashed_password = bcrypt.hashpw(TEST_ADMIN_PASSWORD.encode("utf-8"), bcrypt.gensalt())
+        hashed_password = bcrypt.hashpw(
+            TEST_ADMIN_PASSWORD.encode("utf-8"), bcrypt.gensalt()
+        )
 
         session.execute(
             text("""
@@ -151,7 +155,9 @@ def auth_headers(client: FlaskClient, create_admin_user: None) -> dict[str, str]
         json={"email": TEST_ADMIN_EMAIL, "password": TEST_ADMIN_PASSWORD},
     )
 
-    assert login_response.status_code == 200, f"Login failed with status {login_response.status_code}"
+    assert login_response.status_code == 200, (
+        f"Login failed with status {login_response.status_code}"
+    )
 
     data = login_response.json
     assert data is not None, "Login response has no JSON data"
@@ -213,4 +219,3 @@ def sample_caso_data() -> dict[str, Any]:
         "situacao_deferimento": "deferido",
         "ids_clientes": [],
     }
-

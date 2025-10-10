@@ -59,11 +59,12 @@ def test_api_requires_authentication(client: FlaskClient) -> None:
     assert response.status_code == 401
 
 
-def test_api_accepts_authenticated_request(client: FlaskClient, auth_headers: dict[str, str]) -> None:
+def test_api_accepts_authenticated_request(
+    client: FlaskClient, auth_headers: dict[str, str]
+) -> None:
     response = client.get("/api/atendido/", headers=auth_headers)
 
     assert response.status_code == 200
     data = response.json
     assert data is not None
     assert isinstance(data, (dict, list))
-

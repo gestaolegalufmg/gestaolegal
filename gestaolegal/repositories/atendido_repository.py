@@ -3,6 +3,7 @@ import logging
 from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 
+from gestaolegal.common import PaginatedResult
 from gestaolegal.database.tables import (
     assistidos,
     atendido_xOrientacaoJuridica,
@@ -10,7 +11,6 @@ from gestaolegal.database.tables import (
 )
 from gestaolegal.models.assistido import Assistido
 from gestaolegal.models.atendido import Atendido
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,
@@ -41,6 +41,13 @@ class AtendidoRepository(BaseRepository):
         stmt = self._apply_where_clause(stmt, params.get("where"), atendidos)
         result = self.session.execute(stmt).all()
         return [from_dict(Atendido, dict(row._mapping)) for row in result]
+
+    def get_by_ids(self, ids: list[int]) -> list[Atendido]:
+        if not ids:
+            return []
+        stmt = select(atendidos).where(atendidos.c.id.in_(ids))
+        results = self.session.execute(stmt).all()
+        return [from_dict(Atendido, dict(row._mapping)) for row in results]
 
     # TODO: Avaliar se existe uma forma melhor de modelar este método (e o comportamento como um todo).
     #
@@ -139,7 +146,7 @@ class AtendidoRepository(BaseRepository):
     def create(self, data: Atendido) -> int:
         atendido_dict = to_dict(
             data,
-            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"}
+            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"},
         )
         stmt = insert(atendidos).values(**atendido_dict)
         result = self.session.execute(stmt)
@@ -154,7 +161,7 @@ class AtendidoRepository(BaseRepository):
 
         atendido_dict = to_dict(
             data,
-            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"}
+            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"},
         )
         stmt = sql_update(atendidos).where(atendidos.c.id == id).values(**atendido_dict)
         self.session.execute(stmt)
@@ -179,10 +186,7 @@ class AtendidoRepository(BaseRepository):
         return [from_dict(Assistido, dict(row._mapping)) for row in results]
 
     def create_assistido(self, assistido: Assistido) -> int:
-        assistido_dict = to_dict(
-            assistido,
-            exclude={"id", "assistido_pessoa_juridica"}
-        )
+        assistido_dict = to_dict(assistido, exclude={"id", "assistido_pessoa_juridica"})
         stmt = insert(assistidos).values(**assistido_dict)
         result = self.session.execute(stmt)
         return result.lastrowid

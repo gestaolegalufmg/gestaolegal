@@ -16,7 +16,7 @@ class Caso:
     id_criado_por: int
     situacao_deferimento: str
     status: bool
-    
+
     id: int | None = None
     sub_area: str | None = None
     id_orientador: int | None = None

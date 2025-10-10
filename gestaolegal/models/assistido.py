@@ -23,7 +23,7 @@ class Assistido:
     possui_outros_imoveis: bool
     possui_veiculos: bool
     doenca_grave_familia: str
-    
+
     id: int | None = None
     qual_beneficio: str | None = None
     quantos_imoveis: int | None = None

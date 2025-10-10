@@ -38,6 +38,7 @@ def initialize_extensions(app):
     mail.init_app(app)
     CORS(app)
 
+
 def register_blueprints(app):
     from gestaolegal.controllers import routes
 
