@@ -13,7 +13,7 @@ class Processo:
     id_caso: int
     status: bool
     id_criado_por: int
-    
+
     id: int | None = None
     numero: int | None = None
     identificacao: str | None = None

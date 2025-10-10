@@ -271,15 +271,17 @@ def create_evento(current_user: User, caso_id: int):
                 "data_evento": json_data.get("data_evento"),
                 "status": json_data.get("status", True),
             }
-            
+
             if json_data.get("num_evento"):
                 form_data["num_evento"] = json_data.get("num_evento")
-            
+
             if json_data.get("descricao"):
                 form_data["descricao"] = json_data.get("descricao")
-            
+
             if json_data.get("id_usuario_responsavel"):
-                form_data["id_usuario_responsavel"] = json_data.get("id_usuario_responsavel")
+                form_data["id_usuario_responsavel"] = json_data.get(
+                    "id_usuario_responsavel"
+                )
         else:
             form_data = {
                 "id_caso": caso_id,

@@ -2,11 +2,10 @@ import logging
 from dataclasses import asdict
 from datetime import datetime
 
-from gestaolegal.common import PageParams
+from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.evento import Evento
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
 from gestaolegal.repositories.evento_repository import EventoRepository
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     SearchParams,

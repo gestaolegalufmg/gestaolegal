@@ -3,12 +3,12 @@ from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
 
+from gestaolegal.common import PaginatedResult
 from gestaolegal.database.tables import (
     atendido_xOrientacaoJuridica,
     orientacao_juridica,
 )
 from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,
@@ -27,7 +27,9 @@ class OrientacaoJuridicaRepository(BaseRepository):
         stmt = select(orientacao_juridica).where(orientacao_juridica.c.id == id)
         result = self.session.execute(stmt).one_or_none()
 
-        orientacao = from_dict(OrientacaoJuridica, dict(result._mapping)) if result else None
+        orientacao = (
+            from_dict(OrientacaoJuridica, dict(result._mapping)) if result else None
+        )
         return orientacao
 
     def search(self, params: SearchParams) -> PaginatedResult[OrientacaoJuridica]:
@@ -64,19 +66,13 @@ class OrientacaoJuridicaRepository(BaseRepository):
         return result or 0
 
     def create(self, data: OrientacaoJuridica) -> int:
-        orientacao_dict = to_dict(
-            data,
-            exclude={"id", "atendidos", "usuario"}
-        )
+        orientacao_dict = to_dict(data, exclude={"id", "atendidos", "usuario"})
         stmt = insert(orientacao_juridica).values(**orientacao_dict)
         result = self.session.execute(stmt)
         return result.lastrowid
 
     def update(self, id: int, data: OrientacaoJuridica) -> None:
-        orientacao_dict = to_dict(
-            data,
-            exclude={"id", "atendidos", "usuario"}
-        )
+        orientacao_dict = to_dict(data, exclude={"id", "atendidos", "usuario"})
         stmt = (
             sql_update(orientacao_juridica)
             .where(orientacao_juridica.c.id == id)

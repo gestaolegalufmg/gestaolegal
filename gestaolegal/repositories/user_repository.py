@@ -4,9 +4,9 @@ from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
 
+from gestaolegal.common import PaginatedResult
 from gestaolegal.database.tables import usuarios
 from gestaolegal.models.user import User
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,
@@ -85,6 +85,6 @@ class UserRepository(BaseRepository):
         self.session.execute(stmt)
 
     def delete(self, id: int) -> bool:
-        stmt = sql_update(usuarios).where(usuarios.c.id == id).values(status=0)
+        stmt = sql_update(usuarios).where(usuarios.c.id == id).values(status=False)
         result = self.session.execute(stmt)
         return result.rowcount > 0

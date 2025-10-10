@@ -1,38 +1,44 @@
 import logging
 from dataclasses import asdict
 
-from gestaolegal.common import PageParams
+from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.processo import Processo
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.processo_repository import ProcessoRepository
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     SearchParams,
     WhereClause,
 )
+from gestaolegal.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
 
 class ProcessoService:
     repository: ProcessoRepository
+    user_repository: UserRepository
 
     def __init__(self):
         self.repository = ProcessoRepository()
+        self.user_repository = UserRepository()
 
     def find_by_id(self, id: int) -> Processo | None:
         logger.info(f"Finding processo by id: {id}")
         processo = self.repository.find_by_id(id)
-        if processo:
-            logger.info(f"Processo found with id: {id}")
-        else:
+        if not processo:
             logger.warning(f"Processo not found with id: {id}")
+            return None
+
+        self._load_processo_dependencies(processo)
+        logger.info(f"Processo found with id: {id}")
         return processo
 
     def find_by_caso_id(self, caso_id: int) -> list[Processo]:
         logger.info(f"Finding processos by caso_id: {caso_id}")
         processos = self.repository.find_by_caso_id(caso_id)
+        for processo in processos:
+            self._load_processo_dependencies(processo)
         logger.info(f"Found {len(processos)} processos for caso_id: {caso_id}")
         return processos
 
@@ -73,6 +79,10 @@ class ProcessoService:
         )
 
         result = self.repository.search(params=params)
+
+        for processo in result.items:
+            self._load_processo_dependencies(processo)
+
         logger.info(
             f"Returning {len(result.items)} processos of total {result.total} found"
         )
@@ -118,7 +128,7 @@ class ProcessoService:
         self.repository.update(processo_id, processo)
 
         logger.info(f"Processo updated successfully with id: {processo_id}")
-        return self.repository.find_by_id(processo_id)
+        return self.find_by_id(processo_id)
 
     def soft_delete(self, processo_id: int) -> bool:
         logger.info(f"Soft deleting processo with id: {processo_id}")
@@ -128,3 +138,9 @@ class ProcessoService:
         else:
             logger.warning(f"Soft delete failed for processo with id: {processo_id}")
         return result
+
+    def _load_processo_dependencies(self, processo: Processo) -> None:
+        if processo.id_criado_por:
+            processo.criado_por = self.user_repository.find_by_id(
+                processo.id_criado_por
+            )

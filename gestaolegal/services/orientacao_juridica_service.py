@@ -2,7 +2,7 @@ import logging
 from dataclasses import asdict
 from datetime import datetime
 
-from gestaolegal.common import PageParams
+from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.orientacao_juridica import (
     OrientacaoJuridica,
     OrientacaoJuridicaDetail,
@@ -16,7 +16,6 @@ from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.orientacao_juridica_repository import (
     OrientacaoJuridicaRepository,
 )
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     GetParams,
@@ -92,11 +91,10 @@ class OrientacaoJuridicaService:
         logger.info(
             f"Searching orientacoes juridicas with search: '{search}', area: {area}, show_inactive: {show_inactive}"
         )
-        clauses = [
-            WhereClause(
-                column="status", operator="==", value=0 if show_inactive else 1
-            ),
-        ]
+        clauses = []
+
+        if not show_inactive:
+            clauses.append(WhereClause(column="status", operator="==", value=1))
 
         if search:
             clauses.append(
@@ -108,11 +106,11 @@ class OrientacaoJuridicaService:
                 WhereClause(column="area_direito", operator="==", value=area)
             )
 
-        where = (
-            ComplexWhereClause(clauses=clauses, operator="and")
-            if len(clauses) > 1
-            else clauses[0]
-        )
+        where = None
+        if len(clauses) > 1:
+            where = ComplexWhereClause(clauses=clauses, operator="and")
+        elif len(clauses) == 1:
+            where = clauses[0]
 
         params = SearchParams(
             page_params=page_params,

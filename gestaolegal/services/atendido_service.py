@@ -1,7 +1,7 @@
 import logging
 from dataclasses import asdict
 
-from gestaolegal.common import PageParams
+from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.assistido import Assistido
 from gestaolegal.models.assistido_input import (
     AssistidoCreateInput,
@@ -15,7 +15,6 @@ from gestaolegal.models.atendido_input import (
 )
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.endereco_repository import EnderecoRepository
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     SearchParams,
@@ -63,22 +62,21 @@ class AtendidoService:
             + f"page_params: {page_params}, show_inactive: {show_inactive}"
         )
 
-        clauses: list[WhereClause] = [
-            WhereClause(
-                column="status", operator="==", value=0 if show_inactive else 1
-            ),
-        ]
+        clauses: list[WhereClause] = []
+
+        if not show_inactive:
+            clauses.append(WhereClause(column="status", operator="==", value=1))
 
         if search:
             clauses.append(
                 WhereClause(column="nome", operator="ilike", value=f"%{search}%")
             )
 
-        where = (
-            ComplexWhereClause(clauses=clauses, operator="and")
-            if len(clauses) > 1
-            else clauses[0]
-        )
+        where = None
+        if len(clauses) > 1:
+            where = ComplexWhereClause(clauses=clauses, operator="and")
+        elif len(clauses) == 1:
+            where = clauses[0]
 
         params = SearchParams(
             page_params=page_params,
@@ -92,15 +90,21 @@ class AtendidoService:
         if endereco_ids:
             enderecos = self.endereco_repository.get_by_ids(endereco_ids)
             endereco_map = {e.id: e for e in enderecos}
-        
+
         for atendido in result.items:
-            atendido["endereco"] = endereco_map.get(atendido["endereco_id"]) if atendido["endereco_id"] else None
+            atendido["endereco"] = (
+                endereco_map.get(atendido["endereco_id"])
+                if atendido["endereco_id"]
+                else None
+            )
             del atendido["endereco_id"]
             if "total_count" in atendido:
                 del atendido["total_count"]
 
         converted_result = PaginatedResult(
-            items=[ListAtendido(**a) if isinstance(a, dict) else a for a in result.items],
+            items=[
+                ListAtendido(**a) if isinstance(a, dict) else a for a in result.items
+            ],
             total=result.total,
             page=result.page,
             per_page=result.per_page,

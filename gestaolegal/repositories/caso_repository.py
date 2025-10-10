@@ -3,18 +3,9 @@ from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
 
-from gestaolegal.database.tables import (
-    atendidos,
-    casos,
-    casos_atendidos,
-    processos,
-    usuarios,
-)
-from gestaolegal.models.atendido import Atendido
-from gestaolegal.models.caso import Caso
-from gestaolegal.models.processo import Processo
-from gestaolegal.models.user import User
 from gestaolegal.common import PaginatedResult
+from gestaolegal.database.tables import casos, casos_atendidos
+from gestaolegal.models.caso import Caso
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,
@@ -32,26 +23,7 @@ class CasoRepository(BaseRepository):
     def find_by_id(self, id: int) -> Caso | None:
         stmt = select(casos).where(casos.c.id == id)
         result = self.session.execute(stmt).one_or_none()
-
-        if not result:
-            return None
-
-        caso = from_dict(Caso, dict(result._mapping))
-
-        exclude_fields = {'usuario_responsavel', 'criado_por', 'orientador', 'estagiario', 'colaborador', 'modificado_por', 'clientes', 'processos'}
-        caso = Caso(
-            **{k: v for k, v in caso.__dict__.items() if k not in exclude_fields},
-            usuario_responsavel=self._get_user_by_id(caso.id_usuario_responsavel),
-            criado_por=self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None,
-            orientador=self._get_user_by_id(caso.id_orientador) if caso.id_orientador else None,
-            estagiario=self._get_user_by_id(caso.id_estagiario) if caso.id_estagiario else None,
-            colaborador=self._get_user_by_id(caso.id_colaborador) if caso.id_colaborador else None,
-            modificado_por=self._get_user_by_id(caso.id_modificado_por) if caso.id_modificado_por else None,
-            clientes=self._get_atendidos_by_caso_id(id),
-            processos=self._get_processos_by_caso_id(id)
-        )
-
-        return caso
+        return from_dict(Caso, dict(result._mapping)) if result else None
 
     def search(self, params: SearchParams) -> PaginatedResult[Caso]:
         stmt = select(casos, func.count().over().label("total_count"))
@@ -63,22 +35,7 @@ class CasoRepository(BaseRepository):
         results = self.session.execute(stmt).all()
         total = results[0].total_count if results else 0
 
-        items = []
-        for row in results:
-            caso_temp = from_dict(Caso, dict(row._mapping))
-            exclude_fields = {'usuario_responsavel', 'criado_por', 'orientador', 'estagiario', 'colaborador', 'modificado_por', 'clientes', 'processos'}
-            caso = Caso(
-                **{k: v for k, v in caso_temp.__dict__.items() if k not in exclude_fields},
-                usuario_responsavel=self._get_user_by_id(caso_temp.id_usuario_responsavel),
-                criado_por=self._get_user_by_id(caso_temp.id_criado_por) if caso_temp.id_criado_por else None,
-                orientador=self._get_user_by_id(caso_temp.id_orientador) if caso_temp.id_orientador else None,
-                estagiario=self._get_user_by_id(caso_temp.id_estagiario) if caso_temp.id_estagiario else None,
-                colaborador=self._get_user_by_id(caso_temp.id_colaborador) if caso_temp.id_colaborador else None,
-                modificado_por=self._get_user_by_id(caso_temp.id_modificado_por) if caso_temp.id_modificado_por else None,
-                clientes=self._get_atendidos_by_caso_id(caso_temp.id) if caso_temp.id else []
-            )
-            items.append(caso)
-
+        items = [from_dict(Caso, dict(row._mapping)) for row in results]
         page_params = params.get("page_params")
         return PaginatedResult(
             items=items,
@@ -91,20 +48,7 @@ class CasoRepository(BaseRepository):
         stmt = select(casos)
         stmt = self._apply_where_clause(stmt, params.get("where"), casos)
         result = self.session.execute(stmt).one_or_none()
-
-        if not result:
-            return None
-
-        caso_temp = from_dict(Caso, dict(result._mapping))
-        exclude_fields = {'usuario_responsavel', 'criado_por', 'orientador', 'estagiario', 'colaborador', 'modificado_por', 'clientes', 'processos'}
-        caso = Caso(
-            **{k: v for k, v in caso_temp.__dict__.items() if k not in exclude_fields},
-            usuario_responsavel=self._get_user_by_id(caso_temp.id_usuario_responsavel),
-            criado_por=self._get_user_by_id(caso_temp.id_criado_por) if caso_temp.id_criado_por else None,
-            clientes=self._get_atendidos_by_caso_id(caso_temp.id) if caso_temp.id else []
-        )
-
-        return caso
+        return from_dict(Caso, dict(result._mapping)) if result else None
 
     def count(self, params: CountParams) -> int:
         stmt = select(func.count()).select_from(casos)
@@ -126,7 +70,7 @@ class CasoRepository(BaseRepository):
                 "criado_por",
                 "modificado_por",
                 "processos",
-            }
+            },
         )
         stmt = insert(casos).values(**caso_dict)
         result = self.session.execute(stmt)
@@ -145,7 +89,7 @@ class CasoRepository(BaseRepository):
                 "criado_por",
                 "modificado_por",
                 "processos",
-            }
+            },
         )
         stmt = sql_update(casos).where(casos.c.id == id).values(**caso_dict)
         self.session.execute(stmt)
@@ -165,36 +109,9 @@ class CasoRepository(BaseRepository):
             )
             self.session.execute(stmt)
 
-    def _get_user_by_id(self, user_id: int) -> User | None:
-        stmt = select(usuarios).where(usuarios.c.id == user_id)
-        result = self.session.execute(stmt).one_or_none()
-        return from_dict(User, dict(result._mapping)) if result else None
-
-    def _get_atendidos_by_caso_id(self, caso_id: int) -> list[Atendido]:
-        stmt = (
-            select(atendidos)
-            .select_from(
-                casos_atendidos.join(
-                    atendidos, casos_atendidos.c.id_atendido == atendidos.c.id
-                )
-            )
-            .where(casos_atendidos.c.id_caso == caso_id)
+    def get_atendido_ids_by_caso_id(self, caso_id: int) -> list[int]:
+        stmt = select(casos_atendidos.c.id_atendido).where(
+            casos_atendidos.c.id_caso == caso_id
         )
-
         results = self.session.execute(stmt).all()
-        return [from_dict(Atendido, dict(row._mapping)) for row in results]
-
-    def _get_processos_by_caso_id(self, caso_id: int) -> list[Processo]:
-        stmt = select(processos).where(processos.c.id_caso == caso_id)
-
-        results = self.session.execute(stmt).all()
-        processos_list: list[Processo] = []
-        for row in results:
-            processo_temp = from_dict(Processo, dict(row._mapping))
-            processo = Processo(
-                **{k: v for k, v in processo_temp.__dict__.items()},
-                criado_por=self._get_user_by_id(processo_temp.id_criado_por)
-            )
-            processos_list.append(processo)
-
-        return processos_list
+        return [row.id_atendido for row in results]

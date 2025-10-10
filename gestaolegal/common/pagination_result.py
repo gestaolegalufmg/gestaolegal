@@ -45,4 +45,3 @@ class PaginatedResult(Generic[T]):
             "has_next_page": self.has_next_page,
             "has_previous_page": self.has_previous_page,
         }
-

@@ -15,7 +15,7 @@ class Evento:
     data_criacao: datetime
     id_criado_por: int
     status: bool
-    
+
     id: int | None = None
     num_evento: int | None = None
     descricao: str | None = None

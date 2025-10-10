@@ -100,7 +100,7 @@ def tornar_assistido(id: int):
     try:
         json_data = cast(dict[str, Any], request.get_json(force=True))
         assistido_input = AssistidoCreateInput.model_validate(json_data)
-        assistido = atendido_service.create_assistido(id, assistido_input)
+        atendido_service.create_assistido(id, assistido_input)
     except Exception as e:
         logger.error(f"Error creating assistido: {str(e)}", exc_info=True)
         return make_response(str(e), 500)
@@ -154,9 +154,7 @@ def update_assistido(id: int):
         )
         assistido_input = AssistidoUpdateInput.model_validate(assistido_data)
 
-        updated_assistido = atendido_service.update_assistido(
-            id, atendido_input, assistido_input
-        )
+        atendido_service.update_assistido(id, atendido_input, assistido_input)
     except Exception as e:
         logger.error(f"Error updating assistido: {str(e)}", exc_info=True)
         return make_response(str(e), 500)
