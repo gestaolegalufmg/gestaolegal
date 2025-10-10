@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 from datetime import datetime
 
 from gestaolegal.common import PageParams
@@ -92,7 +93,7 @@ class EventoService:
             self.repository.count_by_caso_id(evento_input.id_caso) + 1
         )
 
-        evento = Evento.model_validate(evento_data)
+        evento = Evento(**evento_data)
         evento_id = self.repository.create(evento)
 
         created_evento = self.find_by_id(evento_id)
@@ -116,8 +117,8 @@ class EventoService:
 
         evento_data = evento_input.model_dump(exclude_none=True)
 
-        updated_data = {**existing.model_dump(), **evento_data}
-        evento = Evento.model_validate(updated_data)
+        updated_data = {**asdict(existing), **evento_data}
+        evento = Evento(**updated_data)
 
         self.repository.update(evento_id, evento)
 

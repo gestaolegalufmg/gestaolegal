@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 
 from gestaolegal.common import PageParams
 from gestaolegal.models.assistido import Assistido
@@ -87,15 +88,19 @@ class AtendidoService:
         result = self.repository.search(params=params, tipo_busca=tipo_busca)
 
         endereco_ids = [a["endereco_id"] for a in result.items if a["endereco_id"]]
+        endereco_map = {}
         if endereco_ids:
             enderecos = self.endereco_repository.get_by_ids(endereco_ids)
             endereco_map = {e.id: e for e in enderecos}
-            for atendido in result.items:
-                if atendido["endereco_id"]:
-                    atendido["endereco"] = endereco_map.get(atendido["endereco_id"])
+        
+        for atendido in result.items:
+            atendido["endereco"] = endereco_map.get(atendido["endereco_id"]) if atendido["endereco_id"] else None
+            del atendido["endereco_id"]
+            if "total_count" in atendido:
+                del atendido["total_count"]
 
         converted_result = PaginatedResult(
-            items=[ListAtendido.model_validate(a) for a in result.items],
+            items=[ListAtendido(**a) if isinstance(a, dict) else a for a in result.items],
             total=result.total,
             page=result.page,
             per_page=result.per_page,
@@ -137,7 +142,7 @@ class AtendidoService:
             raise ValueError(f"Atendido with id {atendido_id} not found")
 
         update_data = atendido_input.model_dump(exclude_none=True)
-        updated_data = {**existing.model_dump(), **update_data}
+        updated_data = {**asdict(existing), **update_data}
         atendido = Atendido(**updated_data)
         self.repository.update(atendido_id, atendido)
         logger.info(f"Atendido updated successfully with id: {atendido_id}")
@@ -180,7 +185,7 @@ class AtendidoService:
 
         if atendido_input:
             update_data = atendido_input.model_dump(exclude_none=True)
-            updated_data = {**atendido.model_dump(), **update_data}
+            updated_data = {**asdict(atendido), **update_data}
             atendido_obj = Atendido(**updated_data)
             self.repository.update(id_atendido, atendido_obj)
             logger.info(f"Updated atendido data for id: {id_atendido}")
@@ -195,7 +200,7 @@ class AtendidoService:
             )
 
         assistido_update_data = assistido_input.model_dump(exclude_none=True)
-        assistido_data = {**assistido.model_dump(), **assistido_update_data}
+        assistido_data = {**asdict(assistido), **assistido_update_data}
         assistido_obj = Assistido(**assistido_data)
         self.repository.update_assistido(id_atendido, assistido_obj)
         logger.info(f"Assistido updated successfully for atendido id: {id_atendido}")

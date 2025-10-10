@@ -11,6 +11,7 @@ from gestaolegal.repositories.repository import (
     CountParams,
     SearchParams,
 )
+from gestaolegal.utils.dataclass_utils import from_dict, to_dict
 
 
 class EventoRepository(BaseRepository):
@@ -26,13 +27,17 @@ class EventoRepository(BaseRepository):
         if not result:
             return None
 
-        evento = Evento.model_validate(dict(result._mapping))  # type: ignore
-        evento.criado_por = self._get_user_by_id(evento.id_criado_por)
-
-        if evento.id_usuario_responsavel:
-            evento.usuario_responsavel = self._get_user_by_id(
-                evento.id_usuario_responsavel
-            )
+        evento_temp = from_dict(Evento, dict(result._mapping))
+        
+        usuario_resp = None
+        if evento_temp.id_usuario_responsavel:
+            usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
+        
+        evento = Evento(
+            **{k: v for k, v in evento_temp.__dict__.items()},
+            criado_por=self._get_user_by_id(evento_temp.id_criado_por),
+            usuario_responsavel=usuario_resp
+        )
 
         return evento
 
@@ -42,13 +47,17 @@ class EventoRepository(BaseRepository):
 
         eventos_list = []
         for row in results:
-            evento = Evento.model_validate(dict(row._mapping))
-            evento.criado_por = self._get_user_by_id(evento.id_criado_por)
-
-            if evento.id_usuario_responsavel:
-                evento.usuario_responsavel = self._get_user_by_id(
-                    evento.id_usuario_responsavel
-                )
+            evento_temp = from_dict(Evento, dict(row._mapping))
+            
+            usuario_resp = None
+            if evento_temp.id_usuario_responsavel:
+                usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
+            
+            evento = Evento(
+                **{k: v for k, v in evento_temp.__dict__.items()},
+                criado_por=self._get_user_by_id(evento_temp.id_criado_por),
+                usuario_responsavel=usuario_resp
+            )
 
             eventos_list.append(evento)
 
@@ -71,13 +80,17 @@ class EventoRepository(BaseRepository):
 
         items: list[Evento] = []
         for row in results:
-            evento = Evento.model_validate(dict(row._mapping))  # type: ignore
-            evento.criado_por = self._get_user_by_id(evento.id_criado_por)
-
-            if evento.id_usuario_responsavel:
-                evento.usuario_responsavel = self._get_user_by_id(
-                    evento.id_usuario_responsavel
-                )
+            evento_temp = from_dict(Evento, dict(row._mapping))
+            
+            usuario_resp = None
+            if evento_temp.id_usuario_responsavel:
+                usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
+            
+            evento = Evento(
+                **{k: v for k, v in evento_temp.__dict__.items()},
+                criado_por=self._get_user_by_id(evento_temp.id_criado_por),
+                usuario_responsavel=usuario_resp
+            )
 
             items.append(evento)
 
@@ -97,13 +110,17 @@ class EventoRepository(BaseRepository):
         if not result:
             return None
 
-        evento = Evento.model_validate(dict(result._mapping))  # type: ignore
-        evento.criado_por = self._get_user_by_id(evento.id_criado_por)
-
-        if evento.id_usuario_responsavel:
-            evento.usuario_responsavel = self._get_user_by_id(
-                evento.id_usuario_responsavel
-            )
+        evento_temp = from_dict(Evento, dict(result._mapping))
+        
+        usuario_resp = None
+        if evento_temp.id_usuario_responsavel:
+            usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
+        
+        evento = Evento(
+            **{k: v for k, v in evento_temp.__dict__.items()},
+            criado_por=self._get_user_by_id(evento_temp.id_criado_por),
+            usuario_responsavel=usuario_resp
+        )
 
         return evento
 
@@ -115,7 +132,8 @@ class EventoRepository(BaseRepository):
         return result or 0
 
     def create(self, data: Evento) -> int:
-        evento_dict = data.model_dump(
+        evento_dict = to_dict(
+            data,
             exclude={
                 "id",
                 "caso",
@@ -128,7 +146,8 @@ class EventoRepository(BaseRepository):
         return result.lastrowid
 
     def update(self, id: int, data: Evento) -> None:
-        evento_dict = data.model_dump(
+        evento_dict = to_dict(
+            data,
             exclude={
                 "id",
                 "caso",
@@ -144,7 +163,6 @@ class EventoRepository(BaseRepository):
         result = self.session.execute(stmt)
         return result.rowcount > 0
 
-    # TODO: Isso deveria ser uma coluna com autoincrement
     def count_by_caso_id(self, caso_id: int) -> int:
         stmt = (
             select(func.count())
@@ -157,4 +175,4 @@ class EventoRepository(BaseRepository):
     def _get_user_by_id(self, user_id: int) -> User | None:
         stmt = select(usuarios).where(usuarios.c.id == user_id)
         result = self.session.execute(stmt).one_or_none()
-        return User.model_validate(result) if result else None
+        return from_dict(User, dict(result._mapping)) if result else None

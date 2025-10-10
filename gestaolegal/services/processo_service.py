@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 
 from gestaolegal.common import PageParams
 from gestaolegal.models.processo import Processo
@@ -87,7 +88,7 @@ class ProcessoService:
 
         processo_data["id_criado_por"] = criado_por_id
 
-        processo = Processo.model_validate(processo_data)
+        processo = Processo(**processo_data)
         processo_id = self.repository.create(processo)
 
         created_processo = self.find_by_id(processo_id)
@@ -111,8 +112,8 @@ class ProcessoService:
 
         processo_data = processo_input.model_dump(exclude_none=True)
 
-        updated_data = {**existing.model_dump(), **processo_data}
-        processo = Processo.model_validate(updated_data)
+        updated_data = {**asdict(existing), **processo_data}
+        processo = Processo(**updated_data)
 
         self.repository.update(processo_id, processo)
 

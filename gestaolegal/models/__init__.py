@@ -9,13 +9,6 @@ from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 from gestaolegal.models.processo import Processo
 from gestaolegal.models.user import User
 
-Assistido.model_rebuild()
-Atendido.model_rebuild()
-OrientacaoJuridica.model_rebuild()
-Caso.model_rebuild()
-Processo.model_rebuild()
-Evento.model_rebuild()
-
 __all__ = [
     "BaseModel",
     "Endereco",

@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict, is_dataclass
 
 from flask import Blueprint, request
 
@@ -60,13 +61,13 @@ def global_search():
         "results": {
             "atendidos": {
                 "items": [
-                    item if isinstance(item, dict) else item.model_dump()
+                    item if isinstance(item, dict) else asdict(item)
                     for item in atendidos_result.items
                 ],
                 "total": atendidos_result.total,
             },
             "casos": {
-                "items": [item.model_dump() for item in casos_result.items],
+                "items": [asdict(item) for item in casos_result.items],
                 "total": casos_result.total,
             },
             "orientacoes_juridicas": {
@@ -74,7 +75,7 @@ def global_search():
                 "total": orientacoes_result.total,
             },
             "usuarios": {
-                "items": [item.model_dump() for item in usuarios_result.items],
+                "items": [asdict(item) for item in usuarios_result.items],
                 "total": usuarios_result.total,
             },
         },

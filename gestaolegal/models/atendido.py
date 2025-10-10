@@ -1,22 +1,17 @@
+from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
-from gestaolegal.models.assistido import Assistido
-from gestaolegal.models.base_model import BaseModel
-from gestaolegal.models.endereco import Endereco
-
 if TYPE_CHECKING:
+    from gestaolegal.models.assistido import Assistido
     from gestaolegal.models.caso import Caso
+    from gestaolegal.models.endereco import Endereco
     from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 
 
-class Atendido(BaseModel):
+@dataclass
+class Atendido:
     id: int
-
-    orientacoes_juridicas: list["OrientacaoJuridica"] | None = None
-    casos: list["Caso"] | None = None
-    endereco: "Endereco | None" = None
-
     nome: str
     data_nascimento: date
     cpf: str
@@ -26,7 +21,6 @@ class Atendido(BaseModel):
     celular: str
     email: str
     estado_civil: str
-
     como_conheceu: str
     indicacao_orgao: str | None
     procurou_outro_local: str
@@ -42,4 +36,7 @@ class Atendido(BaseModel):
     pretende_constituir_pj: str | None
     status: int
 
+    orientacoes_juridicas: list["OrientacaoJuridica"] | None = None
+    casos: list["Caso"] | None = None
+    endereco: "Endereco | None" = None
     assistido: "Assistido | None" = None

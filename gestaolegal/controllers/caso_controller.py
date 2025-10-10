@@ -1,5 +1,6 @@
 import logging
 import os
+from dataclasses import asdict
 from datetime import datetime
 from typing import Any, cast
 
@@ -54,7 +55,7 @@ def find_by_id(current_user: User, id: int):
     if not caso:
         return make_response("Caso não encontrado", 404)
 
-    return caso.model_dump()
+    return asdict(caso)
 
 
 @caso_controller.route("/", methods=["POST"])
@@ -70,7 +71,7 @@ def create(current_user: User):
         logger.error(f"Error creating caso: {str(e)}", exc_info=True)
         return make_response(str(e), 500)
 
-    return caso.model_dump()
+    return asdict(caso)
 
 
 @caso_controller.route("/<int:id>", methods=["PUT"])
@@ -91,7 +92,7 @@ def update(current_user: User, id: int):
     if not caso:
         return make_response("Erro ao atualizar caso", 404)
 
-    return caso.model_dump()
+    return asdict(caso)
 
 
 @caso_controller.route("/<int:id>", methods=["DELETE"])
@@ -122,7 +123,7 @@ def deferir(current_user: User, id: int):
     if not caso:
         return make_response("Erro ao deferir caso", 404)
 
-    return caso.model_dump()
+    return asdict(caso)
 
 
 @caso_controller.route("/<int:id>/indeferir", methods=["PATCH"])
@@ -146,7 +147,7 @@ def indeferir(current_user: User, id: int):
     if not caso:
         return make_response("Erro ao indeferir caso", 404)
 
-    return caso.model_dump()
+    return asdict(caso)
 
 
 @caso_controller.route("/<int:caso_id>/processos", methods=["GET"])
@@ -186,7 +187,7 @@ def create_processo(current_user: User, caso_id: int):
         logger.error(f"Error creating processo: {str(e)}", exc_info=True)
         return make_response(str(e), 500)
 
-    return processo.model_dump()
+    return asdict(processo)
 
 
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["GET"])
@@ -201,7 +202,7 @@ def get_processo(current_user: User, caso_id: int, processo_id: int):
     if processo.id_caso != caso_id:
         return make_response("Processo não pertence ao caso", 400)
 
-    return processo.model_dump()
+    return asdict(processo)
 
 
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["PUT"])
@@ -230,7 +231,7 @@ def update_processo(current_user: User, caso_id: int, processo_id: int):
     if not processo:
         return make_response("Erro ao atualizar processo", 404)
 
-    return processo.model_dump()
+    return asdict(processo)
 
 
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["DELETE"])
@@ -298,7 +299,7 @@ def create_evento(current_user: User, caso_id: int):
         logger.error(f"Error creating evento: {str(e)}", exc_info=True)
         return make_response(str(e), 500)
 
-    return evento.model_dump()
+    return asdict(evento)
 
 
 @caso_controller.route("/<int:caso_id>/eventos", methods=["GET"])
@@ -320,4 +321,4 @@ def get_evento(caso_id: int, evento_id: int):
     if evento.id_caso != caso_id:
         return make_response("Evento não pertence ao caso", 400)
 
-    return evento.model_dump()
+    return asdict(evento)

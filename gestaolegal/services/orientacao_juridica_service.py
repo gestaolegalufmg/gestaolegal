@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 from datetime import datetime
 
 from gestaolegal.common import PageParams
@@ -203,9 +204,7 @@ class OrientacaoJuridicaService:
         orientacao_data["id_usuario"] = id_usuario
         orientacao_data["status"] = 1
         orientacao_data["data_criacao"] = datetime.now()
-        orientacao = OrientacaoJuridica.model_validate(
-            obj=orientacao_data,
-        )
+        orientacao = OrientacaoJuridica(**orientacao_data)
 
         orientacao_id = self.repository.create(orientacao)
 
@@ -231,6 +230,9 @@ class OrientacaoJuridicaService:
             )
             raise ValueError("Something went wrong while creating orientacao juridica")
 
+        if orientacao_input.atendidos_ids:
+            created_orientacao.atendidos = atendidos
+
         logger.info(
             f"Orientacao juridica created successfully with id: {orientacao_id}"
         )
@@ -248,8 +250,8 @@ class OrientacaoJuridicaService:
         update_data = orientacao_input.model_dump(
             exclude_none=True, exclude={"atendidos_ids"}
         )
-        updated_data = {**existing.model_dump(), **update_data}
-        orientacao = OrientacaoJuridica.model_validate(updated_data)
+        updated_data = {**asdict(existing), **update_data}
+        orientacao = OrientacaoJuridica(**updated_data)
 
         self.repository.update(id, orientacao)
 

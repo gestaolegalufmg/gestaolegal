@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 from datetime import datetime
 
 from gestaolegal.common import PageParams
@@ -89,7 +90,7 @@ class CasoService:
         caso_data["numero_ultimo_processo"] = None
         caso_data["status"] = True
 
-        caso = Caso.model_validate(caso_data)
+        caso = Caso(**caso_data)
         caso_id = self.repository.create(caso)
 
         if caso_input.ids_clientes:
@@ -125,8 +126,8 @@ class CasoService:
         caso_data["data_modificacao"] = datetime.now()
         caso_data["id_modificado_por"] = modificado_por_id
 
-        updated_data = {**existing.model_dump(), **caso_data}
-        caso = Caso.model_validate(updated_data)
+        updated_data = {**asdict(existing), **caso_data}
+        caso = Caso(**updated_data)
 
         self.repository.update(caso_id, caso)
 
@@ -157,13 +158,13 @@ class CasoService:
             logger.error(f"Defer failed: caso not found with id: {caso_id}")
             raise ValueError(f"Caso with id {caso_id} not found")
 
-        caso_data = existing.model_dump()
-        caso_data["situacao_deferimento"] = "ativo"
+        caso_data = asdict(existing)
+        caso_data["situacao_deferimento"] = "deferido"
         caso_data["justif_indeferimento"] = None
         caso_data["data_modificacao"] = datetime.now()
         caso_data["id_modificado_por"] = modificado_por_id
 
-        caso = Caso.model_validate(caso_data)
+        caso = Caso(**caso_data)
         self.repository.update(caso_id, caso)
 
         logger.info(f"Caso deferred successfully with id: {caso_id}")
@@ -180,13 +181,13 @@ class CasoService:
             logger.error(f"Indefer failed: caso not found with id: {caso_id}")
             raise ValueError(f"Caso with id {caso_id} not found")
 
-        caso_data = existing.model_dump()
+        caso_data = asdict(existing)
         caso_data["situacao_deferimento"] = "indeferido"
         caso_data["justif_indeferimento"] = justificativa
         caso_data["data_modificacao"] = datetime.now()
         caso_data["id_modificado_por"] = modificado_por_id
 
-        caso = Caso.model_validate(caso_data)
+        caso = Caso(**caso_data)
         self.repository.update(caso_id, caso)
 
         logger.info(f"Caso indeferred successfully with id: {caso_id}")

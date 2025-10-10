@@ -13,6 +13,7 @@ from gestaolegal.repositories.repository import (
     GetParams,
     SearchParams,
 )
+from gestaolegal.utils.dataclass_utils import from_dict, to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -26,18 +27,18 @@ class UserRepository(BaseRepository):
     def find_by_id(self, id: int) -> User | None:
         stmt = select(usuarios).where(usuarios.c.id == id)
         result = self.session.execute(stmt).one_or_none()
-        return User.model_validate(result) if result else None
+        return from_dict(User, dict(result._mapping)) if result else None
 
     def find_by_email(self, email: str) -> User | None:
         stmt = select(usuarios).where(usuarios.c.email == email)
         result = self.session.execute(stmt).one_or_none()
-        return User.model_validate(result) if result else None
+        return from_dict(User, dict(result._mapping)) if result else None
 
     def get(self, params: GetParams) -> list[User]:
         stmt = select(usuarios)
         stmt = self._apply_where_clause(stmt, params.get("where"), usuarios)
         result = self.session.execute(stmt).all()
-        return [User.model_validate(row) for row in result]
+        return [from_dict(User, dict(row._mapping)) for row in result]
 
     def search(self, params: SearchParams) -> PaginatedResult[User]:
         stmt = select(usuarios, func.count().over().label("total_count"))
@@ -49,7 +50,7 @@ class UserRepository(BaseRepository):
         results = self.session.execute(stmt).all()
         total = results[0].total_count if results else 0
 
-        items = [User.model_validate(row) for row in results]
+        items = [from_dict(User, dict(row._mapping)) for row in results]
         page_params = params.get("page_params")
 
         return PaginatedResult(
@@ -63,7 +64,7 @@ class UserRepository(BaseRepository):
         stmt = select(usuarios)
         stmt = self._apply_where_clause(stmt, params.get("where"), usuarios)
         result = self.session.execute(stmt).one_or_none()
-        return User.model_validate(result) if result else None
+        return from_dict(User, dict(result._mapping)) if result else None
 
     def count(self, params: CountParams) -> int:
         stmt = select(func.count()).select_from(usuarios)
@@ -73,13 +74,13 @@ class UserRepository(BaseRepository):
         return result or 0
 
     def create(self, data: User) -> int:
-        user_dict = data.model_dump(exclude={"id", "endereco"})
+        user_dict = to_dict(data, exclude={"id", "endereco"})
         stmt = insert(usuarios).values(**user_dict)
         result = self.session.execute(stmt)
         return result.lastrowid
 
     def update(self, id: int, data: User) -> None:
-        user_dict = data.model_dump(exclude={"id", "endereco"})
+        user_dict = to_dict(data, exclude={"id", "endereco"})
         stmt = sql_update(usuarios).where(usuarios.c.id == id).values(**user_dict)
         self.session.execute(stmt)
 

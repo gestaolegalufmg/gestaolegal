@@ -20,6 +20,7 @@ from gestaolegal.repositories.repository import (
     CountParams,
     SearchParams,
 )
+from gestaolegal.utils.dataclass_utils import from_dict, to_dict
 
 
 class CasoRepository(BaseRepository):
@@ -35,24 +36,20 @@ class CasoRepository(BaseRepository):
         if not result:
             return None
 
-        caso = Caso.model_validate(dict(result._mapping))  # type: ignore
+        caso = from_dict(Caso, dict(result._mapping))
 
-        caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
-        caso.criado_por = (
-            self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None
+        exclude_fields = {'usuario_responsavel', 'criado_por', 'orientador', 'estagiario', 'colaborador', 'modificado_por', 'clientes', 'processos'}
+        caso = Caso(
+            **{k: v for k, v in caso.__dict__.items() if k not in exclude_fields},
+            usuario_responsavel=self._get_user_by_id(caso.id_usuario_responsavel),
+            criado_por=self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None,
+            orientador=self._get_user_by_id(caso.id_orientador) if caso.id_orientador else None,
+            estagiario=self._get_user_by_id(caso.id_estagiario) if caso.id_estagiario else None,
+            colaborador=self._get_user_by_id(caso.id_colaborador) if caso.id_colaborador else None,
+            modificado_por=self._get_user_by_id(caso.id_modificado_por) if caso.id_modificado_por else None,
+            clientes=self._get_atendidos_by_caso_id(id),
+            processos=self._get_processos_by_caso_id(id)
         )
-
-        if caso.id_orientador:
-            caso.orientador = self._get_user_by_id(caso.id_orientador)
-        if caso.id_estagiario:
-            caso.estagiario = self._get_user_by_id(caso.id_estagiario)
-        if caso.id_colaborador:
-            caso.colaborador = self._get_user_by_id(caso.id_colaborador)
-        if caso.id_modificado_por:
-            caso.modificado_por = self._get_user_by_id(caso.id_modificado_por)
-
-        caso.clientes = self._get_atendidos_by_caso_id(id)
-        caso.processos = self._get_processos_by_caso_id(id)
 
         return caso
 
@@ -68,22 +65,18 @@ class CasoRepository(BaseRepository):
 
         items = []
         for row in results:
-            caso = Caso.model_validate(dict(row._mapping))  # type: ignore
-            caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
-            caso.criado_por = (
-                self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None
+            caso_temp = from_dict(Caso, dict(row._mapping))
+            exclude_fields = {'usuario_responsavel', 'criado_por', 'orientador', 'estagiario', 'colaborador', 'modificado_por', 'clientes', 'processos'}
+            caso = Caso(
+                **{k: v for k, v in caso_temp.__dict__.items() if k not in exclude_fields},
+                usuario_responsavel=self._get_user_by_id(caso_temp.id_usuario_responsavel),
+                criado_por=self._get_user_by_id(caso_temp.id_criado_por) if caso_temp.id_criado_por else None,
+                orientador=self._get_user_by_id(caso_temp.id_orientador) if caso_temp.id_orientador else None,
+                estagiario=self._get_user_by_id(caso_temp.id_estagiario) if caso_temp.id_estagiario else None,
+                colaborador=self._get_user_by_id(caso_temp.id_colaborador) if caso_temp.id_colaborador else None,
+                modificado_por=self._get_user_by_id(caso_temp.id_modificado_por) if caso_temp.id_modificado_por else None,
+                clientes=self._get_atendidos_by_caso_id(caso_temp.id) if caso_temp.id else []
             )
-
-            if caso.id_orientador:
-                caso.orientador = self._get_user_by_id(caso.id_orientador)
-            if caso.id_estagiario:
-                caso.estagiario = self._get_user_by_id(caso.id_estagiario)
-            if caso.id_colaborador:
-                caso.colaborador = self._get_user_by_id(caso.id_colaborador)
-            if caso.id_modificado_por:
-                caso.modificado_por = self._get_user_by_id(caso.id_modificado_por)
-
-            caso.clientes = self._get_atendidos_by_caso_id(caso.id) if caso.id else []
             items.append(caso)
 
         page_params = params.get("page_params")
@@ -102,12 +95,14 @@ class CasoRepository(BaseRepository):
         if not result:
             return None
 
-        caso = Caso.model_validate(dict(result._mapping))  # type: ignore
-        caso.usuario_responsavel = self._get_user_by_id(caso.id_usuario_responsavel)
-        caso.criado_por = (
-            self._get_user_by_id(caso.id_criado_por) if caso.id_criado_por else None
+        caso_temp = from_dict(Caso, dict(result._mapping))
+        exclude_fields = {'usuario_responsavel', 'criado_por', 'orientador', 'estagiario', 'colaborador', 'modificado_por', 'clientes', 'processos'}
+        caso = Caso(
+            **{k: v for k, v in caso_temp.__dict__.items() if k not in exclude_fields},
+            usuario_responsavel=self._get_user_by_id(caso_temp.id_usuario_responsavel),
+            criado_por=self._get_user_by_id(caso_temp.id_criado_por) if caso_temp.id_criado_por else None,
+            clientes=self._get_atendidos_by_caso_id(caso_temp.id) if caso_temp.id else []
         )
-        caso.clientes = self._get_atendidos_by_caso_id(caso.id) if caso.id else []
 
         return caso
 
@@ -119,7 +114,8 @@ class CasoRepository(BaseRepository):
         return result or 0
 
     def create(self, data: Caso) -> int:
-        caso_dict = data.model_dump(
+        caso_dict = to_dict(
+            data,
             exclude={
                 "id",
                 "usuario_responsavel",
@@ -129,6 +125,7 @@ class CasoRepository(BaseRepository):
                 "colaborador",
                 "criado_por",
                 "modificado_por",
+                "processos",
             }
         )
         stmt = insert(casos).values(**caso_dict)
@@ -136,7 +133,8 @@ class CasoRepository(BaseRepository):
         return result.lastrowid
 
     def update(self, id: int, data: Caso) -> None:
-        caso_dict = data.model_dump(
+        caso_dict = to_dict(
+            data,
             exclude={
                 "id",
                 "usuario_responsavel",
@@ -146,6 +144,7 @@ class CasoRepository(BaseRepository):
                 "colaborador",
                 "criado_por",
                 "modificado_por",
+                "processos",
             }
         )
         stmt = sql_update(casos).where(casos.c.id == id).values(**caso_dict)
@@ -169,7 +168,7 @@ class CasoRepository(BaseRepository):
     def _get_user_by_id(self, user_id: int) -> User | None:
         stmt = select(usuarios).where(usuarios.c.id == user_id)
         result = self.session.execute(stmt).one_or_none()
-        return User.model_validate(result) if result else None
+        return from_dict(User, dict(result._mapping)) if result else None
 
     def _get_atendidos_by_caso_id(self, caso_id: int) -> list[Atendido]:
         stmt = (
@@ -183,7 +182,7 @@ class CasoRepository(BaseRepository):
         )
 
         results = self.session.execute(stmt).all()
-        return [Atendido.model_validate(row) for row in results]
+        return [from_dict(Atendido, dict(row._mapping)) for row in results]
 
     def _get_processos_by_caso_id(self, caso_id: int) -> list[Processo]:
         stmt = select(processos).where(processos.c.id_caso == caso_id)
@@ -191,8 +190,11 @@ class CasoRepository(BaseRepository):
         results = self.session.execute(stmt).all()
         processos_list: list[Processo] = []
         for row in results:
-            processo = Processo.model_validate(dict(row._mapping))  # type: ignore
-            processo.criado_por = self._get_user_by_id(processo.id_criado_por)
+            processo_temp = from_dict(Processo, dict(row._mapping))
+            processo = Processo(
+                **{k: v for k, v in processo_temp.__dict__.items()},
+                criado_por=self._get_user_by_id(processo_temp.id_criado_por)
+            )
             processos_list.append(processo)
 
         return processos_list
