@@ -101,3 +101,5 @@ class OrientacaoJuridicaRepository(BaseRepository):
             .values(status=0)
         )
         self.session.execute(stmt)
+        self.session.flush()
+        self.session.commit()
