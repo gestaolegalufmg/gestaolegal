@@ -1,9 +1,5 @@
 name: Build and Push Image
 
-# This workflow runs when any of the following occur:
-# - A push is made to a branch called `main` or `seed`
-# - A tag starting with "v" is created
-# - A pull request is created or updated
 on:
   push:
     branches:
@@ -12,11 +8,12 @@ on:
       - v*
   pull_request:
   workflow_dispatch:
+
 env:
   IMAGE_NAME: gestaolegal
-#
+
 jobs:
-  push:
+  build:
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -28,22 +25,20 @@ jobs:
         run: docker build . --file Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
 
       - name: Log in to registry
+        if: github.event_name != 'pull_request'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Push image
+        if: github.event_name != 'pull_request'
         run: |
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
 
-          # This changes all uppercase characters to lowercase.
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
-          # This strips the git ref prefix from the version.
           VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
 
-          # This strips the "v" prefix from the tag name.
           [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
 
-          # This uses the Docker `latest` tag convention.
           [ "$VERSION" == "master" ] && VERSION=latest
 
           echo IMAGE_ID=$IMAGE_ID
