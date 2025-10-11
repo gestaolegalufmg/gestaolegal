@@ -87,7 +87,7 @@ class UsuarioService:
             where=where,
         )
 
-        logger.info("Performing search with processed params: ", params)
+        logger.info(f"Performing search with processed params: {params}")
         result = self.repository.search(params=params)
 
         endereco_ids = [u.endereco_id for u in result.items if u.endereco_id]
