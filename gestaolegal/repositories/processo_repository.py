@@ -89,4 +89,6 @@ class ProcessoRepository(BaseRepository):
     def delete(self, id: int) -> bool:
         stmt = sql_update(processos).where(processos.c.id == id).values(status=False)
         result = self.session.execute(stmt)
+        self.session.flush()
+        self.session.commit()
         return result.rowcount > 0

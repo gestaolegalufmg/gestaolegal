@@ -87,4 +87,6 @@ class UserRepository(BaseRepository):
     def delete(self, id: int) -> bool:
         stmt = sql_update(usuarios).where(usuarios.c.id == id).values(status=False)
         result = self.session.execute(stmt)
+        self.session.flush()
+        self.session.commit()
         return result.rowcount > 0

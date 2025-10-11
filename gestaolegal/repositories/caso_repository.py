@@ -97,6 +97,8 @@ class CasoRepository(BaseRepository):
     def delete(self, id: int) -> bool:
         stmt = sql_update(casos).where(casos.c.id == id).values(status=False)
         result = self.session.execute(stmt)
+        self.session.flush()
+        self.session.commit()
         return result.rowcount > 0
 
     def link_atendidos(self, caso_id: int, atendido_ids: list[int]) -> None:
