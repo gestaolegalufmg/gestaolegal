@@ -1,33 +1,44 @@
 import logging
+from dataclasses import asdict
 from datetime import datetime
 
-from gestaolegal.common import PageParams
+from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.caso import Caso
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
+from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.caso_repository import CasoRepository
-from gestaolegal.common import PaginatedResult
+from gestaolegal.repositories.processo_repository import ProcessoRepository
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     SearchParams,
     WhereClause,
 )
+from gestaolegal.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
 
 class CasoService:
     repository: CasoRepository
+    user_repository: UserRepository
+    atendido_repository: AtendidoRepository
+    processo_repository: ProcessoRepository
 
     def __init__(self):
         self.repository = CasoRepository()
+        self.user_repository = UserRepository()
+        self.atendido_repository = AtendidoRepository()
+        self.processo_repository = ProcessoRepository()
 
     def find_by_id(self, id: int) -> Caso | None:
         logger.info(f"Finding caso by id: {id}")
         caso = self.repository.find_by_id(id)
-        if caso:
-            logger.info(f"Caso found with id: {id}")
-        else:
+        if not caso:
             logger.warning(f"Caso not found with id: {id}")
+            return None
+
+        self._load_caso_dependencies(caso)
+        logger.info(f"Caso found with id: {id}")
         return caso
 
     def search(
@@ -71,6 +82,10 @@ class CasoService:
         )
 
         result = self.repository.search(params=params)
+
+        for caso in result.items:
+            self._load_caso_dependencies(caso)
+
         logger.info(
             f"Returning {len(result.items)} casos of total {result.total} found"
         )
@@ -89,7 +104,7 @@ class CasoService:
         caso_data["numero_ultimo_processo"] = None
         caso_data["status"] = True
 
-        caso = Caso.model_validate(caso_data)
+        caso = Caso(**caso_data)
         caso_id = self.repository.create(caso)
 
         if caso_input.ids_clientes:
@@ -125,8 +140,8 @@ class CasoService:
         caso_data["data_modificacao"] = datetime.now()
         caso_data["id_modificado_por"] = modificado_por_id
 
-        updated_data = {**existing.model_dump(), **caso_data}
-        caso = Caso.model_validate(updated_data)
+        updated_data = {**asdict(existing), **caso_data}
+        caso = Caso(**updated_data)
 
         self.repository.update(caso_id, caso)
 
@@ -157,17 +172,17 @@ class CasoService:
             logger.error(f"Defer failed: caso not found with id: {caso_id}")
             raise ValueError(f"Caso with id {caso_id} not found")
 
-        caso_data = existing.model_dump()
-        caso_data["situacao_deferimento"] = "ativo"
+        caso_data = asdict(existing)
+        caso_data["situacao_deferimento"] = "deferido"
         caso_data["justif_indeferimento"] = None
         caso_data["data_modificacao"] = datetime.now()
         caso_data["id_modificado_por"] = modificado_por_id
 
-        caso = Caso.model_validate(caso_data)
+        caso = Caso(**caso_data)
         self.repository.update(caso_id, caso)
 
         logger.info(f"Caso deferred successfully with id: {caso_id}")
-        return self.repository.find_by_id(caso_id)
+        return self.find_by_id(caso_id)
 
     def indeferir(
         self, caso_id: int, justificativa: str, modificado_por_id: int
@@ -180,14 +195,48 @@ class CasoService:
             logger.error(f"Indefer failed: caso not found with id: {caso_id}")
             raise ValueError(f"Caso with id {caso_id} not found")
 
-        caso_data = existing.model_dump()
+        caso_data = asdict(existing)
         caso_data["situacao_deferimento"] = "indeferido"
         caso_data["justif_indeferimento"] = justificativa
         caso_data["data_modificacao"] = datetime.now()
         caso_data["id_modificado_por"] = modificado_por_id
 
-        caso = Caso.model_validate(caso_data)
+        caso = Caso(**caso_data)
         self.repository.update(caso_id, caso)
 
         logger.info(f"Caso indeferred successfully with id: {caso_id}")
-        return self.repository.find_by_id(caso_id)
+        return self.find_by_id(caso_id)
+
+    def _load_caso_dependencies(self, caso: Caso) -> None:
+        caso.usuario_responsavel = self.user_repository.find_by_id(
+            caso.id_usuario_responsavel
+        )
+
+        if caso.id_criado_por:
+            caso.criado_por = self.user_repository.find_by_id(caso.id_criado_por)
+
+        if caso.id_orientador:
+            caso.orientador = self.user_repository.find_by_id(caso.id_orientador)
+
+        if caso.id_estagiario:
+            caso.estagiario = self.user_repository.find_by_id(caso.id_estagiario)
+
+        if caso.id_colaborador:
+            caso.colaborador = self.user_repository.find_by_id(caso.id_colaborador)
+
+        if caso.id_modificado_por:
+            caso.modificado_por = self.user_repository.find_by_id(
+                caso.id_modificado_por
+            )
+
+        if caso.id:
+            atendido_ids = self.repository.get_atendido_ids_by_caso_id(caso.id)
+            caso.clientes = self.atendido_repository.get_by_ids(atendido_ids)
+
+            processos = self.processo_repository.find_by_caso_id(caso.id)
+            for processo in processos:
+                if processo.id_criado_por:
+                    processo.criado_por = self.user_repository.find_by_id(
+                        processo.id_criado_por
+                    )
+            caso.processos = processos

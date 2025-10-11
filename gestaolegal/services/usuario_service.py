@@ -1,16 +1,16 @@
 import logging
 import secrets
 import string
+from dataclasses import asdict
 from datetime import datetime
 from typing import Any
 
 import bcrypt
 
-from gestaolegal.common import PageParams
+from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.user import User
 from gestaolegal.models.user_input import UserCreateInput, UserUpdateInput
 from gestaolegal.repositories.endereco_repository import EnderecoRepository
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     SearchParams,
@@ -61,11 +61,10 @@ class UsuarioService:
         logger.info(
             f"Handling search request with params: page_params={page_params}, search='{search}', role='{role}', show_inactive={show_inactive}"
         )
-        status = False if show_inactive else True
+        clauses: list[WhereClause] = []
 
-        clauses: list[WhereClause] = [
-            WhereClause(column="status", operator="==", value=status),
-        ]
+        if not show_inactive:
+            clauses.append(WhereClause(column="status", operator="==", value=True))
 
         if search:
             clauses.append(
@@ -77,21 +76,18 @@ class UsuarioService:
                 WhereClause(column="urole", operator="ilike", value=f"%{role}%")
             )
 
-        where = (
-            ComplexWhereClause(
-                clauses=clauses,
-                operator="and",
-            )
-            if len(clauses) > 1
-            else clauses[0]
-        )
+        where = None
+        if len(clauses) > 1:
+            where = ComplexWhereClause(clauses=clauses, operator="and")
+        elif len(clauses) == 1:
+            where = clauses[0]
 
         params = SearchParams(
             page_params=page_params,
             where=where,
         )
 
-        logger.info("Performing search with processed params: ", params)
+        logger.info(f"Performing search with processed params: {params}")
         result = self.repository.search(params=params)
 
         endereco_ids = [u.endereco_id for u in result.items if u.endereco_id]
@@ -121,7 +117,7 @@ class UsuarioService:
         return None
 
     def check_password(self, user: User, senha: str) -> bool:
-        return bcrypt.checkpw(senha.encode('utf-8'), user.senha.encode('utf-8'))
+        return bcrypt.checkpw(senha.encode("utf-8"), user.senha.encode("utf-8"))
 
     def create(self, user_input: UserCreateInput, criado_por: int) -> User:
         logger.info(
@@ -145,7 +141,7 @@ class UsuarioService:
             secrets.choice(alphabet) for _ in range(password_length)
         )
         user_data["senha"] = bcrypt.hashpw(
-            random_password.encode('utf-8'), bcrypt.gensalt()
+            random_password.encode("utf-8"), bcrypt.gensalt()
         ).decode("utf-8")
 
         user_id = self.repository.create(User(**user_data))
@@ -174,7 +170,7 @@ class UsuarioService:
         user_data["modificadopor"] = modificado_por
         user_data["modificado"] = datetime.now()
 
-        updated_data = {**existing.model_dump(), **user_data}
+        updated_data = {**asdict(existing), **user_data}
         user = User(**updated_data)
 
         self.repository.update(user_id, user)
@@ -214,11 +210,12 @@ class UsuarioService:
 
         logger.info(f"Hashing password: {new_password}")
         hashed_password = bcrypt.hashpw(
-            new_password.encode('utf-8'), bcrypt.gensalt()
+            new_password.encode("utf-8"), bcrypt.gensalt()
         ).decode("utf-8")
         logger.info(f"Hashed password: {hashed_password}")
 
-        user_data = user.model_dump(exclude={"endereco"})
+        user_data = asdict(user)
+        user_data.pop("endereco", None)
         user_data["senha"] = hashed_password
         user_data["modificado"] = datetime.now()
 

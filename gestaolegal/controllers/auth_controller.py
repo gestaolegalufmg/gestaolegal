@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 from typing import cast
 
 from flask import Blueprint, make_response, request
@@ -35,7 +36,7 @@ def login():
         token = JWTAuth.generate_token(user)
 
         logger.info(f"token in login -> {token}")
-        return make_response({"token": token, "user": user.model_dump()})
+        return make_response({"token": token, "user": asdict(user)})
 
     except Exception as e:
         logger.error(f"Login error: {str(e)}")

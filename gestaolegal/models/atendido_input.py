@@ -1,10 +1,12 @@
+from dataclasses import dataclass
 from datetime import date
 
 from gestaolegal.models.base_model import BaseModel
 from gestaolegal.models.endereco import Endereco
 
 
-class ListAtendido(BaseModel):
+@dataclass
+class ListAtendido:
     id: int
     nome: str
     cpf: str

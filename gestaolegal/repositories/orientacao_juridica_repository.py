@@ -3,17 +3,18 @@ from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
 
+from gestaolegal.common import PaginatedResult
 from gestaolegal.database.tables import (
     atendido_xOrientacaoJuridica,
     orientacao_juridica,
 )
 from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,
     SearchParams,
 )
+from gestaolegal.utils.dataclass_utils import from_dict, to_dict
 
 
 class OrientacaoJuridicaRepository(BaseRepository):
@@ -26,7 +27,9 @@ class OrientacaoJuridicaRepository(BaseRepository):
         stmt = select(orientacao_juridica).where(orientacao_juridica.c.id == id)
         result = self.session.execute(stmt).one_or_none()
 
-        orientacao = OrientacaoJuridica.model_validate(result) if result else None
+        orientacao = (
+            from_dict(OrientacaoJuridica, dict(result._mapping)) if result else None
+        )
         return orientacao
 
     def search(self, params: SearchParams) -> PaginatedResult[OrientacaoJuridica]:
@@ -39,7 +42,7 @@ class OrientacaoJuridicaRepository(BaseRepository):
         results = self.session.execute(stmt).all()
         total = results[0].total_count if results else 0
 
-        items = [OrientacaoJuridica.model_validate(row) for row in results]
+        items = [from_dict(OrientacaoJuridica, dict(row._mapping)) for row in results]
 
         page_params = params.get("page_params")
         return PaginatedResult(
@@ -53,7 +56,7 @@ class OrientacaoJuridicaRepository(BaseRepository):
         stmt = select(orientacao_juridica)
         stmt = self._apply_where_clause(stmt, params.get("where"), orientacao_juridica)
         result = self.session.execute(stmt).one_or_none()
-        return OrientacaoJuridica.model_validate(result) if result else None
+        return from_dict(OrientacaoJuridica, dict(result._mapping)) if result else None
 
     def count(self, params: CountParams) -> int:
         stmt = select(func.count()).select_from(orientacao_juridica)
@@ -63,17 +66,13 @@ class OrientacaoJuridicaRepository(BaseRepository):
         return result or 0
 
     def create(self, data: OrientacaoJuridica) -> int:
-        orientacao_dict = data.model_dump(
-            exclude={"id", "atendidos", "usuario"}
-        )
+        orientacao_dict = to_dict(data, exclude={"id", "atendidos", "usuario"})
         stmt = insert(orientacao_juridica).values(**orientacao_dict)
         result = self.session.execute(stmt)
         return result.lastrowid
 
     def update(self, id: int, data: OrientacaoJuridica) -> None:
-        orientacao_dict = data.model_dump(
-            exclude={"id", "atendidos", "usuario"}
-        )
+        orientacao_dict = to_dict(data, exclude={"id", "atendidos", "usuario"})
         stmt = (
             sql_update(orientacao_juridica)
             .where(orientacao_juridica.c.id == id)
@@ -91,7 +90,7 @@ class OrientacaoJuridicaRepository(BaseRepository):
 
         for atendido_id in atendidos_ids:
             stmt = insert(atendido_xOrientacaoJuridica).values(
-                id_orientacao_juridica=orientacao_id, id_atendido=atendido_id
+                id_orientacaoJuridica=orientacao_id, id_atendido=atendido_id
             )
             self.session.execute(stmt)
 
