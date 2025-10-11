@@ -1,7 +1,8 @@
 import logging
+from dataclasses import asdict
 from datetime import datetime
 
-from gestaolegal.common import PageParams
+from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.orientacao_juridica import (
     OrientacaoJuridica,
     OrientacaoJuridicaDetail,
@@ -15,7 +16,6 @@ from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.orientacao_juridica_repository import (
     OrientacaoJuridicaRepository,
 )
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     GetParams,
@@ -91,11 +91,10 @@ class OrientacaoJuridicaService:
         logger.info(
             f"Searching orientacoes juridicas with search: '{search}', area: {area}, show_inactive: {show_inactive}"
         )
-        clauses = [
-            WhereClause(
-                column="status", operator="==", value=0 if show_inactive else 1
-            ),
-        ]
+        clauses = []
+
+        if not show_inactive:
+            clauses.append(WhereClause(column="status", operator="==", value=1))
 
         if search:
             clauses.append(
@@ -107,11 +106,11 @@ class OrientacaoJuridicaService:
                 WhereClause(column="area_direito", operator="==", value=area)
             )
 
-        where = (
-            ComplexWhereClause(clauses=clauses, operator="and")
-            if len(clauses) > 1
-            else clauses[0]
-        )
+        where = None
+        if len(clauses) > 1:
+            where = ComplexWhereClause(clauses=clauses, operator="and")
+        elif len(clauses) == 1:
+            where = clauses[0]
 
         params = SearchParams(
             page_params=page_params,
@@ -203,9 +202,7 @@ class OrientacaoJuridicaService:
         orientacao_data["id_usuario"] = id_usuario
         orientacao_data["status"] = 1
         orientacao_data["data_criacao"] = datetime.now()
-        orientacao = OrientacaoJuridica.model_validate(
-            obj=orientacao_data,
-        )
+        orientacao = OrientacaoJuridica(**orientacao_data)
 
         orientacao_id = self.repository.create(orientacao)
 
@@ -231,6 +228,9 @@ class OrientacaoJuridicaService:
             )
             raise ValueError("Something went wrong while creating orientacao juridica")
 
+        if orientacao_input.atendidos_ids:
+            created_orientacao.atendidos = atendidos
+
         logger.info(
             f"Orientacao juridica created successfully with id: {orientacao_id}"
         )
@@ -248,8 +248,8 @@ class OrientacaoJuridicaService:
         update_data = orientacao_input.model_dump(
             exclude_none=True, exclude={"atendidos_ids"}
         )
-        updated_data = {**existing.model_dump(), **update_data}
-        orientacao = OrientacaoJuridica.model_validate(updated_data)
+        updated_data = {**asdict(existing), **update_data}
+        orientacao = OrientacaoJuridica(**updated_data)
 
         self.repository.update(id, orientacao)
 

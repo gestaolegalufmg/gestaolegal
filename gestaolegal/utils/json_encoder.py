@@ -4,8 +4,6 @@ from datetime import date, datetime
 
 from flask.json.provider import DefaultJSONProvider
 
-from gestaolegal.models.base_model import BaseModel
-
 logger = logging.getLogger(__name__)
 
 
@@ -16,8 +14,6 @@ class CustomJSONEncoder(DefaultJSONProvider):
             return o.isoformat()
         elif isinstance(o, date):
             return o.isoformat()
-        elif isinstance(o, BaseModel):
-            return o.model_dump()
         elif is_dataclass(o) and not isinstance(o, type):
             return asdict(o)
 

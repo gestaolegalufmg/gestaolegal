@@ -1,12 +1,12 @@
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
-
-from gestaolegal.models.base_model import BaseModel
 
 if TYPE_CHECKING:
     from gestaolegal.models.assistido import Assistido
 
 
-class AssistidoPessoaJuridica(BaseModel):
+@dataclass
+class AssistidoPessoaJuridica:
     id: int | None
     id_assistido: int
     assistido: "Assistido"

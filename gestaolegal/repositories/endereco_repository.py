@@ -6,6 +6,7 @@ from sqlalchemy import update as sql_update
 from gestaolegal.database.tables import enderecos
 from gestaolegal.models.endereco import Endereco
 from gestaolegal.repositories.repository import BaseRepository
+from gestaolegal.utils.dataclass_utils import from_dict
 
 
 class EnderecoRepository(BaseRepository):
@@ -15,14 +16,14 @@ class EnderecoRepository(BaseRepository):
     def find_by_id(self, id: int) -> Endereco | None:
         stmt = select(enderecos).where(enderecos.c.id == id)
         result = self.session.execute(stmt).one_or_none()
-        return Endereco.model_validate(result) if result else None
+        return from_dict(Endereco, dict(result._mapping)) if result else None
 
     def get_by_ids(self, ids: list[int]) -> list[Endereco]:
         if not ids:
             return []
         stmt = select(enderecos).where(enderecos.c.id.in_(ids))
         results = self.session.execute(stmt).all()
-        return [Endereco.model_validate(row) for row in results]
+        return [from_dict(Endereco, dict(row._mapping)) for row in results]
 
     def create(self, endereco_data: dict[str, Any]) -> int:
         stmt = insert(enderecos).values(**endereco_data)

@@ -3,6 +3,7 @@ import logging
 from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 
+from gestaolegal.common import PaginatedResult
 from gestaolegal.database.tables import (
     assistidos,
     atendido_xOrientacaoJuridica,
@@ -10,13 +11,13 @@ from gestaolegal.database.tables import (
 )
 from gestaolegal.models.assistido import Assistido
 from gestaolegal.models.atendido import Atendido
-from gestaolegal.common import PaginatedResult
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,
     GetParams,
     SearchParams,
 )
+from gestaolegal.utils.dataclass_utils import from_dict, to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -28,18 +29,25 @@ class AtendidoRepository(BaseRepository):
     def find_by_id(self, id: int) -> Atendido | None:
         stmt = select(atendidos).where(atendidos.c.id == id)
         result = self.session.execute(stmt).one_or_none()
-        return Atendido.model_validate(result) if result else None
+        return from_dict(Atendido, dict(result._mapping)) if result else None
 
     def find_by_email(self, email: str) -> Atendido | None:
         stmt = select(atendidos).where(atendidos.c.email == email)
         result = self.session.execute(stmt).one_or_none()
-        return Atendido.model_validate(result) if result else None
+        return from_dict(Atendido, dict(result._mapping)) if result else None
 
     def get(self, params: GetParams) -> list[Atendido]:
         stmt = select(atendidos)
         stmt = self._apply_where_clause(stmt, params.get("where"), atendidos)
         result = self.session.execute(stmt).all()
-        return [Atendido.model_validate(row) for row in result]
+        return [from_dict(Atendido, dict(row._mapping)) for row in result]
+
+    def get_by_ids(self, ids: list[int]) -> list[Atendido]:
+        if not ids:
+            return []
+        stmt = select(atendidos).where(atendidos.c.id.in_(ids))
+        results = self.session.execute(stmt).all()
+        return [from_dict(Atendido, dict(row._mapping)) for row in results]
 
     # TODO: Avaliar se existe uma forma melhor de modelar este método (e o comportamento como um todo).
     #
@@ -78,7 +86,7 @@ class AtendidoRepository(BaseRepository):
                 orientacao_juridica_map[orientacao_id] = []
             orientacao_juridica_map[orientacao_id].append(atendido_id)
 
-            atendidos_list.append(Atendido.model_validate(row))
+            atendidos_list.append(from_dict(Atendido, dict(row)))
 
         return atendidos_list, orientacao_juridica_map
 
@@ -126,7 +134,7 @@ class AtendidoRepository(BaseRepository):
         stmt = select(atendidos)
         stmt = self._apply_where_clause(stmt, params.get("where"), atendidos)
         result = self.session.execute(stmt).one_or_none()
-        return Atendido.model_validate(result) if result else None
+        return from_dict(Atendido, dict(result._mapping)) if result else None
 
     def count(self, params: CountParams) -> int:
         stmt = select(func.count()).select_from(atendidos)
@@ -136,8 +144,9 @@ class AtendidoRepository(BaseRepository):
         return result or 0
 
     def create(self, data: Atendido) -> int:
-        atendido_dict = data.model_dump(
-            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"}
+        atendido_dict = to_dict(
+            data,
+            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"},
         )
         stmt = insert(atendidos).values(**atendido_dict)
         result = self.session.execute(stmt)
@@ -150,8 +159,9 @@ class AtendidoRepository(BaseRepository):
         if not existing:
             raise ValueError(f"Atendido with id {id} not found")
 
-        atendido_dict = data.model_dump(
-            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"}
+        atendido_dict = to_dict(
+            data,
+            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"},
         )
         stmt = sql_update(atendidos).where(atendidos.c.id == id).values(**atendido_dict)
         self.session.execute(stmt)
@@ -164,7 +174,7 @@ class AtendidoRepository(BaseRepository):
     def find_assistido_by_atendido_id(self, atendido_id: int) -> Assistido | None:
         stmt = select(assistidos).where(assistidos.c.id_atendido == atendido_id)
         result = self.session.execute(stmt).one_or_none()
-        return Assistido.model_validate(result) if result else None
+        return from_dict(Assistido, dict(result._mapping)) if result else None
 
     def get_assistidos_by_atendido_ids(
         self, atendido_ids: list[int]
@@ -173,12 +183,10 @@ class AtendidoRepository(BaseRepository):
             return []
         stmt = select(assistidos).where(assistidos.c.id_atendido.in_(atendido_ids))
         results = self.session.execute(stmt).all()
-        return [Assistido.model_validate(row) for row in results]
+        return [from_dict(Assistido, dict(row._mapping)) for row in results]
 
     def create_assistido(self, assistido: Assistido) -> int:
-        assistido_dict = assistido.model_dump(
-            exclude={"id", "assistido_pessoa_juridica"}
-        )
+        assistido_dict = to_dict(assistido, exclude={"id", "assistido_pessoa_juridica"})
         stmt = insert(assistidos).values(**assistido_dict)
         result = self.session.execute(stmt)
         return result.lastrowid
@@ -190,7 +198,7 @@ class AtendidoRepository(BaseRepository):
         if not existing:
             raise ValueError(f"Assistido for atendido {id_atendido} not found")
 
-        assistido_dict = assistido.model_dump(exclude={"id"})
+        assistido_dict = to_dict(assistido, exclude={"id", "assistido_pessoa_juridica"})
         stmt = (
             sql_update(assistidos)
             .where(assistidos.c.id_atendido == id_atendido)

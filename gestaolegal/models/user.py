@@ -1,14 +1,13 @@
+from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from dateutil.parser import parse as parse_date
-from pydantic import field_validator
-
-from gestaolegal.models.base_model import BaseModel
-from gestaolegal.models.endereco import Endereco
+if TYPE_CHECKING:
+    from gestaolegal.models.endereco import Endereco
 
 
-class User(BaseModel):
+@dataclass
+class User:
     email: str
     senha: str
     urole: Literal["admin", "colab_proj", "orient", "estag_direito", "colab_ext"]
@@ -37,39 +36,10 @@ class User(BaseModel):
     inicio_bolsa: datetime | None
     fim_bolsa: datetime | None
     endereco_id: int
-
-    id: int | None = None
+    id: int | None
+    status: bool
+    modificado: datetime | None
+    criado: datetime
 
     chave_recuperacao: bool | None = None
     endereco: "Endereco | None" = None
-    status: bool = True
-
-    modificado: datetime | None = None
-    criado: datetime = datetime.now()
-
-    @field_validator("nascimento", mode="before")
-    def parse_nascimento_rfc(cls, v):
-        if isinstance(v, str):
-            try:
-                return parse_date(v).date()
-            except Exception:
-                pass
-        return v
-
-    @field_validator("data_entrada", mode="before")
-    def parse_data_entrada_rfc(cls, v):
-        if isinstance(v, str):
-            try:
-                return parse_date(v).date()
-            except Exception:
-                pass
-        return v
-
-    @field_validator("data_saida", mode="before")
-    def parse_data_saida_rfc(cls, v):
-        if isinstance(v, str):
-            try:
-                return parse_date(v).date()
-            except Exception:
-                pass
-        return v
