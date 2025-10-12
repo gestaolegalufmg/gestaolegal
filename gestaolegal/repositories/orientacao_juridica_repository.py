@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import delete as sql_delete
 from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
@@ -14,7 +16,7 @@ from gestaolegal.repositories.repository import (
     CountParams,
     SearchParams,
 )
-from gestaolegal.utils.dataclass_utils import from_dict, to_dict
+from gestaolegal.utils.dataclass_utils import from_dict
 
 
 class OrientacaoJuridicaRepository(BaseRepository):
@@ -65,18 +67,17 @@ class OrientacaoJuridicaRepository(BaseRepository):
         result = self.session.execute(stmt).scalar()
         return result or 0
 
-    def create(self, data: OrientacaoJuridica) -> int:
-        orientacao_dict = to_dict(data, exclude={"id", "atendidos", "usuario"})
-        stmt = insert(orientacao_juridica).values(**orientacao_dict)
+    def create(self, data: dict[str, Any]) -> int:
+        stmt = insert(orientacao_juridica).values(**data)
         result = self.session.execute(stmt)
+        self.session.flush()
         return result.lastrowid
 
-    def update(self, id: int, data: OrientacaoJuridica) -> None:
-        orientacao_dict = to_dict(data, exclude={"id", "atendidos", "usuario"})
+    def update(self, id: int, data: dict[str, Any]) -> None:
         stmt = (
             sql_update(orientacao_juridica)
             .where(orientacao_juridica.c.id == id)
-            .values(**orientacao_dict)
+            .values(**data)
         )
         self.session.execute(stmt)
 
@@ -101,5 +102,3 @@ class OrientacaoJuridicaRepository(BaseRepository):
             .values(status=0)
         )
         self.session.execute(stmt)
-        self.session.flush()
-        self.session.commit()

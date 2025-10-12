@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
@@ -17,7 +18,7 @@ from gestaolegal.repositories.repository import (
     GetParams,
     SearchParams,
 )
-from gestaolegal.utils.dataclass_utils import from_dict, to_dict
+from gestaolegal.utils.dataclass_utils import from_dict
 
 logger = logging.getLogger(__name__)
 
@@ -143,34 +144,25 @@ class AtendidoRepository(BaseRepository):
         result = self.session.execute(stmt).scalar()
         return result or 0
 
-    def create(self, data: Atendido) -> int:
-        atendido_dict = to_dict(
-            data,
-            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"},
-        )
-        stmt = insert(atendidos).values(**atendido_dict)
+    def create(self, data: dict[str, Any]) -> int:
+        stmt = insert(atendidos).values(**data)
         result = self.session.execute(stmt)
+        self.session.flush()
         return result.lastrowid
 
-    def update(self, id: int, data: Atendido) -> None:
+    def update(self, id: int, data: dict[str, Any]) -> None:
         check_stmt = select(atendidos).where(atendidos.c.id == id)
         existing = self.session.execute(check_stmt).first()
 
         if not existing:
             raise ValueError(f"Atendido with id {id} not found")
 
-        atendido_dict = to_dict(
-            data,
-            exclude={"id", "endereco", "assistido", "orientacoes_juridicas", "casos"},
-        )
-        stmt = sql_update(atendidos).where(atendidos.c.id == id).values(**atendido_dict)
+        stmt = sql_update(atendidos).where(atendidos.c.id == id).values(**data)
         self.session.execute(stmt)
 
     def delete(self, id: int) -> bool:
         stmt = sql_update(atendidos).where(atendidos.c.id == id).values(status=0)
         result = self.session.execute(stmt)
-        self.session.flush()
-        self.session.commit()
         return result.rowcount > 0
 
     def find_assistido_by_atendido_id(self, atendido_id: int) -> Assistido | None:
@@ -187,23 +179,22 @@ class AtendidoRepository(BaseRepository):
         results = self.session.execute(stmt).all()
         return [from_dict(Assistido, dict(row._mapping)) for row in results]
 
-    def create_assistido(self, assistido: Assistido) -> int:
-        assistido_dict = to_dict(assistido, exclude={"id", "assistido_pessoa_juridica"})
-        stmt = insert(assistidos).values(**assistido_dict)
+    def create_assistido(self, data: dict[str, Any]) -> int:
+        stmt = insert(assistidos).values(**data)
         result = self.session.execute(stmt)
+        self.session.flush()
         return result.lastrowid
 
-    def update_assistido(self, id_atendido: int, assistido: Assistido) -> None:
+    def update_assistido(self, id_atendido: int, data: dict[str, Any]) -> None:
         check_stmt = select(assistidos).where(assistidos.c.id_atendido == id_atendido)
         existing = self.session.execute(check_stmt).first()
 
         if not existing:
             raise ValueError(f"Assistido for atendido {id_atendido} not found")
 
-        assistido_dict = to_dict(assistido, exclude={"id", "assistido_pessoa_juridica"})
         stmt = (
             sql_update(assistidos)
             .where(assistidos.c.id_atendido == id_atendido)
-            .values(**assistido_dict)
+            .values(**data)
         )
         self.session.execute(stmt)
