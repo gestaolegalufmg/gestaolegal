@@ -214,6 +214,10 @@ class CasoService:
         return self.find_by_id(caso_id)
 
     def _load_caso_dependencies(self, caso: Caso) -> None:
+        from gestaolegal.repositories.arquivo_caso_repository import (
+            ArquivoCasoRepository,
+        )
+
         caso.usuario_responsavel = self.user_repository.find_by_id(
             caso.id_usuario_responsavel
         )
@@ -246,3 +250,6 @@ class CasoService:
                         processo.id_criado_por
                     )
             caso.processos = processos
+
+            arquivo_repository = ArquivoCasoRepository()
+            caso.arquivos = arquivo_repository.find_by_caso_id(caso.id)

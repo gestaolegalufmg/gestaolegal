@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from gestaolegal.models.arquivo_caso import ArquivoCaso
     from gestaolegal.models.atendido import Atendido
     from gestaolegal.models.processo import Processo
     from gestaolegal.models.user import User
@@ -35,3 +36,4 @@ class Caso:
     criado_por: "User | None" = None
     modificado_por: "User | None" = None
     processos: list["Processo"] | None = None
+    arquivos: list["ArquivoCaso"] | None = None
