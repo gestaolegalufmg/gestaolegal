@@ -12,6 +12,8 @@ from gestaolegal.repositories.repository import (
     ComplexWhereClause,
     SearchParams,
     WhereClause,
+    and_clauses,
+    or_clauses,
 )
 from gestaolegal.repositories.user_repository import UserRepository
 
@@ -51,7 +53,7 @@ class CasoService:
         logger.info(
             f"Searching casos with search: '{search}', situacao_deferimento: {situacao_deferimento}, show_inactive: {show_inactive}, page: {page_params['page']}, per_page: {page_params['per_page']}"
         )
-        clauses: list[WhereClause] = []
+        clauses: list[WhereClause | ComplexWhereClause] = []
 
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=True))
@@ -66,13 +68,20 @@ class CasoService:
             )
 
         if search:
-            clauses.append(
+            search_clauses: list[WhereClause] = [
                 WhereClause(column="descricao", operator="ilike", value=f"%{search}%")
-            )
+            ]
+
+            if search.isdigit():
+                search_clauses.append(
+                    WhereClause(column="id", operator="==", value=int(search))
+                )
+
+            clauses.append(or_clauses(*search_clauses))
 
         where = None
         if len(clauses) > 1:
-            where = ComplexWhereClause(clauses=clauses, operator="and")
+            where = and_clauses(*clauses)
         elif len(clauses) == 1:
             where = clauses[0]
 
@@ -80,6 +89,8 @@ class CasoService:
             page_params=page_params,
             where=where,
         )
+
+        logger.info(f"Performing search with processed params: {params}")
 
         result = self.repository.search(params=params)
 
