@@ -217,3 +217,11 @@ eventos = Table(
     Column("id_usuario_responsavel", Integer, ForeignKey("usuarios.id"), nullable=True),
     Column("status", Boolean, nullable=False),
 )
+
+arquivos_caso = Table(
+    "arquivosCaso",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("link_arquivo", String(300), nullable=True),
+    Column("id_caso", Integer, ForeignKey("casos.id"), nullable=True),
+)

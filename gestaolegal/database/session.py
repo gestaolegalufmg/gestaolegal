@@ -1,28 +1,37 @@
-from contextvars import ContextVar
-
+from flask import g, has_request_context
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from gestaolegal.config import Config
 
-CurrentSession: ContextVar[Session | None] = ContextVar("session", default=None)
-
 engine = create_engine(
     Config.SQLALCHEMY_DATABASE_URI, **Config.SQLALCHEMY_ENGINE_OPTIONS, echo=False
 )
 
-
-def create_session():
-    return sessionmaker(autocommit=False, autoflush=True, bind=engine)()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def get_session():
-    session = CurrentSession.get()
-    if session is None:
-        session = create_session()
-        CurrentSession.set(session)
-    return session
+def get_session() -> Session:
+    if not has_request_context():
+        return SessionLocal()
+
+    if "db_session" not in g:
+        g.db_session = SessionLocal()
+
+    return g.db_session
 
 
-def cleanup_session():
-    CurrentSession.set(None)
+def close_session(error=None) -> None:
+    session = g.pop("db_session", None)
+
+    if session is not None:
+        try:
+            if error:
+                session.rollback()
+            else:
+                session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()

@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
@@ -10,7 +12,7 @@ from gestaolegal.repositories.repository import (
     CountParams,
     SearchParams,
 )
-from gestaolegal.utils.dataclass_utils import from_dict, to_dict
+from gestaolegal.utils.dataclass_utils import from_dict
 
 
 class ProcessoRepository(BaseRepository):
@@ -61,34 +63,17 @@ class ProcessoRepository(BaseRepository):
         result = self.session.execute(stmt).scalar()
         return result or 0
 
-    def create(self, data: Processo) -> int:
-        processo_dict = to_dict(
-            data,
-            exclude={
-                "id",
-                "caso",
-                "criado_por",
-            },
-        )
-        stmt = insert(processos).values(**processo_dict)
+    def create(self, data: dict[str, Any]) -> int:
+        stmt = insert(processos).values(**data)
         result = self.session.execute(stmt)
+        self.session.flush()
         return result.lastrowid
 
-    def update(self, id: int, data: Processo) -> None:
-        processo_dict = to_dict(
-            data,
-            exclude={
-                "id",
-                "caso",
-                "criado_por",
-            },
-        )
-        stmt = sql_update(processos).where(processos.c.id == id).values(**processo_dict)
+    def update(self, id: int, data: dict[str, Any]) -> None:
+        stmt = sql_update(processos).where(processos.c.id == id).values(**data)
         self.session.execute(stmt)
 
     def delete(self, id: int) -> bool:
         stmt = sql_update(processos).where(processos.c.id == id).values(status=False)
         result = self.session.execute(stmt)
-        self.session.flush()
-        self.session.commit()
         return result.rowcount > 0

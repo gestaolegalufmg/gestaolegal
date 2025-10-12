@@ -28,6 +28,7 @@ class EnderecoRepository(BaseRepository):
     def create(self, endereco_data: dict[str, Any]) -> int:
         stmt = insert(enderecos).values(**endereco_data)
         result = self.session.execute(stmt)
+        self.session.flush()
         return result.lastrowid
 
     def update(self, id: int, endereco_data: dict[str, Any]) -> None:

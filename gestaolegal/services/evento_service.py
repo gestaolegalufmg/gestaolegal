@@ -1,5 +1,4 @@
 import logging
-from dataclasses import asdict
 from datetime import datetime
 
 from gestaolegal.common import PageParams, PaginatedResult
@@ -92,8 +91,7 @@ class EventoService:
             self.repository.count_by_caso_id(evento_input.id_caso) + 1
         )
 
-        evento = Evento(**evento_data)
-        evento_id = self.repository.create(evento)
+        evento_id = self.repository.create(evento_data)
 
         created_evento = self.find_by_id(evento_id)
         if not created_evento:
@@ -116,10 +114,7 @@ class EventoService:
 
         evento_data = evento_input.model_dump(exclude_none=True)
 
-        updated_data = {**asdict(existing), **evento_data}
-        evento = Evento(**updated_data)
-
-        self.repository.update(evento_id, evento)
+        self.repository.update(evento_id, evento_data)
 
         logger.info(f"Evento updated successfully with id: {evento_id}")
         return self.repository.find_by_id(evento_id)
