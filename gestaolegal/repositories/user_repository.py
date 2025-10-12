@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
@@ -13,7 +14,7 @@ from gestaolegal.repositories.repository import (
     GetParams,
     SearchParams,
 )
-from gestaolegal.utils.dataclass_utils import from_dict, to_dict
+from gestaolegal.utils.dataclass_utils import from_dict
 
 logger = logging.getLogger(__name__)
 
@@ -73,16 +74,18 @@ class UserRepository(BaseRepository):
         result = self.session.execute(stmt).scalar()
         return result or 0
 
-    def create(self, data: User) -> int:
-        user_dict = to_dict(data, exclude={"id", "endereco"})
-        stmt = insert(usuarios).values(**user_dict)
+    def create(self, data: dict[str, Any]) -> int:
+        stmt = insert(usuarios).values(**data)
         result = self.session.execute(stmt)
+        self.session.flush()
+        self.session.commit()
         return result.lastrowid
 
-    def update(self, id: int, data: User) -> None:
-        user_dict = to_dict(data, exclude={"id", "endereco"})
-        stmt = sql_update(usuarios).where(usuarios.c.id == id).values(**user_dict)
+    def update(self, id: int, data: dict[str, Any]) -> None:
+        stmt = sql_update(usuarios).where(usuarios.c.id == id).values(**data)
         self.session.execute(stmt)
+        self.session.flush()
+        self.session.commit()
 
     def delete(self, id: int) -> bool:
         stmt = sql_update(usuarios).where(usuarios.c.id == id).values(status=False)

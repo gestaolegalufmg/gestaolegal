@@ -1,5 +1,4 @@
 import logging
-from dataclasses import asdict
 from datetime import datetime
 
 from gestaolegal.common import PageParams, PaginatedResult
@@ -115,8 +114,7 @@ class CasoService:
         caso_data["numero_ultimo_processo"] = None
         caso_data["status"] = True
 
-        caso = Caso(**caso_data)
-        caso_id = self.repository.create(caso)
+        caso_id = self.repository.create(caso_data)
 
         if caso_input.ids_clientes:
             self.repository.link_atendidos(caso_id, caso_input.ids_clientes)
@@ -151,10 +149,7 @@ class CasoService:
         caso_data["data_modificacao"] = datetime.now()
         caso_data["id_modificado_por"] = modificado_por_id
 
-        updated_data = {**asdict(existing), **caso_data}
-        caso = Caso(**updated_data)
-
-        self.repository.update(caso_id, caso)
+        self.repository.update(caso_id, caso_data)
 
         if caso_input.ids_clientes is not None:
             self.repository.link_atendidos(caso_id, caso_input.ids_clientes)
@@ -183,14 +178,14 @@ class CasoService:
             logger.error(f"Defer failed: caso not found with id: {caso_id}")
             raise ValueError(f"Caso with id {caso_id} not found")
 
-        caso_data = asdict(existing)
-        caso_data["situacao_deferimento"] = "deferido"
-        caso_data["justif_indeferimento"] = None
-        caso_data["data_modificacao"] = datetime.now()
-        caso_data["id_modificado_por"] = modificado_por_id
+        caso_data = {
+            "situacao_deferimento": "deferido",
+            "justif_indeferimento": None,
+            "data_modificacao": datetime.now(),
+            "id_modificado_por": modificado_por_id,
+        }
 
-        caso = Caso(**caso_data)
-        self.repository.update(caso_id, caso)
+        self.repository.update(caso_id, caso_data)
 
         logger.info(f"Caso deferred successfully with id: {caso_id}")
         return self.find_by_id(caso_id)
@@ -206,14 +201,14 @@ class CasoService:
             logger.error(f"Indefer failed: caso not found with id: {caso_id}")
             raise ValueError(f"Caso with id {caso_id} not found")
 
-        caso_data = asdict(existing)
-        caso_data["situacao_deferimento"] = "indeferido"
-        caso_data["justif_indeferimento"] = justificativa
-        caso_data["data_modificacao"] = datetime.now()
-        caso_data["id_modificado_por"] = modificado_por_id
+        caso_data = {
+            "situacao_deferimento": "indeferido",
+            "justif_indeferimento": justificativa,
+            "data_modificacao": datetime.now(),
+            "id_modificado_por": modificado_por_id,
+        }
 
-        caso = Caso(**caso_data)
-        self.repository.update(caso_id, caso)
+        self.repository.update(caso_id, caso_data)
 
         logger.info(f"Caso indeferred successfully with id: {caso_id}")
         return self.find_by_id(caso_id)

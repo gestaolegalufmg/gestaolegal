@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import delete as sql_delete
 from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
@@ -11,7 +13,7 @@ from gestaolegal.repositories.repository import (
     CountParams,
     SearchParams,
 )
-from gestaolegal.utils.dataclass_utils import from_dict, to_dict
+from gestaolegal.utils.dataclass_utils import from_dict
 
 
 class CasoRepository(BaseRepository):
@@ -57,42 +59,18 @@ class CasoRepository(BaseRepository):
         result = self.session.execute(stmt).scalar()
         return result or 0
 
-    def create(self, data: Caso) -> int:
-        caso_dict = to_dict(
-            data,
-            exclude={
-                "id",
-                "usuario_responsavel",
-                "clientes",
-                "orientador",
-                "estagiario",
-                "colaborador",
-                "criado_por",
-                "modificado_por",
-                "processos",
-            },
-        )
-        stmt = insert(casos).values(**caso_dict)
+    def create(self, data: dict[str, Any]) -> int:
+        stmt = insert(casos).values(**data)
         result = self.session.execute(stmt)
+        self.session.flush()
+        self.session.commit()
         return result.lastrowid
 
-    def update(self, id: int, data: Caso) -> None:
-        caso_dict = to_dict(
-            data,
-            exclude={
-                "id",
-                "usuario_responsavel",
-                "clientes",
-                "orientador",
-                "estagiario",
-                "colaborador",
-                "criado_por",
-                "modificado_por",
-                "processos",
-            },
-        )
-        stmt = sql_update(casos).where(casos.c.id == id).values(**caso_dict)
+    def update(self, id: int, data: dict[str, Any]) -> None:
+        stmt = sql_update(casos).where(casos.c.id == id).values(**data)
         self.session.execute(stmt)
+        self.session.flush()
+        self.session.commit()
 
     def delete(self, id: int) -> bool:
         stmt = sql_update(casos).where(casos.c.id == id).values(status=False)

@@ -1,11 +1,11 @@
 import logging
 import secrets
 import string
-from dataclasses import asdict
 from datetime import datetime
 from typing import Any
 
 import bcrypt
+from dateutil import parser as date_parser
 
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.user import User
@@ -128,6 +128,8 @@ class UsuarioService:
         endereco_data = self.__extract_endereco_data(user_data)
         endereco_id = self.endereco_repository.create(endereco_data)
 
+        self.__parse_date_fields(user_data)
+
         user_data["endereco_id"] = endereco_id
         user_data["criadopor"] = criado_por
         user_data["modificadopor"] = criado_por
@@ -144,7 +146,7 @@ class UsuarioService:
             random_password.encode("utf-8"), bcrypt.gensalt()
         ).decode("utf-8")
 
-        user_id = self.repository.create(User(**user_data))
+        user_id = self.repository.create(user_data)
         user = self.find_by_id(user_id)
         if not user:
             logger.error(f"Failed to create user with email: {user_input.email}")
@@ -166,14 +168,28 @@ class UsuarioService:
             logger.error(f"Update failed: user not found with id: {user_id}")
             raise ValueError(f"User with id {user_id} not found")
 
-        user_data = user_input.model_dump()
+        user_data = user_input.model_dump(exclude_none=True)
+
+        endereco_fields = [
+            "logradouro",
+            "numero",
+            "complemento",
+            "bairro",
+            "cep",
+            "cidade",
+            "estado",
+        ]
+        endereco_data = {k: user_data.pop(k) for k in endereco_fields if k in user_data}
+
+        if endereco_data and existing.endereco_id:
+            self.endereco_repository.update(existing.endereco_id, endereco_data)
+
+        self.__parse_date_fields(user_data)
+
         user_data["modificadopor"] = modificado_por
         user_data["modificado"] = datetime.now()
 
-        updated_data = {**asdict(existing), **user_data}
-        user = User(**updated_data)
-
-        self.repository.update(user_id, user)
+        self.repository.update(user_id, user_data)
         logger.info(f"User updated successfully with id: {user_id}")
         return self.find_by_id(user_id)
 
@@ -214,12 +230,12 @@ class UsuarioService:
         ).decode("utf-8")
         logger.info(f"Hashed password: {hashed_password}")
 
-        user_data = asdict(user)
-        user_data.pop("endereco", None)
-        user_data["senha"] = hashed_password
-        user_data["modificado"] = datetime.now()
+        password_data = {
+            "senha": hashed_password,
+            "modificado": datetime.now(),
+        }
 
-        self.repository.update(user_id, User(**user_data))
+        self.repository.update(user_id, password_data)
         logger.info(f"Password changed successfully for user id: {user_id}")
         return self.find_by_id(user_id)
 
@@ -233,3 +249,25 @@ class UsuarioService:
             "bairro": user_data.pop("bairro"),
             "cep": user_data.pop("cep"),
         }
+
+    def __parse_date_fields(self, user_data: dict[str, Any]) -> None:
+        date_fields = ["nascimento", "data_entrada", "data_saida"]
+        for field in date_fields:
+            if field in user_data and isinstance(user_data[field], str):
+                try:
+                    parsed = date_parser.parse(user_data[field])
+                    user_data[field] = parsed.date()
+                except (ValueError, AttributeError, TypeError) as e:
+                    logger.warning(
+                        f"Could not parse date field {field}: {user_data[field]}, error: {e}"
+                    )
+
+        datetime_fields = ["inicio_bolsa", "fim_bolsa"]
+        for field in datetime_fields:
+            if field in user_data and isinstance(user_data[field], str):
+                try:
+                    user_data[field] = date_parser.parse(user_data[field])
+                except (ValueError, AttributeError, TypeError) as e:
+                    logger.warning(
+                        f"Could not parse datetime field {field}: {user_data[field]}, error: {e}"
+                    )
