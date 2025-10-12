@@ -1,5 +1,4 @@
 import logging
-from dataclasses import asdict
 from datetime import datetime
 
 from gestaolegal.common import PageParams, PaginatedResult
@@ -202,9 +201,8 @@ class OrientacaoJuridicaService:
         orientacao_data["id_usuario"] = id_usuario
         orientacao_data["status"] = 1
         orientacao_data["data_criacao"] = datetime.now()
-        orientacao = OrientacaoJuridica(**orientacao_data)
 
-        orientacao_id = self.repository.create(orientacao)
+        orientacao_id = self.repository.create(orientacao_data)
 
         if orientacao_input.atendidos_ids:
             atendidos = self.atendido_repository.get(
@@ -248,10 +246,8 @@ class OrientacaoJuridicaService:
         update_data = orientacao_input.model_dump(
             exclude_none=True, exclude={"atendidos_ids"}
         )
-        updated_data = {**asdict(existing), **update_data}
-        orientacao = OrientacaoJuridica(**updated_data)
 
-        self.repository.update(id, orientacao)
+        self.repository.update(id, update_data)
 
         if orientacao_input.atendidos_ids is not None:
             atendidos = self.atendido_repository.get(

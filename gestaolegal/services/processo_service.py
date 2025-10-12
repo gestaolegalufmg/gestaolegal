@@ -1,5 +1,4 @@
 import logging
-from dataclasses import asdict
 
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.processo import Processo
@@ -98,8 +97,7 @@ class ProcessoService:
 
         processo_data["id_criado_por"] = criado_por_id
 
-        processo = Processo(**processo_data)
-        processo_id = self.repository.create(processo)
+        processo_id = self.repository.create(processo_data)
 
         created_processo = self.find_by_id(processo_id)
         if not created_processo:
@@ -122,10 +120,7 @@ class ProcessoService:
 
         processo_data = processo_input.model_dump(exclude_none=True)
 
-        updated_data = {**asdict(existing), **processo_data}
-        processo = Processo(**updated_data)
-
-        self.repository.update(processo_id, processo)
+        self.repository.update(processo_id, processo_data)
 
         logger.info(f"Processo updated successfully with id: {processo_id}")
         return self.find_by_id(processo_id)

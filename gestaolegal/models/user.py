@@ -36,10 +36,10 @@ class User:
     inicio_bolsa: datetime | None
     fim_bolsa: datetime | None
     endereco_id: int
-    id: int | None
     status: bool
-    modificado: datetime | None
     criado: datetime
 
+    id: int | None = None
+    modificado: datetime | None = None
     chave_recuperacao: bool | None = None
     endereco: "Endereco | None" = None
