@@ -27,7 +27,7 @@ class WhereClause(TypedDict):
 
 
 class ComplexWhereClause(TypedDict):
-    clauses: list[WhereClause]
+    clauses: list["WhereClause | ComplexWhereClause"]
     operator: Literal["and", "or"]
 
 
@@ -45,6 +45,18 @@ class CountParams(TypedDict):
 
 
 Q = TypeVar("Q", bound=tuple[object, ...])
+
+
+def and_clauses(
+    *clauses: WhereClause | ComplexWhereClause,
+) -> ComplexWhereClause:
+    return ComplexWhereClause(clauses=list(clauses), operator="and")
+
+
+def or_clauses(
+    *clauses: WhereClause | ComplexWhereClause,
+) -> ComplexWhereClause:
+    return ComplexWhereClause(clauses=list(clauses), operator="or")
 
 
 class BaseRepository:
@@ -65,8 +77,7 @@ class BaseRepository:
         if "clauses" in where:
             complex_where = where
             conditions = [
-                self._build_condition(clause, table)
-                for clause in complex_where["clauses"]
+                self._build_clause(clause, table) for clause in complex_where["clauses"]
             ]
 
             if not conditions:
@@ -80,6 +91,22 @@ class BaseRepository:
             simple_where = where
             condition = self._build_condition(simple_where, table)
             return stmt.where(condition)
+
+    def _build_clause(
+        self, clause: WhereClause | ComplexWhereClause, table: Table
+    ) -> ColumnElement[bool]:
+        if "clauses" in clause:
+            complex_clause = clause
+            conditions = [
+                self._build_clause(sub_clause, table)
+                for sub_clause in complex_clause["clauses"]
+            ]
+            if complex_clause["operator"] == "and":
+                return and_(*conditions)
+            else:
+                return or_(*conditions)
+        else:
+            return self._build_condition(clause, table)
 
     def _build_condition(
         self, clause: WhereClause, table: Table
