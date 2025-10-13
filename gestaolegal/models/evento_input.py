@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 class EventoCreateInput(BaseModel):
-    id_caso: int
+    id_caso: int | None = None
     num_evento: int | None = None
     tipo: str
     descricao: str | None = None

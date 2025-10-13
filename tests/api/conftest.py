@@ -1,4 +1,8 @@
 import os
+import tempfile
+
+# Use a temporary directory for file uploads in tests
+TEST_UPLOAD_DIR = tempfile.mkdtemp()
 
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["ADMIN_EMAIL"] = "admin@test.com"
@@ -7,6 +11,7 @@ os.environ["DB_HOST"] = "localhost"
 os.environ["DB_NAME"] = "test_db"
 os.environ["DB_USER"] = "test_user"
 os.environ["DB_PASSWORD"] = "test_password"
+os.environ["STATIC_ROOT_DIR"] = TEST_UPLOAD_DIR
 
 from collections.abc import Generator
 from datetime import datetime
