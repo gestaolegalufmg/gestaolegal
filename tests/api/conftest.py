@@ -33,11 +33,9 @@ test_engine: Engine = create_engine("sqlite:///:memory:", echo=False)
 @pytest.fixture(scope="session", autouse=True)
 def _setup_db_session_module() -> None:
     db_session_module.engine = test_engine
-
-    def test_create_session() -> Session:
-        return orm.sessionmaker(autocommit=False, autoflush=True, bind=test_engine)()
-
-    db_session_module.create_session = test_create_session
+    db_session_module.SessionLocal = orm.sessionmaker(
+        autocommit=False, autoflush=False, bind=test_engine
+    )
 
 
 @pytest.fixture(scope="session")
@@ -59,18 +57,18 @@ def client(app: Flask) -> FlaskClient:
     return app.test_client()
 
 
-@pytest.fixture(scope="function", autouse=True)
-def db(app: Flask) -> Generator[Session, None, None]:
-    connection = test_engine.connect()
-    transaction = connection.begin()
-    session = orm.sessionmaker(bind=connection)()
-
-    with app.app_context():
-        yield session
-
-    session.close()
-    transaction.rollback()
-    connection.close()
+def clean_tables(*table_names: str) -> None:
+    from gestaolegal.database.tables import metadata
+    
+    session = db_session_module.get_session()
+    try:
+        for table_name in table_names:
+            if table_name in metadata.tables:
+                table = metadata.tables[table_name]
+                session.execute(table.delete())
+        session.commit()
+    finally:
+        session.close()
 
 
 @pytest.fixture(scope="session")
@@ -218,4 +216,40 @@ def sample_caso_data() -> dict[str, Any]:
         "area_direito": "penal",
         "situacao_deferimento": "deferido",
         "ids_clientes": [],
+    }
+
+@pytest.fixture
+def sample_user_data() -> dict[str, Any]:
+    return {
+        "email": "test.user@gl.com",
+        "nome": "Test User",
+        "urole": "estag_direito",
+        "sexo": "F",
+        "rg": "98.765.432-1",
+        "cpf": "987.654.321-00",
+        "profissao": "Estagiário",
+        "estado_civil": "solteiro",
+        "nascimento": "1995-05-15",
+        "telefone": "(11) 3333-4444",
+        "celular": "(11) 99876-5432",
+        "oab": None,
+        "obs": None,
+        "data_entrada": "2024-01-15",
+        "data_saida": None,
+        "matricula": "EST001",
+        "bolsista": True,
+        "tipo_bolsa": "integral",
+        "horario_atendimento": "08:00-12:00",
+        "suplente": None,
+        "ferias": None,
+        "cert_atuacao_DAJ": "sim",
+        "inicio_bolsa": "2024-01-15T00:00:00",
+        "fim_bolsa": None,
+        "logradouro": "Rua Teste User",
+        "numero": "456",
+        "bairro": "Centro",
+        "cep": "30000-111",
+        "cidade": "Belo Horizonte",
+        "estado": "MG",
+        "complemento": None,
     }

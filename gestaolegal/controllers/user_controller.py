@@ -61,7 +61,7 @@ def create(current_user: User):
 
     try:
         json_data = cast(dict[str, Any], request.get_json(force=True))
-        user_input = UserCreateInput(**json_data)
+        user_input = UserCreateInput.model_validate(json_data)
         user = user_service.create(user_input, criado_por=cast(int, current_user.id))
     except Exception as e:
         logger.error(f"Error creating user: {str(e)}", exc_info=True)
@@ -75,7 +75,7 @@ def create(current_user: User):
 def update(id: int, current_user: User):
     user_service = UsuarioService()
     json_data = cast(dict[str, Any], request.get_json(force=True))
-    user_input = UserUpdateInput(**json_data)
+    user_input = UserUpdateInput.model_validate(json_data)
 
     user = user_service.update(id, user_input, current_user.id)
     if not user:
@@ -89,7 +89,7 @@ def update(id: int, current_user: User):
 def update_me(current_user: User):
     user_service = UsuarioService()
     json_data = cast(dict[str, Any], request.get_json(force=True))
-    user_input = UserUpdateInput(**json_data)
+    user_input = UserUpdateInput.model_validate(json_data)
 
     user = user_service.update(
         cast(int, current_user.id),

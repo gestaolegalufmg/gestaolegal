@@ -3,12 +3,14 @@ import os
 from dataclasses import asdict
 from datetime import datetime
 from typing import Any, cast
+from flask import send_file
 
 from flask import Blueprint, make_response, request
 from werkzeug.utils import secure_filename
 
 from gestaolegal.common import PageParams
 from gestaolegal.config import Config
+from gestaolegal.models.evento_input import EventoUpdateInput
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
 from gestaolegal.models.evento_input import EventoCreateInput
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
@@ -19,6 +21,8 @@ from gestaolegal.services.processo_service import ProcessoService
 from gestaolegal.utils.api_decorators import api_auth_required
 
 logger = logging.getLogger(__name__)
+
+EVENTO_FILES_DIR = os.path.join(Config.STATIC_ROOT_DIR, "eventos")
 
 caso_controller = Blueprint("caso_api", __name__)
 
@@ -308,10 +312,9 @@ def create_evento(current_user: User, caso_id: int):
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     filename = f"{timestamp}_{filename}"
 
-                    upload_dir = os.path.join("./static/eventos")
-                    os.makedirs(upload_dir, exist_ok=True)
+                    os.makedirs(EVENTO_FILES_DIR, exist_ok=True)
 
-                    filepath = os.path.join(upload_dir, filename)
+                    filepath = os.path.join(EVENTO_FILES_DIR, filename)
                     file.save(filepath)
 
                     form_data["arquivo"] = filepath
@@ -351,7 +354,6 @@ def get_evento(caso_id: int, evento_id: int):
 @caso_controller.route("/<int:caso_id>/eventos/<int:evento_id>", methods=["PUT"])
 @api_auth_required
 def update_evento(current_user: User, caso_id: int, evento_id: int):
-    from gestaolegal.models.evento_input import EventoUpdateInput
 
     evento_service = EventoService()
 
@@ -393,10 +395,9 @@ def update_evento(current_user: User, caso_id: int, evento_id: int):
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     filename = f"{timestamp}_{filename}"
 
-                    upload_dir = os.path.join("./static/eventos")
-                    os.makedirs(upload_dir, exist_ok=True)
+                    os.makedirs(EVENTO_FILES_DIR, exist_ok=True)
 
-                    filepath = os.path.join(upload_dir, filename)
+                    filepath = os.path.join(EVENTO_FILES_DIR, filename)
                     file.save(filepath)
 
                     form_data["arquivo"] = filepath
@@ -419,8 +420,6 @@ def update_evento(current_user: User, caso_id: int, evento_id: int):
 @caso_controller.route("/<int:caso_id>/eventos/<int:evento_id>/download", methods=["GET"])
 @api_auth_required
 def download_evento_file(current_user: User, caso_id: int, evento_id: int):
-    from flask import send_file
-
     evento_service = EventoService()
 
     evento = evento_service.find_by_id(evento_id)
@@ -442,10 +441,8 @@ def download_evento_file(current_user: User, caso_id: int, evento_id: int):
 @caso_controller.route("/<int:caso_id>/arquivos", methods=["GET"])
 @api_auth_required
 def get_arquivos_by_caso(current_user: User, caso_id: int):
-    from gestaolegal.repositories.arquivo_caso_repository import ArquivoCasoRepository
-
-    arquivo_repository = ArquivoCasoRepository()
-    arquivos = arquivo_repository.find_by_caso_id(caso_id)
+    caso_service = CasoService()
+    arquivos = caso_service.find_arquivos_by_caso_id(caso_id)
 
     return {"arquivos": [asdict(arquivo) for arquivo in arquivos]}
 
@@ -453,95 +450,39 @@ def get_arquivos_by_caso(current_user: User, caso_id: int):
 @caso_controller.route("/<int:caso_id>/arquivos", methods=["POST"])
 @api_auth_required
 def upload_arquivo_caso(current_user: User, caso_id: int):
-    from gestaolegal.repositories.arquivo_caso_repository import ArquivoCasoRepository
-
     caso_service = CasoService()
 
-    # Verify caso exists
-    caso = caso_service.find_by_id(caso_id)
-    if not caso:
-        return make_response("Caso não encontrado", 404)
+    if "arquivo" not in request.files:
+        return make_response("Nenhum arquivo enviado", 400)
 
-    try:
-        if "arquivo" not in request.files:
-            return make_response("Nenhum arquivo enviado", 400)
+    file = request.files["arquivo"]
+    arquivo, message = caso_service.upload_arquivo(caso_id, file)
 
-        file = request.files["arquivo"]
-        if not file or not file.filename:
-            return make_response("Arquivo inválido", 400)
+    if not arquivo:
+        return make_response(message, 404 if "não encontrado" in message else 400)
 
-        filename = secure_filename(file.filename)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{timestamp}_{filename}"
-
-        upload_dir = os.path.join("./static/casos")
-        os.makedirs(upload_dir, exist_ok=True)
-
-        filepath = os.path.join(upload_dir, filename)
-        file.save(filepath)
-
-        arquivo_repository = ArquivoCasoRepository()
-        arquivo_id = arquivo_repository.create({
-            "id_caso": caso_id,
-            "link_arquivo": filepath
-        })
-
-        arquivo = arquivo_repository.find_by_id(arquivo_id)
-
-        return asdict(arquivo)
-    except Exception as e:
-        logger.error(f"Error uploading arquivo to caso {caso_id}: {str(e)}", exc_info=True)
-        return make_response(str(e), 500)
+    return asdict(arquivo)
 
 
 @caso_controller.route("/<int:caso_id>/arquivos/<int:arquivo_id>/download", methods=["GET"])
 @api_auth_required
 def download_arquivo_caso(current_user: User, caso_id: int, arquivo_id: int):
-    from flask import send_file
-    from gestaolegal.repositories.arquivo_caso_repository import ArquivoCasoRepository
+    caso_service = CasoService()
+    filepath, message = caso_service.get_arquivo_for_download(arquivo_id, caso_id)
 
-    arquivo_repository = ArquivoCasoRepository()
-    arquivo = arquivo_repository.find_by_id(arquivo_id)
+    if not filepath:
+        return make_response(message, 404)
 
-    if not arquivo:
-        return make_response("Arquivo não encontrado", 404)
-
-    if arquivo.id_caso != caso_id:
-        return make_response("Arquivo não pertence ao caso", 400)
-
-    if not arquivo.link_arquivo:
-        return make_response("Arquivo não possui link", 404)
-
-    if not os.path.exists(arquivo.link_arquivo):
-        return make_response("Arquivo não encontrado no servidor", 404)
-
-    return send_file(arquivo.link_arquivo, as_attachment=True)
+    return send_file(filepath, as_attachment=True)
 
 
 @caso_controller.route("/<int:caso_id>/arquivos/<int:arquivo_id>", methods=["DELETE"])
 @api_auth_required
 def delete_arquivo_caso(current_user: User, caso_id: int, arquivo_id: int):
-    from gestaolegal.repositories.arquivo_caso_repository import ArquivoCasoRepository
+    caso_service = CasoService()
+    success, message = caso_service.delete_arquivo(arquivo_id, caso_id)
 
-    arquivo_repository = ArquivoCasoRepository()
-    arquivo = arquivo_repository.find_by_id(arquivo_id)
+    if not success:
+        return make_response(message, 404)
 
-    if not arquivo:
-        return make_response("Arquivo não encontrado", 404)
-
-    if arquivo.id_caso != caso_id:
-        return make_response("Arquivo não pertence ao caso", 400)
-
-    # Delete file from filesystem
-    if arquivo.link_arquivo and os.path.exists(arquivo.link_arquivo):
-        try:
-            os.remove(arquivo.link_arquivo)
-        except Exception as e:
-            logger.error(f"Error deleting file {arquivo.link_arquivo}: {str(e)}", exc_info=True)
-
-    result = arquivo_repository.delete(arquivo_id)
-
-    if not result:
-        return make_response("Erro ao deletar arquivo", 404)
-
-    return make_response("Arquivo deletado com sucesso", 200)
+    return make_response(message, 200)

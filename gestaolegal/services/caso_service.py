@@ -1,9 +1,16 @@
 import logging
+import os
 from datetime import datetime
 
+from werkzeug.datastructures import FileStorage
+from werkzeug.utils import secure_filename
+
 from gestaolegal.common import PageParams, PaginatedResult
+from gestaolegal.config import Config
+from gestaolegal.models.arquivo_caso import ArquivoCaso
 from gestaolegal.models.caso import Caso
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
+from gestaolegal.repositories.arquivo_caso_repository import ArquivoCasoRepository
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.caso_repository import CasoRepository
 from gestaolegal.repositories.processo_repository import ProcessoRepository
@@ -18,18 +25,22 @@ from gestaolegal.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
+CASO_FILES_DIR = Config.UPLOADS
+
 
 class CasoService:
     repository: CasoRepository
     user_repository: UserRepository
     atendido_repository: AtendidoRepository
     processo_repository: ProcessoRepository
+    arquivo_repository: ArquivoCasoRepository
 
     def __init__(self):
         self.repository = CasoRepository()
         self.user_repository = UserRepository()
         self.atendido_repository = AtendidoRepository()
         self.processo_repository = ProcessoRepository()
+        self.arquivo_repository = ArquivoCasoRepository()
 
     def find_by_id(self, id: int) -> Caso | None:
         logger.info(f"Finding caso by id: {id}")
@@ -213,11 +224,124 @@ class CasoService:
         logger.info(f"Caso indeferred successfully with id: {caso_id}")
         return self.find_by_id(caso_id)
 
-    def _load_caso_dependencies(self, caso: Caso) -> None:
-        from gestaolegal.repositories.arquivo_caso_repository import (
-            ArquivoCasoRepository,
-        )
+    def find_arquivos_by_caso_id(self, caso_id: int) -> list[ArquivoCaso]:
+        logger.info(f"Finding arquivos for caso id: {caso_id}")
+        arquivos = self.arquivo_repository.find_by_caso_id(caso_id)
+        logger.info(f"Found {len(arquivos)} arquivos for caso id: {caso_id}")
+        return arquivos
 
+    def find_arquivo_by_id(self, arquivo_id: int) -> ArquivoCaso | None:
+        logger.info(f"Finding arquivo by id: {arquivo_id}")
+        arquivo = self.arquivo_repository.find_by_id(arquivo_id)
+        if not arquivo:
+            logger.warning(f"Arquivo not found with id: {arquivo_id}")
+        return arquivo
+
+    def validate_arquivo_for_caso(
+        self, arquivo_id: int, caso_id: int
+    ) -> ArquivoCaso | None:
+        logger.info(
+            f"Validating arquivo {arquivo_id} for caso {caso_id}"
+        )
+        arquivo = self.arquivo_repository.find_by_id(arquivo_id)
+
+        if not arquivo:
+            logger.warning(f"Arquivo not found with id: {arquivo_id}")
+            return None
+
+        if arquivo.id_caso != caso_id:
+            logger.warning(
+                f"Arquivo {arquivo_id} does not belong to caso {caso_id}"
+            )
+            return None
+
+        return arquivo
+
+    def get_arquivo_for_download(
+        self, arquivo_id: int, caso_id: int
+    ) -> tuple[str | None, str]:
+        logger.info(f"Getting arquivo {arquivo_id} for download from caso {caso_id}")
+        
+        arquivo = self.validate_arquivo_for_caso(arquivo_id, caso_id)
+        if not arquivo:
+            return None, "Arquivo não encontrado ou não pertence ao caso"
+
+        if not arquivo.link_arquivo:
+            logger.warning(f"Arquivo {arquivo_id} has no file path")
+            return None, "Arquivo não possui link"
+
+        if not os.path.exists(arquivo.link_arquivo):
+            logger.error(f"File not found in filesystem: {arquivo.link_arquivo}")
+            return None, "Arquivo não encontrado no servidor"
+
+        logger.info(f"Arquivo {arquivo_id} ready for download: {arquivo.link_arquivo}")
+        return arquivo.link_arquivo, "OK"
+
+    def upload_arquivo(
+        self, caso_id: int, file: FileStorage
+    ) -> tuple[ArquivoCaso | None, str]:
+        logger.info(f"Uploading arquivo for caso id: {caso_id}")
+        
+        caso = self.repository.find_by_id(caso_id)
+        if not caso:
+            logger.error(f"Caso not found with id: {caso_id}")
+            return None, "Caso não encontrado"
+
+        if not file or not file.filename:
+            logger.warning("Invalid file provided for upload")
+            return None, "Arquivo inválido"
+
+        try:
+            filename = secure_filename(file.filename)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{timestamp}_{filename}"
+
+            os.makedirs(CASO_FILES_DIR, exist_ok=True)
+
+            filepath = os.path.join(CASO_FILES_DIR, filename)
+            file.save(filepath)
+            logger.info(f"File saved to filesystem: {filepath}")
+
+            arquivo_id = self.arquivo_repository.create({
+                "id_caso": caso_id,
+                "link_arquivo": filepath,
+            })
+            arquivo = self.arquivo_repository.find_by_id(arquivo_id)
+            logger.info(f"Arquivo created successfully with id: {arquivo_id}")
+            return arquivo, "Arquivo criado com sucesso"
+        except Exception as e:
+            logger.error(
+                f"Error uploading arquivo for caso {caso_id}: {str(e)}", exc_info=True
+            )
+            return None, f"Erro ao fazer upload do arquivo: {str(e)}"
+
+    def delete_arquivo(self, arquivo_id: int, caso_id: int) -> tuple[bool, str]:
+        logger.info(f"Deleting arquivo with id: {arquivo_id}")
+        
+        arquivo = self.validate_arquivo_for_caso(arquivo_id, caso_id)
+        if not arquivo:
+            return False, "Arquivo não encontrado ou não pertence ao caso"
+
+        if arquivo.link_arquivo and os.path.exists(arquivo.link_arquivo):
+            try:
+                os.remove(arquivo.link_arquivo)
+                logger.info(f"File deleted from filesystem: {arquivo.link_arquivo}")
+            except Exception as e:
+                logger.error(
+                    f"Error deleting file {arquivo.link_arquivo}: {str(e)}",
+                    exc_info=True,
+                )
+                return False, f"Erro ao deletar arquivo do sistema: {str(e)}"
+
+        result = self.arquivo_repository.delete(arquivo_id)
+        if result:
+            logger.info(f"Arquivo deleted successfully with id: {arquivo_id}")
+            return True, "Arquivo deletado com sucesso"
+        else:
+            logger.warning(f"Failed to delete arquivo with id: {arquivo_id}")
+            return False, "Erro ao deletar arquivo do banco de dados"
+
+    def _load_caso_dependencies(self, caso: Caso) -> None:
         caso.usuario_responsavel = self.user_repository.find_by_id(
             caso.id_usuario_responsavel
         )
@@ -251,5 +375,4 @@ class CasoService:
                     )
             caso.processos = processos
 
-            arquivo_repository = ArquivoCasoRepository()
-            caso.arquivos = arquivo_repository.find_by_caso_id(caso.id)
+            caso.arquivos = self.arquivo_repository.find_by_caso_id(caso.id)
