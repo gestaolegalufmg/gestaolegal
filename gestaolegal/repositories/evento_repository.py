@@ -4,10 +4,9 @@ from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
 
-from gestaolegal.common import PaginatedResult
-from gestaolegal.database.tables import eventos, usuarios
+from gestaolegal.common import PageParams, PaginatedResult
+from gestaolegal.database.tables import eventos
 from gestaolegal.models.evento import Evento
-from gestaolegal.models.user import User
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,
@@ -25,57 +24,31 @@ class EventoRepository(BaseRepository):
     def find_by_id(self, id: int) -> Evento | None:
         stmt = select(eventos).where(eventos.c.id == id)
         result = self.session.execute(stmt).one_or_none()
+        return from_dict(Evento, dict(result._mapping)) if result else None
 
-        if not result:
-            return None
-
-        evento_temp = from_dict(Evento, dict(result._mapping))
-
-        usuario_resp = None
-        if evento_temp.id_usuario_responsavel:
-            usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
-
-        exclude_fields = {"criado_por", "usuario_responsavel", "caso"}
-        evento = Evento(
-            **{
-                k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields
-            },
-            criado_por=self._get_user_by_id(evento_temp.id_criado_por),
-            usuario_responsavel=usuario_resp,
-        )
-
-        return evento
-
-    def find_by_caso_id(self, caso_id: int) -> PaginatedResult[Evento]:
+    def find_by_caso_id(self, caso_id: int) -> list[Evento]:
         stmt = select(eventos).where(eventos.c.id_caso == caso_id)
         results = self.session.execute(stmt).all()
+        return [from_dict(Evento, dict(row._mapping)) for row in results]
 
-        eventos_list = []
-        for row in results:
-            evento_temp = from_dict(Evento, dict(row._mapping))
+    def find_by_caso_id_paginated(
+        self, caso_id: int, page_params: PageParams
+    ) -> PaginatedResult[Evento]:
+        stmt = select(eventos, func.count().over().label("total_count"))
+        stmt = stmt.where(eventos.c.id_caso == caso_id)
+        stmt = stmt.order_by(eventos.c.data_evento.desc())
+        stmt = self._apply_pagination(stmt, page_params)
 
-            usuario_resp = None
-            if evento_temp.id_usuario_responsavel:
-                usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
+        results = self.session.execute(stmt).all()
+        total = results[0].total_count if results else 0
 
-            exclude_fields = {"criado_por", "usuario_responsavel", "caso"}
-            evento = Evento(
-                **{
-                    k: v
-                    for k, v in evento_temp.__dict__.items()
-                    if k not in exclude_fields
-                },
-                criado_por=self._get_user_by_id(evento_temp.id_criado_por),
-                usuario_responsavel=usuario_resp,
-            )
-
-            eventos_list.append(evento)
+        items = [from_dict(Evento, dict(row._mapping)) for row in results]
 
         return PaginatedResult(
-            items=eventos_list,
-            total=len(eventos_list),
-            page=1,
-            per_page=len(eventos_list),
+            items=items,
+            total=total,
+            page=page_params["page"],
+            per_page=page_params["per_page"],
         )
 
     def search(self, params: SearchParams) -> PaginatedResult[Evento]:
@@ -88,26 +61,7 @@ class EventoRepository(BaseRepository):
         results = self.session.execute(stmt).all()
         total = results[0].total_count if results else 0
 
-        items: list[Evento] = []
-        for row in results:
-            evento_temp = from_dict(Evento, dict(row._mapping))
-
-            usuario_resp = None
-            if evento_temp.id_usuario_responsavel:
-                usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
-
-            exclude_fields = {"criado_por", "usuario_responsavel", "caso"}
-            evento = Evento(
-                **{
-                    k: v
-                    for k, v in evento_temp.__dict__.items()
-                    if k not in exclude_fields
-                },
-                criado_por=self._get_user_by_id(evento_temp.id_criado_por),
-                usuario_responsavel=usuario_resp,
-            )
-
-            items.append(evento)
+        items = [from_dict(Evento, dict(row._mapping)) for row in results]
 
         page_params = params.get("page_params")
         return PaginatedResult(
@@ -121,26 +75,7 @@ class EventoRepository(BaseRepository):
         stmt = select(eventos)
         stmt = self._apply_where_clause(stmt, params.get("where"), eventos)
         result = self.session.execute(stmt).one_or_none()
-
-        if not result:
-            return None
-
-        evento_temp = from_dict(Evento, dict(result._mapping))
-
-        usuario_resp = None
-        if evento_temp.id_usuario_responsavel:
-            usuario_resp = self._get_user_by_id(evento_temp.id_usuario_responsavel)
-
-        exclude_fields = {"criado_por", "usuario_responsavel", "caso"}
-        evento = Evento(
-            **{
-                k: v for k, v in evento_temp.__dict__.items() if k not in exclude_fields
-            },
-            criado_por=self._get_user_by_id(evento_temp.id_criado_por),
-            usuario_responsavel=usuario_resp,
-        )
-
-        return evento
+        return from_dict(Evento, dict(result._mapping)) if result else None
 
     def count(self, params: CountParams) -> int:
         stmt = select(func.count()).select_from(eventos)
@@ -172,8 +107,3 @@ class EventoRepository(BaseRepository):
         )
         result = self.session.execute(stmt).scalar()
         return result or 0
-
-    def _get_user_by_id(self, user_id: int) -> User | None:
-        stmt = select(usuarios).where(usuarios.c.id == user_id)
-        result = self.session.execute(stmt).one_or_none()
-        return from_dict(User, dict(result._mapping)) if result else None

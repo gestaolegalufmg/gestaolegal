@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from gestaolegal.models.caso import Caso
-    from gestaolegal.models.user import User
+    from gestaolegal.models.user import UserInfo
 
 
 @dataclass
@@ -22,5 +22,18 @@ class Evento:
     arquivo: str | None = None
     id_usuario_responsavel: int | None = None
     caso: "Caso | None" = None
-    criado_por: "User | None" = None
-    usuario_responsavel: "User | None" = None
+    criado_por: "UserInfo | None" = None
+    usuario_responsavel: "UserInfo | None" = None
+
+
+@dataclass
+class ListEvento:
+    id: int
+    tipo: str
+    data_evento: date
+    data_criacao: datetime
+    status: bool
+
+    criado_por: str | None = None
+    usuario_responsavel: str | None = None
+    num_evento: int | None = None

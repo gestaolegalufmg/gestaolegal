@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from gestaolegal.models.atendido import Atendido
-    from gestaolegal.models.user import User
+    from gestaolegal.models.user import UserInfo
 
 
 @dataclass
@@ -18,7 +18,7 @@ class OrientacaoJuridica:
     id_usuario: int | None = None
 
     atendidos: list["Atendido"] | None = None
-    usuario: "User | None" = None
+    usuario: "UserInfo | None" = None
 
 
 @dataclass
@@ -30,7 +30,7 @@ class OrientacaoJuridicaDetail:
     status: bool
     atendidos: list["Atendido"]
     descricao: str
-    usuario: "User | None"
+    usuario: "UserInfo | None"
 
 
 @dataclass
@@ -40,6 +40,6 @@ class OrientacaoJuridicaListItem:
     sub_area: str | None
     descricao: str
     atendidos: list[str]
-    usuario: "User | None"
+    usuario: "UserInfo | None"
     data_criacao: datetime
     status: bool

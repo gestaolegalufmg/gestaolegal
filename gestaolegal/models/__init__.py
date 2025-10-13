@@ -7,12 +7,13 @@ from gestaolegal.models.endereco import Endereco
 from gestaolegal.models.evento import Evento
 from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 from gestaolegal.models.processo import Processo
-from gestaolegal.models.user import User
+from gestaolegal.models.user import User, UserInfo
 
 __all__ = [
     "BaseModel",
     "Endereco",
     "User",
+    "UserInfo",
     "Assistido",
     "AssistidoPessoaJuridica",
     "Atendido",

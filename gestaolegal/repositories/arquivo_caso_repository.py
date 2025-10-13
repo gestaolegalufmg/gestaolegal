@@ -1,7 +1,7 @@
 from typing import Any
 
+from sqlalchemy import delete as sql_delete
 from sqlalchemy import insert, select
-from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
 
 from gestaolegal.database.tables import arquivos_caso
@@ -38,6 +38,6 @@ class ArquivoCasoRepository(BaseRepository):
         return result.lastrowid
 
     def delete(self, id: int) -> bool:
-        stmt = sql_update(arquivos_caso).where(arquivos_caso.c.id == id)
+        stmt = sql_delete(arquivos_caso).where(arquivos_caso.c.id == id)
         result = self.session.execute(stmt)
         return result.rowcount > 0

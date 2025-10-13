@@ -1,4 +1,8 @@
 import os
+import tempfile
+
+# Use a temporary directory for file uploads in tests
+TEST_UPLOAD_DIR = tempfile.mkdtemp()
 
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["ADMIN_EMAIL"] = "admin@test.com"
@@ -7,6 +11,7 @@ os.environ["DB_HOST"] = "localhost"
 os.environ["DB_NAME"] = "test_db"
 os.environ["DB_USER"] = "test_user"
 os.environ["DB_PASSWORD"] = "test_password"
+os.environ["STATIC_ROOT_DIR"] = TEST_UPLOAD_DIR
 
 from collections.abc import Generator
 from datetime import datetime
@@ -18,7 +23,6 @@ from flask import Flask
 from flask.testing import FlaskClient
 from sqlalchemy import create_engine, orm, text
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session
 
 import gestaolegal.database.session as db_session_module
 from gestaolegal import create_app
@@ -27,17 +31,19 @@ from gestaolegal.database.tables import metadata
 TEST_ADMIN_EMAIL = "admin@gl.com"
 TEST_ADMIN_PASSWORD = "123456"
 
+TEST_NON_ADMIN_EMAIL = "user@gl.com"
+TEST_NON_ADMIN_PASSWORD = "userpass123"
+TEST_NON_ADMIN_ROLE = "orient"
+
 test_engine: Engine = create_engine("sqlite:///:memory:", echo=False)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _setup_db_session_module() -> None:
     db_session_module.engine = test_engine
-
-    def test_create_session() -> Session:
-        return orm.sessionmaker(autocommit=False, autoflush=True, bind=test_engine)()
-
-    db_session_module.create_session = test_create_session
+    db_session_module.SessionLocal = orm.sessionmaker(
+        autocommit=False, autoflush=False, bind=test_engine
+    )
 
 
 @pytest.fixture(scope="session")
@@ -59,18 +65,18 @@ def client(app: Flask) -> FlaskClient:
     return app.test_client()
 
 
-@pytest.fixture(scope="function", autouse=True)
-def db(app: Flask) -> Generator[Session, None, None]:
-    connection = test_engine.connect()
-    transaction = connection.begin()
-    session = orm.sessionmaker(bind=connection)()
+def clean_tables(*table_names: str) -> None:
+    from gestaolegal.database.tables import metadata
 
-    with app.app_context():
-        yield session
-
-    session.close()
-    transaction.rollback()
-    connection.close()
+    session = db_session_module.get_session()
+    try:
+        for table_name in table_names:
+            if table_name in metadata.tables:
+                table = metadata.tables[table_name]
+                session.execute(table.delete())
+        session.commit()
+    finally:
+        session.close()
 
 
 @pytest.fixture(scope="session")
@@ -148,11 +154,110 @@ def create_admin_user(app: Flask) -> None:
         session.commit()
 
 
+@pytest.fixture(scope="session")
+def create_non_admin_user(app: Flask) -> None:
+    with app.app_context():
+        session = db_session_module.get_session()
+
+        result = session.execute(
+            text("SELECT id FROM usuarios WHERE email = :email"),
+            {"email": TEST_NON_ADMIN_EMAIL},
+        )
+        if result.fetchone():
+            return
+
+        hashed_password = bcrypt.hashpw(
+            TEST_NON_ADMIN_PASSWORD.encode("utf-8"), bcrypt.gensalt()
+        )
+
+        session.execute(
+            text("""
+                INSERT INTO enderecos (
+                    logradouro, numero, bairro, cep, cidade, estado
+                ) VALUES (
+                    :logradouro, :numero, :bairro, :cep, :cidade, :estado
+                )
+            """),
+            {
+                "logradouro": "Rua Usuário",
+                "numero": "2",
+                "bairro": "Centro",
+                "cep": "30000-100",
+                "cidade": "Belo Horizonte",
+                "estado": "MG",
+            },
+        )
+
+        endereco_result = session.execute(text("SELECT last_insert_rowid() as id"))
+        endereco_row = endereco_result.fetchone()
+        assert endereco_row is not None
+        endereco_id = endereco_row[0]
+
+        session.execute(
+            text("""
+                INSERT INTO usuarios (
+                    nome, email, senha, urole, sexo, rg, cpf, profissao,
+                    estado_civil, nascimento, celular, data_entrada,
+                    bolsista, status, cert_atuacao_DAJ, criado, criadopor, endereco_id
+                ) VALUES (
+                    :nome, :email, :senha, :urole, :sexo, :rg, :cpf, :profissao,
+                    :estado_civil, :nascimento, :celular, :data_entrada,
+                    :bolsista, :status, :cert_atuacao_DAJ, :criado, :criadopor, :endereco_id
+                )
+            """),
+            {
+                "nome": "Usuário Padrão",
+                "email": TEST_NON_ADMIN_EMAIL,
+                "senha": hashed_password.decode("utf-8"),
+                "urole": TEST_NON_ADMIN_ROLE,
+                "sexo": "F",
+                "rg": "987654321",
+                "cpf": "987.654.321-00",
+                "profissao": "Colaborador",
+                "estado_civil": "solteiro",
+                "nascimento": "1995-05-05",
+                "celular": "(31) 98888-7777",
+                "data_entrada": "2024-02-01",
+                "bolsista": False,
+                "status": True,
+                "cert_atuacao_DAJ": "nao",
+                "criado": datetime.now(),
+                "criadopor": 1,
+                "endereco_id": endereco_id,
+            },
+        )
+        session.commit()
+
+
 @pytest.fixture
 def auth_headers(client: FlaskClient, create_admin_user: None) -> dict[str, str]:
     login_response = client.post(
         "/api/auth/login",
         json={"email": TEST_ADMIN_EMAIL, "password": TEST_ADMIN_PASSWORD},
+    )
+
+    assert login_response.status_code == 200, (
+        f"Login failed with status {login_response.status_code}"
+    )
+
+    data = login_response.json
+    assert data is not None, "Login response has no JSON data"
+    assert "token" in data, f"Login response missing token: {data}"
+
+    token = data["token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def non_admin_auth_headers(
+    client: FlaskClient, create_non_admin_user: None
+) -> dict[str, str]:
+    login_response = client.post(
+        "/api/auth/login",
+        json={
+            "email": TEST_NON_ADMIN_EMAIL,
+            "password": TEST_NON_ADMIN_PASSWORD,
+        },
     )
 
     assert login_response.status_code == 200, (
@@ -218,4 +323,41 @@ def sample_caso_data() -> dict[str, Any]:
         "area_direito": "penal",
         "situacao_deferimento": "deferido",
         "ids_clientes": [],
+    }
+
+
+@pytest.fixture
+def sample_user_data() -> dict[str, Any]:
+    return {
+        "email": "test.user@gl.com",
+        "nome": "Test User",
+        "urole": "estag_direito",
+        "sexo": "F",
+        "rg": "98.765.432-1",
+        "cpf": "987.654.321-00",
+        "profissao": "Estagiário",
+        "estado_civil": "solteiro",
+        "nascimento": "1995-05-15",
+        "telefone": "(11) 3333-4444",
+        "celular": "(11) 99876-5432",
+        "oab": None,
+        "obs": None,
+        "data_entrada": "2024-01-15",
+        "data_saida": None,
+        "matricula": "EST001",
+        "bolsista": True,
+        "tipo_bolsa": "integral",
+        "horario_atendimento": "08:00-12:00",
+        "suplente": None,
+        "ferias": None,
+        "cert_atuacao_DAJ": "sim",
+        "inicio_bolsa": "2024-01-15T00:00:00",
+        "fim_bolsa": None,
+        "logradouro": "Rua Teste User",
+        "numero": "456",
+        "bairro": "Centro",
+        "cep": "30000-111",
+        "cidade": "Belo Horizonte",
+        "estado": "MG",
+        "complemento": None,
     }

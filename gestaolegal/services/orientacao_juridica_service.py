@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import cast
 
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.orientacao_juridica import (
@@ -11,6 +12,7 @@ from gestaolegal.models.orientacao_juridica_input import (
     OrientacaoJuridicaCreate,
     OrientacaoJuridicaUpdate,
 )
+from gestaolegal.models.user import User
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.orientacao_juridica_repository import (
     OrientacaoJuridicaRepository,
@@ -77,7 +79,7 @@ class OrientacaoJuridicaService:
             status=orientacao.status == 1,
             atendidos=atendidos,
             descricao=orientacao.descricao,
-            usuario=usuario if usuario else None,
+            usuario=User.to_info_optional(usuario),
         )
 
     def search(
@@ -118,16 +120,17 @@ class OrientacaoJuridicaService:
 
         result = self.repository.search(params=params)
 
-        users_orientacao_map = {
-            item.id_usuario: item.id for item in result.items if item.id_usuario
-        }
+        user_ids = [
+            item.id_usuario for item in result.items if item.id_usuario is not None
+        ]
         users = self.user_repository.get(
             params=GetParams(
-                where=WhereClause(
-                    column="id", operator="in", value=list(users_orientacao_map.keys())
-                )
+                where=WhereClause(column="id", operator="in", value=user_ids)
             )
         )
+        user_map = {
+            cast(int, user.id): user.to_info() for user in users if user.id is not None
+        }
         logger.info(
             f"Returning {len(result.items)} orientacoes juridicas of total {result.total} found"
         )
@@ -141,16 +144,7 @@ class OrientacaoJuridicaService:
         filled_items: list[OrientacaoJuridicaListItem] = []
         for item in result.items:
             related_user = (
-                next(
-                    (
-                        user
-                        for user in users
-                        if user.id == users_orientacao_map[item.id_usuario]
-                    ),
-                    None,
-                )
-                if item.id_usuario
-                else None
+                user_map.get(item.id_usuario) if item.id_usuario is not None else None
             )
             related_atendidos = (
                 [

@@ -1,53 +1,63 @@
-import inspect
 import logging
 from functools import wraps
-from typing import Callable, Concatenate, ParamSpec, TypeVar, overload
+from typing import Callable, Literal, ParamSpec
 
-from flask import Response, make_response, request
+from flask import make_response, request
+from flask.typing import ResponseReturnValue
 
-from gestaolegal.models.user import User
+from gestaolegal.models.user import UserInfo
 from gestaolegal.utils.jwt_auth import JWTAuth
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
+UserRole = Literal["admin", "colab_proj", "orient", "estag_direito", "colab_ext"]
 P = ParamSpec("P")
-R = TypeVar("R")
 
 
-@overload
-def api_auth_required(
-    f: Callable[Concatenate[User, P], R],
-) -> Callable[P, R | Response]: ...
+def authenticated(
+    func: Callable[P, ResponseReturnValue],
+) -> Callable[P, ResponseReturnValue]:
+    @wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
+        auth_header = request.headers.get("Authorization")
 
-
-@overload
-def api_auth_required(f: Callable[P, R]) -> Callable[P, R | Response]: ...
-
-
-def api_auth_required(f: Callable[..., R]) -> Callable[..., R | Response]:
-    @wraps(f)
-    def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R | Response:
-        token: str | None = None
-        auth_header: str | None = request.headers.get("Authorization")
-
-        if auth_header:
-            try:
-                token = auth_header.split(" ")[1]
-            except IndexError:
-                return make_response("Invalid authorization header format", 401)
-
-        if not token:
+        if not auth_header:
             return make_response("Authorization token is missing", 401)
 
-        user: User | None = JWTAuth.get_user_from_token(token)
+        try:
+            token = auth_header.split(" ", maxsplit=1)[1]
+        except IndexError:
+            return make_response("Invalid authorization header format", 401)
+
+        user: UserInfo | None = JWTAuth.get_user_from_token(token)
 
         if not user:
             return make_response("Invalid or expired token", 401)
 
-        sig = inspect.signature(f)
-        if "current_user" in sig.parameters:
-            return f(*args, current_user=user, **kwargs)
-        else:
-            return f(*args, **kwargs)
+        RequestContext.set_current_user(user)
 
-    return decorated_function
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def authorized(
+    *roles: UserRole,
+) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ResponseReturnValue]]:
+    def decorator(
+        func: Callable[P, ResponseReturnValue],
+    ) -> Callable[P, ResponseReturnValue]:
+        @authenticated
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
+            user = RequestContext.get_current_user()
+
+            if user.urole not in roles:
+                return make_response("Forbidden", 403)
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
