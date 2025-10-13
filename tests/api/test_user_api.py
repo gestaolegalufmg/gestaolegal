@@ -1,11 +1,12 @@
 import random
 from typing import Any
+
 from flask.testing import FlaskClient
 
-from tests.api.conftest import clean_tables
 
-
-def test_create_user_success(client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]) -> None:
+def test_create_user_success(
+    client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
+) -> None:
     response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
 
     assert response.status_code == 200
@@ -31,10 +32,14 @@ def test_create_user_requires_auth(client: FlaskClient) -> None:
     assert response.status_code == 401
 
 
-def test_get_user_by_id(client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]) -> None:
+def test_get_user_by_id(
+    client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
+) -> None:
     sample_user_data["id"] = random.randint(1, 1000000)
     sample_user_data["email"] = f"getbyid{sample_user_data['id']}@gl.com"
-    create_response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/user/", json=sample_user_data, headers=auth_headers
+    )
 
     assert create_response.status_code == 200
     assert create_response.json is not None
@@ -56,10 +61,14 @@ def test_get_user_not_found(client: FlaskClient, auth_headers: dict[str, str]) -
     assert response.status_code == 404
 
 
-def test_update_user(client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]) -> None:
+def test_update_user(
+    client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
+) -> None:
     sample_user_data["id"] = random.randint(1, 1000000)
     sample_user_data["email"] = f"updateuser{sample_user_data['id']}@gl.com"
-    create_response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/user/", json=sample_user_data, headers=auth_headers
+    )
     assert create_response.status_code == 200
     assert create_response.json is not None
     user_id = create_response.json["id"]
@@ -77,11 +86,16 @@ def test_update_user(client: FlaskClient, auth_headers: dict[str, str], sample_u
     assert data["id"] == user_id
     assert data["email"] == sample_user_data["email"]
 
-def test_delete_user(client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]) -> None:
+
+def test_delete_user(
+    client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
+) -> None:
     sample_user_data["id"] = random.randint(1, 1000000)
     sample_user_data["email"] = f"deleteuser{sample_user_data['id']}@gl.com"
 
-    create_response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/user/", json=sample_user_data, headers=auth_headers
+    )
     assert create_response.status_code == 200
     assert create_response.json is not None
     user_id = create_response.json["id"]
@@ -97,7 +111,9 @@ def test_delete_user(client: FlaskClient, auth_headers: dict[str, str], sample_u
     assert data["status"] is False
 
 
-def test_search_users(client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]) -> None:
+def test_search_users(
+    client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
+) -> None:
     sample_user_data["id"] = random.randint(1, 1000000)
     sample_user_data["email"] = f"searchuser{sample_user_data['id']}@gl.com"
     sample_user_data["nome"] = f"Searchable User {sample_user_data['id']}"
@@ -113,7 +129,12 @@ def test_search_users(client: FlaskClient, auth_headers: dict[str, str], sample_
     assert isinstance(data["items"], list)
     assert len(data["items"]) > 0
     found_user = next(
-        (u for u in data["items"] if u["nome"] == f"Searchable User {sample_user_data['id']}"), None
+        (
+            u
+            for u in data["items"]
+            if u["nome"] == f"Searchable User {sample_user_data['id']}"
+        ),
+        None,
     )
     assert found_user is not None
 
@@ -150,11 +171,15 @@ def test_get_me_endpoint(client: FlaskClient, auth_headers: dict[str, str]) -> N
     assert "nome" in data
 
 
-def test_change_password(client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]) -> None:
+def test_change_password(
+    client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
+) -> None:
     sample_user_data["id"] = random.randint(1, 1000000)
     sample_user_data["email"] = f"changepassworduser{sample_user_data['id']}@gl.com"
 
-    create_response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/user/", json=sample_user_data, headers=auth_headers
+    )
     assert create_response.status_code == 200
     assert create_response.json is not None
     user_id = create_response.json["id"]
@@ -175,7 +200,9 @@ def test_update_user_without_changes(
     sample_user_data["email"] = f"nochangesuser{sample_user_data['id']}@gl.com"
     sample_user_data["nome"] = f"No Changes User {sample_user_data['id']}"
 
-    create_response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/user/", json=sample_user_data, headers=auth_headers
+    )
     assert create_response.status_code == 200
     assert create_response.json is not None
     user_id = create_response.json["id"]
@@ -200,7 +227,9 @@ def test_update_user_partial_data(
     sample_user_data["email"] = f"partialupdateuser{sample_user_data['id']}@gl.com"
     sample_user_data["nome"] = f"Partial Update User {sample_user_data['id']}"
 
-    create_response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/user/", json=sample_user_data, headers=auth_headers
+    )
     assert create_response.status_code == 200
     assert create_response.json is not None
     user_id = create_response.json["id"]
@@ -226,7 +255,9 @@ def test_update_user_address(
     sample_user_data["email"] = f"addressupdateuser{sample_user_data['id']}@gl.com"
     sample_user_data["nome"] = f"Address Update User {sample_user_data['id']}"
 
-    create_response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+    create_response = client.post(
+        "/api/user/", json=sample_user_data, headers=auth_headers
+    )
     assert create_response.status_code == 200
     assert create_response.json is not None
     user_id = create_response.json["id"]
@@ -288,3 +319,114 @@ def test_user_show_inactive_filter(
     user_ids = [user["id"] for user in data["items"]]
     assert active_user_id in user_ids
     assert inactive_user_id not in user_ids
+
+
+def test_user_creation_with_complemento_as_empty_string(
+    client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
+) -> None:
+    """Test that complemento can be empty string (backend should handle it)"""
+    sample_user_data["id"] = random.randint(1, 1000000)
+    sample_user_data["email"] = f"emptycomplemento{sample_user_data['id']}@gl.com"
+    sample_user_data["complemento"] = ""
+
+    response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.json
+    assert data is not None
+    assert "id" in data
+
+
+def test_user_creation_with_complemento_as_null(
+    client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
+) -> None:
+    """Test that complemento can be null"""
+    sample_user_data["id"] = random.randint(1, 1000000)
+    sample_user_data["email"] = f"nullcomplemento{sample_user_data['id']}@gl.com"
+    sample_user_data["complemento"] = None
+
+    response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.json
+    assert data is not None
+    assert "id" in data
+
+
+def test_bolsista_requires_bolsa_fields(
+    client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
+) -> None:
+    """Test that when bolsista=true, tipo_bolsa, inicio_bolsa, fim_bolsa are required"""
+    sample_user_data["id"] = random.randint(1, 1000000)
+    sample_user_data["email"] = f"bolsistatest{sample_user_data['id']}@gl.com"
+    sample_user_data["bolsista"] = True
+    sample_user_data["tipo_bolsa"] = "integral"
+    sample_user_data["inicio_bolsa"] = "2024-01-01"
+    sample_user_data["fim_bolsa"] = "2024-12-31"
+
+    response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.json
+    assert data is not None
+    assert data["bolsista"] is True
+    assert data["tipo_bolsa"] == "integral"
+
+
+def test_non_bolsista_without_bolsa_fields(
+    client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
+) -> None:
+    """Test that when bolsista=false, bolsa fields can be null"""
+    sample_user_data["id"] = random.randint(1, 1000000)
+    sample_user_data["email"] = f"nonbolsista{sample_user_data['id']}@gl.com"
+    sample_user_data["bolsista"] = False
+    sample_user_data["tipo_bolsa"] = None
+    sample_user_data["inicio_bolsa"] = None
+    sample_user_data["fim_bolsa"] = None
+
+    response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.json
+    assert data is not None
+    assert data["bolsista"] is False
+
+
+def test_user_update_with_individual_address_fields(
+    client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
+) -> None:
+    """Test that address update works with individual fields, not Endereco object"""
+    sample_user_data["id"] = random.randint(1, 1000000)
+    sample_user_data["email"] = f"addressfields{sample_user_data['id']}@gl.com"
+
+    create_response = client.post(
+        "/api/user/", json=sample_user_data, headers=auth_headers
+    )
+    assert create_response.status_code == 200
+    assert create_response.json is not None
+    user_id = create_response.json["id"]
+
+    # Update with individual address fields
+    update_data = {
+        "logradouro": "Nova Rua",
+        "numero": "999",
+        "complemento": "Apto 101",
+        "bairro": "Novo Bairro",
+        "cep": "99999-999",
+        "cidade": "Nova Cidade",
+        "estado": "SP",
+    }
+    response = client.put(
+        f"/api/user/{user_id}", json=update_data, headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    data = response.json
+    assert data is not None
+    assert data["endereco"]["logradouro"] == "Nova Rua"
+    assert data["endereco"]["numero"] == "999"
+    assert data["endereco"]["complemento"] == "Apto 101"
+    assert data["endereco"]["bairro"] == "Novo Bairro"
+    assert data["endereco"]["cep"] == "99999-999"
+    assert data["endereco"]["cidade"] == "Nova Cidade"
+    assert data["endereco"]["estado"] == "SP"

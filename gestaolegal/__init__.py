@@ -24,6 +24,7 @@ def create_app(config_object=None):
     initialize_extensions(app)
 
     from gestaolegal.handlers import register_handlers
+
     register_handlers(app)
 
     register_blueprints(app)

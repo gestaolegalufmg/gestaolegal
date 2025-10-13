@@ -248,9 +248,7 @@ class CasoService:
     def validate_arquivo_for_caso(
         self, arquivo_id: int, caso_id: int
     ) -> ArquivoCaso | None:
-        logger.info(
-            f"Validating arquivo {arquivo_id} for caso {caso_id}"
-        )
+        logger.info(f"Validating arquivo {arquivo_id} for caso {caso_id}")
         arquivo = self.arquivo_repository.find_by_id(arquivo_id)
 
         if not arquivo:
@@ -258,9 +256,7 @@ class CasoService:
             return None
 
         if arquivo.id_caso != caso_id:
-            logger.warning(
-                f"Arquivo {arquivo_id} does not belong to caso {caso_id}"
-            )
+            logger.warning(f"Arquivo {arquivo_id} does not belong to caso {caso_id}")
             return None
 
         return arquivo
@@ -269,7 +265,7 @@ class CasoService:
         self, arquivo_id: int, caso_id: int
     ) -> tuple[str | None, str]:
         logger.info(f"Getting arquivo {arquivo_id} for download from caso {caso_id}")
-        
+
         arquivo = self.validate_arquivo_for_caso(arquivo_id, caso_id)
         if not arquivo:
             return None, "Arquivo não encontrado ou não pertence ao caso"
@@ -289,7 +285,7 @@ class CasoService:
         self, caso_id: int, file: FileStorage
     ) -> tuple[ArquivoCaso | None, str]:
         logger.info(f"Uploading arquivo for caso id: {caso_id}")
-        
+
         caso = self.repository.find_by_id(caso_id)
         if not caso:
             logger.error(f"Caso not found with id: {caso_id}")
@@ -310,10 +306,12 @@ class CasoService:
             file.save(filepath)
             logger.info(f"File saved to filesystem: {filepath}")
 
-            arquivo_id = self.arquivo_repository.create({
-                "id_caso": caso_id,
-                "link_arquivo": filepath,
-            })
+            arquivo_id = self.arquivo_repository.create(
+                {
+                    "id_caso": caso_id,
+                    "link_arquivo": filepath,
+                }
+            )
             arquivo = self.arquivo_repository.find_by_id(arquivo_id)
             logger.info(f"Arquivo created successfully with id: {arquivo_id}")
             return arquivo, "Arquivo criado com sucesso"
@@ -325,7 +323,7 @@ class CasoService:
 
     def delete_arquivo(self, arquivo_id: int, caso_id: int) -> tuple[bool, str]:
         logger.info(f"Deleting arquivo with id: {arquivo_id}")
-        
+
         arquivo = self.validate_arquivo_for_caso(arquivo_id, caso_id)
         if not arquivo:
             return False, "Arquivo não encontrado ou não pertence ao caso"
@@ -410,7 +408,11 @@ class CasoService:
                 )
             )
 
-        where = ComplexWhereClause(clauses=clauses, operator="and") if len(clauses) > 1 else clauses[0]
+        where = (
+            ComplexWhereClause(clauses=clauses, operator="and")
+            if len(clauses) > 1
+            else clauses[0]
+        )
 
         params = SearchParams(page_params=page_params, where=where)
         result = self.processo_repository.search(params=params)
@@ -452,9 +454,7 @@ class CasoService:
             return None
 
         if processo.id_caso != caso_id:
-            logger.warning(
-                f"Processo {processo_id} does not belong to caso {caso_id}"
-            )
+            logger.warning(f"Processo {processo_id} does not belong to caso {caso_id}")
             return None
 
         # Load dependencies
@@ -523,9 +523,7 @@ class CasoService:
             logger.warning(f"Evento not found with id: {evento_id}")
         return evento
 
-    def validate_evento_for_caso(
-        self, evento_id: int, caso_id: int
-    ) -> Evento | None:
+    def validate_evento_for_caso(self, evento_id: int, caso_id: int) -> Evento | None:
         logger.info(f"Validating evento {evento_id} for caso {caso_id}")
         evento = self.evento_repository.find_by_id(evento_id)
 
@@ -549,9 +547,7 @@ class CasoService:
         evento_data["id_caso"] = caso_id
         evento_data["data_criacao"] = datetime.now()
         evento_data["id_criado_por"] = criado_por_id
-        evento_data["num_evento"] = (
-            self.evento_repository.count_by_caso_id(caso_id) + 1
-        )
+        evento_data["num_evento"] = self.evento_repository.count_by_caso_id(caso_id) + 1
 
         evento_id = self.evento_repository.create(evento_data)
 
