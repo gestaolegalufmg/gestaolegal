@@ -9,6 +9,7 @@ mail = Mail()
 
 def create_app(config_object=None):
     app = Flask(__name__, instance_relative_config=True)
+    app.url_map.strict_slashes = False
 
     if config_object:
         app.config.from_object(config_object)
