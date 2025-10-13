@@ -357,8 +357,14 @@ def test_get_eventos_by_caso(
     assert response.status_code == 200
     data = response.json
     assert data is not None
+    assert isinstance(data, dict)
     assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "per_page" in data
+    assert isinstance(data["items"], list)
     assert len(data["items"]) >= 3
+    assert data["total"] >= 3
 
 
 def test_download_evento_file(
