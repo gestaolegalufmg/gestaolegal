@@ -4,6 +4,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any, cast
 
+from dateutil import parser
 from flask import Blueprint, make_response, request, send_file
 from werkzeug.utils import secure_filename
 
@@ -330,6 +331,7 @@ def update_evento(caso_id: int, evento_id: int):
     try:
         existing_evento = evento_service.validate_evento_for_caso(evento_id, caso_id)
         if not existing_evento:
+            logger.error(f"Evento not found with id: {evento_id}")
             return make_response("Evento não encontrado ou não pertence ao caso", 404)
 
         form_data: dict[str, Any] = {}
@@ -365,9 +367,14 @@ def update_evento(caso_id: int, evento_id: int):
 
                 form_data["arquivo"] = filepath
 
+        data_evento = form_data.get("data_evento")
+        if data_evento:
+            form_data["data_evento"] = parser.parse(data_evento)
+
         evento_input = EventoUpdateInput(**form_data)
         evento = evento_service.update(evento_id, evento_input)
     except ValueError as e:
+        logger.error(f"Error updating evento {evento_id}: {str(e)}", exc_info=True)
         return make_response(str(e), 404)
     except Exception as e:
         logger.error(f"Error updating evento {evento_id}: {str(e)}", exc_info=True)

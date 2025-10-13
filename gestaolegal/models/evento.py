@@ -24,3 +24,16 @@ class Evento:
     caso: "Caso | None" = None
     criado_por: "User | None" = None
     usuario_responsavel: "User | None" = None
+
+
+@dataclass
+class ListEvento:
+    id: int
+    tipo: str
+    data_evento: date
+    data_criacao: datetime
+    status: bool
+
+    criado_por: str | None = None
+    usuario_responsavel: str | None = None
+    num_evento: int | None = None

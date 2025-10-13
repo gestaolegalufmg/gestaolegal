@@ -1,16 +1,13 @@
 import logging
 import os
 from datetime import datetime
+from typing import cast
 
 from gestaolegal.common import PageParams, PaginatedResult
-from gestaolegal.models.evento import Evento
+from gestaolegal.models.evento import Evento, ListEvento
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
+from gestaolegal.models.user import User
 from gestaolegal.repositories.evento_repository import EventoRepository
-from gestaolegal.repositories.repository import (
-    ComplexWhereClause,
-    SearchParams,
-    WhereClause,
-)
 from gestaolegal.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -28,7 +25,15 @@ class EventoService:
         logger.info(f"Finding evento by id: {id}")
         evento = self.repository.find_by_id(id)
         if evento:
-            self.__fill_user_data([evento])
+            user_map = self.__get_user_map([evento])
+            evento.usuario_responsavel = (
+                user_map.get(evento.id_usuario_responsavel)
+                if evento.id_usuario_responsavel
+                else None
+            )
+            evento.criado_por = (
+                user_map.get(evento.id_criado_por) if evento.id_criado_por else None
+            )
             logger.info(f"Evento found with id: {id}")
         else:
             logger.warning(f"Evento not found with id: {id}")
@@ -36,57 +41,42 @@ class EventoService:
 
     def find_by_caso_id(
         self, caso_id: int, page_params: PageParams
-    ) -> PaginatedResult[Evento]:
+    ) -> PaginatedResult[ListEvento]:
         logger.info(f"Finding eventos for caso id: {caso_id}")
         result = self.repository.find_by_caso_id_paginated(caso_id, page_params)
-        self.__fill_user_data(result.items)
-        logger.info(f"Found {result.total} eventos for caso id: {caso_id}")
-        return result
 
-    def search(
-        self,
-        page_params: PageParams,
-        search: str = "",
-        show_inactive: bool = False,
-        caso_id: int | None = None,
-        tipo: str | None = None,
-    ) -> PaginatedResult[Evento]:
-        logger.info(
-            f"Searching eventos with search: '{search}', caso_id: {caso_id}, tipo: {tipo}, show_inactive: {show_inactive}, page: {page_params['page']}, per_page: {page_params['per_page']}"
-        )
-        clauses: list[WhereClause] = []
+        user_map = self.__get_user_map(result.items)
 
-        if not show_inactive:
-            clauses.append(WhereClause(column="status", operator="==", value=True))
+        list_eventos: list[ListEvento] = []
+        for evento in result.items:
+            usuario_responsavel = (
+                user_map.get(evento.id_usuario_responsavel)
+                if evento.id_usuario_responsavel
+                else None
+            )
+            criado_por = user_map.get(evento.id_criado_por)
 
-        if caso_id:
-            clauses.append(WhereClause(column="id_caso", operator="==", value=caso_id))
-
-        if tipo:
-            clauses.append(WhereClause(column="tipo", operator="==", value=tipo))
-
-        if search:
-            clauses.append(
-                WhereClause(column="descricao", operator="ilike", value=f"%{search}%")
+            list_eventos.append(
+                ListEvento(
+                    id=cast(int, evento.id),
+                    num_evento=evento.num_evento,
+                    tipo=evento.tipo,
+                    data_evento=evento.data_evento,
+                    data_criacao=evento.data_criacao,
+                    status=evento.status,
+                    usuario_responsavel=usuario_responsavel.nome
+                    if usuario_responsavel
+                    else None,
+                    criado_por=criado_por.nome if criado_por else None,
+                )
             )
 
-        where = None
-        if len(clauses) > 1:
-            where = ComplexWhereClause(clauses=clauses, operator="and")
-        elif len(clauses) == 1:
-            where = clauses[0]
-
-        params = SearchParams(
-            page_params=page_params,
-            where=where,
+        return PaginatedResult(
+            items=list_eventos,
+            total=result.total,
+            page=result.page,
+            per_page=result.per_page,
         )
-
-        result = self.repository.search(params=params)
-        self.__fill_user_data(result.items)
-        logger.info(
-            f"Returning {len(result.items)} eventos of total {result.total} found"
-        )
-        return result
 
     def validate_evento_for_caso(self, evento_id: int, caso_id: int) -> Evento | None:
         logger.info(f"Validating evento {evento_id} for caso {caso_id}")
@@ -100,7 +90,12 @@ class EventoService:
             logger.warning(f"Evento {evento_id} does not belong to caso {caso_id}")
             return None
 
-        self.__fill_user_data([evento])
+        user_map = self.__get_user_map([evento])
+        if evento.id_usuario_responsavel:
+            evento.usuario_responsavel = user_map.get(evento.id_usuario_responsavel)
+        evento.criado_por = user_map.get(evento.id_criado_por)
+
+        logger.info(f"Evento validated successfully with id: {evento_id}")
         return evento
 
     def create(
@@ -143,15 +138,6 @@ class EventoService:
         logger.info(f"Evento updated successfully with id: {evento_id}")
         return self.repository.find_by_id(evento_id)
 
-    def soft_delete(self, evento_id: int) -> bool:
-        logger.info(f"Soft deleting evento with id: {evento_id}")
-        result = self.repository.delete(evento_id)
-        if result:
-            logger.info(f"Evento soft deleted successfully with id: {evento_id}")
-        else:
-            logger.warning(f"Soft delete failed for evento with id: {evento_id}")
-        return result
-
     def get_evento_file_for_download(
         self, evento_id: int, caso_id: int
     ) -> tuple[str | None, str]:
@@ -172,11 +158,8 @@ class EventoService:
         logger.info(f"Evento {evento_id} file ready for download: {evento.arquivo}")
         return evento.arquivo, "OK"
 
-    def __fill_user_data(self, eventos: list[Evento]) -> None:
-        if not eventos:
-            return
-
-        user_ids = set()
+    def __get_user_map(self, eventos: list[Evento]) -> dict[int, User]:
+        user_ids: set[int] = set()
         for evento in eventos:
             user_ids.add(evento.id_criado_por)
             if evento.id_usuario_responsavel:
@@ -185,10 +168,4 @@ class EventoService:
         users = self.user_repository.get_by_ids(list(user_ids))
         user_map = {user.id: user for user in users}
 
-        for evento in eventos:
-            evento.criado_por = user_map.get(evento.id_criado_por)
-            evento.usuario_responsavel = (
-                user_map.get(evento.id_usuario_responsavel)
-                if evento.id_usuario_responsavel
-                else None
-            )
+        return cast(dict[int, User], user_map)
