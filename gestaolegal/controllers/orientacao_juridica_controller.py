@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 orientacao_juridica_controller = Blueprint("orientacao_juridica_api", __name__)
 
 
-@orientacao_juridica_controller.route("/", methods=["GET"])
+@orientacao_juridica_controller.route("", methods=["GET"])
 @authenticated
 def get():
     page = request.args.get("page", default=1, type=int)
