@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from gestaolegal.models.caso import Caso
-    from gestaolegal.models.user import User
+    from gestaolegal.models.user import UserInfo
 
 
 @dataclass
@@ -27,4 +27,4 @@ class Processo:
     data_transito_em_julgado: date | None = None
     obs: str | None = None
     caso: "Caso | None" = None
-    criado_por: "User | None" = None
+    criado_por: "UserInfo | None" = None

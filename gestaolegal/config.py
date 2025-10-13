@@ -13,7 +13,10 @@ class Config:
     if not SECRET_KEY:
         raise ValueError("SECRET_KEY environment variable is required")
 
-    UPLOADS = "./static/casos"
+    STATIC_ROOT_DIR = os.environ.get(
+        "STATIC_ROOT_DIR", "/gestaolegal/gestaolegal/static/"
+    )
+    UPLOADS = os.path.join(STATIC_ROOT_DIR, "casos")
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB limit
 
     DB_USER = os.environ.get("DB_USER")

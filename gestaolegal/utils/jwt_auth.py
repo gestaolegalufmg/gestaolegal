@@ -4,13 +4,13 @@ from typing import Any
 import jwt
 from flask import current_app
 
-from gestaolegal.models.user import User
+from gestaolegal.models.user import UserInfo
 from gestaolegal.services.usuario_service import UsuarioService
 
 
 class JWTAuth:
     @staticmethod
-    def generate_token(user: User) -> str:
+    def generate_token(user: UserInfo) -> str:
         now = datetime.now(UTC)
         payload = {
             "user_id": user.id,
@@ -39,7 +39,7 @@ class JWTAuth:
             return None
 
     @staticmethod
-    def get_user_from_token(token: str) -> User | None:
+    def get_user_from_token(token: str) -> UserInfo | None:
         payload = JWTAuth.verify_token(token)
         if not payload:
             return None

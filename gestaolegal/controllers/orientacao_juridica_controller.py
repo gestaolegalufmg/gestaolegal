@@ -9,17 +9,18 @@ from gestaolegal.models.orientacao_juridica_input import (
     OrientacaoJuridicaCreate,
     OrientacaoJuridicaUpdate,
 )
-from gestaolegal.models.user import User
+from gestaolegal.models.user import UserInfo
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
-from gestaolegal.utils.api_decorators import api_auth_required
+from gestaolegal.utils.api_decorators import authenticated, authorized
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
 orientacao_juridica_controller = Blueprint("orientacao_juridica_api", __name__)
 
 
-@orientacao_juridica_controller.route("/", methods=["GET"])
-@api_auth_required
+@orientacao_juridica_controller.route("", methods=["GET"])
+@authenticated
 def get():
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
@@ -41,7 +42,7 @@ def get():
 
 
 @orientacao_juridica_controller.route("/<int:id>", methods=["GET"])
-@api_auth_required
+@authenticated
 def find_by_id(id: int):
     orientacao_juridica_service = OrientacaoJuridicaService()
 
@@ -53,7 +54,7 @@ def find_by_id(id: int):
 
 
 @orientacao_juridica_controller.route("/<int:id>", methods=["DELETE"])
-@api_auth_required
+@authorized("admin")
 def delete(id: int):
     orientacao_juridica_service = OrientacaoJuridicaService()
     orientacao_juridica_service.delete(id)
@@ -62,8 +63,9 @@ def delete(id: int):
 
 
 @orientacao_juridica_controller.route("/", methods=["POST"])
-@api_auth_required
-def create(current_user: User):
+@authenticated
+def create():
+    current_user: UserInfo = RequestContext.get_current_user()
     orientacao_juridica_service = OrientacaoJuridicaService()
 
     try:
@@ -81,7 +83,7 @@ def create(current_user: User):
 
 
 @orientacao_juridica_controller.route("/<int:id>", methods=["PUT"])
-@api_auth_required
+@authenticated
 def update(id: int):
     orientacao_juridica_service = OrientacaoJuridicaService()
 

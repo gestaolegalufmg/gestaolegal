@@ -12,7 +12,7 @@ from gestaolegal.models.assistido_input import (
 from gestaolegal.models.atendido_input import AtendidoCreateInput, AtendidoUpdateInput
 from gestaolegal.services.atendido_service import AtendidoService
 from gestaolegal.utils import StringBool
-from gestaolegal.utils.api_decorators import api_auth_required
+from gestaolegal.utils.api_decorators import authenticated, authorized
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ atendido_controller = Blueprint("atendido_api", __name__)
 
 
 @atendido_controller.route("/", methods=["GET"])
-@api_auth_required
+@authenticated
 def get():
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
@@ -41,7 +41,7 @@ def get():
 
 
 @atendido_controller.route("/<int:id>", methods=["GET"])
-@api_auth_required
+@authenticated
 def find_by_id(id: int):
     atendido_service = AtendidoService()
     atendido = atendido_service.find_by_id(id)
@@ -52,7 +52,7 @@ def find_by_id(id: int):
 
 
 @atendido_controller.route("/", methods=["POST"])
-@api_auth_required
+@authenticated
 def create():
     atendido_service = AtendidoService()
 
@@ -68,7 +68,7 @@ def create():
 
 
 @atendido_controller.route("/<int:id>", methods=["PUT"])
-@api_auth_required
+@authenticated
 def update(id: int):
     atendido_service = AtendidoService()
 
@@ -84,7 +84,7 @@ def update(id: int):
 
 
 @atendido_controller.route("/<int:id>", methods=["DELETE"])
-@api_auth_required
+@authorized("admin")
 def delete(id: int):
     atendido_service = AtendidoService()
     atendido_service.soft_delete(id)
@@ -93,7 +93,7 @@ def delete(id: int):
 
 
 @atendido_controller.route("/<int:id>/tornar-assistido", methods=["POST"])
-@api_auth_required
+@authenticated
 def tornar_assistido(id: int):
     atendido_service = AtendidoService()
 
@@ -110,7 +110,7 @@ def tornar_assistido(id: int):
 
 
 @atendido_controller.route("/<int:id>/assistido", methods=["PUT"])
-@api_auth_required
+@authenticated
 def update_assistido(id: int):
     atendido_service = AtendidoService()
 

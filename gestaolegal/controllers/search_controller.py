@@ -7,7 +7,7 @@ from gestaolegal.services.atendido_service import AtendidoService
 from gestaolegal.services.caso_service import CasoService
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
 from gestaolegal.services.usuario_service import UsuarioService
-from gestaolegal.utils.api_decorators import api_auth_required
+from gestaolegal.utils.api_decorators import authenticated
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ search_controller = Blueprint("search_api", __name__)
 
 
 @search_controller.route("/", methods=["GET"])
-@api_auth_required
+@authenticated
 def global_search():
     logger.info(f"Global search query: {request.args.get('q')}")
     query = request.args.get("q", default="", type=str)

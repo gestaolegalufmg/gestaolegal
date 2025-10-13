@@ -20,7 +20,7 @@ class ProcessoCreateInput(BaseModel):
     data_distribuicao: date | None = None
     data_transito_em_julgado: date | None = None
     obs: str | None = None
-    id_caso: int
+    id_caso: int | None = None
     status: bool = True
 
 
