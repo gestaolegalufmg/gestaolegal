@@ -5,11 +5,11 @@ from typing import Any, cast
 from flask import Blueprint, make_response, request
 
 from gestaolegal.common import PageParams
-from gestaolegal.models.user import UserInfo
 from gestaolegal.models.user_input import UserCreateInput, UserUpdateInput
 from gestaolegal.services.usuario_service import UsuarioService
 from gestaolegal.utils import StringBool
-from gestaolegal.utils.api_decorators import api_auth_required
+from gestaolegal.utils.api_decorators import authenticated, authorized
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -17,13 +17,14 @@ user_controller = Blueprint("user", __name__)
 
 
 @user_controller.route("/me", methods=["GET"])
-@api_auth_required
-def get_me(current_user: UserInfo):
+@authenticated
+def get_me():
+    current_user = RequestContext.get_current_user()
     return asdict(current_user)
 
 
 @user_controller.route("/", methods=["GET"])
-@api_auth_required
+@authorized("admin")
 def get():
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
@@ -44,7 +45,7 @@ def get():
 
 
 @user_controller.route("/<int:id>", methods=["GET"])
-@api_auth_required
+@authorized("admin")
 def find_by_id(id: int):
     user_service = UsuarioService()
     user = user_service.find_by_id(id)
@@ -55,8 +56,9 @@ def find_by_id(id: int):
 
 
 @user_controller.route("/", methods=["POST"])
-@api_auth_required
-def create(current_user: UserInfo):
+@authorized("admin")
+def create():
+    current_user = RequestContext.get_current_user()
     user_service = UsuarioService()
 
     try:
@@ -71,8 +73,9 @@ def create(current_user: UserInfo):
 
 
 @user_controller.route("/<int:id>", methods=["PUT"])
-@api_auth_required
-def update(id: int, current_user: UserInfo):
+@authorized("admin")
+def update(id: int):
+    current_user = RequestContext.get_current_user()
     user_service = UsuarioService()
     json_data = cast(dict[str, Any], request.get_json(force=True))
     user_input = UserUpdateInput.model_validate(json_data)
@@ -85,8 +88,9 @@ def update(id: int, current_user: UserInfo):
 
 
 @user_controller.route("/me", methods=["PUT"])
-@api_auth_required
-def update_me(current_user: UserInfo):
+@authenticated
+def update_me():
+    current_user = RequestContext.get_current_user()
     user_service = UsuarioService()
     json_data = cast(dict[str, Any], request.get_json(force=True))
     user_input = UserUpdateInput.model_validate(json_data)
@@ -104,7 +108,7 @@ def update_me(current_user: UserInfo):
 
 
 @user_controller.route("/<int:id>", methods=["DELETE"])
-@api_auth_required
+@authorized("admin")
 def delete(id: int):
     user_service = UsuarioService()
     user_service.soft_delete(id)
@@ -113,8 +117,9 @@ def delete(id: int):
 
 
 @user_controller.route("/<int:id>/password", methods=["PUT"])
-@api_auth_required
-def change_password(id: int, current_user: UserInfo):
+@authenticated
+def change_password(id: int):
+    current_user = RequestContext.get_current_user()
     try:
         data = cast(dict[str, Any], request.get_json(force=True))
         current_password = data.get("currentPassword")
