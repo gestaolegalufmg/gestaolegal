@@ -22,42 +22,37 @@ class ProcessoService:
         self.repository = ProcessoRepository()
         self.user_repository = UserRepository()
 
-    def find_by_id(self, id: int) -> Processo | None:
-        logger.info(f"Finding processo by id: {id}")
-        processo = self.repository.find_by_id(id)
+    def find_by_id(self, processo_id: int) -> Processo | None:
+        logger.info(f"Finding processo by id: {processo_id}")
+        processo = self.repository.find_by_id(processo_id)
         if not processo:
-            logger.warning(f"Processo not found with id: {id}")
+            logger.warning(f"Processo not found with id: {processo_id}")
             return None
 
-        self._load_processo_dependencies(processo)
-        logger.info(f"Processo found with id: {id}")
+        if processo.id_criado_por:
+            processo.criado_por = self.user_repository.find_by_id(
+                processo.id_criado_por
+            )
+
+        logger.info(f"Processo found with id: {processo_id}")
         return processo
 
-    def find_by_caso_id(self, caso_id: int) -> list[Processo]:
-        logger.info(f"Finding processos by caso_id: {caso_id}")
-        processos = self.repository.find_by_caso_id(caso_id)
-        for processo in processos:
-            self._load_processo_dependencies(processo)
-        logger.info(f"Found {len(processos)} processos for caso_id: {caso_id}")
-        return processos
-
-    def search(
+    def search_by_caso(
         self,
         page_params: PageParams,
+        caso_id: int,
         search: str = "",
         show_inactive: bool = False,
-        caso_id: int | None = None,
     ) -> PaginatedResult[Processo]:
         logger.info(
-            f"Searching processos with search: '{search}', caso_id: {caso_id}, show_inactive: {show_inactive}, page: {page_params['page']}, per_page: {page_params['per_page']}"
+            f"Searching processos for caso {caso_id} with search: '{search}', show_inactive: {show_inactive}"
         )
-        clauses: list[WhereClause] = []
+        clauses: list[WhereClause] = [
+            WhereClause(column="id_caso", operator="==", value=caso_id)
+        ]
 
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=True))
-
-        if caso_id:
-            clauses.append(WhereClause(column="id_caso", operator="==", value=caso_id))
 
         if search:
             clauses.append(
@@ -66,35 +61,55 @@ class ProcessoService:
                 )
             )
 
-        where = None
-        if len(clauses) > 1:
-            where = ComplexWhereClause(clauses=clauses, operator="and")
-        elif len(clauses) == 1:
-            where = clauses[0]
-
-        params = SearchParams(
-            page_params=page_params,
-            where=where,
+        where = (
+            ComplexWhereClause(clauses=clauses, operator="and")
+            if len(clauses) > 1
+            else clauses[0]
         )
 
+        params = SearchParams(page_params=page_params, where=where)
         result = self.repository.search(params=params)
 
         for processo in result.items:
-            self._load_processo_dependencies(processo)
+            if processo.id_criado_por:
+                processo.criado_por = self.user_repository.find_by_id(
+                    processo.id_criado_por
+                )
 
         logger.info(
-            f"Returning {len(result.items)} processos of total {result.total} found"
+            f"Returning {len(result.items)} processos of total {result.total} found for caso {caso_id}"
         )
         return result
 
+    def validate_processo_for_caso(
+        self, processo_id: int, caso_id: int
+    ) -> Processo | None:
+        logger.info(f"Validating processo {processo_id} for caso {caso_id}")
+        processo = self.repository.find_by_id(processo_id)
+
+        if not processo:
+            logger.warning(f"Processo not found with id: {processo_id}")
+            return None
+
+        if processo.id_caso != caso_id:
+            logger.warning(f"Processo {processo_id} does not belong to caso {caso_id}")
+            return None
+
+        if processo.id_criado_por:
+            processo.criado_por = self.user_repository.find_by_id(
+                processo.id_criado_por
+            )
+
+        return processo
+
     def create(
-        self, processo_input: ProcessoCreateInput, criado_por_id: int
+        self, caso_id: int, processo_input: ProcessoCreateInput, criado_por_id: int
     ) -> Processo:
         logger.info(
-            f"Creating processo with especie: {processo_input.especie}, caso_id: {processo_input.id_caso}, created by: {criado_por_id}"
+            f"Creating processo for caso {caso_id} with especie: {processo_input.especie}, created by: {criado_por_id}"
         )
         processo_data = processo_input.model_dump()
-
+        processo_data["id_caso"] = caso_id
         processo_data["id_criado_por"] = criado_por_id
 
         processo_id = self.repository.create(processo_data)
@@ -108,9 +123,7 @@ class ProcessoService:
         return created_processo
 
     def update(
-        self,
-        processo_id: int,
-        processo_input: ProcessoUpdateInput,
+        self, processo_id: int, processo_input: ProcessoUpdateInput
     ) -> Processo | None:
         logger.info(f"Updating processo with id: {processo_id}")
         existing = self.repository.find_by_id(processo_id)
@@ -119,7 +132,6 @@ class ProcessoService:
             raise ValueError(f"Processo with id {processo_id} not found")
 
         processo_data = processo_input.model_dump(exclude_none=True)
-
         self.repository.update(processo_id, processo_data)
 
         logger.info(f"Processo updated successfully with id: {processo_id}")
@@ -133,9 +145,3 @@ class ProcessoService:
         else:
             logger.warning(f"Soft delete failed for processo with id: {processo_id}")
         return result
-
-    def _load_processo_dependencies(self, processo: Processo) -> None:
-        if processo.id_criado_por:
-            processo.criado_por = self.user_repository.find_by_id(
-                processo.id_criado_por
-            )

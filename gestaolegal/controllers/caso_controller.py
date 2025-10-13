@@ -1,15 +1,21 @@
 import logging
+import os
 from dataclasses import asdict
+from datetime import datetime
 from typing import Any, cast
 
 from flask import Blueprint, make_response, request, send_file
+from werkzeug.utils import secure_filename
 
 from gestaolegal.common import PageParams
+from gestaolegal.config import Config
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
 from gestaolegal.models.user import User
 from gestaolegal.services.caso_service import CasoService
+from gestaolegal.services.evento_service import EventoService
+from gestaolegal.services.processo_service import ProcessoService
 from gestaolegal.utils.api_decorators import api_auth_required
 
 logger = logging.getLogger(__name__)
@@ -19,7 +25,7 @@ caso_controller = Blueprint("caso_api", __name__)
 
 @caso_controller.route("/", methods=["GET"])
 @api_auth_required
-def get(current_user: User):
+def get():
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
     search = request.args.get("search", default="", type=str)
@@ -147,7 +153,7 @@ def indeferir(current_user: User, id: int):
 @caso_controller.route("/<int:caso_id>/processos", methods=["GET"])
 @api_auth_required
 def get_processos_by_caso(caso_id: int):
-    caso_service = CasoService()
+    processo_service = ProcessoService()
 
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
@@ -156,7 +162,7 @@ def get_processos_by_caso(caso_id: int):
         request.args.get("show_inactive", default="false", type=str).lower() == "true"
     )
 
-    return caso_service.search_processos(
+    return processo_service.search_by_caso(
         page_params=PageParams(page=page, per_page=per_page),
         caso_id=caso_id,
         search=search,
@@ -167,12 +173,12 @@ def get_processos_by_caso(caso_id: int):
 @caso_controller.route("/<int:caso_id>/processos", methods=["POST"])
 @api_auth_required
 def create_processo(current_user: User, caso_id: int):
-    caso_service = CasoService()
+    processo_service = ProcessoService()
 
     try:
         json_data = cast(dict[str, Any], request.get_json(force=True))
         processo_input = ProcessoCreateInput(**json_data)
-        processo = caso_service.create_processo(
+        processo = processo_service.create(
             caso_id=caso_id,
             processo_input=processo_input,
             criado_por_id=current_user.id,
@@ -187,9 +193,9 @@ def create_processo(current_user: User, caso_id: int):
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["GET"])
 @api_auth_required
 def get_processo(caso_id: int, processo_id: int):
-    caso_service = CasoService()
+    processo_service = ProcessoService()
 
-    processo = caso_service.validate_processo_for_caso(processo_id, caso_id)
+    processo = processo_service.validate_processo_for_caso(processo_id, caso_id)
     if not processo:
         return make_response("Processo não encontrado ou não pertence ao caso", 404)
 
@@ -198,20 +204,20 @@ def get_processo(caso_id: int, processo_id: int):
 
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["PUT"])
 @api_auth_required
-def update_processo(current_user: User, caso_id: int, processo_id: int):
-    caso_service = CasoService()
+def update_processo(caso_id: int, processo_id: int):
+    processo_service = ProcessoService()
 
     try:
         json_data = cast(dict[str, Any], request.get_json(force=True))
         processo_input = ProcessoUpdateInput(**json_data)
 
-        existing_processo = caso_service.validate_processo_for_caso(
+        existing_processo = processo_service.validate_processo_for_caso(
             processo_id, caso_id
         )
         if not existing_processo:
             return make_response("Processo não encontrado ou não pertence ao caso", 404)
 
-        processo = caso_service.update_processo(processo_id, processo_input)
+        processo = processo_service.update(processo_id, processo_input)
     except ValueError as e:
         return make_response(str(e), 404)
     except Exception as e:
@@ -227,13 +233,15 @@ def update_processo(current_user: User, caso_id: int, processo_id: int):
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["DELETE"])
 @api_auth_required
 def delete_processo(caso_id: int, processo_id: int):
-    caso_service = CasoService()
+    processo_service = ProcessoService()
 
-    existing_processo = caso_service.validate_processo_for_caso(processo_id, caso_id)
+    existing_processo = processo_service.validate_processo_for_caso(
+        processo_id, caso_id
+    )
     if not existing_processo:
         return make_response("Processo não encontrado ou não pertence ao caso", 404)
 
-    result = caso_service.delete_processo(processo_id)
+    result = processo_service.soft_delete(processo_id)
 
     if not result:
         return make_response("Processo não encontrado", 404)
@@ -244,34 +252,21 @@ def delete_processo(caso_id: int, processo_id: int):
 @caso_controller.route("/<int:caso_id>/eventos", methods=["POST"])
 @api_auth_required
 def create_evento(current_user: User, caso_id: int):
-    import os
-    from datetime import datetime
-
-    from werkzeug.utils import secure_filename
-
-    from gestaolegal.config import Config
-
-    caso_service = CasoService()
+    evento_service = EventoService()
     EVENTO_FILES_DIR = os.path.join(Config.STATIC_ROOT_DIR, "eventos")
 
     try:
         form_data: dict[str, Any] = {
-            "id_caso": caso_id,
             "tipo": request.form.get("tipo"),
             "data_evento": request.form.get("data_evento"),
             "status": request.form.get("status", "true").lower() == "true",
+            "descricao": request.form.get("descricao"),
         }
 
-        if request.form.get("num_evento"):
-            form_data["num_evento"] = int(request.form.get("num_evento"))
-
-        if request.form.get("descricao"):
-            form_data["descricao"] = request.form.get("descricao")
-
-        if request.form.get("id_usuario_responsavel"):
-            form_data["id_usuario_responsavel"] = int(
-                request.form.get("id_usuario_responsavel")
-            )
+        id_usuario_responsavel = request.form.get("id_usuario_responsavel")
+        form_data["id_usuario_responsavel"] = (
+            int(id_usuario_responsavel) if id_usuario_responsavel else None
+        )
 
         if "arquivo" in request.files:
             file = request.files["arquivo"]
@@ -288,7 +283,7 @@ def create_evento(current_user: User, caso_id: int):
                 form_data["arquivo"] = filepath
 
         evento_input = EventoCreateInput(**form_data)
-        evento = caso_service.create_evento(
+        evento = evento_service.create(
             caso_id=caso_id,
             evento_input=evento_input,
             criado_por_id=current_user.id,
@@ -303,16 +298,23 @@ def create_evento(current_user: User, caso_id: int):
 @caso_controller.route("/<int:caso_id>/eventos", methods=["GET"])
 @api_auth_required
 def get_eventos_by_caso(caso_id: int):
-    caso_service = CasoService()
-    return caso_service.find_eventos_by_caso_id(caso_id).to_dict()
+    evento_service = EventoService()
+
+    page = request.args.get("page", default=1, type=int)
+    per_page = request.args.get("per_page", default=10, type=int)
+
+    return evento_service.find_by_caso_id(
+        caso_id=caso_id,
+        page_params=PageParams(page=page, per_page=per_page),
+    ).to_dict()
 
 
 @caso_controller.route("/<int:caso_id>/eventos/<int:evento_id>", methods=["GET"])
 @api_auth_required
 def get_evento(caso_id: int, evento_id: int):
-    caso_service = CasoService()
+    evento_service = EventoService()
 
-    evento = caso_service.validate_evento_for_caso(evento_id, caso_id)
+    evento = evento_service.validate_evento_for_caso(evento_id, caso_id)
     if not evento:
         return make_response("Evento não encontrado ou não pertence ao caso", 404)
 
@@ -321,19 +323,12 @@ def get_evento(caso_id: int, evento_id: int):
 
 @caso_controller.route("/<int:caso_id>/eventos/<int:evento_id>", methods=["PUT"])
 @api_auth_required
-def update_evento(current_user: User, caso_id: int, evento_id: int):
-    import os
-    from datetime import datetime
-
-    from werkzeug.utils import secure_filename
-
-    from gestaolegal.config import Config
-
-    caso_service = CasoService()
+def update_evento(caso_id: int, evento_id: int):
+    evento_service = EventoService()
     EVENTO_FILES_DIR = os.path.join(Config.STATIC_ROOT_DIR, "eventos")
 
     try:
-        existing_evento = caso_service.validate_evento_for_caso(evento_id, caso_id)
+        existing_evento = evento_service.validate_evento_for_caso(evento_id, caso_id)
         if not existing_evento:
             return make_response("Evento não encontrado ou não pertence ao caso", 404)
 
@@ -371,7 +366,7 @@ def update_evento(current_user: User, caso_id: int, evento_id: int):
                 form_data["arquivo"] = filepath
 
         evento_input = EventoUpdateInput(**form_data)
-        evento = caso_service.update_evento(evento_id, evento_input)
+        evento = evento_service.update(evento_id, evento_input)
     except ValueError as e:
         return make_response(str(e), 404)
     except Exception as e:
@@ -389,9 +384,9 @@ def update_evento(current_user: User, caso_id: int, evento_id: int):
 )
 @api_auth_required
 def download_evento_file(caso_id: int, evento_id: int):
-    caso_service = CasoService()
+    evento_service = EventoService()
 
-    filepath, message = caso_service.get_evento_file_for_download(evento_id, caso_id)
+    filepath, message = evento_service.get_evento_file_for_download(evento_id, caso_id)
 
     if not filepath:
         return make_response(message, 404)
@@ -410,7 +405,7 @@ def get_arquivos_by_caso(caso_id: int):
 
 @caso_controller.route("/<int:caso_id>/arquivos", methods=["POST"])
 @api_auth_required
-def upload_arquivo_caso(current_user: User, caso_id: int):
+def upload_arquivo_caso(caso_id: int):
     caso_service = CasoService()
 
     if "arquivo" not in request.files:

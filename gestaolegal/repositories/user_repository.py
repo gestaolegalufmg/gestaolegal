@@ -41,6 +41,13 @@ class UserRepository(BaseRepository):
         result = self.session.execute(stmt).all()
         return [from_dict(User, dict(row._mapping)) for row in result]
 
+    def get_by_ids(self, ids: list[int]) -> list[User]:
+        if not ids:
+            return []
+        stmt = select(usuarios).where(usuarios.c.id.in_(ids))
+        results = self.session.execute(stmt).all()
+        return [from_dict(User, dict(row._mapping)) for row in results]
+
     def search(self, params: SearchParams) -> PaginatedResult[User]:
         stmt = select(usuarios, func.count().over().label("total_count"))
 

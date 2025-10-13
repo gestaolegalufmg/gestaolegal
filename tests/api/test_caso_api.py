@@ -247,7 +247,15 @@ def test_get_eventos_by_caso(
     assert response.status_code == 200
     data = response.json
     assert data is not None
-    assert isinstance(data, (dict, list))
+    assert isinstance(data, dict)
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "per_page" in data
+    assert "total_pages" in data
+    assert "has_next_page" in data
+    assert "has_previous_page" in data
+    assert isinstance(data["items"], list)
 
 
 def test_filter_casos_by_situacao(

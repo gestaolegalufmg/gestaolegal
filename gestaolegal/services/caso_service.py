@@ -10,14 +10,9 @@ from gestaolegal.config import Config
 from gestaolegal.models.arquivo_caso import ArquivoCaso
 from gestaolegal.models.caso import Caso
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
-from gestaolegal.models.evento import Evento
-from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
-from gestaolegal.models.processo import Processo
-from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
 from gestaolegal.repositories.arquivo_caso_repository import ArquivoCasoRepository
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.caso_repository import CasoRepository
-from gestaolegal.repositories.evento_repository import EventoRepository
 from gestaolegal.repositories.processo_repository import ProcessoRepository
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
@@ -31,7 +26,6 @@ from gestaolegal.repositories.user_repository import UserRepository
 logger = logging.getLogger(__name__)
 
 CASO_FILES_DIR = Config.UPLOADS
-EVENTO_FILES_DIR = os.path.join(Config.STATIC_ROOT_DIR, "eventos")
 
 
 class CasoService:
@@ -39,7 +33,6 @@ class CasoService:
     user_repository: UserRepository
     atendido_repository: AtendidoRepository
     processo_repository: ProcessoRepository
-    evento_repository: EventoRepository
     arquivo_repository: ArquivoCasoRepository
 
     def __init__(self):
@@ -47,7 +40,6 @@ class CasoService:
         self.user_repository = UserRepository()
         self.atendido_repository = AtendidoRepository()
         self.processo_repository = ProcessoRepository()
-        self.evento_repository = EventoRepository()
         self.arquivo_repository = ArquivoCasoRepository()
 
     def find_by_id(self, id: int) -> Caso | None:
@@ -382,214 +374,3 @@ class CasoService:
             caso.processos = processos
 
             caso.arquivos = self.arquivo_repository.find_by_caso_id(caso.id)
-
-    # Processo management methods
-    def search_processos(
-        self,
-        page_params: PageParams,
-        caso_id: int,
-        search: str = "",
-        show_inactive: bool = False,
-    ) -> PaginatedResult[Processo]:
-        logger.info(
-            f"Searching processos for caso {caso_id} with search: '{search}', show_inactive: {show_inactive}"
-        )
-        clauses: list[WhereClause] = [
-            WhereClause(column="id_caso", operator="==", value=caso_id)
-        ]
-
-        if not show_inactive:
-            clauses.append(WhereClause(column="status", operator="==", value=True))
-
-        if search:
-            clauses.append(
-                WhereClause(
-                    column="identificacao", operator="ilike", value=f"%{search}%"
-                )
-            )
-
-        where = (
-            ComplexWhereClause(clauses=clauses, operator="and")
-            if len(clauses) > 1
-            else clauses[0]
-        )
-
-        params = SearchParams(page_params=page_params, where=where)
-        result = self.processo_repository.search(params=params)
-
-        for processo in result.items:
-            if processo.id_criado_por:
-                processo.criado_por = self.user_repository.find_by_id(
-                    processo.id_criado_por
-                )
-
-        logger.info(
-            f"Returning {len(result.items)} processos of total {result.total} found for caso {caso_id}"
-        )
-        return result
-
-    def find_processo_by_id(self, processo_id: int) -> Processo | None:
-        logger.info(f"Finding processo by id: {processo_id}")
-        processo = self.processo_repository.find_by_id(processo_id)
-        if not processo:
-            logger.warning(f"Processo not found with id: {processo_id}")
-            return None
-
-        if processo.id_criado_por:
-            processo.criado_por = self.user_repository.find_by_id(
-                processo.id_criado_por
-            )
-
-        logger.info(f"Processo found with id: {processo_id}")
-        return processo
-
-    def validate_processo_for_caso(
-        self, processo_id: int, caso_id: int
-    ) -> Processo | None:
-        logger.info(f"Validating processo {processo_id} for caso {caso_id}")
-        processo = self.processo_repository.find_by_id(processo_id)
-
-        if not processo:
-            logger.warning(f"Processo not found with id: {processo_id}")
-            return None
-
-        if processo.id_caso != caso_id:
-            logger.warning(f"Processo {processo_id} does not belong to caso {caso_id}")
-            return None
-
-        # Load dependencies
-        if processo.id_criado_por:
-            processo.criado_por = self.user_repository.find_by_id(
-                processo.id_criado_por
-            )
-
-        return processo
-
-    def create_processo(
-        self, caso_id: int, processo_input: ProcessoCreateInput, criado_por_id: int
-    ) -> Processo:
-        logger.info(
-            f"Creating processo for caso {caso_id} with especie: {processo_input.especie}, created by: {criado_por_id}"
-        )
-        processo_data = processo_input.model_dump()
-        processo_data["id_caso"] = caso_id
-        processo_data["id_criado_por"] = criado_por_id
-
-        processo_id = self.processo_repository.create(processo_data)
-
-        created_processo = self.find_processo_by_id(processo_id)
-        if not created_processo:
-            logger.error("Failed to create processo")
-            raise ValueError("Failed to create processo")
-
-        logger.info(f"Processo created successfully with id: {processo_id}")
-        return created_processo
-
-    def update_processo(
-        self, processo_id: int, processo_input: ProcessoUpdateInput
-    ) -> Processo | None:
-        logger.info(f"Updating processo with id: {processo_id}")
-        existing = self.processo_repository.find_by_id(processo_id)
-        if not existing:
-            logger.error(f"Update failed: processo not found with id: {processo_id}")
-            raise ValueError(f"Processo with id {processo_id} not found")
-
-        processo_data = processo_input.model_dump(exclude_none=True)
-        self.processo_repository.update(processo_id, processo_data)
-
-        logger.info(f"Processo updated successfully with id: {processo_id}")
-        return self.find_processo_by_id(processo_id)
-
-    def delete_processo(self, processo_id: int) -> bool:
-        logger.info(f"Soft deleting processo with id: {processo_id}")
-        result = self.processo_repository.delete(processo_id)
-        if result:
-            logger.info(f"Processo soft deleted successfully with id: {processo_id}")
-        else:
-            logger.warning(f"Soft delete failed for processo with id: {processo_id}")
-        return result
-
-    # Evento management methods
-    def find_eventos_by_caso_id(self, caso_id: int) -> PaginatedResult[Evento]:
-        logger.info(f"Finding eventos for caso id: {caso_id}")
-        eventos = self.evento_repository.find_by_caso_id(caso_id)
-        logger.info(f"Found {eventos.total} eventos for caso id: {caso_id}")
-        return eventos
-
-    def find_evento_by_id(self, evento_id: int) -> Evento | None:
-        logger.info(f"Finding evento by id: {evento_id}")
-        evento = self.evento_repository.find_by_id(evento_id)
-        if not evento:
-            logger.warning(f"Evento not found with id: {evento_id}")
-        return evento
-
-    def validate_evento_for_caso(self, evento_id: int, caso_id: int) -> Evento | None:
-        logger.info(f"Validating evento {evento_id} for caso {caso_id}")
-        evento = self.evento_repository.find_by_id(evento_id)
-
-        if not evento:
-            logger.warning(f"Evento not found with id: {evento_id}")
-            return None
-
-        if evento.id_caso != caso_id:
-            logger.warning(f"Evento {evento_id} does not belong to caso {caso_id}")
-            return None
-
-        return evento
-
-    def create_evento(
-        self, caso_id: int, evento_input: EventoCreateInput, criado_por_id: int
-    ) -> Evento:
-        logger.info(
-            f"Creating evento for caso {caso_id} with tipo: {evento_input.tipo}, created by: {criado_por_id}"
-        )
-        evento_data = evento_input.model_dump()
-        evento_data["id_caso"] = caso_id
-        evento_data["data_criacao"] = datetime.now()
-        evento_data["id_criado_por"] = criado_por_id
-        evento_data["num_evento"] = self.evento_repository.count_by_caso_id(caso_id) + 1
-
-        evento_id = self.evento_repository.create(evento_data)
-
-        created_evento = self.find_evento_by_id(evento_id)
-        if not created_evento:
-            logger.error("Failed to create evento")
-            raise ValueError("Failed to create evento")
-
-        logger.info(f"Evento created successfully with id: {evento_id}")
-        return created_evento
-
-    def update_evento(
-        self, evento_id: int, evento_input: EventoUpdateInput
-    ) -> Evento | None:
-        logger.info(f"Updating evento with id: {evento_id}")
-        existing = self.evento_repository.find_by_id(evento_id)
-        if not existing:
-            logger.error(f"Update failed: evento not found with id: {evento_id}")
-            raise ValueError(f"Evento with id {evento_id} not found")
-
-        evento_data = evento_input.model_dump(exclude_none=True)
-        self.evento_repository.update(evento_id, evento_data)
-
-        logger.info(f"Evento updated successfully with id: {evento_id}")
-        return self.evento_repository.find_by_id(evento_id)
-
-    def get_evento_file_for_download(
-        self, evento_id: int, caso_id: int
-    ) -> tuple[str | None, str]:
-        logger.info(f"Getting evento {evento_id} file for download from caso {caso_id}")
-
-        evento = self.validate_evento_for_caso(evento_id, caso_id)
-        if not evento:
-            return None, "Evento não encontrado ou não pertence ao caso"
-
-        if not evento.arquivo:
-            logger.warning(f"Evento {evento_id} has no file")
-            return None, "Evento não possui arquivo"
-
-        if not os.path.exists(evento.arquivo):
-            logger.error(f"File not found in filesystem: {evento.arquivo}")
-            return None, "Arquivo não encontrado no servidor"
-
-        logger.info(f"Evento {evento_id} file ready for download: {evento.arquivo}")
-        return evento.arquivo, "OK"
