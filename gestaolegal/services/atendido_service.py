@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.assistido import Assistido
@@ -121,6 +122,10 @@ class AtendidoService:
         )
         atendido_data = atendido_input.model_dump()
         atendido_data["status"] = 1
+
+        endereco_data = self.__extract_endereco_data(atendido_data)
+        atendido_data["endereco_id"] = self.endereco_repository.create(endereco_data)
+
         atendido_id = self.repository.create(atendido_data)
         logger.info(f"Atendido created successfully with id: {atendido_id}")
         return self.find_by_id(atendido_id)
@@ -198,3 +203,14 @@ class AtendidoService:
         logger.info(f"Soft deleting atendido with id: {atendido_id}")
         self.repository.delete(atendido_id)
         logger.info(f"Atendido soft deleted successfully with id: {atendido_id}")
+
+    def __extract_endereco_data(self, atendido_data: dict[str, Any]):
+        return {
+            "logradouro": atendido_data.pop("logradouro"),
+            "numero": atendido_data.pop("numero"),
+            "cidade": atendido_data.pop("cidade"),
+            "estado": atendido_data.pop("estado"),
+            "complemento": atendido_data.pop("complemento"),
+            "bairro": atendido_data.pop("bairro"),
+            "cep": atendido_data.pop("cep"),
+        }

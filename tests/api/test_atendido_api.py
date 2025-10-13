@@ -2,6 +2,8 @@ from typing import Any
 
 from flask.testing import FlaskClient
 
+from tests.api.conftest import clean_tables
+
 
 def test_create_atendido_success(
     client: FlaskClient,
@@ -207,6 +209,8 @@ def test_atendido_show_inactive_false_excludes_inactive(
     auth_headers: dict[str, str],
     sample_atendido_data: dict[str, Any],
 ) -> None:
+    clean_tables("atendidos")
+    
     active_atendido_response = client.post(
         "/api/atendido/", json=sample_atendido_data, headers=auth_headers
     )
@@ -244,6 +248,8 @@ def test_atendido_show_inactive_true_includes_inactive(
     auth_headers: dict[str, str],
     sample_atendido_data: dict[str, Any],
 ) -> None:
+    clean_tables("atendidos")
+    
     active_atendido_response = client.post(
         "/api/atendido/", json=sample_atendido_data, headers=auth_headers
     )
@@ -281,6 +287,8 @@ def test_atendido_show_inactive_default_excludes_inactive(
     auth_headers: dict[str, str],
     sample_atendido_data: dict[str, Any],
 ) -> None:
+    clean_tables("atendidos")
+    
     active_atendido_response = client.post(
         "/api/atendido/", json=sample_atendido_data, headers=auth_headers
     )

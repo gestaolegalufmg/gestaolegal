@@ -29,7 +29,7 @@ class UserCreateInput(BaseModel):
 
     logradouro: str
     numero: str
-    complemento: str
+    complemento: str | None = None
     bairro: str
     cep: str
     cidade: str
