@@ -6,7 +6,7 @@ from typing import cast
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.evento import Evento, ListEvento
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
-from gestaolegal.models.user import User
+from gestaolegal.models.user import UserInfo
 from gestaolegal.repositories.evento_repository import EventoRepository
 from gestaolegal.repositories.user_repository import UserRepository
 
@@ -158,14 +158,19 @@ class EventoService:
         logger.info(f"Evento {evento_id} file ready for download: {evento.arquivo}")
         return evento.arquivo, "OK"
 
-    def __get_user_map(self, eventos: list[Evento]) -> dict[int, User]:
+    def __get_user_map(self, eventos: list[Evento]) -> dict[int, UserInfo]:
         user_ids: set[int] = set()
         for evento in eventos:
-            user_ids.add(evento.id_criado_por)
+            if evento.id_criado_por is not None:
+                user_ids.add(evento.id_criado_por)
             if evento.id_usuario_responsavel:
                 user_ids.add(evento.id_usuario_responsavel)
 
         users = self.user_repository.get_by_ids(list(user_ids))
-        user_map = {user.id: user for user in users}
+        user_map: dict[int, UserInfo] = {}
+        for user in users:
+            if user.id is None:
+                continue
+            user_map[user.id] = user.to_info()
 
-        return cast(dict[int, User], user_map)
+        return user_map

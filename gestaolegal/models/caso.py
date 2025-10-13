@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from gestaolegal.models.arquivo_caso import ArquivoCaso
     from gestaolegal.models.atendido import Atendido
     from gestaolegal.models.processo import Processo
-    from gestaolegal.models.user import User
+    from gestaolegal.models.user import UserInfo
 
 
 @dataclass
@@ -28,12 +28,12 @@ class Caso:
     justif_indeferimento: str | None = None
     descricao: str | None = None
     numero_ultimo_processo: int | None = None
-    usuario_responsavel: "User | None" = None
+    usuario_responsavel: "UserInfo | None" = None
     clientes: list["Atendido"] | None = None
-    orientador: "User | None" = None
-    estagiario: "User | None" = None
-    colaborador: "User | None" = None
-    criado_por: "User | None" = None
-    modificado_por: "User | None" = None
+    orientador: "UserInfo | None" = None
+    estagiario: "UserInfo | None" = None
+    colaborador: "UserInfo | None" = None
+    criado_por: "UserInfo | None" = None
+    modificado_por: "UserInfo | None" = None
     processos: list["Processo"] | None = None
     arquivos: list["ArquivoCaso"] | None = None

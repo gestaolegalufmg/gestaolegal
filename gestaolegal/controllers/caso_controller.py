@@ -13,7 +13,7 @@ from gestaolegal.config import Config
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
-from gestaolegal.models.user import User
+from gestaolegal.models.user import UserInfo
 from gestaolegal.services.caso_service import CasoService
 from gestaolegal.services.evento_service import EventoService
 from gestaolegal.services.processo_service import ProcessoService
@@ -61,7 +61,7 @@ def find_by_id(id: int):
 
 @caso_controller.route("/", methods=["POST"])
 @api_auth_required
-def create(current_user: User):
+def create(current_user: UserInfo):
     caso_service = CasoService()
 
     try:
@@ -77,7 +77,7 @@ def create(current_user: User):
 
 @caso_controller.route("/<int:id>", methods=["PUT"])
 @api_auth_required
-def update(current_user: User, id: int):
+def update(current_user: UserInfo, id: int):
     caso_service = CasoService()
 
     try:
@@ -110,7 +110,7 @@ def delete(id: int):
 
 @caso_controller.route("/<int:id>/deferir", methods=["PATCH"])
 @api_auth_required
-def deferir(current_user: User, id: int):
+def deferir(current_user: UserInfo, id: int):
     caso_service = CasoService()
 
     try:
@@ -129,7 +129,7 @@ def deferir(current_user: User, id: int):
 
 @caso_controller.route("/<int:id>/indeferir", methods=["PATCH"])
 @api_auth_required
-def indeferir(current_user: User, id: int):
+def indeferir(current_user: UserInfo, id: int):
     caso_service = CasoService()
 
     try:
@@ -173,7 +173,7 @@ def get_processos_by_caso(caso_id: int):
 
 @caso_controller.route("/<int:caso_id>/processos", methods=["POST"])
 @api_auth_required
-def create_processo(current_user: User, caso_id: int):
+def create_processo(current_user: UserInfo, caso_id: int):
     processo_service = ProcessoService()
 
     try:
@@ -252,7 +252,7 @@ def delete_processo(caso_id: int, processo_id: int):
 
 @caso_controller.route("/<int:caso_id>/eventos", methods=["POST"])
 @api_auth_required
-def create_evento(current_user: User, caso_id: int):
+def create_evento(current_user: UserInfo, caso_id: int):
     evento_service = EventoService()
     EVENTO_FILES_DIR = os.path.join(Config.STATIC_ROOT_DIR, "eventos")
 

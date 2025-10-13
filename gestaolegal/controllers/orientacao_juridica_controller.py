@@ -9,7 +9,7 @@ from gestaolegal.models.orientacao_juridica_input import (
     OrientacaoJuridicaCreate,
     OrientacaoJuridicaUpdate,
 )
-from gestaolegal.models.user import User
+from gestaolegal.models.user import UserInfo
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
 from gestaolegal.utils.api_decorators import api_auth_required
 
@@ -63,7 +63,7 @@ def delete(id: int):
 
 @orientacao_juridica_controller.route("/", methods=["POST"])
 @api_auth_required
-def create(current_user: User):
+def create(current_user: UserInfo):
     orientacao_juridica_service = OrientacaoJuridicaService()
 
     try:
