@@ -296,3 +296,151 @@ def test_orientacao_show_inactive_default_excludes_inactive(
     orientacao_ids = [orientacao["id"] for orientacao in data["items"]]
     assert active_orientacao_id in orientacao_ids
     assert inactive_orientacao_id not in orientacao_ids
+
+
+def test_orientacao_conditional_sub_area_for_civel(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_orientacao_data: dict[str, Any],
+) -> None:
+    """Test that when area_direito is 'civel', sub_area is stored"""
+    sample_orientacao_data["area_direito"] = "civel"
+    sample_orientacao_data["sub_area"] = "Contratos"
+
+    response = client.post(
+        "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    data = response.json
+    assert data is not None
+    assert data["area_direito"] == "civel"
+    assert data["sub_area"] == "Contratos"
+
+
+def test_orientacao_conditional_sub_area_for_administrativo(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_orientacao_data: dict[str, Any],
+) -> None:
+    """Test that when area_direito is 'administrativo', sub_area is stored"""
+    sample_orientacao_data["area_direito"] = "administrativo"
+    sample_orientacao_data["sub_area"] = "Licitações"
+
+    response = client.post(
+        "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    data = response.json
+    assert data is not None
+    assert data["area_direito"] == "administrativo"
+    assert data["sub_area"] == "Licitações"
+
+
+def test_orientacao_sub_area_optional_for_penal(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_orientacao_data: dict[str, Any],
+) -> None:
+    """Test that sub_area is optional for area_direito = 'penal'"""
+    sample_orientacao_data["area_direito"] = "penal"
+    # Don't set sub_area
+
+    response = client.post(
+        "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    data = response.json
+    assert data is not None
+    assert data["area_direito"] == "penal"
+    # sub_area can be None or not present
+
+
+def test_orientacao_with_multiple_atendidos(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_orientacao_data: dict[str, Any],
+    sample_atendido_data: dict[str, Any],
+) -> None:
+    """Test orientacao with multiple atendidos_ids"""
+    # Create two atendidos
+    atendido1_response = client.post(
+        "/api/atendido/", json=sample_atendido_data, headers=auth_headers
+    )
+    assert atendido1_response.json is not None
+    atendido1_id = atendido1_response.json["id"]
+
+    atendido2_data = {**sample_atendido_data, "cpf": "987.654.321-00"}
+    atendido2_response = client.post(
+        "/api/atendido/", json=atendido2_data, headers=auth_headers
+    )
+    assert atendido2_response.json is not None
+    atendido2_id = atendido2_response.json["id"]
+
+    # Create orientacao with both atendidos
+    orientacao_data = {
+        **sample_orientacao_data,
+        "atendidos_ids": [atendido1_id, atendido2_id],
+    }
+    response = client.post(
+        "/api/orientacao_juridica/", json=orientacao_data, headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    data = response.json
+    assert data is not None
+    # Check that both atendidos are associated
+    has_atendidos = len(data.get("atendidos", [])) == 2 or data.get(
+        "atendidos_ids"
+    ) == [atendido1_id, atendido2_id]
+    assert has_atendidos, f"Expected 2 atendidos, got: {data}"
+
+
+def test_orientacao_with_empty_atendidos_ids(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_orientacao_data: dict[str, Any],
+) -> None:
+    """Test orientacao with empty atendidos_ids array"""
+    sample_orientacao_data["atendidos_ids"] = []
+
+    response = client.post(
+        "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    data = response.json
+    assert data is not None
+    # Empty array should be accepted
+
+
+def test_orientacao_update_sub_area(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_orientacao_data: dict[str, Any],
+) -> None:
+    """Test updating sub_area field"""
+    sample_orientacao_data["area_direito"] = "civel"
+    sample_orientacao_data["sub_area"] = "Contratos"
+
+    create_response = client.post(
+        "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
+    )
+    assert create_response.json is not None
+    orientacao_id = create_response.json["id"]
+
+    # Update sub_area
+    update_data = {"sub_area": "Responsabilidade Civil"}
+    response = client.put(
+        f"/api/orientacao_juridica/{orientacao_id}",
+        json=update_data,
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json
+    assert data is not None
+    assert data["sub_area"] == "Responsabilidade Civil"
+    assert data["area_direito"] == "civel"  # Original value preserved

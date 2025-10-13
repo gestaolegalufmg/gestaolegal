@@ -75,4 +75,10 @@ class AtendidoUpdateInput(BaseModel):
     nascimento_repres_legal: date | None = None
     pretende_constituir_pj: str | None = None
 
-    endereco: Endereco | None = None
+    logradouro: str | None = None
+    numero: str | None = None
+    complemento: str | None = None
+    bairro: str | None = None
+    cep: str | None = None
+    cidade: str | None = None
+    estado: str | None = None

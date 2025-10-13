@@ -216,12 +216,14 @@ def test_create_evento_for_caso(
         "tipo": "audiencia",
         "descricao": "Audiência de conciliação",
         "data_evento": "2024-12-01",
+        "status": "true",
     }
 
     response = client.post(
         f"/api/caso/{caso_id}/eventos",
-        json=evento_data,
+        data=evento_data,
         headers=auth_headers,
+        content_type="multipart/form-data",
     )
 
     assert response.status_code == 200
@@ -474,9 +476,7 @@ def test_update_processo_wrong_caso_returns_error(
     caso_id_1 = caso_response_1.json["id"]
 
     caso_data_2 = {**sample_caso_data, "area_direito": "civil"}
-    caso_response_2 = client.post(
-        "/api/caso/", json=caso_data_2, headers=auth_headers
-    )
+    caso_response_2 = client.post("/api/caso/", json=caso_data_2, headers=auth_headers)
     assert caso_response_2.json is not None
     caso_id_2 = caso_response_2.json["id"]
 
@@ -513,11 +513,13 @@ def test_update_evento_for_caso(
         "tipo": "audiencia",
         "descricao": "Audiência inicial",
         "data_evento": "2024-12-01",
+        "status": "true",
     }
     create_evento_response = client.post(
         f"/api/caso/{caso_id}/eventos",
-        json=evento_data,
+        data=evento_data,
         headers=auth_headers,
+        content_type="multipart/form-data",
     )
     assert create_evento_response.json is not None
     evento_id = create_evento_response.json["id"]
@@ -529,8 +531,9 @@ def test_update_evento_for_caso(
     }
     response = client.put(
         f"/api/caso/{caso_id}/eventos/{evento_id}",
-        json=update_data,
+        data=update_data,
         headers=auth_headers,
+        content_type="multipart/form-data",
     )
 
     assert response.status_code == 200
@@ -555,11 +558,13 @@ def test_get_single_evento_for_caso(
         "tipo": "prazo",
         "descricao": "Prazo para recurso",
         "data_evento": "2024-11-30",
+        "status": "true",
     }
     create_evento_response = client.post(
         f"/api/caso/{caso_id}/eventos",
-        json=evento_data,
+        data=evento_data,
         headers=auth_headers,
+        content_type="multipart/form-data",
     )
     assert create_evento_response.json is not None
     evento_id = create_evento_response.json["id"]
@@ -588,9 +593,7 @@ def test_update_evento_wrong_caso_returns_error(
     caso_id_1 = caso_response_1.json["id"]
 
     caso_data_2 = {**sample_caso_data, "area_direito": "trabalhista"}
-    caso_response_2 = client.post(
-        "/api/caso/", json=caso_data_2, headers=auth_headers
-    )
+    caso_response_2 = client.post("/api/caso/", json=caso_data_2, headers=auth_headers)
     assert caso_response_2.json is not None
     caso_id_2 = caso_response_2.json["id"]
 
@@ -598,19 +601,22 @@ def test_update_evento_wrong_caso_returns_error(
         "tipo": "audiencia",
         "descricao": "Audiência trabalhista",
         "data_evento": "2024-12-20",
+        "status": "true",
     }
     evento_response = client.post(
         f"/api/caso/{caso_id_1}/eventos",
-        json=evento_data,
+        data=evento_data,
         headers=auth_headers,
+        content_type="multipart/form-data",
     )
     assert evento_response.json is not None
     evento_id = evento_response.json["id"]
 
     response = client.put(
         f"/api/caso/{caso_id_2}/eventos/{evento_id}",
-        json={"tipo": "reuniao"},
+        data={"tipo": "reuniao"},
         headers=auth_headers,
+        content_type="multipart/form-data",
     )
 
     assert response.status_code == 404
@@ -752,9 +758,7 @@ def test_update_caso_not_found(
     client: FlaskClient, auth_headers: dict[str, str]
 ) -> None:
     update_data = {"descricao": "Updated description"}
-    response = client.put(
-        "/api/caso/99999", json=update_data, headers=auth_headers
-    )
+    response = client.put("/api/caso/99999", json=update_data, headers=auth_headers)
 
     assert response.status_code == 404
 
@@ -798,9 +802,7 @@ def test_get_processo_not_found(
     assert create_caso_response.json is not None
     caso_id = create_caso_response.json["id"]
 
-    response = client.get(
-        f"/api/caso/{caso_id}/processos/99999", headers=auth_headers
-    )
+    response = client.get(f"/api/caso/{caso_id}/processos/99999", headers=auth_headers)
 
     assert response.status_code == 404
 

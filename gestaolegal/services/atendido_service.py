@@ -142,7 +142,14 @@ class AtendidoService:
             raise ValueError(f"Atendido with id {atendido_id} not found")
 
         update_data = atendido_input.model_dump(exclude_none=True)
-        self.repository.update(atendido_id, update_data)
+
+        endereco_data = self.__extract_endereco_data_for_update(update_data)
+        if endereco_data and existing.endereco_id:
+            self.endereco_repository.update(existing.endereco_id, endereco_data)
+            logger.info(f"Updated address for atendido id: {atendido_id}")
+
+        if update_data:
+            self.repository.update(atendido_id, update_data)
         logger.info(f"Atendido updated successfully with id: {atendido_id}")
         return self.find_by_id(atendido_id)
 
@@ -182,7 +189,14 @@ class AtendidoService:
 
         if atendido_input:
             update_data = atendido_input.model_dump(exclude_none=True)
-            self.repository.update(id_atendido, update_data)
+
+            endereco_data = self.__extract_endereco_data_for_update(update_data)
+            if endereco_data and atendido.endereco_id:
+                self.endereco_repository.update(atendido.endereco_id, endereco_data)
+                logger.info(f"Updated address for atendido id: {id_atendido}")
+
+            if update_data:
+                self.repository.update(id_atendido, update_data)
             logger.info(f"Updated atendido data for id: {id_atendido}")
 
         assistido = self.repository.find_assistido_by_atendido_id(id_atendido)
@@ -214,3 +228,21 @@ class AtendidoService:
             "bairro": atendido_data.pop("bairro"),
             "cep": atendido_data.pop("cep"),
         }
+
+    def __extract_endereco_data_for_update(self, atendido_data: dict[str, Any]):
+        endereco_fields = [
+            "logradouro",
+            "numero",
+            "cidade",
+            "estado",
+            "complemento",
+            "bairro",
+            "cep",
+        ]
+        endereco_data = {}
+
+        for field in endereco_fields:
+            if field in atendido_data:
+                endereco_data[field] = atendido_data.pop(field)
+
+        return endereco_data if endereco_data else None

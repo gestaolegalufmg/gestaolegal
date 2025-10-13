@@ -23,7 +23,6 @@ from flask import Flask
 from flask.testing import FlaskClient
 from sqlalchemy import create_engine, orm, text
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session
 
 import gestaolegal.database.session as db_session_module
 from gestaolegal import create_app
@@ -64,7 +63,7 @@ def client(app: Flask) -> FlaskClient:
 
 def clean_tables(*table_names: str) -> None:
     from gestaolegal.database.tables import metadata
-    
+
     session = db_session_module.get_session()
     try:
         for table_name in table_names:
@@ -222,6 +221,7 @@ def sample_caso_data() -> dict[str, Any]:
         "situacao_deferimento": "deferido",
         "ids_clientes": [],
     }
+
 
 @pytest.fixture
 def sample_user_data() -> dict[str, Any]:
