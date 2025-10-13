@@ -17,7 +17,8 @@ from gestaolegal.models.user import UserInfo
 from gestaolegal.services.caso_service import CasoService
 from gestaolegal.services.evento_service import EventoService
 from gestaolegal.services.processo_service import ProcessoService
-from gestaolegal.utils.api_decorators import api_auth_required
+from gestaolegal.utils.api_decorators import authenticated, authorized
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ caso_controller = Blueprint("caso_api", __name__)
 
 
 @caso_controller.route("/", methods=["GET"])
-@api_auth_required
+@authenticated
 def get():
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
@@ -48,7 +49,7 @@ def get():
 
 
 @caso_controller.route("/<int:id>", methods=["GET"])
-@api_auth_required
+@authenticated
 def find_by_id(id: int):
     caso_service = CasoService()
 
@@ -60,8 +61,9 @@ def find_by_id(id: int):
 
 
 @caso_controller.route("/", methods=["POST"])
-@api_auth_required
-def create(current_user: UserInfo):
+@authenticated
+def create():
+    current_user: UserInfo = RequestContext.get_current_user()
     caso_service = CasoService()
 
     try:
@@ -76,8 +78,9 @@ def create(current_user: UserInfo):
 
 
 @caso_controller.route("/<int:id>", methods=["PUT"])
-@api_auth_required
-def update(current_user: UserInfo, id: int):
+@authenticated
+def update(id: int):
+    current_user: UserInfo = RequestContext.get_current_user()
     caso_service = CasoService()
 
     try:
@@ -97,7 +100,7 @@ def update(current_user: UserInfo, id: int):
 
 
 @caso_controller.route("/<int:id>", methods=["DELETE"])
-@api_auth_required
+@authorized("admin")
 def delete(id: int):
     caso_service = CasoService()
     result = caso_service.soft_delete(id)
@@ -109,8 +112,9 @@ def delete(id: int):
 
 
 @caso_controller.route("/<int:id>/deferir", methods=["PATCH"])
-@api_auth_required
-def deferir(current_user: UserInfo, id: int):
+@authenticated
+def deferir(id: int):
+    current_user: UserInfo = RequestContext.get_current_user()
     caso_service = CasoService()
 
     try:
@@ -128,8 +132,9 @@ def deferir(current_user: UserInfo, id: int):
 
 
 @caso_controller.route("/<int:id>/indeferir", methods=["PATCH"])
-@api_auth_required
-def indeferir(current_user: UserInfo, id: int):
+@authenticated
+def indeferir(id: int):
+    current_user: UserInfo = RequestContext.get_current_user()
     caso_service = CasoService()
 
     try:
@@ -152,7 +157,7 @@ def indeferir(current_user: UserInfo, id: int):
 
 
 @caso_controller.route("/<int:caso_id>/processos", methods=["GET"])
-@api_auth_required
+@authenticated
 def get_processos_by_caso(caso_id: int):
     processo_service = ProcessoService()
 
@@ -172,8 +177,9 @@ def get_processos_by_caso(caso_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/processos", methods=["POST"])
-@api_auth_required
-def create_processo(current_user: UserInfo, caso_id: int):
+@authenticated
+def create_processo(caso_id: int):
+    current_user: UserInfo = RequestContext.get_current_user()
     processo_service = ProcessoService()
 
     try:
@@ -192,7 +198,7 @@ def create_processo(current_user: UserInfo, caso_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["GET"])
-@api_auth_required
+@authenticated
 def get_processo(caso_id: int, processo_id: int):
     processo_service = ProcessoService()
 
@@ -204,7 +210,7 @@ def get_processo(caso_id: int, processo_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["PUT"])
-@api_auth_required
+@authenticated
 def update_processo(caso_id: int, processo_id: int):
     processo_service = ProcessoService()
 
@@ -232,7 +238,7 @@ def update_processo(caso_id: int, processo_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["DELETE"])
-@api_auth_required
+@authorized("admin")
 def delete_processo(caso_id: int, processo_id: int):
     processo_service = ProcessoService()
 
@@ -251,8 +257,9 @@ def delete_processo(caso_id: int, processo_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/eventos", methods=["POST"])
-@api_auth_required
-def create_evento(current_user: UserInfo, caso_id: int):
+@authenticated
+def create_evento(caso_id: int):
+    current_user: UserInfo = RequestContext.get_current_user()
     evento_service = EventoService()
     EVENTO_FILES_DIR = os.path.join(Config.STATIC_ROOT_DIR, "eventos")
 
@@ -297,7 +304,7 @@ def create_evento(current_user: UserInfo, caso_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/eventos", methods=["GET"])
-@api_auth_required
+@authenticated
 def get_eventos_by_caso(caso_id: int):
     evento_service = EventoService()
 
@@ -311,7 +318,7 @@ def get_eventos_by_caso(caso_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/eventos/<int:evento_id>", methods=["GET"])
-@api_auth_required
+@authenticated
 def get_evento(caso_id: int, evento_id: int):
     evento_service = EventoService()
 
@@ -323,7 +330,7 @@ def get_evento(caso_id: int, evento_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/eventos/<int:evento_id>", methods=["PUT"])
-@api_auth_required
+@authenticated
 def update_evento(caso_id: int, evento_id: int):
     evento_service = EventoService()
     EVENTO_FILES_DIR = os.path.join(Config.STATIC_ROOT_DIR, "eventos")
@@ -389,7 +396,7 @@ def update_evento(caso_id: int, evento_id: int):
 @caso_controller.route(
     "/<int:caso_id>/eventos/<int:evento_id>/download", methods=["GET"]
 )
-@api_auth_required
+@authenticated
 def download_evento_file(caso_id: int, evento_id: int):
     evento_service = EventoService()
 
@@ -402,7 +409,7 @@ def download_evento_file(caso_id: int, evento_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/arquivos", methods=["GET"])
-@api_auth_required
+@authenticated
 def get_arquivos_by_caso(caso_id: int):
     caso_service = CasoService()
     arquivos = caso_service.find_arquivos_by_caso_id(caso_id)
@@ -411,7 +418,7 @@ def get_arquivos_by_caso(caso_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/arquivos", methods=["POST"])
-@api_auth_required
+@authenticated
 def upload_arquivo_caso(caso_id: int):
     caso_service = CasoService()
 
@@ -430,7 +437,7 @@ def upload_arquivo_caso(caso_id: int):
 @caso_controller.route(
     "/<int:caso_id>/arquivos/<int:arquivo_id>/download", methods=["GET"]
 )
-@api_auth_required
+@authenticated
 def download_arquivo_caso(caso_id: int, arquivo_id: int):
     caso_service = CasoService()
     filepath, message = caso_service.get_arquivo_for_download(arquivo_id, caso_id)
@@ -442,7 +449,7 @@ def download_arquivo_caso(caso_id: int, arquivo_id: int):
 
 
 @caso_controller.route("/<int:caso_id>/arquivos/<int:arquivo_id>", methods=["DELETE"])
-@api_auth_required
+@authenticated
 def delete_arquivo_caso(caso_id: int, arquivo_id: int):
     caso_service = CasoService()
     success, message = caso_service.delete_arquivo(arquivo_id, caso_id)

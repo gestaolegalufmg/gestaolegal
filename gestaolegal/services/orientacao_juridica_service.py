@@ -12,6 +12,7 @@ from gestaolegal.models.orientacao_juridica_input import (
     OrientacaoJuridicaCreate,
     OrientacaoJuridicaUpdate,
 )
+from gestaolegal.models.user import User
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.orientacao_juridica_repository import (
     OrientacaoJuridicaRepository,
@@ -23,7 +24,6 @@ from gestaolegal.repositories.repository import (
     WhereClause,
 )
 from gestaolegal.repositories.user_repository import UserRepository
-from gestaolegal.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -125,15 +125,11 @@ class OrientacaoJuridicaService:
         ]
         users = self.user_repository.get(
             params=GetParams(
-                where=WhereClause(
-                    column="id", operator="in", value=user_ids
-                )
+                where=WhereClause(column="id", operator="in", value=user_ids)
             )
         )
         user_map = {
-            cast(int, user.id): user.to_info()
-            for user in users
-            if user.id is not None
+            cast(int, user.id): user.to_info() for user in users if user.id is not None
         }
         logger.info(
             f"Returning {len(result.items)} orientacoes juridicas of total {result.total} found"

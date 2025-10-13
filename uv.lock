@@ -267,6 +267,16 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
+extra = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
+
+[package.dev-dependencies]
+extra = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -280,15 +290,21 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "pymysql" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
+    { name = "pytest", marker = "extra == 'extra'", specifier = ">=8.0.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0.0" },
+    { name = "pytest-cov", marker = "extra == 'extra'", specifier = ">=4.0.0" },
     { name = "python-dateutil", specifier = "==2.8.1" },
     { name = "python-dotenv", specifier = "==1.0.0" },
     { name = "sqlalchemy", specifier = "==2.0.27" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["dev", "extra"]
 
 [package.metadata.requires-dev]
 dev = []
+extra = [
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest-cov", specifier = ">=4.0.0" },
+]
 
 [[package]]
 name = "greenlet"

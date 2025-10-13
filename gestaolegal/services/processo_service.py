@@ -3,6 +3,7 @@ import logging
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.models.processo import Processo
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
+from gestaolegal.models.user import User
 from gestaolegal.repositories.processo_repository import ProcessoRepository
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
@@ -10,7 +11,6 @@ from gestaolegal.repositories.repository import (
     WhereClause,
 )
 from gestaolegal.repositories.user_repository import UserRepository
-from gestaolegal.models.user import User
 
 logger = logging.getLogger(__name__)
 
