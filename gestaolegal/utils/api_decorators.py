@@ -5,7 +5,7 @@ from typing import Callable, Concatenate, ParamSpec, TypeVar, overload
 
 from flask import Response, make_response, request
 
-from gestaolegal.models.user import User
+from gestaolegal.models.user import UserInfo
 from gestaolegal.utils.jwt_auth import JWTAuth
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ R = TypeVar("R")
 
 @overload
 def api_auth_required(
-    f: Callable[Concatenate[User, P], R],
+    f: Callable[Concatenate[UserInfo, P], R],
 ) -> Callable[P, R | Response]: ...
 
 
@@ -39,7 +39,7 @@ def api_auth_required(f: Callable[..., R]) -> Callable[..., R | Response]:
         if not token:
             return make_response("Authorization token is missing", 401)
 
-        user: User | None = JWTAuth.get_user_from_token(token)
+        user: UserInfo | None = JWTAuth.get_user_from_token(token)
 
         if not user:
             return make_response("Invalid or expired token", 401)

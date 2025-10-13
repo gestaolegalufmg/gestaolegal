@@ -8,7 +8,7 @@ import bcrypt
 from dateutil import parser as date_parser
 
 from gestaolegal.common import PageParams, PaginatedResult
-from gestaolegal.models.user import User
+from gestaolegal.models.user import User, UserInfo
 from gestaolegal.models.user_input import UserCreateInput, UserUpdateInput
 from gestaolegal.repositories.endereco_repository import EnderecoRepository
 from gestaolegal.repositories.repository import (
@@ -29,27 +29,25 @@ class UsuarioService:
         self.repository = UserRepository()
         self.endereco_repository = EnderecoRepository()
 
-    def find_by_id(self, id: int) -> User | None:
+    def find_by_id(self, id: int) -> UserInfo | None:
         logger.info(f"Finding user by id: {id}")
         user = self.repository.find_by_id(id)
         if user:
-            if user.endereco_id:
-                user.endereco = self.endereco_repository.find_by_id(user.endereco_id)
+            self.__load_endereco(user)
             logger.info(f"User found with id: {id}")
         else:
             logger.warning(f"User not found with id: {id}")
-        return user
+        return User.to_info_optional(user)
 
-    def find_by_email(self, email: str) -> User | None:
+    def find_by_email(self, email: str) -> UserInfo | None:
         logger.info(f"Finding user by email: {email}")
         user = self.repository.find_by_email(email)
         if user:
-            if user.endereco_id:
-                user.endereco = self.endereco_repository.find_by_id(user.endereco_id)
+            self.__load_endereco(user)
             logger.info(f"User found with email: {email}")
         else:
             logger.warning(f"User not found with email: {email}")
-        return user
+        return User.to_info_optional(user)
 
     def search(
         self,
@@ -57,7 +55,7 @@ class UsuarioService:
         search: str = "",
         role: str = "all",
         show_inactive: bool = False,
-    ) -> PaginatedResult[User]:
+    ) -> PaginatedResult[UserInfo]:
         logger.info(
             f"Handling search request with params: page_params={page_params}, search='{search}', role='{role}', show_inactive={show_inactive}"
         )
@@ -102,24 +100,32 @@ class UsuarioService:
             f"Returning result with {result.per_page} of total {result.total} found items"
         )
 
-        return result
+        user_infos: list[UserInfo] = [user.to_info() for user in result.items]
 
-    def authenticate(self, email: str, senha: str) -> User | None:
+        return PaginatedResult(
+            items=user_infos,
+            total=result.total,
+            page=result.page,
+            per_page=result.per_page,
+        )
+
+    def authenticate(self, email: str, senha: str) -> UserInfo | None:
         logger.info(f"Authenticating user with email: {email}")
-        user = self.find_by_email(email)
+        user = self.repository.find_by_email(email)
         if not user:
             logger.warning(f"Authentication failed: user not found for email: {email}")
             return None
+        self.__load_endereco(user)
         if self.check_password(user, senha):
             logger.info(f"Authentication successful for email: {email}")
-            return user
+            return user.to_info()
         logger.warning(f"Authentication failed: incorrect password for email: {email}")
         return None
 
     def check_password(self, user: User, senha: str) -> bool:
         return bcrypt.checkpw(senha.encode("utf-8"), user.senha.encode("utf-8"))
 
-    def create(self, user_input: UserCreateInput, criado_por: int) -> User:
+    def create(self, user_input: UserCreateInput, criado_por: int) -> UserInfo:
         logger.info(
             f"Creating user with email: {user_input.email}, role: {user_input.urole}, created by: {criado_por}"
         )
@@ -161,7 +167,7 @@ class UsuarioService:
         user_id: int,
         user_input: UserUpdateInput,
         modificado_por: int | None,
-    ) -> User | None:
+    ) -> UserInfo | None:
         logger.info(f"Updating user with id: {user_id}, modified by: {modificado_por}")
         existing = self.repository.find_by_id(user_id)
         if not existing:
@@ -208,7 +214,7 @@ class UsuarioService:
         current_password: str | None,
         new_password: str,
         is_admin_change: bool = False,
-    ) -> User | None:
+    ) -> UserInfo | None:
         logger.info(
             f"Changing password for user id: {user_id}, is_admin_change: {is_admin_change}"
         )
@@ -271,3 +277,7 @@ class UsuarioService:
                     logger.warning(
                         f"Could not parse datetime field {field}: {user_data[field]}, error: {e}"
                     )
+
+    def __load_endereco(self, user: User) -> None:
+        if user.endereco_id:
+            user.endereco = self.endereco_repository.find_by_id(user.endereco_id)

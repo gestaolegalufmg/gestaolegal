@@ -10,6 +10,7 @@ from gestaolegal.repositories.repository import (
     WhereClause,
 )
 from gestaolegal.repositories.user_repository import UserRepository
+from gestaolegal.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +31,8 @@ class ProcessoService:
             return None
 
         if processo.id_criado_por:
-            processo.criado_por = self.user_repository.find_by_id(
-                processo.id_criado_por
+            processo.criado_por = User.to_info_optional(
+                self.user_repository.find_by_id(processo.id_criado_por)
             )
 
         logger.info(f"Processo found with id: {processo_id}")
@@ -72,8 +73,8 @@ class ProcessoService:
 
         for processo in result.items:
             if processo.id_criado_por:
-                processo.criado_por = self.user_repository.find_by_id(
-                    processo.id_criado_por
+                processo.criado_por = User.to_info_optional(
+                    self.user_repository.find_by_id(processo.id_criado_por)
                 )
 
         logger.info(
@@ -96,8 +97,8 @@ class ProcessoService:
             return None
 
         if processo.id_criado_por:
-            processo.criado_por = self.user_repository.find_by_id(
-                processo.id_criado_por
+            processo.criado_por = User.to_info_optional(
+                self.user_repository.find_by_id(processo.id_criado_por)
             )
 
         return processo

@@ -10,6 +10,7 @@ from gestaolegal.config import Config
 from gestaolegal.models.arquivo_caso import ArquivoCaso
 from gestaolegal.models.caso import Caso
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
+from gestaolegal.models.user import User
 from gestaolegal.repositories.arquivo_caso_repository import ArquivoCasoRepository
 from gestaolegal.repositories.atendido_repository import AtendidoRepository
 from gestaolegal.repositories.caso_repository import CasoRepository
@@ -340,25 +341,33 @@ class CasoService:
             return False, "Erro ao deletar arquivo do banco de dados"
 
     def _load_caso_dependencies(self, caso: Caso) -> None:
-        caso.usuario_responsavel = self.user_repository.find_by_id(
-            caso.id_usuario_responsavel
+        caso.usuario_responsavel = User.to_info_optional(
+            self.user_repository.find_by_id(caso.id_usuario_responsavel)
         )
 
         if caso.id_criado_por:
-            caso.criado_por = self.user_repository.find_by_id(caso.id_criado_por)
+            caso.criado_por = User.to_info_optional(
+                self.user_repository.find_by_id(caso.id_criado_por)
+            )
 
         if caso.id_orientador:
-            caso.orientador = self.user_repository.find_by_id(caso.id_orientador)
+            caso.orientador = User.to_info_optional(
+                self.user_repository.find_by_id(caso.id_orientador)
+            )
 
         if caso.id_estagiario:
-            caso.estagiario = self.user_repository.find_by_id(caso.id_estagiario)
+            caso.estagiario = User.to_info_optional(
+                self.user_repository.find_by_id(caso.id_estagiario)
+            )
 
         if caso.id_colaborador:
-            caso.colaborador = self.user_repository.find_by_id(caso.id_colaborador)
+            caso.colaborador = User.to_info_optional(
+                self.user_repository.find_by_id(caso.id_colaborador)
+            )
 
         if caso.id_modificado_por:
-            caso.modificado_por = self.user_repository.find_by_id(
-                caso.id_modificado_por
+            caso.modificado_por = User.to_info_optional(
+                self.user_repository.find_by_id(caso.id_modificado_por)
             )
 
         if caso.id:
@@ -368,8 +377,8 @@ class CasoService:
             processos = self.processo_repository.find_by_caso_id(caso.id)
             for processo in processos:
                 if processo.id_criado_por:
-                    processo.criado_por = self.user_repository.find_by_id(
-                        processo.id_criado_por
+                    processo.criado_por = User.to_info_optional(
+                        self.user_repository.find_by_id(processo.id_criado_por)
                     )
             caso.processos = processos
 

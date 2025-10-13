@@ -5,7 +5,7 @@ from typing import Any, cast
 from flask import Blueprint, make_response, request
 
 from gestaolegal.common import PageParams
-from gestaolegal.models.user import User
+from gestaolegal.models.user import UserInfo
 from gestaolegal.models.user_input import UserCreateInput, UserUpdateInput
 from gestaolegal.services.usuario_service import UsuarioService
 from gestaolegal.utils import StringBool
@@ -18,7 +18,7 @@ user_controller = Blueprint("user", __name__)
 
 @user_controller.route("/me", methods=["GET"])
 @api_auth_required
-def get_me(current_user: User):
+def get_me(current_user: UserInfo):
     return asdict(current_user)
 
 
@@ -56,7 +56,7 @@ def find_by_id(id: int):
 
 @user_controller.route("/", methods=["POST"])
 @api_auth_required
-def create(current_user: User):
+def create(current_user: UserInfo):
     user_service = UsuarioService()
 
     try:
@@ -72,7 +72,7 @@ def create(current_user: User):
 
 @user_controller.route("/<int:id>", methods=["PUT"])
 @api_auth_required
-def update(id: int, current_user: User):
+def update(id: int, current_user: UserInfo):
     user_service = UsuarioService()
     json_data = cast(dict[str, Any], request.get_json(force=True))
     user_input = UserUpdateInput.model_validate(json_data)
@@ -86,7 +86,7 @@ def update(id: int, current_user: User):
 
 @user_controller.route("/me", methods=["PUT"])
 @api_auth_required
-def update_me(current_user: User):
+def update_me(current_user: UserInfo):
     user_service = UsuarioService()
     json_data = cast(dict[str, Any], request.get_json(force=True))
     user_input = UserUpdateInput.model_validate(json_data)
@@ -114,7 +114,7 @@ def delete(id: int):
 
 @user_controller.route("/<int:id>/password", methods=["PUT"])
 @api_auth_required
-def change_password(id: int, current_user: User):
+def change_password(id: int, current_user: UserInfo):
     try:
         data = cast(dict[str, Any], request.get_json(force=True))
         current_password = data.get("currentPassword")
