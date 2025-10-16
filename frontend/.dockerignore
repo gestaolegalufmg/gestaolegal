@@ -1,0 +1,12 @@
+node_modules
+build
+.svelte-kit
+!.env.example
+.git
+.gitignore
+README.md
+.prettierrc
+.eslintrc.cjs
+.npmrc
+.dockerignore
+
