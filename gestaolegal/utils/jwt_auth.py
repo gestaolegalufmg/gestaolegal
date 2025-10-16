@@ -20,16 +20,16 @@ class JWTAuth:
             "iat": now,
         }
 
-        secret_key = str(current_app.config.get("SECRET_KEY"))
+        JWT_SECRET_KEY = str(current_app.config.get("JWT_SECRET_KEY"))
 
-        return jwt.encode(payload, key=secret_key, algorithm="HS256")
+        return jwt.encode(payload, key=JWT_SECRET_KEY, algorithm="HS256")
 
     @staticmethod
     def verify_token(token: str) -> dict[str, Any] | None:
         try:
-            secret_key = str(current_app.config.get("SECRET_KEY"))
+            JWT_SECRET_KEY = str(current_app.config.get("JWT_SECRET_KEY"))
             payload: dict[str, Any] = jwt.decode(
-                token, key=secret_key, algorithms=["HS256"]
+                token, key=JWT_SECRET_KEY, algorithms=["HS256"]
             )
 
             return payload

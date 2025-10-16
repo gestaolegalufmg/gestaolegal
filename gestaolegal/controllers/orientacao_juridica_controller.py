@@ -13,6 +13,7 @@ from gestaolegal.models.user import UserInfo
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
 from gestaolegal.utils.api_decorators import authenticated, authorized
 from gestaolegal.utils.request_context import RequestContext
+from gestaolegal.utils.StringBool import StringBool
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +26,8 @@ def get():
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
     search = request.args.get("search", default="", type=str)
-    show_inactive = (
-        request.args.get("show_inactive", default="false", type=str).lower() == "true"
+    show_inactive = request.args.get(
+        "show_inactive", default=StringBool("false"), type=StringBool
     )
     area = request.args.get("area", default="", type=str)
 
@@ -35,7 +36,7 @@ def get():
     orientacoes_result = orientacao_juridica_service.search(
         page_params=PageParams(page=page, per_page=per_page),
         search=search,
-        show_inactive=show_inactive,
+        show_inactive=show_inactive.value,
         area=area,
     )
     return orientacoes_result.to_dict()

@@ -19,6 +19,7 @@ from gestaolegal.services.evento_service import EventoService
 from gestaolegal.services.processo_service import ProcessoService
 from gestaolegal.utils.api_decorators import authenticated, authorized
 from gestaolegal.utils.request_context import RequestContext
+from gestaolegal.utils.StringBool import StringBool
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +32,8 @@ def get():
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
     search = request.args.get("search", default="", type=str)
-    show_inactive = (
-        request.args.get("show_inactive", default="false", type=str).lower() == "true"
+    show_inactive = request.args.get(
+        "show_inactive", default=StringBool("false"), type=StringBool
     )
     situacao_deferimento = request.args.get(
         "situacao_deferimento", default=None, type=str
@@ -43,7 +44,7 @@ def get():
     return caso_service.search(
         page_params=PageParams(page=page, per_page=per_page),
         search=search,
-        show_inactive=show_inactive,
+        show_inactive=show_inactive.value,
         situacao_deferimento=situacao_deferimento,
     ).to_dict()
 
@@ -164,15 +165,15 @@ def get_processos_by_caso(caso_id: int):
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
     search = request.args.get("search", default="", type=str)
-    show_inactive = (
-        request.args.get("show_inactive", default="false", type=str).lower() == "true"
+    show_inactive = request.args.get(
+        "show_inactive", default=StringBool("false"), type=StringBool
     )
 
     return processo_service.search_by_caso(
         page_params=PageParams(page=page, per_page=per_page),
         caso_id=caso_id,
         search=search,
-        show_inactive=show_inactive,
+        show_inactive=show_inactive.value,
     ).to_dict()
 
 
