@@ -149,3 +149,14 @@ cython_debug/
 #Localhost config
 mysql_data
 docker-compose.override.yml
+
+# Frontend / Node.js
+frontend/node_modules/
+frontend/.svelte-kit/
+frontend/build/
+frontend/.env
+frontend/.env.*
+frontend/!.env.example
+frontend/vite-env.d.ts
+frontend/package-lock.json
+frontend/.vscode/
