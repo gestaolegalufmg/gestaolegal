@@ -1,28 +1,27 @@
 services:
-  front_gl:
-    image: gestaolegal-front:latest
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "5001:3000"
-    environment:
-      - GESTAOLEGAL_API_URL=http://app_gl:5000
+      - "5001:80"
+    depends_on:
+      - api
 
-  app_gl:
+  api:
     build: .
     ports:
       - "5000:5000"
-    environment:
-      - FLASK_ENV=production
-
-      # Uncomment the lines below and tweak its values to customize the app
-      # - COMPANY_NAME=Custom Name
-      # - COMPANY_COLOR=#8a1237
-
+    env_file:
+      - .env
     restart: unless-stopped
+    depends_on:
+      - db
 
-  db_gl:
+  db:
     image: mysql:8.0.42
-    command: --default-authentication-plugin=mysql_native_password
+    command: --authentication-policy=caching_sha2_password
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -30,21 +29,12 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
     ports:
-      - '3306:3306'
+      - "3306:3306"
     expose:
-      - '3306'
+      - "3306"
     volumes:
-      - type: bind
-        source: /opt/docker_volumes/mysql_data
-        target: /var/lib/mysql
-
-  adminer_gl:
-    image: adminer
-    restart: unless-stopped
-    ports:
-      - '8080:8080'
+      - mysql_data:/var/lib/mysql
 
 volumes:
   mysql_data:
     driver: local
-
