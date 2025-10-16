@@ -46,13 +46,13 @@ cp docker-compose.override.example.yml docker-compose.override.yml
 ```
 
 2. Edite o arquivo `docker-compose.override.yml` e atualize as credenciais:
-   - `SECRET_KEY`: Chave secreta para sessões Flask
+   - `JWT_SECRET_KEY`: Chave secreta para sessões Flask
    - `DB_PASSWORD`: Senha do banco de dados
    - `MYSQL_ROOT_PASSWORD`: Senha root do MySQL
 
 #### Para Produção
 1. Configure as variáveis de ambiente no seu servidor:
-   - `SECRET_KEY`: Chave secreta para sessões Flask
+   - `JWT_SECRET_KEY`: Chave secreta para sessões Flask
    - `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_NAME`: Configurações do banco de dados
    - `MYSQL_ROOT_PASSWORD`: Senha root do MySQL
 

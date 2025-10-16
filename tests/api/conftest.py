@@ -4,7 +4,7 @@ import tempfile
 # Use a temporary directory for file uploads in tests
 TEST_UPLOAD_DIR = tempfile.mkdtemp()
 
-os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
+os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["ADMIN_EMAIL"] = "admin@test.com"
 os.environ["ADMIN_PASSWORD"] = "123456"
 os.environ["DB_HOST"] = "localhost"

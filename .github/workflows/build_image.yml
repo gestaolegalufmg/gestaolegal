@@ -1,4 +1,4 @@
-name: Build and Push Image
+name: Build and Push Images
 
 on:
   push:
@@ -9,29 +9,37 @@ on:
   pull_request:
   workflow_dispatch:
 
-env:
-  IMAGE_NAME: gestaolegal
-
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       packages: write
       contents: read
+    strategy:
+      matrix:
+        include:
+          - name: backend
+            context: .
+            dockerfile: Dockerfile
+            image_name: gestaolegal-api
+          - name: web
+            context: web
+            dockerfile: web/Dockerfile
+            image_name: gestaolegal-web
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build image
-        run: docker build . --file Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+      - name: Build ${{ matrix.name }} image
+        run: docker build ${{ matrix.context }} --file ${{ matrix.dockerfile }} --tag ${{ matrix.image_name }} --label "runnumber=${GITHUB_RUN_ID}"
 
       - name: Log in to registry
         if: github.event_name != 'pull_request'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Push image
+      - name: Push ${{ matrix.name }} image
         if: github.event_name != 'pull_request'
         run: |
-          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }}
 
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
@@ -43,6 +51,5 @@ jobs:
 
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
-          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          docker tag ${{ matrix.image_name }} $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
-
