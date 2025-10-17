@@ -44,6 +44,17 @@ def login():
         return make_response("Internal server error", 500)
 
 
+@auth_controller.route("/needs-setup", methods=["GET"])
+def needs_setup():
+    try:
+        user_service = UsuarioService()
+        has_users = user_service.has_any_users()
+        return make_response({"needs_setup": not has_users})
+    except Exception as e:
+        logger.error(f"Needs setup check error: {str(e)}")
+        return make_response({"error": "Internal server error"}, 500)
+
+
 @auth_controller.route("/setup-admin", methods=["POST"])
 def setup_admin():
     try:

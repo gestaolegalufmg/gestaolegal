@@ -21,12 +21,12 @@ const getApiBaseUrl = () => {
 	const configuredUrl = resolveConfiguredApiUrl();
 
 	if (dev) {
-		console.log("Using configured API URL:", configuredUrl);
+		console.log('Using configured API URL:', configuredUrl);
 		return `${configuredUrl}/api`;
 	}
 
-	console.log("Using same origin API URL and delegating nginx to proxy requests");
-	return "/api";
+	console.log('Using same origin API URL and delegating nginx to proxy requests');
+	return '/api';
 };
 
 export async function apiFetch(
