@@ -1,22 +1,42 @@
 <script lang="ts">
-	import type { HTMLInputAttributes, HTMLInputTypeAttribute } from 'svelte/elements';
+	import type { FormEventHandler, HTMLInputAttributes, HTMLInputTypeAttribute } from 'svelte/elements';
 	import { cn, type WithElementRef } from '$lib/utils.js';
+	import { Debounced, useDebounce } from 'runed';
 
 	type InputType = Exclude<HTMLInputTypeAttribute, 'file'>;
 
 	type Props = WithElementRef<
 		Omit<HTMLInputAttributes, 'type'> &
 			({ type: 'file'; files?: FileList } | { type?: InputType; files?: undefined })
-	>;
+	> & {
+		debouncedValue?: string;
+		debounceMs?: number;
+		ondebounceinput?: FormEventHandler<HTMLInputElement> | null;
+	};
 
 	let {
 		ref = $bindable(null),
 		value = $bindable(),
+		debouncedValue = $bindable(),
+		debounceMs = 400,
 		type,
 		files = $bindable(),
 		class: className,
+		ondebounceinput,
 		...restProps
 	}: Props = $props();
+
+	const debounced = new Debounced(() => value, debounceMs);
+	const debouncedInputHandler = ondebounceinput ? useDebounce(ondebounceinput, debounceMs) : undefined;
+
+	function handleInput(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
+		restProps.oninput?.(event);
+		debouncedInputHandler?.(event);
+	}
+
+	$effect(() => {
+		debouncedValue = debounced.current;
+	});
 </script>
 
 {#if type === 'file'}
@@ -32,6 +52,7 @@
 		type="file"
 		bind:files
 		bind:value
+		oninput={handleInput}
 		{...restProps}
 	/>
 {:else}
@@ -46,6 +67,7 @@
 		)}
 		{type}
 		bind:value
+		oninput={handleInput}
 		{...restProps}
 	/>
 {/if}

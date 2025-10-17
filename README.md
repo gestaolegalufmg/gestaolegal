@@ -20,20 +20,29 @@ git clone https://github.com/gestaolegalufmg/gestaolegal.git
 cd gestaolegal
 ```
 
-2. Copie o arquivo de configuração de exemplo:
+2. Copie e configure o arquivo de ambiente:
 ```bash
-cp docker-compose.override.example.yml docker-compose.override.yml
+cp .env.example .env
+# Edite o .env com suas credenciais de desenvolvimento
 ```
 
-3. Inicie os containers:
+3. Inicie o ambiente de desenvolvimento:
 ```bash
-docker-compose up -d
+make up
 ```
+
+**Pronto!** O ambiente será automaticamente inicializado com:
+- ✓ Banco de dados criado e configurado
+- ✓ Todas as migrações aplicadas
+- ✓ Usuário administrador criado
 
 O sistema estará disponível em:
-- Aplicação: http://localhost:5000
-- Adminer (gerenciador de banco de dados): http://localhost:8080
-- Mailpit (servidor de email para desenvolvimento): http://localhost:8025
+- **Frontend**: http://localhost:5001
+- **Backend API**: http://localhost:5000
+
+**Credenciais padrão**:
+- Email: `admin@gl.com`
+- Senha: `123456`
 
 ### Configuração de Segurança
 
@@ -97,36 +106,49 @@ flask run
 
 ## Desenvolvimento
 
+### Comandos Úteis
+
+O projeto possui diversos comandos no Makefile para facilitar o desenvolvimento:
+
+```bash
+# Ver todos os comandos disponíveis
+make help
+
+# Gerenciamento de containers
+make up          # Inicia o ambiente (auto-inicializa o banco de dados)
+make down        # Para os containers
+make restart     # Reinicia os containers
+make build       # Reconstrói as imagens
+make clean       # Remove containers e volumes
+make reset       # Limpa tudo e reinicia do zero
+
+# Logs e debugging
+make logs        # Ver logs de todos os containers
+make logs-api    # Ver logs apenas da API
+make logs-db     # Ver logs do banco de dados
+make shell-api   # Abrir shell no container da API
+make shell-db    # Abrir MySQL shell no banco
+
+# Testes
+make test        # Executar testes
+make test-cov    # Executar testes com relatório de cobertura
+make test-watch  # Executar testes em modo watch
+```
+
 ### Executando Testes
 
-O projeto possui comandos especializados no Makefile para execução dos testes:
-
 ```bash
-# Executa os testes localmente
-# Obs.: Para isso, é necessário estar em um ambiente Python com as dependências [dev] instaladas
-make tests
+# Testes com pytest
+make test
 
-# Executa os testes em um ambiente dockerizado
-make tests_dockerized
+# Testes com cobertura
+make test-cov
+
+# Modo watch (re-executa ao salvar arquivos)
+make test-watch
 ```
 
-Os testes são executados com o pytest e incluem testes de interface usando Playwright. O comando `make tests` irá:
-1. Iniciar os containers necessários
-2. Inicializar o ambiente de teste
-3. Executar os testes com o pytest
-
-### Comandos Úteis do Makefile
-
-```bash
-# Inicia os containers
-make up
-
-# Limpa os volumes (apenas em ambiente de desenvolvimento)
-make clean
-
-# Inicializa o ambiente (apenas em ambiente de desenvolvimento)
-make initialize_environment
-```
+Os testes são executados com o pytest e incluem testes de interface usando Playwright.
 
 ### Contribuindo
 
