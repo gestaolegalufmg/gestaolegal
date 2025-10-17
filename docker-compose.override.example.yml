@@ -1,0 +1,49 @@
+# Override configuration for development environment
+
+services:
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      target: dev
+    command: npm run dev
+    volumes:
+      - ./web/src:/app/src
+      - ./web/static:/app/static
+      - ./web/svelte.config.js:/app/svelte.config.js
+      - ./web/vite.config.ts:/app/vite.config.ts
+      - ./web/tsconfig.json:/app/tsconfig.json
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development
+      - PUBLIC_API_URL=http://localhost:5000
+    develop:
+      watch:
+        - action: rebuild
+          path: ./web/package.json
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    command: ["flask", "--app", "gestaolegal:create_app()", "run", "--host=0.0.0.0", "--port=5000", "--debug"]
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./gestaolegal:/code/gestaolegal
+      - ./migrations:/code/migrations
+      - ./pyproject.toml:/code/pyproject.toml
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - PYTHONUNBUFFERED=1
+      - FLASK_APP=gestaolegal:create_app()
+      - CORS_ORIGINS=http://localhost:5001
+    develop:
+      watch:
+        - action: rebuild
+          path: ./pyproject.toml
+        - action: rebuild
+          path: ./uv.lock
