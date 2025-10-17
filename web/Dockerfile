@@ -1,3 +1,16 @@
+FROM node:24-alpine AS dev
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 80
+
+CMD ["npm", "run", "dev"]
+
 FROM node:24-alpine AS builder
 
 WORKDIR /app
@@ -8,7 +21,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM nginx:alpine AS runner
+FROM nginx:alpine AS prod
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 

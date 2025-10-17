@@ -2,7 +2,6 @@
 	import { Button } from '$lib/components/ui/button';
 	import DataTable from '$lib/components/data-table.svelte';
 	import type { PageProps } from './$types';
-	import type { ListCaso } from '$lib/types';
 	import Eye from '@lucide/svelte/icons/eye';
 	import Edit from '@lucide/svelte/icons/edit';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -20,10 +19,10 @@
 	import { page } from '$app/state';
 	import * as Select from '$lib/components/ui/select';
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
-	import { createPaginatedList } from '$lib';
+	import { usePaginatedFilters } from '$lib';
 
 	let { data }: PageProps = $props();
-	const { me } = data;
+	const { data: casos, me } = $derived(data);
 
 	const situacaoFilterOptions = [
 		{ value: 'todos', label: 'Todos' },
@@ -39,9 +38,7 @@
 		situacao_deferimento: string;
 	};
 
-	const { tableData, filters, loadData, setFilters } = createPaginatedList<ListCaso, CasoFilters>({
-		endpoint: 'caso',
-		initialData: data.casos,
+	const { filters, applyFilters, setFilters } = usePaginatedFilters<CasoFilters>({
 		initialFilters: {
 			search: page.url.searchParams.get('search') ?? '',
 			show_inactive: page.url.searchParams.get('show_inactive') === 'true',
@@ -61,7 +58,7 @@
 
 		await api.delete(`caso/${id}`);
 
-		await loadData(filters, 1);
+		applyFilters();
 	}
 
 	async function handleDeferir(id: number) {
@@ -72,7 +69,7 @@
 			return;
 		}
 
-		await loadData(filters, 1);
+		applyFilters();
 	}
 
 	function openIndeferirDialog(id: number) {
@@ -93,7 +90,7 @@
 		}
 
 		casoToIndeferir = null;
-		await loadData(filters, 1);
+		applyFilters();
 	}
 </script>
 
@@ -108,12 +105,12 @@
 			<div class="mb-4 flex items-center justify-between">
 				<div class="align-center flex w-full justify-between gap-2">
 					<div class="flex items-center gap-2">
-						<Input
-							value={filters.search}
-							oninput={(e) =>
-								setFilters({ ...filters, search: (e.target as HTMLInputElement).value })}
-							placeholder="Buscar casos..."
-						/>
+					<Input
+						bind:value={filters.search}
+						ondebounceinput={() => {setFilters({ search: filters.search }); applyFilters();}}
+						debounceMs={500}
+						placeholder="Buscar casos..."
+					/>
 						<Select.Root
 							bind:value={filters.situacao_deferimento}
 							name="situacao_deferimento"
@@ -138,11 +135,9 @@
 				</div>
 			</div>
 
-			<DataTable
-				data={tableData}
-				onPageChange={(p) => {
-					void loadData(filters, p);
-				}}
+		<DataTable
+			data={casos}
+			onPageChange={(page) => applyFilters({ page })}
 				columns={[
 					{ header: 'ID', key: 'id', class: 'w-[100px]' },
 					{
