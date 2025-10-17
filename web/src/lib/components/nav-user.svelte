@@ -78,18 +78,11 @@
 					</DropdownMenu.Item>
 				</DropdownMenu.Group>
 				<DropdownMenu.Separator />
-				<DropdownMenu.Item>
-					{#snippet child({ props })}
-						<button
-							type="button"
-							class="flex w-full cursor-pointer items-center gap-2"
-							onclick={logout}
-							{...props}
-						>
-							<LogOutIcon />
-							Log out
-						</button>
-					{/snippet}
+				<DropdownMenu.Item onSelect={logout}>
+					<button type="button" class="flex w-full cursor-pointer items-center gap-2">
+						<LogOutIcon />
+						Log out
+					</button>
 				</DropdownMenu.Item>
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>

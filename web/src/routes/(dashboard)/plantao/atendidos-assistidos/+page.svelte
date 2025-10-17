@@ -6,15 +6,14 @@
 	import Edit from '@lucide/svelte/icons/edit';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import UserPlus from '@lucide/svelte/icons/user-plus';
-	import type { ListAtendido } from '$lib/types';
 	import { api } from '$lib/api-client';
 	import Input from '$lib/components/ui/input/input.svelte';
 	import { page } from '$app/state';
 	import * as Select from '$lib/components/ui/select';
-	import { createPaginatedList } from '$lib';
+	import { usePaginatedFilters } from '$lib';
 
 	let { data }: PageProps = $props();
-	const { data: atendidos, me } = data;
+	const { atendidos, me } = $derived(data);
 
 	const tipoBuscaFilterOptions = [
 		{ value: 'todos', label: 'Todos' },
@@ -28,12 +27,7 @@
 		tipo_busca: string;
 	};
 
-	const { tableData, filters, loadData, setFilters } = createPaginatedList<
-		ListAtendido,
-		AtendidoFilters
-	>({
-		endpoint: 'atendido',
-		initialData: atendidos,
+	const { filters, applyFilters, setFilters } = usePaginatedFilters<AtendidoFilters>({
 		initialFilters: {
 			search: page.url.searchParams.get('search') ?? '',
 			show_inactive: page.url.searchParams.get('show_inactive') === 'true',
@@ -43,8 +37,7 @@
 			search: f.search,
 			show_inactive: f.show_inactive ? 'true' : 'false',
 			tipo_busca: f.tipo_busca
-		}),
-		debounceMs: 500
+		})
 	});
 
 	const isAdmin = $derived(me.urole === 'admin');
@@ -54,7 +47,7 @@
 
 		await api.delete(`atendido/${id}`);
 
-		await loadData(filters, 1);
+		applyFilters();
 	}
 </script>
 
@@ -71,12 +64,12 @@
 			<div class="mb-4 flex items-center justify-between">
 				<div class="align-center flex w-full justify-between gap-2">
 					<div class="flex items-center gap-2">
-						<Input
-							value={filters.search}
-							oninput={(e) =>
-								setFilters({ ...filters, search: (e.target as HTMLInputElement).value })}
-							placeholder="Buscar atendido..."
-						/>
+					<Input
+						bind:value={filters.search}
+						ondebounceinput={() => {setFilters({ search: filters.search }); applyFilters();}}
+						debounceMs={500}
+						placeholder="Buscar atendido..."
+					/>
 						<Select.Root bind:value={filters.tipo_busca} name="tipo_busca" type="single">
 							<Select.Trigger class="w-full data-[placeholder]:text-foreground">
 								{tipoBuscaFilterOptions.find((option) => option.value === filters.tipo_busca)
@@ -92,11 +85,9 @@
 				</div>
 			</div>
 
-			<DataTable
-				data={tableData}
-				onPageChange={(p) => {
-					void loadData(filters, p);
-				}}
+		<DataTable
+			data={atendidos}
+			onPageChange={(page) => applyFilters({ page })}
 				columns={[
 					{ header: 'Nome', key: 'nome', class: 'w-[200px]' },
 					{ header: 'CPF', key: 'cpf', class: 'w-[120px]' },

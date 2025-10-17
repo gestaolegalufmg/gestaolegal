@@ -1,9 +1,6 @@
-/**
- * API Client for SPA mode
- * Handles authentication and base URL configuration
- */
+import { dev } from '$app/environment';
+import { env } from '$env/dynamic/public';
 
-// Helper to get auth token from cookie
 function getAuthToken(): string | null {
 	if (typeof document === 'undefined') return null;
 
@@ -12,23 +9,26 @@ function getAuthToken(): string | null {
 	return cookie ? cookie.split('=')[1] : null;
 }
 
-// Get API base URL - use proxy in dev, direct in production
-const getApiBaseUrl = () => {
-	// In SPA mode, we can call the backend directly
-	// or use nginx reverse proxy in production
-	if (typeof window !== 'undefined') {
-		// Check if we're using a proxy (same origin)
-		return '/api'; // nginx will proxy this to backend
-	}
-	return '/api';
+const isNonEmpty = (value: string | undefined | null) =>
+	value !== undefined && value !== null && value.trim().length > 0;
+
+const resolveConfiguredApiUrl = () => {
+	const configured = env.PUBLIC_API_URL;
+	return isNonEmpty(configured) ? configured!.trim() : null;
 };
 
-/**
- * Enhanced fetch that automatically adds authentication
- * @param endpoint - API endpoint (without /api prefix)
- * @param options - Fetch options
- * @param customFetch - Optional fetch function (use event.fetch in load functions)
- */
+const getApiBaseUrl = () => {
+	const configuredUrl = resolveConfiguredApiUrl();
+
+	if (dev) {
+		console.log("Using configured API URL:", configuredUrl);
+		return `${configuredUrl}/api`;
+	}
+
+	console.log("Using same origin API URL and delegating nginx to proxy requests");
+	return "/api";
+};
+
 export async function apiFetch(
 	endpoint: string,
 	options: RequestInit = {},
@@ -37,20 +37,16 @@ export async function apiFetch(
 	const token = getAuthToken();
 	const baseUrl = getApiBaseUrl();
 
-	// Remove leading slash from endpoint if present
 	const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
 
 	const url = `${baseUrl}/${cleanEndpoint}`;
 
 	const headers = new Headers(options.headers || {});
 
-	// Add auth token if available
 	if (token) {
 		headers.set('Authorization', `Bearer ${token}`);
 	}
 
-	// Add Content-Type for JSON requests if not already set
-	// Don't set Content-Type for FormData, browser will set it automatically with boundary
 	if (
 		options.body &&
 		typeof options.body === 'string' &&
@@ -63,15 +59,14 @@ export async function apiFetch(
 	const response = await customFetch(url, {
 		...options,
 		headers,
-		credentials: 'include' // Include cookies
+		credentials: 'include'
 	});
 
-	// Handle 401 - redirect to login
 	if (response.status === 401) {
-		// Clear auth cookie
-		document.cookie = 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+		if (typeof document !== 'undefined') {
+			document.cookie = 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+		}
 
-		// Redirect to login if not already there
 		if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
 			window.location.href = '/login';
 		}
@@ -80,10 +75,6 @@ export async function apiFetch(
 	return response;
 }
 
-/**
- * API helper methods
- * In load functions, pass the fetch parameter: api.get('endpoint', {}, fetch)
- */
 export const api = {
 	get: (endpoint: string, options?: RequestInit, customFetch?: typeof fetch) =>
 		apiFetch(endpoint, { ...options, method: 'GET' }, customFetch),

@@ -9,10 +9,6 @@ ensure_volumes:
 up: ensure_volumes
 	docker compose up -d
 
-run_migrations:
-	docker compose exec app_gl sh -c "alembic -c ./migrations/alembic.ini upgrade head"
-
-
 test:
 	uv run pytest tests/api/ -v
 

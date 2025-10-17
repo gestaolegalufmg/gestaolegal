@@ -40,8 +40,13 @@ def configure_app(app):
 
 
 def initialize_extensions(app):
+    from gestaolegal.config import Config
+
     mail.init_app(app)
-    CORS(app)
+    cors_kwargs = {"supports_credentials": True}
+    if Config.CORS_ORIGINS:
+        cors_kwargs["origins"] = Config.CORS_ORIGINS
+    CORS(app, resources={r"/*": cors_kwargs})
 
 
 def register_blueprints(app):

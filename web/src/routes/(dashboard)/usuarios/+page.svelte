@@ -6,28 +6,20 @@
 	import Edit from '@lucide/svelte/icons/edit';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import { USER_ROLE_OPTIONS, USER_ROLE_BADGE_MAP } from '$lib/constants';
-	import type { User } from '$lib/types';
 	import { api } from '$lib/api-client';
 	import Input from '$lib/components/ui/input/input.svelte';
 	import { page } from '$app/state';
 	import * as Select from '$lib/components/ui/select';
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
-	import { createPaginatedList } from '$lib';
+	import { usePaginatedFilters } from '$lib';
+	import type { UserSearchFilters } from '$lib/forms/schemas/user-schema';
 
 	let { data }: PageProps = $props();
-	const { me } = data;
+	const { users, me } = $derived(data);
 
 	const roleFilterOptions = [{ value: 'all', label: 'Todos' }, ...USER_ROLE_OPTIONS];
 
-	type UserFilters = {
-		search: string;
-		show_inactive: boolean;
-		funcao: string;
-	};
-
-	const { tableData, filters, loadData, setFilters } = createPaginatedList<User, UserFilters>({
-		endpoint: 'user',
-		initialData: data.users,
+	const { filters, applyFilters, setFilters } = usePaginatedFilters<UserSearchFilters>({
 		initialFilters: {
 			search: page.url.searchParams.get('search') ?? '',
 			show_inactive: page.url.searchParams.get('show_inactive') === 'true',
@@ -57,12 +49,12 @@
 				<div class="mb-4 flex items-center justify-between">
 					<div class="align-center flex w-full justify-between gap-2">
 						<div class="flex items-center gap-2">
-							<Input
-								value={filters.search}
-								oninput={(e) =>
-									setFilters({ ...filters, search: (e.target as HTMLInputElement).value })}
-								placeholder="Buscar usuários..."
-							/>
+						<Input
+							bind:value={filters.search}
+							ondebounceinput={() => {setFilters({ search: filters.search }); applyFilters();}}
+							debounceMs={500}
+							placeholder="Buscar usuários..."
+						/>
 							<Select.Root bind:value={filters.funcao} name="funcao" type="single">
 								<Select.Trigger class="w-[180px] data-[placeholder]:text-foreground">
 									{roleFilterOptions.find((option) => option.value === filters.funcao)?.label}
@@ -81,11 +73,9 @@
 					</div>
 				</div>
 
-				<DataTable
-					data={tableData}
-					onPageChange={(p) => {
-						void loadData(filters, p);
-					}}
+			<DataTable
+				data={users}
+				onPageChange={(page) => applyFilters({ page })}
 					columns={[
 						{ header: 'Nome', key: 'nome', class: 'w-[200px]' },
 						{ header: 'Email', key: 'email', class: 'w-[250px]' },
@@ -113,16 +103,16 @@
 								icon: Edit,
 								show: () => canManageUsers
 							},
-							{
-								title: 'Desativar',
-								icon: Trash2,
-								show: (u) => u.status && canManageUsers,
-								onClick: async (u) => {
-									await api.delete(`user/${u.id}`);
-									await loadData(filters, 1);
-								},
-								class: 'h-8 w-8 p-0 text-destructive hover:text-destructive'
-							}
+						{
+							title: 'Desativar',
+							icon: Trash2,
+							show: (u) => u.status && canManageUsers,
+							onClick: async (u) => {
+								await api.delete(`user/${u.id}`);
+								applyFilters();
+							},
+							class: 'h-8 w-8 p-0 text-destructive hover:text-destructive'
+						}
 						]
 					}}
 				/>
