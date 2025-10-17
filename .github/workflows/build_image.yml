@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build ${{ matrix.name }} image
-        run: docker build ${{ matrix.context }} --file ${{ matrix.dockerfile }} --tag ${{ matrix.image_name }} --label "runnumber=${GITHUB_RUN_ID}"
+        run: docker build ${{ matrix.context }} --file ${{ matrix.dockerfile }} --tag ${{ matrix.image_name }} --label "runnumber=${GITHUB_RUN_ID}" --pull --target prod
 
       - name: Log in to registry
         if: github.event_name != 'pull_request'
@@ -40,16 +40,24 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }}
-
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-
-          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-
-          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-
-          [ "$VERSION" == "master" ] && VERSION=latest
-
-          echo IMAGE_ID=$IMAGE_ID
-          echo VERSION=$VERSION
-          docker tag ${{ matrix.image_name }} $IMAGE_ID:$VERSION
-          docker push $IMAGE_ID:$VERSION
+          
+          COMMIT_SHA=${{ github.sha }}
+          SHORT_SHA=${COMMIT_SHA:0:7}
+          
+          docker tag ${{ matrix.image_name }} $IMAGE_ID:$SHORT_SHA
+          docker push $IMAGE_ID:$SHORT_SHA
+          echo "Pushed $IMAGE_ID:$SHORT_SHA"
+          
+          if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            docker tag ${{ matrix.image_name }} $IMAGE_ID:latest
+            docker push $IMAGE_ID:latest
+            echo "Pushed $IMAGE_ID:latest"
+          fi
+          
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=$(echo "${{ github.ref }}" | sed -e 's/refs\/tags\///' -e 's/^v//')
+            docker tag ${{ matrix.image_name }} $IMAGE_ID:$VERSION
+            docker push $IMAGE_ID:$VERSION
+            echo "Pushed $IMAGE_ID:$VERSION"
+          fi
