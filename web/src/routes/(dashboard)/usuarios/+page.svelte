@@ -49,12 +49,15 @@
 				<div class="mb-4 flex items-center justify-between">
 					<div class="align-center flex w-full justify-between gap-2">
 						<div class="flex items-center gap-2">
-						<Input
-							bind:value={filters.search}
-							ondebounceinput={() => {setFilters({ search: filters.search }); applyFilters();}}
-							debounceMs={500}
-							placeholder="Buscar usuários..."
-						/>
+							<Input
+								bind:value={filters.search}
+								ondebounceinput={() => {
+									setFilters({ search: filters.search });
+									applyFilters();
+								}}
+								debounceMs={500}
+								placeholder="Buscar usuários..."
+							/>
 							<Select.Root bind:value={filters.funcao} name="funcao" type="single">
 								<Select.Trigger class="w-[180px] data-[placeholder]:text-foreground">
 									{roleFilterOptions.find((option) => option.value === filters.funcao)?.label}
@@ -73,9 +76,9 @@
 					</div>
 				</div>
 
-			<DataTable
-				data={users}
-				onPageChange={(page) => applyFilters({ page })}
+				<DataTable
+					data={users}
+					onPageChange={(page) => applyFilters({ page })}
 					columns={[
 						{ header: 'Nome', key: 'nome', class: 'w-[200px]' },
 						{ header: 'Email', key: 'email', class: 'w-[250px]' },
@@ -103,16 +106,16 @@
 								icon: Edit,
 								show: () => canManageUsers
 							},
-						{
-							title: 'Desativar',
-							icon: Trash2,
-							show: (u) => u.status && canManageUsers,
-							onClick: async (u) => {
-								await api.delete(`user/${u.id}`);
-								applyFilters();
-							},
-							class: 'h-8 w-8 p-0 text-destructive hover:text-destructive'
-						}
+							{
+								title: 'Desativar',
+								icon: Trash2,
+								show: (u) => u.status && canManageUsers,
+								onClick: async (u) => {
+									await api.delete(`user/${u.id}`);
+									applyFilters();
+								},
+								class: 'h-8 w-8 p-0 text-destructive hover:text-destructive'
+							}
 						]
 					}}
 				/>

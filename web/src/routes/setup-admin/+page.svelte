@@ -2,10 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import SimpleInput from '$lib/components/forms/simple-input.svelte';
-	import {
-		setupAdminSchema,
-		type SetupAdminData
-	} from '$lib/forms/schemas/setup-admin-schema';
+	import { setupAdminSchema, type SetupAdminData } from '$lib/forms/schemas/setup-admin-schema';
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/api-client';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
@@ -30,9 +27,7 @@
 				if (!response.ok) {
 					const errorData = await response.json().catch(() => ({}));
 					const errorMessage =
-						errorData.error ||
-						errorData.message ||
-						'Erro ao configurar administrador';
+						errorData.error || errorData.message || 'Erro ao configurar administrador';
 					toast.error(errorMessage);
 					return;
 				}
@@ -70,8 +65,8 @@
 			<div class="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
 				<AlertCircle class="mt-0.5 h-4 w-4 shrink-0" />
 				<p>
-					Este é o primeiro acesso ao sistema. Crie a conta de administrador para começar.
-					O token de configuração pode ser obtido através do responsável pelo setup do sistema.
+					Este é o primeiro acesso ao sistema. Crie a conta de administrador para começar. O token
+					de configuração pode ser obtido através do responsável pelo setup do sistema.
 				</p>
 			</div>
 		</div>

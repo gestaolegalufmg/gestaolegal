@@ -69,12 +69,15 @@
 			<div class="mb-4 flex items-center justify-between">
 				<div class="align-center flex w-full justify-between gap-2">
 					<div class="flex items-center gap-2">
-					<Input
-						bind:value={filters.search}
-						ondebounceinput={() => {setFilters({ search: filters.search }); applyFilters();}}
-						debounceMs={500}
-						placeholder="Buscar orientação..."
-					/>
+						<Input
+							bind:value={filters.search}
+							ondebounceinput={() => {
+								setFilters({ search: filters.search });
+								applyFilters();
+							}}
+							debounceMs={500}
+							placeholder="Buscar orientação..."
+						/>
 						<Select.Root bind:value={filters.area} name="area" type="single">
 							<Select.Trigger class="w-[200px] data-[placeholder]:text-foreground">
 								{areaFilterOptions.find((option) => option.value === filters.area)?.label}
@@ -93,9 +96,9 @@
 				</div>
 			</div>
 
-		<DataTable
-			data={orientacoes}
-			onPageChange={(page) => applyFilters({ page })}
+			<DataTable
+				data={orientacoes}
+				onPageChange={(page) => applyFilters({ page })}
 				columns={[
 					{
 						header: 'Área do Direito',

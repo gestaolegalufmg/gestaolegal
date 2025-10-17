@@ -64,12 +64,15 @@
 			<div class="mb-4 flex items-center justify-between">
 				<div class="align-center flex w-full justify-between gap-2">
 					<div class="flex items-center gap-2">
-					<Input
-						bind:value={filters.search}
-						ondebounceinput={() => {setFilters({ search: filters.search }); applyFilters();}}
-						debounceMs={500}
-						placeholder="Buscar atendido..."
-					/>
+						<Input
+							bind:value={filters.search}
+							ondebounceinput={() => {
+								setFilters({ search: filters.search });
+								applyFilters();
+							}}
+							debounceMs={500}
+							placeholder="Buscar atendido..."
+						/>
 						<Select.Root bind:value={filters.tipo_busca} name="tipo_busca" type="single">
 							<Select.Trigger class="w-full data-[placeholder]:text-foreground">
 								{tipoBuscaFilterOptions.find((option) => option.value === filters.tipo_busca)
@@ -85,9 +88,9 @@
 				</div>
 			</div>
 
-		<DataTable
-			data={atendidos}
-			onPageChange={(page) => applyFilters({ page })}
+			<DataTable
+				data={atendidos}
+				onPageChange={(page) => applyFilters({ page })}
 				columns={[
 					{ header: 'Nome', key: 'nome', class: 'w-[200px]' },
 					{ header: 'CPF', key: 'cpf', class: 'w-[120px]' },
