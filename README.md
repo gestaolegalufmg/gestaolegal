@@ -1,163 +1,107 @@
 # Gestão Legal UFMG
-## Sistema de Gestão de Assistências Judiciárias e Escritórios de Advocacia Modelo
 
-Sistema desenvolvido pelo projeto de extensão da Faculdade de Direito da UFMG [Gestão Legal](https://gestaolegal.direito.ufmg.br/).
+Sistema de Gestão de Assistências Judiciárias e Escritórios de Advocacia Modelo
 
-Este sistema tem como objetivo auxiliar o gerenciamento e funcionamento da [Divisão de Assistência Judiciária - DAJ](https://daj.direito.ufmg.br/) da Faculdade de Direito da UFMG.
+---
+
+## Sobre
+
+Sistema desenvolvido pelo projeto de extensão da Faculdade de Direito da UFMG [Gestão Legal](https://gestaolegal.direito.ufmg.br/) para auxiliar o gerenciamento e funcionamento da [Divisão de Assistência Judiciária - DAJ](https://daj.direito.ufmg.br/).
+
+### Funcionalidades
+
+- Gestão de casos jurídicos e processos
+- Cadastro e acompanhamento de clientes
+- Controle de orientações jurídicas
+- Gerenciamento de equipe (orientadores, estagiários, colaboradores)
+- Acompanhamento de eventos e prazos processuais
+- Upload e gerenciamento de documentos
+
+---
 
 ## Requisitos
 
-- Python 3.11 ou superior
-- Docker e Docker Compose
+- **Python 3.11+**
+- **Docker** e **Docker Compose** (recomendado)
+- **Node.js 18+** (apenas para desenvolvimento do frontend)
+
+---
 
 ## Instalação
 
 ### Usando Docker (Recomendado)
 
-1. Clone o repositório:
-```bash
-git clone https://github.com/gestaolegalufmg/gestaolegal.git
-cd gestaolegal
-```
+1. **Clone o repositório**
+   ```bash
+   git clone https://github.com/gestaolegalufmg/gestaolegal.git
+   cd gestaolegal
+   ```
 
-2. Copie e configure o arquivo de ambiente:
-```bash
-cp .env.example .env
-# Edite o .env com suas credenciais de desenvolvimento
-```
+2. **Configure as variáveis de ambiente**
+   ```bash
+   cp .env.example .env
+   ```
 
-3. Inicie o ambiente de desenvolvimento:
-```bash
-make up
-```
+   Edite o arquivo `.env` e configure as credenciais necessárias.
 
-**Pronto!** O ambiente será automaticamente inicializado com:
-- ✓ Banco de dados criado e configurado
-- ✓ Todas as migrações aplicadas
-- ✓ Usuário administrador criado
+3. **(Opcional) Configure override para desenvolvimento**
 
-O sistema estará disponível em:
-- **Frontend**: http://localhost:5001
-- **Backend API**: http://localhost:5000
+   Para customizar o ambiente de desenvolvimento (portas, volumes, variáveis extras):
+   ```bash
+   cp docker-compose.override.example.yml docker-compose.override.yml
+   ```
 
-**Credenciais padrão**:
-- Email: `admin@gl.com`
-- Senha: `123456`
+   Edite o `docker-compose.override.yml` conforme necessário.
 
-### Configuração de Segurança
+4. **Inicie o ambiente**
+   ```bash
+   make up
+   ```
 
-⚠️ **IMPORTANTE**: Antes de executar o sistema, configure as credenciais de segurança.
+5. **Acesse o sistema**
+   - Frontend: http://localhost:5001
+   - API Backend: http://localhost:5000
 
-#### Para Desenvolvimento
-1. Copie o arquivo de configuração de exemplo:
-```bash
-cp docker-compose.override.example.yml docker-compose.override.yml
-```
+6. **Crie o administrador inicial**
 
-2. Edite o arquivo `docker-compose.override.yml` e atualize as credenciais:
-   - `JWT_SECRET_KEY`: Chave secreta para sessões Flask
-   - `DB_PASSWORD`: Senha do banco de dados
-   - `MYSQL_ROOT_PASSWORD`: Senha root do MySQL
+   Acesse http://localhost:5001/setup-admin e use o token configurado em `ADMIN_SETUP_TOKEN`.
 
-#### Para Produção
-1. Configure as variáveis de ambiente no seu servidor:
-   - `JWT_SECRET_KEY`: Chave secreta para sessões Flask
-   - `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_NAME`: Configurações do banco de dados
-   - `MYSQL_ROOT_PASSWORD`: Senha root do MySQL
+---
 
-2. **Nunca** commite credenciais de produção no repositório
+## Documentação
 
-### Instalação Manual
+- 📖 [Wiki do Projeto](https://github.com/gestaolegalufmg/gestaolegal/wiki) - Documentação completa
+- 🏗️ [Arquitetura](https://github.com/gestaolegalufmg/gestaolegal/wiki/Arquitetura) - Detalhes técnicos e stack
+- 🔧 [Guia de Contribuição](CONTRIBUTING.md) - Como contribuir
+- 🐛 [Reportar Issues](https://github.com/gestaolegalufmg/gestaolegal/issues) - Bugs e melhorias
 
-1. Clone o repositório:
-```bash
-git clone https://github.com/gestaolegalufmg/gestaolegal.git
-cd gestaolegal
-```
+---
 
-2. Configure as credenciais (veja seção "Configuração de Segurança" acima):
-```bash
-cp docker-compose.override.example.yml docker-compose.override.yml
-# Edite o arquivo docker-compose.override.yml com suas credenciais
-```
+## Contribuindo
 
-3. Crie e ative um ambiente virtual:
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# ou
-.venv\Scripts\activate  # Windows
-```
+Contribuições são bem-vindas! Por favor:
 
-4. Instale as dependências:
-```bash
-pip install -e ".[dev]"
-```
+1. Leia o [guia de contribuição](CONTRIBUTING.md)
+2. Crie uma branch para sua feature
+3. Faça commit das mudanças
+4. Abra um Pull Request
 
-5. Execute as migrações:
-```bash
-flask db upgrade
-```
-
-6. Inicie o servidor:
-```bash
-flask run
-```
-
-## Desenvolvimento
-
-### Comandos Úteis
-
-O projeto possui diversos comandos no Makefile para facilitar o desenvolvimento:
-
-```bash
-# Ver todos os comandos disponíveis
-make help
-
-# Gerenciamento de containers
-make up          # Inicia o ambiente (auto-inicializa o banco de dados)
-make down        # Para os containers
-make restart     # Reinicia os containers
-make build       # Reconstrói as imagens
-make clean       # Remove containers e volumes
-make reset       # Limpa tudo e reinicia do zero
-
-# Logs e debugging
-make logs        # Ver logs de todos os containers
-make logs-api    # Ver logs apenas da API
-make logs-db     # Ver logs do banco de dados
-make shell-api   # Abrir shell no container da API
-make shell-db    # Abrir MySQL shell no banco
-
-# Testes
-make test        # Executar testes
-make test-cov    # Executar testes com relatório de cobertura
-make test-watch  # Executar testes em modo watch
-```
-
-### Executando Testes
-
-```bash
-# Testes com pytest
-make test
-
-# Testes com cobertura
-make test-cov
-
-# Modo watch (re-executa ao salvar arquivos)
-make test-watch
-```
-
-Os testes são executados com o pytest e incluem testes de interface usando Playwright.
-
-### Contribuindo
-
-Por favor, leia o [guia de contribuição](CONTRIBUTING.md) antes de enviar pull requests.
-
-## Suporte
-
-Para reportar erros ou sugerir melhorias, consulte o [guia de issues](https://github.com/gestaolegalufmg/gestaolegal/wiki/Como-reportar-erros-ou-sugerir-melhorias).
+---
 
 ## Licença
 
-Leia [LICENSE](LICENSE)
+Este projeto está licenciado sob os termos especificados no arquivo [LICENSE](LICENSE).
+
+---
+
+## Suporte
+
+- **Issues:** [GitHub Issues](https://github.com/gestaolegalufmg/gestaolegal/issues)
+- **Wiki:** [Documentação](https://github.com/gestaolegalufmg/gestaolegal/wiki)
+- **Site:** [gestaolegal.direito.ufmg.br](https://gestaolegal.direito.ufmg.br/)
+
+---
+
+**Status:** 🚧 Em desenvolvimento ativo - v0.1.0
+
+Desenvolvido pelo projeto de extensão [Gestão Legal](https://gestaolegal.direito.ufmg.br/) da Faculdade de Direito da UFMG.
