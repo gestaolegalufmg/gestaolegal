@@ -163,7 +163,6 @@ export type UserUpdateFormData = z.infer<typeof userUpdateFormSchema>;
 
 export type UserSearchFormSchema = typeof userSearchSchema;
 
-
 export type UserSearchFilters = {
 	search: string;
 	show_inactive: boolean;
