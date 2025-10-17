@@ -105,12 +105,15 @@
 			<div class="mb-4 flex items-center justify-between">
 				<div class="align-center flex w-full justify-between gap-2">
 					<div class="flex items-center gap-2">
-					<Input
-						bind:value={filters.search}
-						ondebounceinput={() => {setFilters({ search: filters.search }); applyFilters();}}
-						debounceMs={500}
-						placeholder="Buscar casos..."
-					/>
+						<Input
+							bind:value={filters.search}
+							ondebounceinput={() => {
+								setFilters({ search: filters.search });
+								applyFilters();
+							}}
+							debounceMs={500}
+							placeholder="Buscar casos..."
+						/>
 						<Select.Root
 							bind:value={filters.situacao_deferimento}
 							name="situacao_deferimento"
@@ -135,9 +138,9 @@
 				</div>
 			</div>
 
-		<DataTable
-			data={casos}
-			onPageChange={(page) => applyFilters({ page })}
+			<DataTable
+				data={casos}
+				onPageChange={(page) => applyFilters({ page })}
 				columns={[
 					{ header: 'ID', key: 'id', class: 'w-[100px]' },
 					{

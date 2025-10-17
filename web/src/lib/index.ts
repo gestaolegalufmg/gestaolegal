@@ -1,1 +1,4 @@
-export { usePaginatedFilters, type PaginatedFiltersOptions } from './utils/createPaginatedList.svelte';
+export {
+	usePaginatedFilters,
+	type PaginatedFiltersOptions
+} from './utils/createPaginatedList.svelte';

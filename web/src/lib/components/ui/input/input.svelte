@@ -1,5 +1,9 @@
 <script lang="ts">
-	import type { FormEventHandler, HTMLInputAttributes, HTMLInputTypeAttribute } from 'svelte/elements';
+	import type {
+		FormEventHandler,
+		HTMLInputAttributes,
+		HTMLInputTypeAttribute
+	} from 'svelte/elements';
 	import { cn, type WithElementRef } from '$lib/utils.js';
 	import { Debounced, useDebounce } from 'runed';
 
@@ -27,7 +31,9 @@
 	}: Props = $props();
 
 	const debounced = new Debounced(() => value, debounceMs);
-	const debouncedInputHandler = ondebounceinput ? useDebounce(ondebounceinput, debounceMs) : undefined;
+	const debouncedInputHandler = ondebounceinput
+		? useDebounce(ondebounceinput, debounceMs)
+		: undefined;
 
 	function handleInput(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
 		restProps.oninput?.(event);

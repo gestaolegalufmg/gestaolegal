@@ -87,13 +87,15 @@
 			</Button>
 		</form>
 
-		<div class="mt-4 text-center text-sm text-gray-600">
-			<p class="cursor-default">
-				Primeiro acesso?
-				<a href="/setup-admin" class="font-medium text-primary hover:underline">
-					Configure o administrador
-				</a>
-			</p>
-		</div>
+		{#if data.needsSetup}
+			<div class="mt-4 text-center text-sm text-gray-600">
+				<p class="cursor-default">
+					Primeiro acesso?
+					<a href="/setup-admin" class="font-medium text-primary hover:underline">
+						Configure o administrador
+					</a>
+				</p>
+			</div>
+		{/if}
 	</div>
 </div>
