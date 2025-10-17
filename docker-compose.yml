@@ -3,21 +3,46 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      target: prod
     restart: unless-stopped
     ports:
       - "5001:80"
     depends_on:
       - api
 
+  migrate:
+    build:
+      context: .
+      target: prod
+    env_file:
+      - .env
+    entrypoint: []
+    environment:
+      - PYTHONPATH=/code
+    command: ["alembic", "-c", "migrations/alembic.ini", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+
   api:
-    build: .
+    build:
+      context: .
+      target: prod
     ports:
       - "5000:5000"
     env_file:
       - .env
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   db:
     image: mysql:8.0.42
@@ -30,10 +55,14 @@ services:
       MYSQL_DATABASE: ${DB_NAME}
     ports:
       - "3306:3306"
-    expose:
-      - "3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 55
 
 volumes:
   mysql_data:

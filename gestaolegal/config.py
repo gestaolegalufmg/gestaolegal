@@ -74,6 +74,12 @@ def _parse_bool(value: str | None, default: bool = False) -> bool:
     return value.lower() in ("true", "1", "yes", "on")
 
 
+def _parse_csv(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 def _get_mail_config(env: Environment) -> _MailConfig:
     if env == "development":
         return _MailConfig(
@@ -104,6 +110,7 @@ class Config:
     FLASK_ENV: ClassVar[Environment] = _get_flask_env()
     COMPANY_NAME: ClassVar[str] = os.environ.get("COMPANY_NAME", "Gestão Legal")
     JWT_SECRET_KEY: ClassVar[str] = _get_or_generate_jwt_secret_key(FLASK_ENV)
+    ADMIN_SETUP_TOKEN: ClassVar[str] = os.environ["ADMIN_SETUP_TOKEN"]
     STATIC_ROOT_DIR: ClassVar[str] = os.environ.get(
         "STATIC_ROOT_DIR", "/gestaolegal/gestaolegal/static/"
     )
@@ -138,3 +145,5 @@ class Config:
     MAIL_USERNAME: ClassVar[str | None] = _mail_config["username"]
     MAIL_PASSWORD: ClassVar[str | None] = _mail_config["password"]
     MAIL_DEFAULT_SENDER: ClassVar[str] = _mail_config["default_sender"]
+
+    CORS_ORIGINS: ClassVar[list[str]] = _parse_csv(os.environ.get("CORS_ORIGINS"))

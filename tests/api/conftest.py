@@ -7,6 +7,7 @@ TEST_UPLOAD_DIR = tempfile.mkdtemp()
 os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["ADMIN_EMAIL"] = "admin@test.com"
 os.environ["ADMIN_PASSWORD"] = "123456"
+os.environ["ADMIN_SETUP_TOKEN"] = "test-setup-token-12345"
 os.environ["DB_HOST"] = "localhost"
 os.environ["DB_NAME"] = "test_db"
 os.environ["DB_USER"] = "test_user"
@@ -79,11 +80,10 @@ def clean_tables(*table_names: str) -> None:
         session.close()
 
 
-@pytest.fixture(scope="session")
-def create_admin_user(app: Flask) -> None:
-    with app.app_context():
-        session = db_session_module.get_session()
-
+def ensure_admin_user_exists() -> None:
+    """Helper function to ensure admin user exists. Can be called multiple times."""
+    session = db_session_module.get_session()
+    try:
         result = session.execute(
             text("SELECT id FROM usuarios WHERE email = :email"),
             {"email": TEST_ADMIN_EMAIL},
@@ -152,6 +152,14 @@ def create_admin_user(app: Flask) -> None:
             },
         )
         session.commit()
+    finally:
+        session.close()
+
+
+@pytest.fixture(scope="session")
+def create_admin_user(app: Flask) -> None:
+    with app.app_context():
+        ensure_admin_user_exists()
 
 
 @pytest.fixture(scope="session")
@@ -361,3 +369,17 @@ def sample_user_data() -> dict[str, Any]:
         "estado": "MG",
         "complemento": None,
     }
+
+
+@pytest.fixture
+def clean_db() -> Generator[None, None, None]:
+    """Fixture that cleans the database before test and restores admin user after test."""
+    # Setup: Clean database
+    clean_tables("usuarios", "enderecos")
+
+    # Run test
+    yield
+
+    # Teardown: Restore admin user for other tests
+    clean_tables("usuarios", "enderecos")
+    ensure_admin_user_exists()

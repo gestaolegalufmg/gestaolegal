@@ -13,6 +13,7 @@ from gestaolegal.models.user_input import UserCreateInput, UserUpdateInput
 from gestaolegal.repositories.endereco_repository import EnderecoRepository
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
+    CountParams,
     SearchParams,
     WhereClause,
 )
@@ -281,3 +282,68 @@ class UsuarioService:
     def __load_endereco(self, user: User) -> None:
         if user.endereco_id:
             user.endereco = self.endereco_repository.find_by_id(user.endereco_id)
+
+    def has_any_users(self) -> bool:
+        count = self.repository.count(CountParams(where=None))
+        return count > 0
+
+    def create_admin(self, email: str, password: str) -> UserInfo:
+        logger.info(f"Creating initial admin user with email: {email}")
+
+        endereco_data = {
+            "logradouro": "N/A",
+            "numero": "S/N",
+            "complemento": None,
+            "bairro": "N/A",
+            "cep": "00000-000",
+            "cidade": "N/A",
+            "estado": "N/A",
+        }
+        endereco_id = self.endereco_repository.create(endereco_data)
+
+        hashed_password = bcrypt.hashpw(
+            password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
+
+        user_data = {
+            "email": email,
+            "senha": hashed_password,
+            "urole": "admin",
+            "nome": "Administrator",
+            "sexo": "N/A",
+            "rg": "N/A",
+            "cpf": "000.000.000-00",
+            "profissao": "Administrator",
+            "estado_civil": "N/A",
+            "nascimento": datetime.now().date(),
+            "telefone": None,
+            "celular": "N/A",
+            "oab": None,
+            "obs": "Initial admin user created via setup endpoint",
+            "data_entrada": datetime.now().date(),
+            "data_saida": None,
+            "matricula": "ADMIN",
+            "bolsista": False,
+            "tipo_bolsa": None,
+            "horario_atendimento": None,
+            "suplente": None,
+            "ferias": None,
+            "cert_atuacao_DAJ": "N/A",
+            "inicio_bolsa": None,
+            "fim_bolsa": None,
+            "endereco_id": endereco_id,
+            "status": True,
+            "criado": datetime.now(),
+            "criadopor": 1,
+            "modificadopor": 1,
+            "modificado": datetime.now(),
+        }
+
+        user_id = self.repository.create(user_data)
+        user = self.find_by_id(user_id)
+        if not user:
+            logger.error(f"Failed to create admin user with email: {email}")
+            raise ValueError("Failed to create admin user")
+
+        logger.info(f"Admin user created successfully with id: {user_id}")
+        return user

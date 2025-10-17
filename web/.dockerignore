@@ -1,12 +1,38 @@
+# Dependencies
 node_modules
+
+# Build artifacts
 build
 .svelte-kit
+dist
+
+# Environment
 !.env.example
+
+# Git
 .git
 .gitignore
+.github
+
+# Documentation
 README.md
+*.md
+
+# Configuration (not needed in container)
 .prettierrc
+.prettierignore
 .eslintrc.cjs
 .npmrc
 .dockerignore
 
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+.claude
+.cursor
+
+# Testing
+.coverage
+coverage

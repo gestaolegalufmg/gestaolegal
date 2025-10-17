@@ -6,16 +6,15 @@
 	import Edit from '@lucide/svelte/icons/edit';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import { SUB_AREA_BADGE_MAP } from '$lib/constants';
-	import type { OrientacaoJuridica } from '$lib/types';
 	import { api } from '$lib/api-client';
 	import Input from '$lib/components/ui/input/input.svelte';
 	import { page } from '$app/state';
 	import * as Select from '$lib/components/ui/select';
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
-	import { createPaginatedList } from '$lib';
+	import { usePaginatedFilters } from '$lib';
 
 	let { data }: PageProps = $props();
-	const { me } = data;
+	const { orientacoes, me } = $derived(data);
 
 	const areaFilterOptions = [
 		{ value: 'todas', label: 'Todas as Áreas' },
@@ -33,12 +32,7 @@
 		area: string;
 	};
 
-	const { tableData, filters, loadData, setFilters } = createPaginatedList<
-		OrientacaoJuridica,
-		OrientacaoFilters
-	>({
-		endpoint: 'orientacao_juridica',
-		initialData: data.orientacoes,
+	const { filters, applyFilters, setFilters } = usePaginatedFilters<OrientacaoFilters>({
 		initialFilters: {
 			search: page.url.searchParams.get('search') ?? '',
 			show_inactive: page.url.searchParams.get('show_inactive') === 'true',
@@ -58,7 +52,7 @@
 
 		await api.delete(`orientacao_juridica/${id}`);
 
-		await loadData(filters, 1);
+		applyFilters();
 	}
 </script>
 
@@ -75,12 +69,12 @@
 			<div class="mb-4 flex items-center justify-between">
 				<div class="align-center flex w-full justify-between gap-2">
 					<div class="flex items-center gap-2">
-						<Input
-							value={filters.search}
-							oninput={(e) =>
-								setFilters({ ...filters, search: (e.target as HTMLInputElement).value })}
-							placeholder="Buscar orientação..."
-						/>
+					<Input
+						bind:value={filters.search}
+						ondebounceinput={() => {setFilters({ search: filters.search }); applyFilters();}}
+						debounceMs={500}
+						placeholder="Buscar orientação..."
+					/>
 						<Select.Root bind:value={filters.area} name="area" type="single">
 							<Select.Trigger class="w-[200px] data-[placeholder]:text-foreground">
 								{areaFilterOptions.find((option) => option.value === filters.area)?.label}
@@ -99,11 +93,9 @@
 				</div>
 			</div>
 
-			<DataTable
-				data={tableData}
-				onPageChange={(p) => {
-					void loadData(filters, p);
-				}}
+		<DataTable
+			data={orientacoes}
+			onPageChange={(page) => applyFilters({ page })}
 				columns={[
 					{
 						header: 'Área do Direito',
