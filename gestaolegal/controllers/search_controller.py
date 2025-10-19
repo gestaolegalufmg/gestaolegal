@@ -23,14 +23,16 @@ def global_search():
     limit = request.args.get("limit", default=5, type=int)
 
     if not query or len(query.strip()) < 2:
-        return success_response(data={
-            "results": {
-                "atendidos": [],
-                "casos": [],
-                "orientacoes_juridicas": [],
-                "usuarios": [],
+        return success_response(
+            data={
+                "results": {
+                    "atendidos": [],
+                    "casos": [],
+                    "orientacoes_juridicas": [],
+                    "usuarios": [],
+                }
             }
-        })
+        )
 
     atendido_service = AtendidoService()
     caso_service = CasoService()
@@ -57,27 +59,29 @@ def global_search():
         search=query, page_params=page_params, show_inactive=False
     )
 
-    return success_response(data={
-        "query": query,
-        "results": {
-            "atendidos": {
-                "items": [
-                    item if isinstance(item, dict) else asdict(item)
-                    for item in atendidos_result.items
-                ],
-                "total": atendidos_result.total,
+    return success_response(
+        data={
+            "query": query,
+            "results": {
+                "atendidos": {
+                    "items": [
+                        item if isinstance(item, dict) else asdict(item)
+                        for item in atendidos_result.items
+                    ],
+                    "total": atendidos_result.total,
+                },
+                "casos": {
+                    "items": [asdict(item) for item in casos_result.items],
+                    "total": casos_result.total,
+                },
+                "orientacoes_juridicas": {
+                    "items": [item for item in orientacoes_result.items],
+                    "total": orientacoes_result.total,
+                },
+                "usuarios": {
+                    "items": [asdict(item) for item in usuarios_result.items],
+                    "total": usuarios_result.total,
+                },
             },
-            "casos": {
-                "items": [asdict(item) for item in casos_result.items],
-                "total": casos_result.total,
-            },
-            "orientacoes_juridicas": {
-                "items": [item for item in orientacoes_result.items],
-                "total": orientacoes_result.total,
-            },
-            "usuarios": {
-                "items": [asdict(item) for item in usuarios_result.items],
-                "total": usuarios_result.total,
-            },
-        },
-    })
+        }
+    )

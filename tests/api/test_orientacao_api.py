@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from flask.testing import FlaskClient
 
-from tests.api.conftest import get_success_data, assert_success_response
+from tests.api.conftest import assert_success_response, get_success_data
 
 
 @pytest.fixture

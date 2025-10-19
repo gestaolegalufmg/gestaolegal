@@ -2,7 +2,7 @@ from typing import Any
 
 from flask.testing import FlaskClient
 
-from tests.api.conftest import clean_tables, get_success_data, assert_success_response
+from tests.api.conftest import assert_success_response, clean_tables, get_success_data
 
 
 def test_create_atendido_success(
@@ -205,9 +205,7 @@ def test_get_atendidos_pagination(
 ) -> None:
     for i in range(5):
         data = {**sample_atendido_data, "cpf": f"123.456.789-{i:02d}"}
-        create_response = client.post(
-            "/api/atendido/", json=data, headers=auth_headers
-        )
+        create_response = client.post("/api/atendido/", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         assert_success_response(create_response)
 

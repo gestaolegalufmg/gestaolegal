@@ -52,6 +52,7 @@ def assert_error_response(response: TestResponse) -> dict[str, Any]:
     assert "error" in payload, f"Expected error field in payload: {payload}"
     return payload
 
+
 TEST_ADMIN_EMAIL = "admin@gl.com"
 TEST_ADMIN_PASSWORD = "123456"
 

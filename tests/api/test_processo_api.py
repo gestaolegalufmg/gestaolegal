@@ -2,7 +2,7 @@ from typing import Any
 
 from flask.testing import FlaskClient
 
-from tests.api.conftest import get_success_data, assert_success_response
+from tests.api.conftest import assert_success_response, get_success_data
 
 
 def test_create_processo_with_date_strings(

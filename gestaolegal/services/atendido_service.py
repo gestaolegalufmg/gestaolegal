@@ -206,8 +206,7 @@ class AtendidoService:
                 f"Update assistido failed: atendido {id_atendido} does not have an assistido record"
             )
             raise ValidationException(
-                f"Atendido não possui registro de assistido",
-                field="assistido"
+                "Atendido não possui registro de assistido", field="assistido"
             )
 
         assistido_update_data = assistido_input.model_dump(exclude_none=True)

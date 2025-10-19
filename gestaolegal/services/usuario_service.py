@@ -8,7 +8,11 @@ import bcrypt
 from dateutil import parser as date_parser
 
 from gestaolegal.common import PageParams, PaginatedResult
-from gestaolegal.exceptions import DatabaseException, NotFoundException, UnauthorizedException, ValidationException
+from gestaolegal.exceptions import (
+    DatabaseException,
+    NotFoundException,
+    UnauthorizedException,
+)
 from gestaolegal.models.user import User, UserInfo
 from gestaolegal.models.user_input import UserCreateInput, UserUpdateInput
 from gestaolegal.repositories.endereco_repository import EnderecoRepository

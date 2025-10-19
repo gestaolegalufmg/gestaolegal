@@ -3,8 +3,9 @@ from typing import Any
 
 from flask.testing import FlaskClient
 
+from tests.api.conftest import assert_success_response, get_success_data
+
 from .conftest import TEST_NON_ADMIN_EMAIL
-from tests.api.conftest import get_success_data, assert_success_response
 
 
 def _create_user(

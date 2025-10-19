@@ -84,9 +84,7 @@ def success_response(
     if include_metadata:
         metadata = {"timestamp": datetime.utcnow().isoformat()}
 
-    response = ApiResponse(
-        success=True, data=data, message=message, metadata=metadata
-    )
+    response = ApiResponse(success=True, data=data, message=message, metadata=metadata)
     return make_response(response.to_dict(), status_code)
 
 

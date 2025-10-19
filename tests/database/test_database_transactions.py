@@ -55,7 +55,9 @@ class TestTransactionContextManager:
 
         final_session = get_session()
         try:
-            final_result = final_session.execute(orientacao_juridica.select()).fetchall()
+            final_result = final_session.execute(
+                orientacao_juridica.select()
+            ).fetchall()
             final_count = len(final_result)
             assert final_count == initial_count
         finally:
@@ -95,10 +97,10 @@ class TestTransactionContextManager:
 
         final_session = get_session()
         try:
-            final_result = final_session.execute(orientacao_juridica.select()).fetchall()
+            final_result = final_session.execute(
+                orientacao_juridica.select()
+            ).fetchall()
             final_count = len(final_result)
             assert final_count == initial_count
         finally:
             final_session.close()
-
-
