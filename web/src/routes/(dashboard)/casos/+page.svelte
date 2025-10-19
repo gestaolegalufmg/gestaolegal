@@ -38,18 +38,21 @@
 		search: string;
 		show_inactive: boolean;
 		situacao_deferimento: string;
+		user: string;
 	};
 
 	const { filters, applyFilters, setFilters } = usePaginatedFilters<CasoFilters>({
 		initialFilters: {
 			search: page.url.searchParams.get('search') ?? '',
 			show_inactive: page.url.searchParams.get('show_inactive') === 'true',
-			situacao_deferimento: page.url.searchParams.get('situacao_deferimento') ?? 'todos'
+			situacao_deferimento: page.url.searchParams.get('situacao_deferimento') ?? 'todos',
+			user: page.url.searchParams.get('user') ?? ''
 		},
 		buildParams: (f) => ({
 			search: f.search,
 			show_inactive: f.show_inactive ? 'true' : 'false',
-			situacao_deferimento: f.situacao_deferimento
+			situacao_deferimento: f.situacao_deferimento,
+			user: f.user
 		})
 	});
 
@@ -128,6 +131,7 @@
 							bind:value={filters.situacao_deferimento}
 							name="situacao_deferimento"
 							type="single"
+							onValueChange={() => applyFilters()}
 						>
 							<Select.Trigger class="w-[200px] data-[placeholder]:text-foreground">
 								{situacaoFilterOptions.find(
@@ -141,10 +145,22 @@
 							</Select.Content>
 						</Select.Root>
 					</div>
-					<label class="flex cursor-pointer items-center gap-2">
-						<Checkbox bind:checked={filters.show_inactive} />
-						<span class="text-sm">Incluir inativos</span>
-					</label>
+					<div class="flex items-center gap-4">
+						<label class="flex cursor-pointer items-center gap-2">
+							<Checkbox
+								checked={filters.user === 'me'}
+								onCheckedChange={(checked) => {
+									setFilters({ user: checked ? 'me' : '' });
+									applyFilters();
+								}}
+							/>
+							<span class="text-sm">Apenas meus casos</span>
+						</label>
+						<label class="flex cursor-pointer items-center gap-2">
+							<Checkbox bind:checked={filters.show_inactive} onCheckedChange={() => applyFilters()} />
+							<span class="text-sm">Incluir inativos</span>
+						</label>
+					</div>
 				</div>
 			</div>
 

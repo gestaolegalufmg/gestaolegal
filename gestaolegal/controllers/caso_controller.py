@@ -32,6 +32,7 @@ caso_controller = Blueprint("caso_api", __name__)
 @caso_controller.route("/", methods=["GET"])
 @authenticated
 def get():
+    current_user: UserInfo = RequestContext.get_current_user()
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
     search = request.args.get("search", default="", type=str)
@@ -41,6 +42,13 @@ def get():
     situacao_deferimento = request.args.get(
         "situacao_deferimento", default=None, type=str
     )
+    user = request.args.get("user", default=None, type=str)
+
+    id_usuario_responsavel = None
+    if user == "me":
+        id_usuario_responsavel = current_user.id
+    elif user is not None and user.isdigit():
+        id_usuario_responsavel = int(user)
 
     caso_service = CasoService()
     result = caso_service.search(
@@ -48,6 +56,7 @@ def get():
         search=search,
         show_inactive=show_inactive.value,
         situacao_deferimento=situacao_deferimento,
+        id_usuario_responsavel=id_usuario_responsavel,
     )
 
     return success_response(data=result.to_dict())

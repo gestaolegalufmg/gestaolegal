@@ -10,6 +10,7 @@
 	import Input from '$lib/components/ui/input/input.svelte';
 	import { page } from '$app/state';
 	import * as Select from '$lib/components/ui/select';
+	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import { usePaginatedFilters } from '$lib';
 
 	let { data }: PageProps = $props();
@@ -73,7 +74,7 @@
 							debounceMs={500}
 							placeholder="Buscar atendido..."
 						/>
-						<Select.Root bind:value={filters.tipo_busca} name="tipo_busca" type="single">
+						<Select.Root bind:value={filters.tipo_busca} name="tipo_busca" type="single" onValueChange={() => applyFilters()}>
 							<Select.Trigger class="w-full data-[placeholder]:text-foreground">
 								{tipoBuscaFilterOptions.find((option) => option.value === filters.tipo_busca)
 									?.label}
@@ -85,6 +86,10 @@
 							</Select.Content>
 						</Select.Root>
 					</div>
+					<label class="flex cursor-pointer items-center gap-2">
+						<Checkbox bind:checked={filters.show_inactive} onCheckedChange={() => applyFilters()}/>
+						<span class="text-sm">Incluir inativos</span>
+					</label>
 				</div>
 			</div>
 
