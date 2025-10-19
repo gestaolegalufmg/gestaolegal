@@ -4,18 +4,20 @@ import { casoCreateFormSchema } from '$lib/forms/schemas/caso-schema';
 import type { PageLoad } from './$types';
 import { api } from '$lib/api-client';
 import { error } from '@sveltejs/kit';
+import { ApiException } from '$lib/types';
+import type { Paginated, User } from '$lib/types';
 
 export const load: PageLoad = async ({ fetch }) => {
-	const form = await superValidate(zod4(casoCreateFormSchema));
+	try {
+		const form = await superValidate(zod4(casoCreateFormSchema));
+		const usersData = await api.get<Paginated<User>>('user?per_page=1000', {}, fetch);
+		const usuarios = usersData.items ?? [];
 
-	const usersResponse = await api.get('user?per_page=1000', {}, fetch);
-
-	if (!usersResponse.ok) {
-		error(usersResponse.status, 'Nao foi possivel carregar usuarios');
+		return { form, usuarios, assistidos: [] };
+	} catch (err) {
+		if (err instanceof ApiException) {
+			error(err.statusCode || 500, err.message);
+		}
+		throw err;
 	}
-
-	const usersData = await usersResponse.json();
-	const usuarios = usersData.items ?? [];
-
-	return { form, usuarios, assistidos: [] };
 };

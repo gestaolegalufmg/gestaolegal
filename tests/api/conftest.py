@@ -16,7 +16,7 @@ os.environ["STATIC_ROOT_DIR"] = TEST_UPLOAD_DIR
 
 from collections.abc import Generator
 from datetime import datetime
-from typing import Any
+from typing import Any, TypeVar
 
 import bcrypt
 import pytest
@@ -24,10 +24,33 @@ from flask import Flask
 from flask.testing import FlaskClient
 from sqlalchemy import create_engine, orm, text
 from sqlalchemy.engine import Engine
+from werkzeug.test import TestResponse
 
 import gestaolegal.database.session as db_session_module
 from gestaolegal import create_app
 from gestaolegal.database.tables import metadata
+
+T = TypeVar("T")
+
+
+def assert_success_response(response: TestResponse) -> dict[str, Any]:
+    payload = response.json
+    assert payload is not None, "Expected JSON response body"
+    assert payload.get("success") is True, f"Expected success=true, got: {payload}"
+    return payload
+
+
+def get_success_data(response: TestResponse) -> Any:
+    payload = assert_success_response(response)
+    return payload.get("data")
+
+
+def assert_error_response(response: TestResponse) -> dict[str, Any]:
+    payload = response.json
+    assert payload is not None, "Expected JSON response body"
+    assert payload.get("success") is False, f"Expected success=false, got: {payload}"
+    assert "error" in payload, f"Expected error field in payload: {payload}"
+    return payload
 
 TEST_ADMIN_EMAIL = "admin@gl.com"
 TEST_ADMIN_PASSWORD = "123456"
@@ -81,7 +104,6 @@ def clean_tables(*table_names: str) -> None:
 
 
 def ensure_admin_user_exists() -> None:
-    """Helper function to ensure admin user exists. Can be called multiple times."""
     session = db_session_module.get_session()
     try:
         result = session.execute(
@@ -248,7 +270,7 @@ def auth_headers(client: FlaskClient, create_admin_user: None) -> dict[str, str]
         f"Login failed with status {login_response.status_code}"
     )
 
-    data = login_response.json
+    data = get_success_data(login_response)
     assert data is not None, "Login response has no JSON data"
     assert "token" in data, f"Login response missing token: {data}"
 
@@ -272,7 +294,7 @@ def non_admin_auth_headers(
         f"Login failed with status {login_response.status_code}"
     )
 
-    data = login_response.json
+    data = get_success_data(login_response)
     assert data is not None, "Login response has no JSON data"
     assert "token" in data, f"Login response missing token: {data}"
 
@@ -335,6 +357,15 @@ def sample_caso_data() -> dict[str, Any]:
 
 
 @pytest.fixture
+def sample_orientacao_data() -> dict[str, Any]:
+    return {
+        "area_direito": "penal",
+        "descricao": "Orientação jurídica detalhada sobre questão penal do cliente",
+        "atendidos_ids": [],
+    }
+
+
+@pytest.fixture
 def sample_user_data() -> dict[str, Any]:
     return {
         "email": "test.user@gl.com",
@@ -373,13 +404,9 @@ def sample_user_data() -> dict[str, Any]:
 
 @pytest.fixture
 def clean_db() -> Generator[None, None, None]:
-    """Fixture that cleans the database before test and restores admin user after test."""
-    # Setup: Clean database
     clean_tables("usuarios", "enderecos")
 
-    # Run test
     yield
 
-    # Teardown: Restore admin user for other tests
     clean_tables("usuarios", "enderecos")
     ensure_admin_user_exists()

@@ -24,6 +24,7 @@
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/api-client';
 	import { goto } from '$app/navigation';
+	import type { User } from '$lib/types';
 
 	let {
 		data,
@@ -49,24 +50,17 @@
 
 			try {
 				const response = isCreateMode
-					? await api.post('user', data)
-					: await api.put(`user/${userId}`, data);
+					? await api.post<User>('user', data)
+					: await api.put<User>(`user/${userId}`, data);
 
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao salvar usuário');
-					onError?.(errorData);
-					return;
-				}
-
-				const responseData = await response.json();
 				toast.success(
 					isCreateMode ? 'Usuário criado com sucesso!' : 'Usuário atualizado com sucesso!'
 				);
-				onUpdate?.(responseData);
+
+				onUpdate?.(response);
 
 				// Redirect to user details page
-				goto(`/usuarios/${responseData.id}`);
+				goto(`/usuarios/${response.id}`);
 			} catch (error) {
 				console.error('User form error:', error);
 				toast.error('Erro ao salvar usuário. Por favor, tente novamente.');

@@ -18,9 +18,11 @@
 	import X from '@lucide/svelte/icons/x';
 	import UserPlus from '@lucide/svelte/icons/user-plus';
 	import { api } from '$lib/api-client';
+	import { ApiException } from '$lib/types';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { get } from 'svelte/store';
+	import type { Caso } from '$lib/types';
 
 	let {
 		data,
@@ -54,18 +56,10 @@
 					: JSON.parse(JSON.stringify(rawData));
 
 			try {
-				const response = isCreateMode
-					? await api.post('caso', payload)
-					: await api.put(`caso/${casoId}`, payload);
+				const responseData = isCreateMode
+					? await api.post<Caso>('caso', payload)
+					: await api.put<Caso>(`caso/${casoId}`, payload);
 
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao salvar caso');
-					onError?.(errorData);
-					return;
-				}
-
-				const responseData = await response.json();
 				toast.success(isCreateMode ? 'Caso criado com sucesso!' : 'Caso atualizado com sucesso!');
 
 				// Use custom onUpdate callback if provided
@@ -74,10 +68,15 @@
 				} else {
 					goto(`/casos/${responseData.id}`);
 				}
-			} catch (error) {
-				console.error('Caso form error:', error);
-				toast.error('Erro ao salvar caso. Por favor, tente novamente.');
-				onError?.(error);
+			} catch (err) {
+				if (err instanceof ApiException) {
+					toast.error(err.message);
+					onError?.(err);
+				} else {
+					console.error('Caso form error:', err);
+					toast.error('Erro ao salvar caso. Por favor, tente novamente.');
+					onError?.(err);
+				}
 			}
 		}
 	});

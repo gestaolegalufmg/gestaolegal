@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from gestaolegal.common import PageParams, PaginatedResult
+from gestaolegal.exceptions import NotFoundException, ValidationException
 from gestaolegal.models.assistido import Assistido
 from gestaolegal.models.assistido_input import (
     AssistidoCreateInput,
@@ -139,7 +140,7 @@ class AtendidoService:
         existing = self.repository.find_by_id(atendido_id)
         if not existing:
             logger.error(f"Update failed: atendido not found with id: {atendido_id}")
-            raise ValueError(f"Atendido with id {atendido_id} not found")
+            raise NotFoundException(resource="Atendido", resource_id=atendido_id)
 
         update_data = atendido_input.model_dump(exclude_none=True)
 
@@ -162,7 +163,7 @@ class AtendidoService:
             logger.error(
                 f"Create assistido failed: atendido not found with id: {id_atendido}"
             )
-            raise ValueError(f"Atendido with id {id_atendido} not found")
+            raise NotFoundException(resource="Atendido", resource_id=id_atendido)
 
         assistido_data = assistido_input.model_dump()
         assistido_data["id_atendido"] = id_atendido
@@ -185,7 +186,7 @@ class AtendidoService:
             logger.error(
                 f"Update assistido failed: atendido not found with id: {id_atendido}"
             )
-            raise ValueError(f"Atendido with id {id_atendido} not found")
+            raise NotFoundException(resource="Atendido", resource_id=id_atendido)
 
         if atendido_input:
             update_data = atendido_input.model_dump(exclude_none=True)
@@ -204,8 +205,9 @@ class AtendidoService:
             logger.error(
                 f"Update assistido failed: atendido {id_atendido} does not have an assistido record"
             )
-            raise ValueError(
-                f"Atendido {id_atendido} does not have an assistido record"
+            raise ValidationException(
+                f"Atendido não possui registro de assistido",
+                field="assistido"
             )
 
         assistido_update_data = assistido_input.model_dump(exclude_none=True)

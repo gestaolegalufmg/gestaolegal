@@ -35,18 +35,11 @@
 			const formValues = Object.fromEntries(formData);
 
 			try {
-				const response = await api.put(`user/${userId}/password`, {
+				const response = await api.put<void>(`user/${userId}/password`, {
 					currentPassword: formValues.currentPassword,
 					newPassword: formValues.newPassword,
 					fromAdmin: isAdmin && !isOwnProfile
 				});
-
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao alterar senha');
-					onError?.(errorData);
-					return;
-				}
 
 				toast.success('Senha alterada com sucesso!');
 				goto(`/usuarios/${userId}`);

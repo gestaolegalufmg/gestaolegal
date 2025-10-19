@@ -14,7 +14,8 @@
 	import { TIPO_EVENTO } from '$lib/constants/tipo_evento';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import { toast } from 'svelte-sonner';
-	import { api } from '$lib/api-client';
+	import { api, apiFetch } from '$lib/api-client';
+	import { ApiException } from '$lib/types';
 
 	let { data }: PageProps = $props();
 	const { caso, eventoFormData, eventos: initialEventos } = data;
@@ -113,21 +114,20 @@
 		formData.append('arquivo', file);
 
 		try {
-			const response = await api.post(`caso/${caso.id}/arquivos`, formData, {
+			const newArquivo = await api.post<any>(`caso/${caso.id}/arquivos`, formData, {
 				headers: {}
 			});
 
-			if (!response.ok) {
-				throw new Error('Erro ao enviar arquivo');
-			}
-
-			const newArquivo = await response.json();
 			arquivos = [...arquivos, newArquivo];
 			toast.success('Arquivo enviado com sucesso');
 			fileInput.value = '';
-		} catch (error) {
-			toast.error('Erro ao enviar arquivo');
-			console.error(error);
+		} catch (err) {
+			if (err instanceof ApiException) {
+				toast.error(err.message);
+			} else {
+				toast.error('Erro ao enviar arquivo');
+				console.error(err);
+			}
 		} finally {
 			isUploading = false;
 		}
@@ -135,7 +135,8 @@
 
 	async function handleDownload(arquivo: any) {
 		try {
-			const response = await api.get(`caso/${caso.id}/arquivos/${arquivo.id}/download`);
+			const response = await apiFetch(`caso/${caso.id}/arquivos/${arquivo.id}/download`);
+
 			if (!response.ok) {
 				throw new Error('Erro ao baixar arquivo');
 			}
@@ -159,17 +160,16 @@
 		if (!confirm('Tem certeza que deseja deletar este arquivo?')) return;
 
 		try {
-			const response = await api.delete(`caso/${caso.id}/arquivos/${arquivoId}`);
-
-			if (!response.ok) {
-				throw new Error('Erro ao deletar arquivo');
-			}
-
+			await api.delete(`caso/${caso.id}/arquivos/${arquivoId}`);
 			arquivos = arquivos.filter((a) => a.id !== arquivoId);
 			toast.success('Arquivo deletado com sucesso');
-		} catch (error) {
-			toast.error('Erro ao deletar arquivo');
-			console.error(error);
+		} catch (err) {
+			if (err instanceof ApiException) {
+				toast.error(err.message);
+			} else {
+				toast.error('Erro ao deletar arquivo');
+				console.error(err);
+			}
 		}
 	}
 </script>

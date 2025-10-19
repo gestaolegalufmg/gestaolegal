@@ -1,20 +1,22 @@
 import { error } from '@sveltejs/kit';
 import type { Paginated, User } from '$lib/types';
 import { api } from '$lib/api-client';
+import { ApiException } from '$lib/types';
 
 export const load = async ({ url, fetch }) => {
 	const urlParams = url.searchParams;
 
-	const response = await api.get(`user?${urlParams.toString()}`, {}, fetch);
+	try {
+		const data = await api.get<Paginated<User>>(`user?${urlParams.toString()}`, {}, fetch);
 
-	if (!response.ok) {
-		error(response.status, 'Falha ao carregar usuários');
+		return {
+			users: data,
+			canManageUsers: true
+		};
+	} catch (err) {
+		if (err instanceof ApiException) {
+			error(err.statusCode || 500, err.message);
+		}
+		throw err;
 	}
-
-	const data: Paginated<User> = await response.json();
-
-	return {
-		users: data,
-		canManageUsers: true
-	};
 };

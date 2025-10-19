@@ -5,6 +5,7 @@
 	import { loginSchema, type LoginData } from '$lib/forms/schemas/login-schema';
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/api-client';
+	import { ApiException } from '$lib/types';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import { superForm } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
@@ -21,15 +22,8 @@
 			const payload = Object.fromEntries(formData) as LoginData;
 
 			try {
-				const response = await api.post('auth/login', payload);
+				const responseData = await api.post<{ token: string; user: any }>('auth/login', payload);
 
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Credenciais inválidas');
-					return;
-				}
-
-				const responseData = await response.json();
 				if (responseData?.token && typeof document !== 'undefined') {
 					const maxAge = 60 * 60 * 8; // 8 hours
 					const secureFlag =
@@ -43,9 +37,13 @@
 
 				const redirectTo = page.url.searchParams.get('redirectTo') || '/';
 				goto(redirectTo);
-			} catch (error) {
-				console.error('Login error:', error);
-				toast.error('Erro ao fazer login. Por favor, tente novamente.');
+			} catch (err) {
+				if (err instanceof ApiException) {
+					toast.error(err.message);
+				} else {
+					console.error('Login error:', err);
+					toast.error('Erro ao fazer login. Por favor, tente novamente.');
+				}
 			}
 		}
 	});

@@ -9,7 +9,8 @@
 	import * as Form from '$lib/components/ui/form';
 	import type { FieldProps } from 'formsnap';
 	import type { FormPath } from 'sveltekit-superforms';
-	import { apiFetch } from '$lib/api-client';
+	import { api } from '$lib/api-client';
+	import { ApiException } from '$lib/types';
 
 	let {
 		selectedIds = $bindable([]),
@@ -51,16 +52,17 @@
 	async function fetchItems(searchTerm: string = '') {
 		loading = true;
 		try {
-			const response = await apiFetch(
+			const data = await api.get<{ items: Atendido[] }>(
 				`${apiEndpoint}?search=${encodeURIComponent(searchTerm)}&per_page=50`
 			);
-			if (response.ok) {
-				const data = await response.json();
-				items = data.items || [];
-				syncSelectedItemsData();
+			items = data.items || [];
+			syncSelectedItemsData();
+		} catch (err) {
+			if (err instanceof ApiException) {
+				console.error('Error fetching items:', err.message);
+			} else {
+				console.error('Error fetching items:', err);
 			}
-		} catch (error) {
-			console.error('Error fetching items:', error);
 		} finally {
 			loading = false;
 		}

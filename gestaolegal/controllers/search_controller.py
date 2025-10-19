@@ -8,6 +8,7 @@ from gestaolegal.services.caso_service import CasoService
 from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
 from gestaolegal.services.usuario_service import UsuarioService
 from gestaolegal.utils.api_decorators import authenticated
+from gestaolegal.utils.api_response import success_response
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +23,14 @@ def global_search():
     limit = request.args.get("limit", default=5, type=int)
 
     if not query or len(query.strip()) < 2:
-        return {
+        return success_response(data={
             "results": {
                 "atendidos": [],
                 "casos": [],
                 "orientacoes_juridicas": [],
                 "usuarios": [],
             }
-        }
+        })
 
     atendido_service = AtendidoService()
     caso_service = CasoService()
@@ -56,7 +57,7 @@ def global_search():
         search=query, page_params=page_params, show_inactive=False
     )
 
-    return {
+    return success_response(data={
         "query": query,
         "results": {
             "atendidos": {
@@ -79,4 +80,4 @@ def global_search():
                 "total": usuarios_result.total,
             },
         },
-    }
+    })
