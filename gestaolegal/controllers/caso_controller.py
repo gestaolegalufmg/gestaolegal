@@ -44,11 +44,11 @@ def get():
     )
     user = request.args.get("user", default=None, type=str)
 
-    id_usuario_responsavel = None
+    responsible_user = None
     if user == "me":
-        id_usuario_responsavel = current_user.id
+        responsible_user = current_user.id
     elif user is not None and user.isdigit():
-        id_usuario_responsavel = int(user)
+        responsible_user = int(user)
 
     caso_service = CasoService()
     result = caso_service.search(
@@ -56,7 +56,7 @@ def get():
         search=search,
         show_inactive=show_inactive.value,
         situacao_deferimento=situacao_deferimento,
-        id_usuario_responsavel=id_usuario_responsavel,
+        responsible_user=responsible_user,
     )
 
     return success_response(data=result.to_dict())

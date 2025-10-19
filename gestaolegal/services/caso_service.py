@@ -67,10 +67,10 @@ class CasoService:
         search: str = "",
         show_inactive: bool = False,
         situacao_deferimento: str | None = None,
-        id_usuario_responsavel: int | None = None,
+        responsible_user: int | None = None,
     ) -> PaginatedResult[Caso]:
         logger.info(
-            f"Searching casos with search: '{search}', situacao_deferimento: {situacao_deferimento}, id_usuario_responsavel: {id_usuario_responsavel}, show_inactive: {show_inactive}, page: {page_params['page']}, per_page: {page_params['per_page']}"
+            f"Searching casos with search: '{search}', situacao_deferimento: {situacao_deferimento}, responsible_user: {responsible_user}, show_inactive: {show_inactive}, page: {page_params['page']}, per_page: {page_params['per_page']}"
         )
         clauses: list[WhereClause | ComplexWhereClause] = []
 
@@ -86,12 +86,12 @@ class CasoService:
                 )
             )
 
-        if id_usuario_responsavel is not None:
+        if responsible_user is not None:
             clauses.append(
                 WhereClause(
                     column="id_usuario_responsavel",
                     operator="==",
-                    value=id_usuario_responsavel,
+                    value=responsible_user,
                 )
             )
 
