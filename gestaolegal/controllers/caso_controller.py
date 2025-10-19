@@ -1,15 +1,19 @@
-import logging
 import os
 from dataclasses import asdict
 from datetime import datetime
 from typing import Any, cast
 
 from dateutil import parser
-from flask import Blueprint, make_response, request, send_file
+from flask import Blueprint, request, send_file
 from werkzeug.utils import secure_filename
 
 from gestaolegal.common import PageParams
 from gestaolegal.config import Config
+from gestaolegal.exceptions import (
+    FileOperationException,
+    NotFoundException,
+    ValidationException,
+)
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
@@ -18,10 +22,9 @@ from gestaolegal.services.caso_service import CasoService
 from gestaolegal.services.evento_service import EventoService
 from gestaolegal.services.processo_service import ProcessoService
 from gestaolegal.utils.api_decorators import authenticated, authorized
+from gestaolegal.utils.api_response import success_response
 from gestaolegal.utils.request_context import RequestContext
 from gestaolegal.utils.StringBool import StringBool
-
-logger = logging.getLogger(__name__)
 
 caso_controller = Blueprint("caso_api", __name__)
 
@@ -40,25 +43,25 @@ def get():
     )
 
     caso_service = CasoService()
-
-    return caso_service.search(
+    result = caso_service.search(
         page_params=PageParams(page=page, per_page=per_page),
         search=search,
         show_inactive=show_inactive.value,
         situacao_deferimento=situacao_deferimento,
-    ).to_dict()
+    )
+
+    return success_response(data=result.to_dict())
 
 
 @caso_controller.route("/<int:id>", methods=["GET"])
 @authenticated
 def find_by_id(id: int):
     caso_service = CasoService()
-
     caso = caso_service.find_by_id(id)
     if not caso:
-        return make_response("Caso não encontrado", 404)
+        raise NotFoundException(resource="Caso", resource_id=id)
 
-    return asdict(caso)
+    return success_response(data=asdict(caso))
 
 
 @caso_controller.route("/", methods=["POST"])
@@ -67,15 +70,11 @@ def create():
     current_user: UserInfo = RequestContext.get_current_user()
     caso_service = CasoService()
 
-    try:
-        json_data = cast(dict[str, Any], request.get_json(force=True))
-        caso_input = CasoCreateInput(**json_data)
-        caso = caso_service.create(caso_input, criado_por_id=current_user.id)
-    except Exception as e:
-        logger.error(f"Error creating caso: {str(e)}", exc_info=True)
-        return make_response(str(e), 500)
+    json_data = cast(dict[str, Any], request.get_json(force=True))
+    caso_input = CasoCreateInput(**json_data)
+    caso = caso_service.create(caso_input, criado_por_id=current_user.id)
 
-    return asdict(caso)
+    return success_response(data=asdict(caso), message="Caso criado com sucesso", status_code=201)
 
 
 @caso_controller.route("/<int:id>", methods=["PUT"])
@@ -84,32 +83,22 @@ def update(id: int):
     current_user: UserInfo = RequestContext.get_current_user()
     caso_service = CasoService()
 
-    try:
-        json_data = cast(dict[str, Any], request.get_json(force=True))
-        caso_input = CasoUpdateInput(**json_data)
-        caso = caso_service.update(id, caso_input, modificado_por_id=current_user.id)
-    except ValueError as e:
-        return make_response(str(e), 404)
-    except Exception as e:
-        logger.error(f"Error updating caso {id}: {str(e)}", exc_info=True)
-        return make_response(str(e), 500)
+    json_data = cast(dict[str, Any], request.get_json(force=True))
+    caso_input = CasoUpdateInput(**json_data)
+    caso = caso_service.update(id, caso_input, modificado_por_id=current_user.id)
 
-    if not caso:
-        return make_response("Erro ao atualizar caso", 404)
-
-    return asdict(caso)
+    return success_response(data=asdict(caso), message="Caso atualizado com sucesso")
 
 
 @caso_controller.route("/<int:id>", methods=["DELETE"])
 @authorized("admin")
 def delete(id: int):
     caso_service = CasoService()
-    result = caso_service.soft_delete(id)
+    deleted = caso_service.soft_delete(id)
+    if not deleted:
+        raise NotFoundException(resource="Caso", resource_id=id)
 
-    if not result:
-        return make_response("Caso não encontrado", 404)
-
-    return make_response("Caso inativado com sucesso", 200)
+    return success_response(message="Caso inativado com sucesso")
 
 
 @caso_controller.route("/<int:id>/deferir", methods=["PATCH"])
@@ -117,19 +106,11 @@ def delete(id: int):
 def deferir(id: int):
     current_user: UserInfo = RequestContext.get_current_user()
     caso_service = CasoService()
-
-    try:
-        caso = caso_service.deferir(id, modificado_por_id=current_user.id)
-    except ValueError as e:
-        return make_response(str(e), 404)
-    except Exception as e:
-        logger.error(f"Error deferring caso {id}: {str(e)}", exc_info=True)
-        return make_response(str(e), 500)
-
+    caso = caso_service.deferir(id, modificado_por_id=current_user.id)
     if not caso:
-        return make_response("Erro ao deferir caso", 404)
+        raise NotFoundException(resource="Caso", resource_id=id)
 
-    return asdict(caso)
+    return success_response(data=asdict(caso), message="Caso deferido com sucesso")
 
 
 @caso_controller.route("/<int:id>/indeferir", methods=["PATCH"])
@@ -138,23 +119,18 @@ def indeferir(id: int):
     current_user: UserInfo = RequestContext.get_current_user()
     caso_service = CasoService()
 
-    try:
-        json_data = cast(dict[str, Any], request.get_json(force=True))
-        justificativa = json_data.get("justif_indeferimento", "")
+    json_data = cast(dict[str, Any], request.get_json(force=True))
+    justificativa = json_data.get("justif_indeferimento", "")
 
-        caso = caso_service.indeferir(
-            id, justificativa=justificativa, modificado_por_id=current_user.id
-        )
-    except ValueError as e:
-        return make_response(str(e), 404)
-    except Exception as e:
-        logger.error(f"Error indeferring caso {id}: {str(e)}", exc_info=True)
-        return make_response(str(e), 500)
-
+    caso = caso_service.indeferir(
+        id, justificativa=justificativa, modificado_por_id=current_user.id
+    )
     if not caso:
-        return make_response("Erro ao indeferir caso", 404)
+        raise NotFoundException(resource="Caso", resource_id=id)
 
-    return asdict(caso)
+    return success_response(
+        data=asdict(caso), message="Caso indeferido com sucesso"
+    )
 
 
 @caso_controller.route("/<int:caso_id>/processos", methods=["GET"])
@@ -169,12 +145,14 @@ def get_processos_by_caso(caso_id: int):
         "show_inactive", default=StringBool("false"), type=StringBool
     )
 
-    return processo_service.search_by_caso(
+    result = processo_service.search_by_caso(
         page_params=PageParams(page=page, per_page=per_page),
         caso_id=caso_id,
         search=search,
         show_inactive=show_inactive.value,
-    ).to_dict()
+    )
+
+    return success_response(data=result.to_dict())
 
 
 @caso_controller.route("/<int:caso_id>/processos", methods=["POST"])
@@ -183,19 +161,19 @@ def create_processo(caso_id: int):
     current_user: UserInfo = RequestContext.get_current_user()
     processo_service = ProcessoService()
 
-    try:
-        json_data = cast(dict[str, Any], request.get_json(force=True))
-        processo_input = ProcessoCreateInput(**json_data)
-        processo = processo_service.create(
-            caso_id=caso_id,
-            processo_input=processo_input,
-            criado_por_id=current_user.id,
-        )
-    except Exception as e:
-        logger.error(f"Error creating processo: {str(e)}", exc_info=True)
-        return make_response(str(e), 500)
+    json_data = cast(dict[str, Any], request.get_json(force=True))
+    processo_input = ProcessoCreateInput(**json_data)
+    processo = processo_service.create(
+        caso_id=caso_id,
+        processo_input=processo_input,
+        criado_por_id=current_user.id,
+    )
 
-    return asdict(processo)
+    return success_response(
+        data=asdict(processo),
+        message="Processo criado com sucesso",
+        status_code=201,
+    )
 
 
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["GET"])
@@ -205,9 +183,9 @@ def get_processo(caso_id: int, processo_id: int):
 
     processo = processo_service.validate_processo_for_caso(processo_id, caso_id)
     if not processo:
-        return make_response("Processo não encontrado ou não pertence ao caso", 404)
+        raise NotFoundException(resource="Processo", resource_id=processo_id)
 
-    return asdict(processo)
+    return success_response(data=asdict(processo))
 
 
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["PUT"])
@@ -215,27 +193,21 @@ def get_processo(caso_id: int, processo_id: int):
 def update_processo(caso_id: int, processo_id: int):
     processo_service = ProcessoService()
 
-    try:
-        json_data = cast(dict[str, Any], request.get_json(force=True))
-        processo_input = ProcessoUpdateInput(**json_data)
+    existing_processo = processo_service.validate_processo_for_caso(
+        processo_id, caso_id
+    )
+    if not existing_processo:
+        raise NotFoundException(resource="Processo", resource_id=processo_id)
 
-        existing_processo = processo_service.validate_processo_for_caso(
-            processo_id, caso_id
-        )
-        if not existing_processo:
-            return make_response("Processo não encontrado ou não pertence ao caso", 404)
-
-        processo = processo_service.update(processo_id, processo_input)
-    except ValueError as e:
-        return make_response(str(e), 404)
-    except Exception as e:
-        logger.error(f"Error updating processo {processo_id}: {str(e)}", exc_info=True)
-        return make_response(str(e), 500)
-
+    json_data = cast(dict[str, Any], request.get_json(force=True))
+    processo_input = ProcessoUpdateInput(**json_data)
+    processo = processo_service.update(processo_id, processo_input)
     if not processo:
-        return make_response("Erro ao atualizar processo", 404)
+        raise NotFoundException(resource="Processo", resource_id=processo_id)
 
-    return asdict(processo)
+    return success_response(
+        data=asdict(processo), message="Processo atualizado com sucesso"
+    )
 
 
 @caso_controller.route("/<int:caso_id>/processos/<int:processo_id>", methods=["DELETE"])
@@ -247,14 +219,14 @@ def delete_processo(caso_id: int, processo_id: int):
         processo_id, caso_id
     )
     if not existing_processo:
-        return make_response("Processo não encontrado ou não pertence ao caso", 404)
+        raise NotFoundException(resource="Processo", resource_id=processo_id)
 
     result = processo_service.soft_delete(processo_id)
 
     if not result:
-        return make_response("Processo não encontrado", 404)
+        raise NotFoundException(resource="Processo", resource_id=processo_id)
 
-    return make_response("Processo inativado com sucesso", 200)
+    return success_response(message="Processo inativado com sucesso")
 
 
 @caso_controller.route("/<int:caso_id>/eventos", methods=["POST"])
@@ -264,44 +236,42 @@ def create_evento(caso_id: int):
     evento_service = EventoService()
     EVENTO_FILES_DIR = os.path.join(Config.STATIC_ROOT_DIR, "eventos")
 
-    try:
-        form_data: dict[str, Any] = {
-            "tipo": request.form.get("tipo"),
-            "data_evento": request.form.get("data_evento"),
-            "status": request.form.get("status", "true").lower() == "true",
-            "descricao": request.form.get("descricao"),
-        }
+    form_data: dict[str, Any] = {
+        "tipo": request.form.get("tipo"),
+        "data_evento": request.form.get("data_evento"),
+        "status": request.form.get("status", "true").lower() == "true",
+        "descricao": request.form.get("descricao"),
+    }
 
-        id_usuario_responsavel = request.form.get("id_usuario_responsavel")
-        form_data["id_usuario_responsavel"] = (
-            int(id_usuario_responsavel) if id_usuario_responsavel else None
-        )
+    id_usuario_responsavel = request.form.get("id_usuario_responsavel")
+    form_data["id_usuario_responsavel"] = (
+        int(id_usuario_responsavel) if id_usuario_responsavel else None
+    )
 
-        if "arquivo" in request.files:
-            file = request.files["arquivo"]
-            if file and file.filename:
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"{timestamp}_{filename}"
+    if "arquivo" in request.files:
+        file = request.files["arquivo"]
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{timestamp}_{filename}"
 
-                os.makedirs(EVENTO_FILES_DIR, exist_ok=True)
+            os.makedirs(EVENTO_FILES_DIR, exist_ok=True)
 
-                filepath = os.path.join(EVENTO_FILES_DIR, filename)
-                file.save(filepath)
+            filepath = os.path.join(EVENTO_FILES_DIR, filename)
+            file.save(filepath)
 
-                form_data["arquivo"] = filepath
+            form_data["arquivo"] = filepath
 
-        evento_input = EventoCreateInput(**form_data)
-        evento = evento_service.create(
-            caso_id=caso_id,
-            evento_input=evento_input,
-            criado_por_id=current_user.id,
-        )
-    except Exception as e:
-        logger.error(f"Error creating evento: {str(e)}", exc_info=True)
-        return make_response(str(e), 500)
+    evento_input = EventoCreateInput(**form_data)
+    evento = evento_service.create(
+        caso_id=caso_id,
+        evento_input=evento_input,
+        criado_por_id=current_user.id,
+    )
 
-    return asdict(evento)
+    return success_response(
+        data=asdict(evento), message="Evento criado com sucesso", status_code=201
+    )
 
 
 @caso_controller.route("/<int:caso_id>/eventos", methods=["GET"])
@@ -312,10 +282,12 @@ def get_eventos_by_caso(caso_id: int):
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
 
-    return evento_service.find_by_caso_id(
+    result = evento_service.find_by_caso_id(
         caso_id=caso_id,
         page_params=PageParams(page=page, per_page=per_page),
-    ).to_dict()
+    )
+
+    return success_response(data=result.to_dict())
 
 
 @caso_controller.route("/<int:caso_id>/eventos/<int:evento_id>", methods=["GET"])
@@ -325,9 +297,9 @@ def get_evento(caso_id: int, evento_id: int):
 
     evento = evento_service.validate_evento_for_caso(evento_id, caso_id)
     if not evento:
-        return make_response("Evento não encontrado ou não pertence ao caso", 404)
+        raise NotFoundException(resource="Evento", resource_id=evento_id)
 
-    return asdict(evento)
+    return success_response(data=asdict(evento))
 
 
 @caso_controller.route("/<int:caso_id>/eventos/<int:evento_id>", methods=["PUT"])
@@ -336,62 +308,60 @@ def update_evento(caso_id: int, evento_id: int):
     evento_service = EventoService()
     EVENTO_FILES_DIR = os.path.join(Config.STATIC_ROOT_DIR, "eventos")
 
-    try:
-        existing_evento = evento_service.validate_evento_for_caso(evento_id, caso_id)
-        if not existing_evento:
-            logger.error(f"Evento not found with id: {evento_id}")
-            return make_response("Evento não encontrado ou não pertence ao caso", 404)
+    existing_evento = evento_service.validate_evento_for_caso(evento_id, caso_id)
+    if not existing_evento:
+        raise NotFoundException(resource="Evento", resource_id=evento_id)
 
-        form_data: dict[str, Any] = {}
+    form_data: dict[str, Any] = {}
 
-        if request.form.get("tipo"):
-            form_data["tipo"] = request.form.get("tipo")
+    if request.form.get("tipo"):
+        form_data["tipo"] = request.form.get("tipo")
 
-        if request.form.get("data_evento"):
-            form_data["data_evento"] = request.form.get("data_evento")
+    if request.form.get("data_evento"):
+        form_data["data_evento"] = request.form.get("data_evento")
 
-        if request.form.get("descricao"):
-            form_data["descricao"] = request.form.get("descricao")
+    if request.form.get("descricao"):
+        form_data["descricao"] = request.form.get("descricao")
 
-        if request.form.get("id_usuario_responsavel"):
-            form_data["id_usuario_responsavel"] = int(
-                request.form.get("id_usuario_responsavel")
-            )
+    if request.form.get("id_usuario_responsavel"):
+        form_data["id_usuario_responsavel"] = int(
+            request.form.get("id_usuario_responsavel")
+        )
 
-        if request.form.get("status"):
-            form_data["status"] = request.form.get("status", "true").lower() == "true"
+    if request.form.get("status"):
+        form_data["status"] = request.form.get("status", "true").lower() == "true"
 
-        if "arquivo" in request.files:
-            file = request.files["arquivo"]
-            if file and file.filename:
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"{timestamp}_{filename}"
+    if "arquivo" in request.files:
+        file = request.files["arquivo"]
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{timestamp}_{filename}"
 
-                os.makedirs(EVENTO_FILES_DIR, exist_ok=True)
+            os.makedirs(EVENTO_FILES_DIR, exist_ok=True)
 
-                filepath = os.path.join(EVENTO_FILES_DIR, filename)
-                file.save(filepath)
+            filepath = os.path.join(EVENTO_FILES_DIR, filename)
+            file.save(filepath)
 
-                form_data["arquivo"] = filepath
+            form_data["arquivo"] = filepath
 
-        data_evento = form_data.get("data_evento")
-        if data_evento:
-            form_data["data_evento"] = parser.parse(data_evento)
+    data_evento = form_data.get("data_evento")
+    if data_evento:
+        try:
+            form_data["data_evento"] = parser.parse(data_evento).date()
+        except (ValueError, TypeError) as exc:
+            raise ValidationException(
+                "Data de evento inválida", field="data_evento"
+            ) from exc
 
-        evento_input = EventoUpdateInput(**form_data)
-        evento = evento_service.update(evento_id, evento_input)
-    except ValueError as e:
-        logger.error(f"Error updating evento {evento_id}: {str(e)}", exc_info=True)
-        return make_response(str(e), 404)
-    except Exception as e:
-        logger.error(f"Error updating evento {evento_id}: {str(e)}", exc_info=True)
-        return make_response(str(e), 500)
-
+    evento_input = EventoUpdateInput(**form_data)
+    evento = evento_service.update(evento_id, evento_input)
     if not evento:
-        return make_response("Erro ao atualizar evento", 404)
+        raise NotFoundException(resource="Evento", resource_id=evento_id)
 
-    return asdict(evento)
+    return success_response(
+        data=asdict(evento), message="Evento atualizado com sucesso"
+    )
 
 
 @caso_controller.route(
@@ -404,7 +374,9 @@ def download_evento_file(caso_id: int, evento_id: int):
     filepath, message = evento_service.get_evento_file_for_download(evento_id, caso_id)
 
     if not filepath:
-        return make_response(message, 404)
+        if message == "Evento não encontrado ou não pertence ao caso":
+            raise NotFoundException(resource="Evento", resource_id=evento_id)
+        raise FileOperationException(message, operation="download")
 
     return send_file(filepath, as_attachment=True)
 
@@ -415,7 +387,7 @@ def get_arquivos_by_caso(caso_id: int):
     caso_service = CasoService()
     arquivos = caso_service.find_arquivos_by_caso_id(caso_id)
 
-    return {"arquivos": [asdict(arquivo) for arquivo in arquivos]}
+    return success_response(data={"arquivos": [asdict(arquivo) for arquivo in arquivos]})
 
 
 @caso_controller.route("/<int:caso_id>/arquivos", methods=["POST"])
@@ -424,15 +396,16 @@ def upload_arquivo_caso(caso_id: int):
     caso_service = CasoService()
 
     if "arquivo" not in request.files:
-        return make_response("Nenhum arquivo enviado", 400)
+        raise ValidationException("Nenhum arquivo enviado", field="arquivo")
 
     file = request.files["arquivo"]
-    arquivo, message = caso_service.upload_arquivo(caso_id, file)
+    arquivo = caso_service.upload_arquivo(caso_id, file)
 
-    if not arquivo:
-        return make_response(message, 404 if "não encontrado" in message else 400)
-
-    return asdict(arquivo)
+    return success_response(
+        data=asdict(arquivo),
+        message="Arquivo carregado com sucesso",
+        status_code=201,
+    )
 
 
 @caso_controller.route(
@@ -441,10 +414,7 @@ def upload_arquivo_caso(caso_id: int):
 @authenticated
 def download_arquivo_caso(caso_id: int, arquivo_id: int):
     caso_service = CasoService()
-    filepath, message = caso_service.get_arquivo_for_download(arquivo_id, caso_id)
-
-    if not filepath:
-        return make_response(message, 404)
+    filepath = caso_service.get_arquivo_for_download(arquivo_id, caso_id)
 
     return send_file(filepath, as_attachment=True)
 
@@ -453,9 +423,6 @@ def download_arquivo_caso(caso_id: int, arquivo_id: int):
 @authenticated
 def delete_arquivo_caso(caso_id: int, arquivo_id: int):
     caso_service = CasoService()
-    success, message = caso_service.delete_arquivo(arquivo_id, caso_id)
+    caso_service.delete_arquivo(arquivo_id, caso_id)
 
-    if not success:
-        return make_response(message, 404)
-
-    return make_response(message, 200)
+    return success_response(message="Arquivo removido com sucesso")

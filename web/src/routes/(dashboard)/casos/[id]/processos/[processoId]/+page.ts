@@ -1,15 +1,22 @@
 import { error } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 import { api } from '$lib/api-client';
+import { ApiException } from '$lib/types';
+import type { Processo } from '$lib/types';
 
 export const load: PageLoad = async ({ params, fetch }) => {
-	const response = await api.get(`caso/${params.id}/processos/${params.processoId}`, {}, fetch);
+	try {
+		const processo = await api.get<Processo>(
+			`caso/${params.id}/processos/${params.processoId}`,
+			{},
+			fetch
+		);
 
-	if (!response.ok) {
-		error(404, 'Processo não encontrado');
+		return { processo };
+	} catch (err) {
+		if (err instanceof ApiException) {
+			error(err.statusCode || 404, err.message);
+		}
+		throw err;
 	}
-
-	const processo = await response.json();
-
-	return { processo };
 };

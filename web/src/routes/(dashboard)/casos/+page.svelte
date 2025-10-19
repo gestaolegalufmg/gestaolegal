@@ -15,6 +15,8 @@
 	import { AREA_BADGE_MAP } from '$lib/constants';
 	import IndeferirCasoDialog from '$lib/components/indeferir-caso-dialog.svelte';
 	import { api } from '$lib/api-client';
+	import { ApiException } from '$lib/types';
+	import { toast } from 'svelte-sonner';
 	import Input from '$lib/components/ui/input/input.svelte';
 	import { page } from '$app/state';
 	import * as Select from '$lib/components/ui/select';
@@ -62,14 +64,18 @@
 	}
 
 	async function handleDeferir(id: number) {
-		const response = await api.patch(`caso/${id}/deferir`);
-
-		if (!response.ok) {
-			console.error('Failed to defer caso:', response.statusText);
-			return;
+		try {
+			await api.patch(`caso/${id}/deferir`);
+			toast.success('Caso deferido com sucesso!');
+			applyFilters();
+		} catch (err) {
+			if (err instanceof ApiException) {
+				toast.error(err.message);
+			} else {
+				toast.error('Erro ao deferir caso');
+				console.error(err);
+			}
 		}
-
-		applyFilters();
 	}
 
 	function openIndeferirDialog(id: number) {
@@ -80,17 +86,21 @@
 	async function handleIndeferir(justificativa: string) {
 		if (!casoToIndeferir) return;
 
-		const response = await api.patch(`caso/${casoToIndeferir}/indeferir`, {
-			justif_indeferimento: justificativa
-		});
-
-		if (!response.ok) {
-			console.error('Failed to indefer caso:', response.statusText);
-			return;
+		try {
+			await api.patch(`caso/${casoToIndeferir}/indeferir`, {
+				justif_indeferimento: justificativa
+			});
+			toast.success('Caso indeferido com sucesso!');
+			casoToIndeferir = null;
+			applyFilters();
+		} catch (err) {
+			if (err instanceof ApiException) {
+				toast.error(err.message);
+			} else {
+				toast.error('Erro ao indeferir caso');
+				console.error(err);
+			}
 		}
-
-		casoToIndeferir = null;
-		applyFilters();
 	}
 </script>
 

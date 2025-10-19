@@ -9,6 +9,7 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { get } from 'svelte/store';
+	import type { Caso } from '$lib/types';
 
 	let {
 		data,
@@ -40,26 +41,17 @@
 
 			try {
 				const response = isCreateMode
-					? await api.post(`caso/${casoId}/processos`, payload)
-					: await api.put(`caso/${casoId}/processos/${processoId}`, payload);
+					? await api.post<Caso>(`caso/${casoId}/processos`, payload)
+					: await api.put<Caso>(`caso/${casoId}/processos/${processoId}`, payload);
 
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao salvar processo');
-					onError?.(errorData);
-					return;
-				}
-
-				const responseData = await response.json();
 				toast.success(
 					isCreateMode ? 'Processo criado com sucesso!' : 'Processo atualizado com sucesso!'
 				);
 
-				// Use custom onUpdate callback if provided
 				if (onUpdate) {
-					onUpdate(responseData);
+					onUpdate(response);
 				} else {
-					goto(`/casos/${casoId}/processos/${responseData.id}`);
+					goto(`/casos/${casoId}/processos/${response.id}`);
 				}
 			} catch (error) {
 				console.error('Processo form error:', error);

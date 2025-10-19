@@ -4,16 +4,25 @@ from typing import Any
 from flask.testing import FlaskClient
 
 from .conftest import TEST_NON_ADMIN_EMAIL
+from tests.api.conftest import get_success_data, assert_success_response
+
+
+def _create_user(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    user_payload: dict[str, Any],
+):
+    response = client.post("/api/user/", json=user_payload, headers=auth_headers)
+    assert response.status_code == 201
+    data = get_success_data(response)
+    assert data is not None
+    return data
 
 
 def test_create_user_success(
     client: FlaskClient, auth_headers: dict[str, str], sample_user_data: dict[str, Any]
 ) -> None:
-    response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
-
-    assert response.status_code == 200
-    data = response.json
-    assert data is not None
+    data = _create_user(client, auth_headers, sample_user_data)
     assert data["nome"] == "Test User"
     assert data["email"] == "test.user@gl.com"
     assert data["urole"] == "estag_direito"
@@ -47,18 +56,13 @@ def test_get_user_by_id(
 ) -> None:
     sample_user_data["id"] = random.randint(1, 1000000)
     sample_user_data["email"] = f"getbyid{sample_user_data['id']}@gl.com"
-    create_response = client.post(
-        "/api/user/", json=sample_user_data, headers=auth_headers
-    )
-
-    assert create_response.status_code == 200
-    assert create_response.json is not None
-    user_id = create_response.json["id"]
+    created_user = _create_user(client, auth_headers, sample_user_data)
+    user_id = created_user["id"]
 
     response = client.get(f"/api/user/{user_id}", headers=auth_headers)
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert data["nome"] == sample_user_data["nome"]
     assert data["email"] == sample_user_data["email"]
@@ -76,12 +80,8 @@ def test_update_user(
 ) -> None:
     sample_user_data["id"] = random.randint(1, 1000000)
     sample_user_data["email"] = f"updateuser{sample_user_data['id']}@gl.com"
-    create_response = client.post(
-        "/api/user/", json=sample_user_data, headers=auth_headers
-    )
-    assert create_response.status_code == 200
-    assert create_response.json is not None
-    user_id = create_response.json["id"]
+    created_user = _create_user(client, auth_headers, sample_user_data)
+    user_id = created_user["id"]
 
     update_data = {"nome": "Updated Name", "profissao": "Advogado"}
     response = client.put(
@@ -89,7 +89,7 @@ def test_update_user(
     )
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert data["nome"] == "Updated Name"
     assert data["profissao"] == "Advogado"
@@ -103,20 +103,17 @@ def test_delete_user(
     sample_user_data["id"] = random.randint(1, 1000000)
     sample_user_data["email"] = f"deleteuser{sample_user_data['id']}@gl.com"
 
-    create_response = client.post(
-        "/api/user/", json=sample_user_data, headers=auth_headers
-    )
-    assert create_response.status_code == 200
-    assert create_response.json is not None
-    user_id = create_response.json["id"]
+    created_user = _create_user(client, auth_headers, sample_user_data)
+    user_id = created_user["id"]
 
     response = client.delete(f"/api/user/{user_id}", headers=auth_headers)
 
     assert response.status_code == 200
+    assert_success_response(response)
 
     get_response = client.get(f"/api/user/{user_id}", headers=auth_headers)
     assert get_response.status_code == 200
-    data = get_response.json
+    data = get_success_data(get_response)
     assert data is not None
     assert data["status"] is False
 
@@ -128,12 +125,12 @@ def test_search_users(
     sample_user_data["email"] = f"searchuser{sample_user_data['id']}@gl.com"
     sample_user_data["nome"] = f"Searchable User {sample_user_data['id']}"
 
-    client.post("/api/user/", json=sample_user_data, headers=auth_headers)
+    _create_user(client, auth_headers, sample_user_data)
 
     response = client.get("/api/user/?search=Searchable", headers=auth_headers)
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert "items" in data
     assert isinstance(data["items"], list)
@@ -160,11 +157,8 @@ def test_user_creation_with_all_roles(
         sample_user_data["nome"] = f"All Roles User {sample_user_data['id']}"
         user_data = {**sample_user_data, "urole": role}
 
-        response = client.post("/api/user/", json=user_data, headers=auth_headers)
-
-        assert response.status_code == 200, f"Failed to create user with role {role}"
-        data = response.json
-        assert data is not None
+        data = _create_user(client, auth_headers, user_data)
+        assert data is not None, f"Failed to create user with role {role}"
         assert data["urole"] == role
         assert "id" in data
         assert isinstance(data["id"], int)
@@ -174,7 +168,7 @@ def test_get_me_endpoint(client: FlaskClient, auth_headers: dict[str, str]) -> N
     response = client.get("/api/user/me", headers=auth_headers)
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert "id" in data
     assert "email" in data
@@ -187,7 +181,7 @@ def test_get_me_endpoint_non_admin(
     response = client.get("/api/user/me", headers=non_admin_auth_headers)
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert data["email"] == TEST_NON_ADMIN_EMAIL
 
@@ -198,12 +192,8 @@ def test_change_password(
     sample_user_data["id"] = random.randint(1, 1000000)
     sample_user_data["email"] = f"changepassworduser{sample_user_data['id']}@gl.com"
 
-    create_response = client.post(
-        "/api/user/", json=sample_user_data, headers=auth_headers
-    )
-    assert create_response.status_code == 200
-    assert create_response.json is not None
-    user_id = create_response.json["id"]
+    created_user = _create_user(client, auth_headers, sample_user_data)
+    user_id = created_user["id"]
 
     password_data = {"newPassword": "newPassword123", "fromAdmin": True}
 
@@ -212,6 +202,7 @@ def test_change_password(
     )
 
     assert response.status_code == 200
+    assert_success_response(response)
 
 
 def test_update_user_without_changes(
@@ -221,12 +212,8 @@ def test_update_user_without_changes(
     sample_user_data["email"] = f"nochangesuser{sample_user_data['id']}@gl.com"
     sample_user_data["nome"] = f"No Changes User {sample_user_data['id']}"
 
-    create_response = client.post(
-        "/api/user/", json=sample_user_data, headers=auth_headers
-    )
-    assert create_response.status_code == 200
-    assert create_response.json is not None
-    user_id = create_response.json["id"]
+    created_user = _create_user(client, auth_headers, sample_user_data)
+    user_id = created_user["id"]
 
     update_data = {}
     response = client.put(
@@ -234,7 +221,7 @@ def test_update_user_without_changes(
     )
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert data["nome"] == f"No Changes User {sample_user_data['id']}"
     assert data["email"] == sample_user_data["email"]
@@ -248,12 +235,8 @@ def test_update_user_partial_data(
     sample_user_data["email"] = f"partialupdateuser{sample_user_data['id']}@gl.com"
     sample_user_data["nome"] = f"Partial Update User {sample_user_data['id']}"
 
-    create_response = client.post(
-        "/api/user/", json=sample_user_data, headers=auth_headers
-    )
-    assert create_response.status_code == 200
-    assert create_response.json is not None
-    user_id = create_response.json["id"]
+    created_user = _create_user(client, auth_headers, sample_user_data)
+    user_id = created_user["id"]
 
     update_data = {"celular": "(11) 91111-2222"}
     response = client.put(
@@ -261,7 +244,7 @@ def test_update_user_partial_data(
     )
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert data["celular"] == "(11) 91111-2222"
     assert data["nome"] == f"Partial Update User {sample_user_data['id']}"
@@ -276,12 +259,8 @@ def test_update_user_address(
     sample_user_data["email"] = f"addressupdateuser{sample_user_data['id']}@gl.com"
     sample_user_data["nome"] = f"Address Update User {sample_user_data['id']}"
 
-    create_response = client.post(
-        "/api/user/", json=sample_user_data, headers=auth_headers
-    )
-    assert create_response.status_code == 200
-    assert create_response.json is not None
-    user_id = create_response.json["id"]
+    created_user = _create_user(client, auth_headers, sample_user_data)
+    user_id = created_user["id"]
 
     update_data = {
         "logradouro": "Rua Atualizada",
@@ -293,7 +272,7 @@ def test_update_user_address(
     )
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert data["nome"] == f"Address Update User {sample_user_data['id']}"
     assert data["endereco"]["logradouro"] == "Rua Atualizada"
@@ -309,32 +288,25 @@ def test_user_show_inactive_filter(
     sample_user_data["email"] = f"activeuser{sample_user_data['id']}@gl.com"
     sample_user_data["nome"] = f"Active User {sample_user_data['id']}"
 
-    active_response = client.post(
-        "/api/user/", json=sample_user_data, headers=auth_headers
-    )
-    assert active_response.status_code == 200
-    assert active_response.json is not None
-    active_user_id = active_response.json["id"]
+    active_user = _create_user(client, auth_headers, sample_user_data)
+    active_user_id = active_user["id"]
 
     inactive_user_data = {**sample_user_data, "status": False}
     inactive_user_data["email"] = f"inactiveuser{inactive_user_data['id']}@gl.com"
     inactive_user_data["nome"] = f"Inactive User {inactive_user_data['id']}"
 
-    inactive_response = client.post(
-        "/api/user/", json=inactive_user_data, headers=auth_headers
-    )
-    assert inactive_response.status_code == 200
-    assert inactive_response.json is not None
-    inactive_user_id = inactive_response.json["id"]
+    inactive_user = _create_user(client, auth_headers, inactive_user_data)
+    inactive_user_id = inactive_user["id"]
 
     delete_response = client.delete(
         f"/api/user/{inactive_user_id}", headers=auth_headers
     )
     assert delete_response.status_code == 200
+    assert_success_response(delete_response)
 
     search_response = client.get("/api/user/?show_inactive=false", headers=auth_headers)
     assert search_response.status_code == 200
-    data = search_response.json
+    data = get_success_data(search_response)
     assert data is not None
 
     user_ids = [user["id"] for user in data["items"]]
@@ -350,11 +322,7 @@ def test_user_creation_with_complemento_as_empty_string(
     sample_user_data["email"] = f"emptycomplemento{sample_user_data['id']}@gl.com"
     sample_user_data["complemento"] = ""
 
-    response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
-
-    assert response.status_code == 200
-    data = response.json
-    assert data is not None
+    data = _create_user(client, auth_headers, sample_user_data)
     assert "id" in data
 
 
@@ -366,11 +334,7 @@ def test_user_creation_with_complemento_as_null(
     sample_user_data["email"] = f"nullcomplemento{sample_user_data['id']}@gl.com"
     sample_user_data["complemento"] = None
 
-    response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
-
-    assert response.status_code == 200
-    data = response.json
-    assert data is not None
+    data = _create_user(client, auth_headers, sample_user_data)
     assert "id" in data
 
 
@@ -385,11 +349,7 @@ def test_bolsista_requires_bolsa_fields(
     sample_user_data["inicio_bolsa"] = "2024-01-01"
     sample_user_data["fim_bolsa"] = "2024-12-31"
 
-    response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
-
-    assert response.status_code == 200
-    data = response.json
-    assert data is not None
+    data = _create_user(client, auth_headers, sample_user_data)
     assert data["bolsista"] is True
     assert data["tipo_bolsa"] == "integral"
 
@@ -405,11 +365,7 @@ def test_non_bolsista_without_bolsa_fields(
     sample_user_data["inicio_bolsa"] = None
     sample_user_data["fim_bolsa"] = None
 
-    response = client.post("/api/user/", json=sample_user_data, headers=auth_headers)
-
-    assert response.status_code == 200
-    data = response.json
-    assert data is not None
+    data = _create_user(client, auth_headers, sample_user_data)
     assert data["bolsista"] is False
 
 
@@ -420,12 +376,8 @@ def test_user_update_with_individual_address_fields(
     sample_user_data["id"] = random.randint(1, 1000000)
     sample_user_data["email"] = f"addressfields{sample_user_data['id']}@gl.com"
 
-    create_response = client.post(
-        "/api/user/", json=sample_user_data, headers=auth_headers
-    )
-    assert create_response.status_code == 200
-    assert create_response.json is not None
-    user_id = create_response.json["id"]
+    created_user = _create_user(client, auth_headers, sample_user_data)
+    user_id = created_user["id"]
 
     # Update with individual address fields
     update_data = {
@@ -442,7 +394,7 @@ def test_user_update_with_individual_address_fields(
     )
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert data["endereco"]["logradouro"] == "Nova Rua"
     assert data["endereco"]["numero"] == "999"

@@ -125,7 +125,13 @@ class Config:
     SQLALCHEMY_DATABASE_URI: ClassVar[str] = (
         f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
     )
-    SQLALCHEMY_ENGINE_OPTIONS: ClassVar[dict[str, int]] = {"pool_recycle": 10}
+    SQLALCHEMY_ENGINE_OPTIONS: ClassVar[dict[str, int | bool]] = {
+        "pool_recycle": 3600,
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_timeout": 30,
+        "pool_pre_ping": True,
+    }
     SQLALCHEMY_TRACK_MODIFICATIONS: ClassVar[bool] = False
 
     ADMIN_PADRAO: ClassVar[int] = 10

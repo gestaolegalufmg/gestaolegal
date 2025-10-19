@@ -15,6 +15,7 @@
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/api-client';
 	import { goto } from '$app/navigation';
+	import type { Atendido } from '$lib/types';
 
 	let {
 		data,
@@ -40,26 +41,18 @@
 
 			try {
 				const response = isCreateMode
-					? await api.post('atendido', data)
-					: await api.put(`atendido/${atendidoId}`, data);
+					? await api.post<Atendido>('atendido', data)
+					: await api.put<Atendido>(`atendido/${atendidoId}`, data);
 
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao salvar atendido');
-					onError?.(errorData);
-					return;
-				}
-
-				const responseData = await response.json();
 				toast.success(
 					isCreateMode ? 'Atendido criado com sucesso!' : 'Atendido atualizado com sucesso!'
 				);
 
 				// Use custom onUpdate callback if provided, otherwise default redirect
 				if (onUpdate) {
-					onUpdate(responseData);
+					onUpdate(response);
 				} else {
-					goto(`/plantao/atendidos-assistidos/${responseData.id}`);
+					goto(`/plantao/atendidos-assistidos/${response.id}`);
 				}
 			} catch (error) {
 				console.error('Atendido form error:', error);
