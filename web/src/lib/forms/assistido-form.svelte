@@ -27,13 +27,16 @@
 	const form = superForm(data, {
 		SPA: true,
 		validators: zod4Client(assistidoCreateFormSchema),
-		onSubmit: async ({ formData }) => {
-			const data = Object.fromEntries(formData);
-
+		onUpdate: async ({ form, result }) => {
 			try {
+				if (result.type === 'failure') {
+					toast.error('Por favor resolva os erros de preenchimento');
+					return;
+				}
+
 				const response = isAssistido
-					? await api.put<Atendido>(`atendido/${atendidoId}/assistido`, data)
-					: await api.post<Atendido>(`atendido/${atendidoId}/tornar-assistido`, data);
+					? await api.put<Atendido>(`atendido/${atendidoId}/assistido`, form.data)
+					: await api.post<Atendido>(`atendido/${atendidoId}/tornar-assistido`, form.data);
 
 				toast.success(
 					isAssistido
@@ -44,7 +47,7 @@
 				if (onUpdate) {
 					onUpdate(response);
 				} else {
-					goto('/plantao/atendidos-assistidos');
+					await goto('/plantao/atendidos-assistidos');
 				}
 			} catch (error) {
 				console.error('Assistido form error:', error);

@@ -46,20 +46,20 @@
 		dataType: 'json',
 		validators: zod4Client(orientacaoJuridicaCreateFormSchema),
 		resetForm: false,
-		onSubmit: async () => {
-			const rawData = get(formData);
-			const currentData =
-				typeof structuredClone === 'function'
-					? structuredClone(rawData)
-					: JSON.parse(JSON.stringify(rawData));
-			const targetOrientacaoId = orientacaoId ?? orientacao?.id;
-
+		onUpdate: async ({ form, result }) => {
 			try {
+				if (result.type === 'failure') {
+					toast.error('Por favor resolva os erros de preenchimento');
+					return;
+				}
+
+				const targetOrientacaoId = orientacaoId ?? orientacao?.id;
+
 				const response = isCreateMode
-					? await api.post<OrientacaoJuridica>('orientacao_juridica', currentData)
+					? await api.post<OrientacaoJuridica>('orientacao_juridica', form.data)
 					: await api.put<OrientacaoJuridica>(
 							`orientacao_juridica/${targetOrientacaoId}`,
-							currentData
+							form.data
 						);
 
 				toast.success(
@@ -74,7 +74,7 @@
 					? '/plantao/orientacoes-juridicas'
 					: `/plantao/orientacoes-juridicas/${response.id}`;
 
-				goto(redirectTo);
+				await goto(redirectTo);
 			} catch (error) {
 				console.error('Orientacao juridica form error:', error);
 				toast.error('Erro ao salvar orientação jurídica. Por favor, tente novamente.');
