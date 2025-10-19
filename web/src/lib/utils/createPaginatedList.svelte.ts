@@ -25,7 +25,16 @@ export function usePaginatedFilters<TFilters extends Record<string, any>>(
 
 	function applyFilters(args: { page?: number } = {}) {
 		const { page: pageNumber = 1 } = args;
-		const params = new URLSearchParams(options.buildParams(filters));
+		const rawParams = options.buildParams(filters);
+
+		const cleanedParams: Record<string, string> = {};
+		for (const [key, value] of Object.entries(rawParams)) {
+			if (value !== '' && value !== undefined && value !== null && value !== 'undefined') {
+				cleanedParams[key] = value;
+			}
+		}
+
+		const params = new URLSearchParams(cleanedParams);
 
 		if (pageNumber > 1) {
 			params.set('page', pageNumber.toString());
