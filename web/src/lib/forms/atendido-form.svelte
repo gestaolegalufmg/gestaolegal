@@ -15,6 +15,7 @@
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/api-client';
 	import { goto } from '$app/navigation';
+	import type { Atendido } from '$lib/types';
 
 	let {
 		data,
@@ -35,31 +36,26 @@
 	const form = superForm(data, {
 		SPA: true,
 		validators: zod4Client(atendidoCreateFormSchema),
-		onSubmit: async ({ formData }) => {
-			const data = Object.fromEntries(formData);
-
+		onUpdate: async ({ form, result }) => {
 			try {
-				const response = isCreateMode
-					? await api.post('atendido', data)
-					: await api.put(`atendido/${atendidoId}`, data);
-
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao salvar atendido');
-					onError?.(errorData);
+				if (result.type === 'failure') {
+					toast.error('Por favor resolva os erros de preenchimento');
 					return;
 				}
 
-				const responseData = await response.json();
+				const response = isCreateMode
+					? await api.post<Atendido>('atendido', form.data)
+					: await api.put<Atendido>(`atendido/${atendidoId}`, form.data);
+
 				toast.success(
 					isCreateMode ? 'Atendido criado com sucesso!' : 'Atendido atualizado com sucesso!'
 				);
 
 				// Use custom onUpdate callback if provided, otherwise default redirect
 				if (onUpdate) {
-					onUpdate(responseData);
+					onUpdate(response);
 				} else {
-					goto(`/plantao/atendidos-assistidos/${responseData.id}`);
+					await goto(`/plantao/atendidos-assistidos/${response.id}`);
 				}
 			} catch (error) {
 				console.error('Atendido form error:', error);

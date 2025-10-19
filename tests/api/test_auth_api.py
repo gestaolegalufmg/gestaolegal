@@ -1,5 +1,11 @@
 from flask.testing import FlaskClient
 
+from tests.api.conftest import (
+    assert_error_response,
+    assert_success_response,
+    get_success_data,
+)
+
 
 def test_login_success(client: FlaskClient, create_admin_user: None) -> None:
     response = client.post(
@@ -8,7 +14,10 @@ def test_login_success(client: FlaskClient, create_admin_user: None) -> None:
     )
 
     assert response.status_code == 200
-    assert response.json is not None
+    data = get_success_data(response)
+    assert data is not None
+    assert "token" in data
+    assert "user" in data
 
 
 def test_login_wrong_password(client: FlaskClient, create_admin_user: None) -> None:
@@ -65,9 +74,10 @@ def test_api_accepts_authenticated_request(
     response = client.get("/api/atendido/", headers=auth_headers)
 
     assert response.status_code == 200
-    data = response.json
+    payload = assert_success_response(response)
+    data = payload.get("data")
     assert data is not None
-    assert isinstance(data, (dict, list))
+    assert isinstance(data, dict)
 
 
 def test_setup_admin_success(client: FlaskClient, clean_db: None) -> None:
@@ -82,11 +92,12 @@ def test_setup_admin_success(client: FlaskClient, clean_db: None) -> None:
     )
 
     assert response.status_code == 201
-    assert response.json is not None
-    assert "token" in response.json
-    assert "user" in response.json
-    assert response.json["user"]["email"] == "newadmin@example.com"
-    assert response.json["user"]["urole"] == "admin"
+    data = get_success_data(response)
+    assert data is not None
+    assert "token" in data
+    assert "user" in data
+    assert data["user"]["email"] == "newadmin@example.com"
+    assert data["user"]["urole"] == "admin"
 
 
 def test_setup_admin_missing_email(client: FlaskClient, clean_db: None) -> None:
@@ -100,8 +111,8 @@ def test_setup_admin_missing_email(client: FlaskClient, clean_db: None) -> None:
     )
 
     assert response.status_code == 400
-    assert response.json is not None
-    assert "error" in response.json
+    error_payload = assert_error_response(response)
+    assert error_payload["error"]["message"].startswith("Campos obrigatórios")
 
 
 def test_setup_admin_missing_password(client: FlaskClient, clean_db: None) -> None:
@@ -115,8 +126,8 @@ def test_setup_admin_missing_password(client: FlaskClient, clean_db: None) -> No
     )
 
     assert response.status_code == 400
-    assert response.json is not None
-    assert "error" in response.json
+    error_payload = assert_error_response(response)
+    assert error_payload["error"]["message"].startswith("Campos obrigatórios")
 
 
 def test_setup_admin_missing_token(client: FlaskClient, clean_db: None) -> None:
@@ -130,8 +141,8 @@ def test_setup_admin_missing_token(client: FlaskClient, clean_db: None) -> None:
     )
 
     assert response.status_code == 400
-    assert response.json is not None
-    assert "error" in response.json
+    error_payload = assert_error_response(response)
+    assert error_payload["error"]["message"].startswith("Campos obrigatórios")
 
 
 def test_setup_admin_invalid_token(client: FlaskClient, clean_db: None) -> None:
@@ -145,10 +156,9 @@ def test_setup_admin_invalid_token(client: FlaskClient, clean_db: None) -> None:
         },
     )
 
-    assert response.status_code == 403
-    assert response.json is not None
-    assert "error" in response.json
-    assert "Invalid setup token" in response.json["error"]
+    assert response.status_code == 401
+    error_payload = assert_error_response(response)
+    assert "Token de configuração inválido" in error_payload["error"]["message"]
 
 
 def test_setup_admin_users_already_exist(client: FlaskClient, clean_db: None) -> None:
@@ -163,6 +173,7 @@ def test_setup_admin_users_already_exist(client: FlaskClient, clean_db: None) ->
         },
     )
     assert first_response.status_code == 201
+    assert get_success_data(first_response) is not None
 
     # Try to create another admin - should fail
     response = client.post(
@@ -175,12 +186,13 @@ def test_setup_admin_users_already_exist(client: FlaskClient, clean_db: None) ->
     )
 
     assert response.status_code == 403
-    assert response.json is not None
-    assert "error" in response.json
-    assert "already exists" in response.json["error"]
+    error_payload = assert_error_response(response)
+    assert "já existe" in error_payload["error"]["message"]
 
 
-def test_setup_admin_can_login_after_creation(client: FlaskClient, clean_db: None) -> None:
+def test_setup_admin_can_login_after_creation(
+    client: FlaskClient, clean_db: None
+) -> None:
     """Test that the created admin can successfully login."""
     # Create admin via setup endpoint
     setup_response = client.post(
@@ -193,6 +205,7 @@ def test_setup_admin_can_login_after_creation(client: FlaskClient, clean_db: Non
     )
 
     assert setup_response.status_code == 201
+    assert get_success_data(setup_response) is not None
 
     # Try to login with the created admin
     login_response = client.post(
@@ -204,23 +217,26 @@ def test_setup_admin_can_login_after_creation(client: FlaskClient, clean_db: Non
     )
 
     assert login_response.status_code == 200
-    assert login_response.json is not None
-    assert "token" in login_response.json
+    login_data = get_success_data(login_response)
+    assert login_data is not None
+    assert "token" in login_data
 
 
 def test_needs_setup_when_no_users(client: FlaskClient, clean_db: None) -> None:
     response = client.get("/api/auth/needs-setup")
 
     assert response.status_code == 200
-    assert response.json is not None
-    assert "needs_setup" in response.json
-    assert response.json["needs_setup"] is True
+    data = get_success_data(response)
+    assert data is not None
+    assert data["needs_setup"] is True
 
 
-def test_needs_setup_when_users_exist(client: FlaskClient, create_admin_user: None) -> None:
+def test_needs_setup_when_users_exist(
+    client: FlaskClient, create_admin_user: None
+) -> None:
     response = client.get("/api/auth/needs-setup")
 
     assert response.status_code == 200
-    assert response.json is not None
-    assert "needs_setup" in response.json
-    assert response.json["needs_setup"] is False
+    data = get_success_data(response)
+    assert data is not None
+    assert data["needs_setup"] is False

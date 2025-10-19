@@ -24,19 +24,16 @@
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/api-client';
 	import { goto } from '$app/navigation';
+	import type { User } from '$lib/types';
 
 	let {
 		data,
-		onUpdate,
-		onError,
 		isCreateMode = false,
 		userId
 	}: {
 		data: SuperValidated<Infer<UserCreateFormSchema>>;
 		isCreateMode?: boolean;
 		userId?: number;
-		onUpdate?: (data: SuperValidated<Infer<UserCreateFormSchema>>) => void;
-		onError?: (error: any) => void;
 	} = $props();
 
 	const userForm = superForm(data, {
@@ -44,33 +41,25 @@
 		validators: zod4Client(userCreateFormSchema),
 		resetForm: false,
 		taintedMessage: 'Tem certeza que deseja sair? Você perderá qualquer alteração não salva.',
-		onSubmit: async ({ formData }) => {
-			const data = Object.fromEntries(formData);
-
+		onUpdate: async ({ form, result }) => {
 			try {
-				const response = isCreateMode
-					? await api.post('user', data)
-					: await api.put(`user/${userId}`, data);
-
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao salvar usuário');
-					onError?.(errorData);
+				if (result.type === 'failure') {
+					toast.error('Por favor resolva os erros de preenchimento');
 					return;
 				}
 
-				const responseData = await response.json();
+				const response = isCreateMode
+					? await api.post<User>('user', form.data)
+					: await api.put<User>(`user/${userId}`, form.data);
+
 				toast.success(
 					isCreateMode ? 'Usuário criado com sucesso!' : 'Usuário atualizado com sucesso!'
 				);
-				onUpdate?.(responseData);
 
-				// Redirect to user details page
-				goto(`/usuarios/${responseData.id}`);
+				await goto(`/usuarios/${response.id}`);
 			} catch (error) {
 				console.error('User form error:', error);
 				toast.error('Erro ao salvar usuário. Por favor, tente novamente.');
-				onError?.(error);
 			}
 		}
 	});

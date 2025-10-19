@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import cast
 
 from gestaolegal.common import PageParams, PaginatedResult
+from gestaolegal.database.session import transaction
+from gestaolegal.exceptions import DatabaseException, NotFoundException
 from gestaolegal.models.orientacao_juridica import (
     OrientacaoJuridica,
     OrientacaoJuridicaDetail,
@@ -179,11 +181,15 @@ class OrientacaoJuridicaService:
 
     def delete(self, id: int):
         logger.info(f"Deleting orientacao juridica with id: {id}")
-        result = self.repository.delete(id)
-        logger.info(f"Orientacao juridica deleted successfully with id: {id}")
-        return result
+        existing = self.repository.find_by_id(id)
+        if not existing:
+            logger.warning(f"Orientacao juridica not found with id: {id}")
+            raise NotFoundException(resource="Orientacao Juridica", resource_id=id)
 
-    # TODO: Devemos usar transactions aqui
+        self.repository.delete(id)
+        logger.info(f"Orientacao juridica deleted successfully with id: {id}")
+        return True
+
     def create(
         self, orientacao_input: OrientacaoJuridicaCreate, id_usuario: int
     ) -> OrientacaoJuridica:
@@ -191,42 +197,45 @@ class OrientacaoJuridicaService:
             f"Creating orientacao juridica with area_direito: {orientacao_input.area_direito}, created by user: {id_usuario}, atendidos count: {len(orientacao_input.atendidos_ids) if orientacao_input.atendidos_ids else 0}"
         )
 
-        orientacao_data = orientacao_input.model_dump(exclude={"atendidos_ids"})
-        orientacao_data["id_usuario"] = id_usuario
-        orientacao_data["status"] = 1
-        orientacao_data["data_criacao"] = datetime.now()
+        with transaction():
+            orientacao_data = orientacao_input.model_dump(exclude={"atendidos_ids"})
+            orientacao_data["id_usuario"] = id_usuario
+            orientacao_data["status"] = 1
+            orientacao_data["data_criacao"] = datetime.now()
 
-        orientacao_id = self.repository.create(orientacao_data)
+            orientacao_id = self.repository.create(orientacao_data)
 
-        if orientacao_input.atendidos_ids:
-            atendidos = self.atendido_repository.get(
-                params=GetParams(
-                    where=WhereClause(
-                        column="id", operator="in", value=orientacao_input.atendidos_ids
+            if orientacao_input.atendidos_ids:
+                atendidos = self.atendido_repository.get(
+                    params=GetParams(
+                        where=WhereClause(
+                            column="id",
+                            operator="in",
+                            value=orientacao_input.atendidos_ids,
+                        )
                     )
                 )
-            )
+                logger.info(
+                    f"Linked {len(orientacao_input.atendidos_ids)} atendidos to orientacao juridica: {orientacao_id}"
+                )
+                self.repository.add_related_atendidos(
+                    orientacao_id, [atendido.id for atendido in atendidos]
+                )
+
+            created_orientacao = self.repository.find_by_id(orientacao_id)
+            if not created_orientacao:
+                logger.error(
+                    f"Could not find created orientacao juridica with id: {orientacao_id}"
+                )
+                raise DatabaseException("Falha ao criar orientação jurídica")
+
+            if orientacao_input.atendidos_ids:
+                created_orientacao.atendidos = atendidos
+
             logger.info(
-                f"Linked {len(orientacao_input.atendidos_ids)} atendidos to orientacao juridica: {orientacao_id}"
+                f"Orientacao juridica created successfully with id: {orientacao_id}"
             )
-            self.repository.add_related_atendidos(
-                orientacao_id, [atendido.id for atendido in atendidos]
-            )
-
-        created_orientacao = self.repository.find_by_id(orientacao_id)
-        if not created_orientacao:
-            logger.error(
-                f"Could not find created orientacao juridica with id: {orientacao_id}"
-            )
-            raise ValueError("Something went wrong while creating orientacao juridica")
-
-        if orientacao_input.atendidos_ids:
-            created_orientacao.atendidos = atendidos
-
-        logger.info(
-            f"Orientacao juridica created successfully with id: {orientacao_id}"
-        )
-        return created_orientacao
+            return created_orientacao
 
     def update(
         self, id: int, orientacao_input: OrientacaoJuridicaUpdate
@@ -235,32 +244,35 @@ class OrientacaoJuridicaService:
         existing = self.repository.find_by_id(id)
         if not existing:
             logger.error(f"Update failed: orientacao juridica not found with id: {id}")
-            raise ValueError(f"Orientacao juridica with id {id} not found")
+            raise NotFoundException(resource="Orientacao Juridica", resource_id=id)
 
-        update_data = orientacao_input.model_dump(
-            exclude_none=True, exclude={"atendidos_ids"}
-        )
+        with transaction():
+            update_data = orientacao_input.model_dump(
+                exclude_none=True, exclude={"atendidos_ids"}
+            )
 
-        self.repository.update(id, update_data)
+            self.repository.update(id, update_data)
 
-        if orientacao_input.atendidos_ids is not None:
-            atendidos = self.atendido_repository.get(
-                params=GetParams(
-                    where=WhereClause(
-                        column="id", operator="in", value=orientacao_input.atendidos_ids
+            if orientacao_input.atendidos_ids is not None:
+                atendidos = self.atendido_repository.get(
+                    params=GetParams(
+                        where=WhereClause(
+                            column="id",
+                            operator="in",
+                            value=orientacao_input.atendidos_ids,
+                        )
                     )
                 )
-            )
-            self.repository.add_related_atendidos(
-                id, [atendido.id for atendido in atendidos]
-            )
-            logger.info(
-                f"Updated orientacao juridica {id} with {len(orientacao_input.atendidos_ids)} linked atendidos"
-            )
+                self.repository.add_related_atendidos(
+                    id, [atendido.id for atendido in atendidos]
+                )
+                logger.info(
+                    f"Updated orientacao juridica {id} with {len(orientacao_input.atendidos_ids)} linked atendidos"
+                )
 
-        logger.info(f"Orientacao juridica updated successfully with id: {id}")
+            logger.info(f"Orientacao juridica updated successfully with id: {id}")
 
-        updated = self.repository.find_by_id(id)
-        assert updated is not None
+            updated = self.repository.find_by_id(id)
+            assert updated is not None
 
-        return updated
+            return updated

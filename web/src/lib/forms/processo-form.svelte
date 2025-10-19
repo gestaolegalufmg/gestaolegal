@@ -9,6 +9,7 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { get } from 'svelte/store';
+	import type { Caso } from '$lib/types';
 
 	let {
 		data,
@@ -31,35 +32,25 @@
 		validators: zod4Client(processoCreateFormSchema),
 		resetForm: false,
 		taintedMessage: 'Tem certeza que deseja sair? Você perderá qualquer alteração não salva.',
-		onSubmit: async () => {
-			const rawData = get(formData);
-			const payload =
-				typeof structuredClone === 'function'
-					? structuredClone(rawData)
-					: JSON.parse(JSON.stringify(rawData));
-
+		onUpdate: async ({ form, result }) => {
 			try {
-				const response = isCreateMode
-					? await api.post(`caso/${casoId}/processos`, payload)
-					: await api.put(`caso/${casoId}/processos/${processoId}`, payload);
-
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao salvar processo');
-					onError?.(errorData);
+				if (result.type === 'failure') {
+					toast.error('Por favor resolva os erros de preenchimento');
 					return;
 				}
 
-				const responseData = await response.json();
+				const response = isCreateMode
+					? await api.post<Caso>(`caso/${casoId}/processos`, form.data)
+					: await api.put<Caso>(`caso/${casoId}/processos/${processoId}`, form.data);
+
 				toast.success(
 					isCreateMode ? 'Processo criado com sucesso!' : 'Processo atualizado com sucesso!'
 				);
 
-				// Use custom onUpdate callback if provided
 				if (onUpdate) {
-					onUpdate(responseData);
+					onUpdate(response);
 				} else {
-					goto(`/casos/${casoId}/processos/${responseData.id}`);
+					await goto(`/casos/${casoId}/processos/${response.id}`);
 				}
 			} catch (error) {
 				console.error('Processo form error:', error);

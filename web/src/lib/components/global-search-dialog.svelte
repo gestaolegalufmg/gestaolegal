@@ -8,7 +8,8 @@
 	import type { SearchResponse, SearchResultItem } from '$lib/types/search';
 	import { Debounced } from 'runed';
 	import { getEntityIcon, getEntityLabel } from '$lib/constants';
-	import { apiFetch } from '$lib/api-client';
+	import { api } from '$lib/api-client';
+	import { ApiException } from '$lib/types';
 
 	let { open = $bindable(false), initialQuery = $bindable('') } = $props();
 
@@ -33,8 +34,7 @@
 
 		isSearching = true;
 		try {
-			const response = await apiFetch(`search?q=${encodeURIComponent(query)}`);
-			const data: SearchResponse = await response.json();
+			const data = await api.get<SearchResponse>(`search?q=${encodeURIComponent(query)}`);
 
 			const items: SearchResultItem[] = [];
 
@@ -80,8 +80,12 @@
 
 			searchResults = items;
 			selectedIndex = 0;
-		} catch (error) {
-			console.error('Search error:', error);
+		} catch (err) {
+			if (err instanceof ApiException) {
+				console.error('Search error:', err.message);
+			} else {
+				console.error('Search error:', err);
+			}
 			searchResults = [];
 		} finally {
 			isSearching = false;

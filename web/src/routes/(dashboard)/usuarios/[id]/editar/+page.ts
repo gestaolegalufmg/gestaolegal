@@ -5,6 +5,8 @@ import type { PageLoad } from './$types';
 import { api } from '$lib/api-client';
 import type { User } from '$lib/types/user';
 import { flattenObject } from '$lib/utils/object';
+import { error } from '@sveltejs/kit';
+import { ApiException } from '$lib/types';
 
 export const load: PageLoad = async ({ params, fetch, parent }) => {
 	if (params.id === 'eu') {
@@ -15,14 +17,15 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 		};
 	}
 
-	const userResponse = await api.get(`user/${params.id}`, {}, fetch);
+	try {
+		const user = await api.get<User>(`user/${params.id}`, {}, fetch);
+		const form = await superValidate(flattenObject(user), zod4(userUpdateFormSchema));
 
-	if (!userResponse.ok) {
-		throw new Error('Usuário não encontrado');
+		return { form, user };
+	} catch (err) {
+		if (err instanceof ApiException) {
+			error(err.statusCode || 404, err.message);
+		}
+		throw err;
 	}
-
-	const user: User = await userResponse.json();
-	const form = await superValidate(flattenObject(user), zod4(userUpdateFormSchema));
-
-	return { form, user };
 };

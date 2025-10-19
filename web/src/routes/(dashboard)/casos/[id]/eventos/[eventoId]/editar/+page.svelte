@@ -21,6 +21,7 @@
 	import UserPlus from '@lucide/svelte/icons/user-plus';
 	import X from '@lucide/svelte/icons/x';
 	import { apiFetch, api } from '$lib/api-client';
+	import { ApiException } from '$lib/types';
 	import { goto } from '$app/navigation';
 
 	let { data }: PageProps = $props();
@@ -66,23 +67,19 @@
 					submission.append('arquivo', arquivo);
 				}
 
-				const response = await apiFetch(`caso/${caso.id}/eventos/${evento.id}`, {
-					method: 'PUT',
-					body: submission,
+				await api.put(`caso/${caso.id}/eventos/${evento.id}`, submission, {
 					headers: {}
 				});
 
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao atualizar evento');
-					return;
-				}
-
 				toast.success('Evento atualizado com sucesso!');
 				goto(`/casos/${caso.id}/eventos/${evento.id}`);
-			} catch (error) {
-				console.error('Evento update error:', error);
-				toast.error('Erro ao atualizar evento. Por favor, tente novamente.');
+			} catch (err) {
+				if (err instanceof ApiException) {
+					toast.error(err.message);
+				} else {
+					toast.error('Erro ao atualizar evento');
+					console.error(err);
+				}
 			}
 		}
 	});
@@ -116,21 +113,26 @@
 	async function handleDownload() {
 		if (!evento.arquivo) return;
 
-		const response = await api.get(`caso/${caso.id}/eventos/${evento.id}/download`);
-		if (!response.ok) {
-			toast.error('Erro ao baixar arquivo');
-			return;
-		}
+		try {
+			const response = await apiFetch(`caso/${caso.id}/eventos/${evento.id}/download`);
 
-		const blob = await response.blob();
-		const url = window.URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = evento.arquivo.split('/').pop() || 'arquivo';
-		document.body.appendChild(a);
-		a.click();
-		window.URL.revokeObjectURL(url);
-		document.body.removeChild(a);
+			if (!response.ok) {
+				throw new Error('Erro ao baixar arquivo');
+			}
+
+			const blob = await response.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = evento.arquivo.split('/').pop() || 'arquivo';
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+			document.body.removeChild(a);
+		} catch (error) {
+			toast.error('Erro ao baixar arquivo');
+			console.error(error);
+		}
 	}
 
 	function getTipoLabel(tipo: string) {

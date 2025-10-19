@@ -1,15 +1,18 @@
 import { error } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 import { api } from '$lib/api-client';
+import { ApiException } from '$lib/types';
+import type { Atendido } from '$lib/types';
 
 export const load: PageLoad = async ({ params, fetch }) => {
-	const response = await api.get(`atendido/${params.id}`, {}, fetch);
+	try {
+		const atendido = await api.get<Atendido>(`atendido/${params.id}`, {}, fetch);
 
-	if (!response.ok) {
-		error(response.status, 'Atendido não encontrado');
+		return { atendido };
+	} catch (err) {
+		if (err instanceof ApiException) {
+			error(err.statusCode || 404, err.message);
+		}
+		throw err;
 	}
-
-	const atendido = await response.json();
-
-	return { atendido };
 };
