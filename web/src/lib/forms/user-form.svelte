@@ -28,16 +28,12 @@
 
 	let {
 		data,
-		onUpdate,
-		onError,
 		isCreateMode = false,
 		userId
 	}: {
 		data: SuperValidated<Infer<UserCreateFormSchema>>;
 		isCreateMode?: boolean;
 		userId?: number;
-		onUpdate?: (data: SuperValidated<Infer<UserCreateFormSchema>>) => void;
-		onError?: (error: any) => void;
 	} = $props();
 
 	const userForm = superForm(data, {
@@ -45,26 +41,25 @@
 		validators: zod4Client(userCreateFormSchema),
 		resetForm: false,
 		taintedMessage: 'Tem certeza que deseja sair? Você perderá qualquer alteração não salva.',
-		onSubmit: async ({ formData }) => {
-			const data = Object.fromEntries(formData);
-
+		onUpdate: async ({ form, result }) => {
 			try {
+				if (result.type === 'failure') {
+					toast.error('Por favor resolva os erros de preenchimento');
+					return;
+				}
+
 				const response = isCreateMode
-					? await api.post<User>('user', data)
-					: await api.put<User>(`user/${userId}`, data);
+					? await api.post<User>('user', form.data)
+					: await api.put<User>(`user/${userId}`, form.data);
 
 				toast.success(
 					isCreateMode ? 'Usuário criado com sucesso!' : 'Usuário atualizado com sucesso!'
 				);
 
-				onUpdate?.(response);
-
-				// Redirect to user details page
-				goto(`/usuarios/${response.id}`);
+				await goto(`/usuarios/${response.id}`);
 			} catch (error) {
 				console.error('User form error:', error);
 				toast.error('Erro ao salvar usuário. Por favor, tente novamente.');
-				onError?.(error);
 			}
 		}
 	});

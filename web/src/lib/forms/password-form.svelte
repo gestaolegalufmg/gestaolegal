@@ -31,18 +31,21 @@
 		SPA: true,
 		validators: zod4Client(passwordChangeSchema),
 		resetForm: false,
-		onSubmit: async ({ formData }) => {
-			const formValues = Object.fromEntries(formData);
-
+		onUpdate: async ({ form, result }) => {
 			try {
+				if (result.type === 'failure') {
+					toast.error('Por favor resolva os erros de preenchimento');
+					return;
+				}
+
 				const response = await api.put<void>(`user/${userId}/password`, {
-					currentPassword: formValues.currentPassword,
-					newPassword: formValues.newPassword,
+					currentPassword: form.data.currentPassword,
+					newPassword: form.data.newPassword,
 					fromAdmin: isAdmin && !isOwnProfile
 				});
 
 				toast.success('Senha alterada com sucesso!');
-				goto(`/usuarios/${userId}`);
+				await goto(`/usuarios/${userId}`);
 			} catch (error) {
 				console.error('Password change error:', error);
 				toast.error('Erro ao alterar senha. Por favor, tente novamente.');

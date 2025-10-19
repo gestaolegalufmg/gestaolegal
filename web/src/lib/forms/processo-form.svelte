@@ -32,17 +32,16 @@
 		validators: zod4Client(processoCreateFormSchema),
 		resetForm: false,
 		taintedMessage: 'Tem certeza que deseja sair? Você perderá qualquer alteração não salva.',
-		onSubmit: async () => {
-			const rawData = get(formData);
-			const payload =
-				typeof structuredClone === 'function'
-					? structuredClone(rawData)
-					: JSON.parse(JSON.stringify(rawData));
-
+		onUpdate: async ({ form, result }) => {
 			try {
+				if (result.type === 'failure') {
+					toast.error('Por favor resolva os erros de preenchimento');
+					return;
+				}
+
 				const response = isCreateMode
-					? await api.post<Caso>(`caso/${casoId}/processos`, payload)
-					: await api.put<Caso>(`caso/${casoId}/processos/${processoId}`, payload);
+					? await api.post<Caso>(`caso/${casoId}/processos`, form.data)
+					: await api.put<Caso>(`caso/${casoId}/processos/${processoId}`, form.data);
 
 				toast.success(
 					isCreateMode ? 'Processo criado com sucesso!' : 'Processo atualizado com sucesso!'
@@ -51,7 +50,7 @@
 				if (onUpdate) {
 					onUpdate(response);
 				} else {
-					goto(`/casos/${casoId}/processos/${response.id}`);
+					await goto(`/casos/${casoId}/processos/${response.id}`);
 				}
 			} catch (error) {
 				console.error('Processo form error:', error);

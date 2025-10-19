@@ -7,14 +7,6 @@
 	let { data }: PageProps = $props();
 	const { me } = data;
 	const isAdmin = $derived(me.urole === 'admin');
-
-	function onUpdate() {
-		toast.success('Usuário criado com sucesso');
-	}
-
-	function onError(error: any) {
-		toast.error('Erro ao criar usuário');
-	}
 </script>
 
 <div class="min-h-screen bg-background">
@@ -29,7 +21,7 @@
 					<Button variant="outline" href="/usuarios">Voltar</Button>
 				</div>
 			</div>
-			<UserForm data={data.form} isCreateMode={true} {onError} />
+			<UserForm data={data.form} isCreateMode={true} />
 		{:else}
 			<p class="text-muted-foreground">Você não tem permissão para criar usuários.</p>
 		{/if}
