@@ -60,7 +60,9 @@ class ValidationException(GestaoLegalException):
 
     def __init__(self, message: str, field: str | None = None):
         details = {"field": field} if field else {}
-        super().__init__(message=message, error_code="VALIDATION_ERROR", details=details)
+        super().__init__(
+            message=message, error_code="VALIDATION_ERROR", details=details
+        )
 
 
 class UnauthorizedException(GestaoLegalException):

@@ -67,7 +67,9 @@ def create():
     user_input = UserCreateInput.model_validate(json_data)
     user = user_service.create(user_input, criado_por=cast(int, current_user.id))
 
-    return success_response(data=asdict(user), message="Usuário criado com sucesso", status_code=201)
+    return success_response(
+        data=asdict(user), message="Usuário criado com sucesso", status_code=201
+    )
 
 
 @user_controller.route("/<int:id>", methods=["PUT"])
@@ -126,6 +128,7 @@ def change_password(id: int):
 
     if not is_admin and not is_own_profile:
         from gestaolegal.exceptions import ForbiddenException
+
         raise ForbiddenException("Sem permissão para alterar esta senha")
 
     if not from_admin and not current_password:

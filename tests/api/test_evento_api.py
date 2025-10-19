@@ -3,7 +3,7 @@ from typing import Any
 
 from flask.testing import FlaskClient
 
-from tests.api.conftest import get_success_data, assert_success_response
+from tests.api.conftest import get_success_data
 
 
 def test_create_evento_without_file(

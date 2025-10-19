@@ -4,7 +4,10 @@ from datetime import datetime
 from typing import cast
 
 from gestaolegal.common import PageParams, PaginatedResult
-from gestaolegal.exceptions import DatabaseException, FileOperationException, NotFoundException
+from gestaolegal.exceptions import (
+    DatabaseException,
+    NotFoundException,
+)
 from gestaolegal.models.evento import Evento, ListEvento
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
 from gestaolegal.models.user import UserInfo

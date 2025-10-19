@@ -74,7 +74,9 @@ def create():
     caso_input = CasoCreateInput(**json_data)
     caso = caso_service.create(caso_input, criado_por_id=current_user.id)
 
-    return success_response(data=asdict(caso), message="Caso criado com sucesso", status_code=201)
+    return success_response(
+        data=asdict(caso), message="Caso criado com sucesso", status_code=201
+    )
 
 
 @caso_controller.route("/<int:id>", methods=["PUT"])
@@ -128,9 +130,7 @@ def indeferir(id: int):
     if not caso:
         raise NotFoundException(resource="Caso", resource_id=id)
 
-    return success_response(
-        data=asdict(caso), message="Caso indeferido com sucesso"
-    )
+    return success_response(data=asdict(caso), message="Caso indeferido com sucesso")
 
 
 @caso_controller.route("/<int:caso_id>/processos", methods=["GET"])
@@ -387,7 +387,9 @@ def get_arquivos_by_caso(caso_id: int):
     caso_service = CasoService()
     arquivos = caso_service.find_arquivos_by_caso_id(caso_id)
 
-    return success_response(data={"arquivos": [asdict(arquivo) for arquivo in arquivos]})
+    return success_response(
+        data={"arquivos": [asdict(arquivo) for arquivo in arquivos]}
+    )
 
 
 @caso_controller.route("/<int:caso_id>/arquivos", methods=["POST"])

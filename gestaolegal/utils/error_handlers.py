@@ -43,7 +43,10 @@ def register_error_handlers(app: Flask) -> None:
         """Handle resource not found errors with 404 status."""
         logger.warning(f"Not found: {e.message}", extra={"details": e.details})
         return error_response(
-            message=e.message, error_code=e.error_code, details=e.details, status_code=404
+            message=e.message,
+            error_code=e.error_code,
+            details=e.details,
+            status_code=404,
         )
 
     @app.errorhandler(ValidationException)
@@ -51,20 +54,27 @@ def register_error_handlers(app: Flask) -> None:
         """Handle validation errors with 400 status."""
         logger.warning(f"Validation error: {e.message}", extra={"details": e.details})
         return error_response(
-            message=e.message, error_code=e.error_code, details=e.details, status_code=400
+            message=e.message,
+            error_code=e.error_code,
+            details=e.details,
+            status_code=400,
         )
 
     @app.errorhandler(UnauthorizedException)
     def handle_unauthorized(e: UnauthorizedException) -> Response:
         """Handle authentication errors with 401 status."""
         logger.warning(f"Unauthorized: {e.message}")
-        return error_response(message=e.message, error_code=e.error_code, status_code=401)
+        return error_response(
+            message=e.message, error_code=e.error_code, status_code=401
+        )
 
     @app.errorhandler(ForbiddenException)
     def handle_forbidden(e: ForbiddenException) -> Response:
         """Handle authorization errors with 403 status."""
         logger.warning(f"Forbidden: {e.message}")
-        return error_response(message=e.message, error_code=e.error_code, status_code=403)
+        return error_response(
+            message=e.message, error_code=e.error_code, status_code=403
+        )
 
     @app.errorhandler(BusinessLogicException)
     def handle_business_logic_error(e: BusinessLogicException) -> Response:
@@ -84,7 +94,10 @@ def register_error_handlers(app: Flask) -> None:
         """Handle file operation errors with 400 status."""
         logger.error(f"File operation error: {e.message}", extra={"details": e.details})
         return error_response(
-            message=e.message, error_code=e.error_code, details=e.details, status_code=400
+            message=e.message,
+            error_code=e.error_code,
+            details=e.details,
+            status_code=400,
         )
 
     @app.errorhandler(DatabaseException)

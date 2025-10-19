@@ -227,9 +227,7 @@ class OrientacaoJuridicaService:
                 logger.error(
                     f"Could not find created orientacao juridica with id: {orientacao_id}"
                 )
-                raise DatabaseException(
-                    "Falha ao criar orientação jurídica"
-                )
+                raise DatabaseException("Falha ao criar orientação jurídica")
 
             if orientacao_input.atendidos_ids:
                 created_orientacao.atendidos = atendidos

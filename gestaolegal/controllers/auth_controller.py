@@ -5,7 +5,11 @@ from typing import cast
 from flask import Blueprint, request
 
 from gestaolegal.config import Config
-from gestaolegal.exceptions import SetupException, UnauthorizedException, ValidationException
+from gestaolegal.exceptions import (
+    SetupException,
+    UnauthorizedException,
+    ValidationException,
+)
 from gestaolegal.services.usuario_service import UsuarioService
 from gestaolegal.utils.api_response import success_response
 from gestaolegal.utils.jwt_auth import JWTAuth
@@ -60,7 +64,9 @@ def setup_admin():
 
     if not Config.ADMIN_SETUP_TOKEN:
         logger.error("Setup admin failed: ADMIN_SETUP_TOKEN not configured")
-        raise SetupException("Configuração de administrador não disponível neste servidor")
+        raise SetupException(
+            "Configuração de administrador não disponível neste servidor"
+        )
 
     if data["setup_token"] != Config.ADMIN_SETUP_TOKEN:
         logger.warning("Setup admin failed: invalid setup token")
@@ -69,7 +75,9 @@ def setup_admin():
     user_service = UsuarioService()
     if user_service.has_any_users():
         logger.warning("Setup admin failed: users already exist")
-        raise SetupException("Usuário administrador já existe. Este endpoint está desabilitado.")
+        raise SetupException(
+            "Usuário administrador já existe. Este endpoint está desabilitado."
+        )
 
     email = data["email"]
     password = data["password"]
@@ -81,5 +89,5 @@ def setup_admin():
     return success_response(
         data={"token": token, "user": asdict(user)},
         message="Administrador criado com sucesso",
-        status_code=201
+        status_code=201,
     )

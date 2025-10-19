@@ -190,7 +190,9 @@ def test_setup_admin_users_already_exist(client: FlaskClient, clean_db: None) ->
     assert "já existe" in error_payload["error"]["message"]
 
 
-def test_setup_admin_can_login_after_creation(client: FlaskClient, clean_db: None) -> None:
+def test_setup_admin_can_login_after_creation(
+    client: FlaskClient, clean_db: None
+) -> None:
     """Test that the created admin can successfully login."""
     # Create admin via setup endpoint
     setup_response = client.post(
@@ -229,7 +231,9 @@ def test_needs_setup_when_no_users(client: FlaskClient, clean_db: None) -> None:
     assert data["needs_setup"] is True
 
 
-def test_needs_setup_when_users_exist(client: FlaskClient, create_admin_user: None) -> None:
+def test_needs_setup_when_users_exist(
+    client: FlaskClient, create_admin_user: None
+) -> None:
     response = client.get("/api/auth/needs-setup")
 
     assert response.status_code == 200

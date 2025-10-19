@@ -38,14 +38,14 @@ def _get_or_generate_jwt_secret_key(env: Environment) -> str:
     if not jwt_secret_key:
         if env == "production":
             raise ValueError(
-                "JWT_SECRET_KEY is required in production! " + \
-                "Generate one with: python3 -c 'import secrets; print(secrets.token_hex(32))'"
+                "JWT_SECRET_KEY is required in production! "
+                + "Generate one with: python3 -c 'import secrets; print(secrets.token_hex(32))'"
             )
 
         generated_key = secrets.token_hex(32)
         warnings.warn(
-            "No JWT_SECRET_KEY set - using auto-generated key for development. " + \
-            "This key will change on restart, logging out all users.",
+            "No JWT_SECRET_KEY set - using auto-generated key for development. "
+            + "This key will change on restart, logging out all users.",
             UserWarning,
             stacklevel=2,
         )
@@ -53,9 +53,9 @@ def _get_or_generate_jwt_secret_key(env: Environment) -> str:
 
     if env == "production" and len(jwt_secret_key) < 32:
         raise ValueError(
-            f"JWT_SECRET_KEY too short for production ({len(jwt_secret_key)} chars). " + \
-            "Use at least 32 characters. " + \
-            "Generate one with: python3 -c 'import secrets; print(secrets.token_hex(32))'"
+            f"JWT_SECRET_KEY too short for production ({len(jwt_secret_key)} chars). "
+            + "Use at least 32 characters. "
+            + "Generate one with: python3 -c 'import secrets; print(secrets.token_hex(32))'"
         )
 
     return jwt_secret_key
