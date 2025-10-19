@@ -4,6 +4,10 @@ from datetime import datetime
 from typing import cast
 
 from gestaolegal.common import PageParams, PaginatedResult
+from gestaolegal.exceptions import (
+    DatabaseException,
+    NotFoundException,
+)
 from gestaolegal.models.evento import Evento, ListEvento
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
 from gestaolegal.models.user import UserInfo
@@ -115,7 +119,7 @@ class EventoService:
         created_evento = self.find_by_id(evento_id)
         if not created_evento:
             logger.error("Failed to create evento")
-            raise ValueError("Failed to create evento")
+            raise DatabaseException("Falha ao criar evento")
 
         logger.info(f"Evento created successfully with id: {evento_id}")
         return created_evento
@@ -129,7 +133,7 @@ class EventoService:
         existing = self.repository.find_by_id(evento_id)
         if not existing:
             logger.error(f"Update failed: evento not found with id: {evento_id}")
-            raise ValueError(f"Evento with id {evento_id} not found")
+            raise NotFoundException(resource="Evento", resource_id=evento_id)
 
         evento_data = evento_input.model_dump(exclude_none=True)
 

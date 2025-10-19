@@ -1,3 +1,6 @@
+from contextlib import contextmanager
+from typing import Generator
+
 from flask import g, has_request_context
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -35,3 +38,20 @@ def close_session(error=None) -> None:
             raise
         finally:
             session.close()
+
+
+@contextmanager
+def transaction() -> Generator[Session, None, None]:
+    session = get_session()
+
+    if not has_request_context():
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+    else:
+        yield session

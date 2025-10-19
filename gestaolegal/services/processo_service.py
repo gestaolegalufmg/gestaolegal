@@ -1,6 +1,7 @@
 import logging
 
 from gestaolegal.common import PageParams, PaginatedResult
+from gestaolegal.exceptions import DatabaseException, NotFoundException
 from gestaolegal.models.processo import Processo
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
 from gestaolegal.models.user import User
@@ -118,7 +119,7 @@ class ProcessoService:
         created_processo = self.find_by_id(processo_id)
         if not created_processo:
             logger.error("Failed to create processo")
-            raise ValueError("Failed to create processo")
+            raise DatabaseException("Falha ao criar processo")
 
         logger.info(f"Processo created successfully with id: {processo_id}")
         return created_processo
@@ -130,7 +131,7 @@ class ProcessoService:
         existing = self.repository.find_by_id(processo_id)
         if not existing:
             logger.error(f"Update failed: processo not found with id: {processo_id}")
-            raise ValueError(f"Processo with id {processo_id} not found")
+            raise NotFoundException(resource="Processo", resource_id=processo_id)
 
         processo_data = processo_input.model_dump(exclude_none=True)
         self.repository.update(processo_id, processo_data)

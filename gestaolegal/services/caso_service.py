@@ -7,6 +7,13 @@ from werkzeug.utils import secure_filename
 
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.config import Config
+from gestaolegal.database.session import transaction
+from gestaolegal.exceptions import (
+    DatabaseException,
+    FileOperationException,
+    NotFoundException,
+    ValidationException,
+)
 from gestaolegal.models.arquivo_caso import ArquivoCaso
 from gestaolegal.models.caso import Caso
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
@@ -117,30 +124,32 @@ class CasoService:
         logger.info(
             f"Creating caso with area_direito: {caso_input.area_direito}, created by: {criado_por_id}, clients count: {len(caso_input.ids_clientes) if caso_input.ids_clientes else 0}"
         )
-        caso_data = caso_input.model_dump(exclude={"ids_clientes"})
 
-        caso_data["data_criacao"] = datetime.now()
-        caso_data["data_modificacao"] = datetime.now()
-        caso_data["id_criado_por"] = criado_por_id
-        caso_data["id_modificado_por"] = criado_por_id
-        caso_data["numero_ultimo_processo"] = None
-        caso_data["status"] = True
+        with transaction():
+            caso_data = caso_input.model_dump(exclude={"ids_clientes"})
 
-        caso_id = self.repository.create(caso_data)
+            caso_data["data_criacao"] = datetime.now()
+            caso_data["data_modificacao"] = datetime.now()
+            caso_data["id_criado_por"] = criado_por_id
+            caso_data["id_modificado_por"] = criado_por_id
+            caso_data["numero_ultimo_processo"] = None
+            caso_data["status"] = True
 
-        if caso_input.ids_clientes:
-            self.repository.link_atendidos(caso_id, caso_input.ids_clientes)
-            logger.info(
-                f"Linked {len(caso_input.ids_clientes)} atendidos to caso: {caso_id}"
-            )
+            caso_id = self.repository.create(caso_data)
 
-        created_caso = self.find_by_id(caso_id)
-        if not created_caso:
-            logger.error("Failed to create caso")
-            raise ValueError("Failed to create caso")
+            if caso_input.ids_clientes:
+                self.repository.link_atendidos(caso_id, caso_input.ids_clientes)
+                logger.info(
+                    f"Linked {len(caso_input.ids_clientes)} atendidos to caso: {caso_id}"
+                )
 
-        logger.info(f"Caso created successfully with id: {caso_id}")
-        return created_caso
+            created_caso = self.find_by_id(caso_id)
+            if not created_caso:
+                logger.error("Failed to create caso")
+                raise DatabaseException("Falha ao criar caso")
+
+            logger.info(f"Caso created successfully with id: {caso_id}")
+            return created_caso
 
     def update(
         self,
@@ -154,23 +163,26 @@ class CasoService:
         existing = self.repository.find_by_id(caso_id)
         if not existing:
             logger.error(f"Update failed: caso not found with id: {caso_id}")
-            raise ValueError(f"Caso with id {caso_id} not found")
+            raise NotFoundException(resource="Caso", resource_id=caso_id)
 
-        caso_data = caso_input.model_dump(exclude_none=True, exclude={"ids_clientes"})
-
-        caso_data["data_modificacao"] = datetime.now()
-        caso_data["id_modificado_por"] = modificado_por_id
-
-        self.repository.update(caso_id, caso_data)
-
-        if caso_input.ids_clientes is not None:
-            self.repository.link_atendidos(caso_id, caso_input.ids_clientes)
-            logger.info(
-                f"Updated caso {caso_id} with {len(caso_input.ids_clientes)} linked atendidos"
+        with transaction():
+            caso_data = caso_input.model_dump(
+                exclude_none=True, exclude={"ids_clientes"}
             )
 
-        logger.info(f"Caso updated successfully with id: {caso_id}")
-        return self.repository.find_by_id(caso_id)
+            caso_data["data_modificacao"] = datetime.now()
+            caso_data["id_modificado_por"] = modificado_por_id
+
+            self.repository.update(caso_id, caso_data)
+
+            if caso_input.ids_clientes is not None:
+                self.repository.link_atendidos(caso_id, caso_input.ids_clientes)
+                logger.info(
+                    f"Updated caso {caso_id} with {len(caso_input.ids_clientes)} linked atendidos"
+                )
+
+            logger.info(f"Caso updated successfully with id: {caso_id}")
+            return self.repository.find_by_id(caso_id)
 
     def soft_delete(self, caso_id: int) -> bool:
         logger.info(f"Soft deleting caso with id: {caso_id}")
@@ -188,7 +200,7 @@ class CasoService:
         existing = self.repository.find_by_id(caso_id)
         if not existing:
             logger.error(f"Defer failed: caso not found with id: {caso_id}")
-            raise ValueError(f"Caso with id {caso_id} not found")
+            raise NotFoundException(resource="Caso", resource_id=caso_id)
 
         caso_data = {
             "situacao_deferimento": "deferido",
@@ -211,7 +223,7 @@ class CasoService:
         existing = self.repository.find_by_id(caso_id)
         if not existing:
             logger.error(f"Indefer failed: caso not found with id: {caso_id}")
-            raise ValueError(f"Caso with id {caso_id} not found")
+            raise NotFoundException(resource="Caso", resource_id=caso_id)
 
         caso_data = {
             "situacao_deferimento": "indeferido",
@@ -254,40 +266,70 @@ class CasoService:
 
         return arquivo
 
-    def get_arquivo_for_download(
-        self, arquivo_id: int, caso_id: int
-    ) -> tuple[str | None, str]:
+    def get_arquivo_for_download(self, arquivo_id: int, caso_id: int) -> str:
+        """
+        Get the file path for downloading an arquivo.
+
+        Args:
+            arquivo_id: ID of the arquivo
+            caso_id: ID of the caso (for validation)
+
+        Returns:
+            File path for download
+
+        Raises:
+            NotFoundException: If arquivo is not found or doesn't belong to caso
+            FileOperationException: If file doesn't exist in filesystem
+        """
         logger.info(f"Getting arquivo {arquivo_id} for download from caso {caso_id}")
 
         arquivo = self.validate_arquivo_for_caso(arquivo_id, caso_id)
         if not arquivo:
-            return None, "Arquivo não encontrado ou não pertence ao caso"
+            raise NotFoundException(resource="Arquivo", resource_id=arquivo_id)
 
         if not arquivo.link_arquivo:
             logger.warning(f"Arquivo {arquivo_id} has no file path")
-            return None, "Arquivo não possui link"
+            raise FileOperationException(
+                "Arquivo não possui link no sistema", operation="download"
+            )
 
         if not os.path.exists(arquivo.link_arquivo):
             logger.error(f"File not found in filesystem: {arquivo.link_arquivo}")
-            return None, "Arquivo não encontrado no servidor"
+            raise FileOperationException(
+                "Arquivo não encontrado no servidor", operation="download"
+            )
 
         logger.info(f"Arquivo {arquivo_id} ready for download: {arquivo.link_arquivo}")
-        return arquivo.link_arquivo, "OK"
+        return arquivo.link_arquivo
 
-    def upload_arquivo(
-        self, caso_id: int, file: FileStorage
-    ) -> tuple[ArquivoCaso | None, str]:
+    def upload_arquivo(self, caso_id: int, file: FileStorage) -> ArquivoCaso:
+        """
+        Upload a file for a caso.
+
+        Args:
+            caso_id: ID of the caso
+            file: File to upload
+
+        Returns:
+            Created ArquivoCaso instance
+
+        Raises:
+            NotFoundException: If caso is not found
+            ValidationException: If file is invalid
+            FileOperationException: If file upload fails
+        """
         logger.info(f"Uploading arquivo for caso id: {caso_id}")
 
         caso = self.repository.find_by_id(caso_id)
         if not caso:
             logger.error(f"Caso not found with id: {caso_id}")
-            return None, "Caso não encontrado"
+            raise NotFoundException(resource="Caso", resource_id=caso_id)
 
         if not file or not file.filename:
             logger.warning("Invalid file provided for upload")
-            return None, "Arquivo inválido"
+            raise ValidationException("Arquivo inválido", field="arquivo")
 
+        filepath = None
         try:
             filename = secure_filename(file.filename)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -299,28 +341,61 @@ class CasoService:
             file.save(filepath)
             logger.info(f"File saved to filesystem: {filepath}")
 
-            arquivo_id = self.arquivo_repository.create(
-                {
-                    "id_caso": caso_id,
-                    "link_arquivo": filepath,
-                }
-            )
-            arquivo = self.arquivo_repository.find_by_id(arquivo_id)
-            logger.info(f"Arquivo created successfully with id: {arquivo_id}")
-            return arquivo, "Arquivo criado com sucesso"
+            with transaction():
+                arquivo_id = self.arquivo_repository.create(
+                    {
+                        "id_caso": caso_id,
+                        "link_arquivo": filepath,
+                    }
+                )
+                arquivo = self.arquivo_repository.find_by_id(arquivo_id)
+                if not arquivo:
+                    raise DatabaseException("Falha ao criar arquivo no banco de dados")
+                logger.info(f"Arquivo created successfully with id: {arquivo_id}")
+                return arquivo
+        except (NotFoundException, ValidationException, DatabaseException):
+            # Re-raise our custom exceptions
+            if filepath and os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                    logger.info(f"Cleaned up file after error: {filepath}")
+                except Exception:
+                    pass
+            raise
         except Exception as e:
             logger.error(
                 f"Error uploading arquivo for caso {caso_id}: {str(e)}", exc_info=True
             )
-            return None, f"Erro ao fazer upload do arquivo: {str(e)}"
+            if filepath and os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                    logger.info(f"Cleaned up file after error: {filepath}")
+                except Exception:
+                    pass
+            raise FileOperationException(
+                f"Erro ao fazer upload do arquivo: {str(e)}", operation="upload"
+            )
 
-    def delete_arquivo(self, arquivo_id: int, caso_id: int) -> tuple[bool, str]:
+    def delete_arquivo(self, arquivo_id: int, caso_id: int) -> None:
+        """
+        Delete an arquivo from a caso.
+
+        Args:
+            arquivo_id: ID of the arquivo to delete
+            caso_id: ID of the caso (for validation)
+
+        Raises:
+            NotFoundException: If arquivo is not found or doesn't belong to caso
+            FileOperationException: If file deletion fails
+            DatabaseException: If database deletion fails
+        """
         logger.info(f"Deleting arquivo with id: {arquivo_id}")
 
         arquivo = self.validate_arquivo_for_caso(arquivo_id, caso_id)
         if not arquivo:
-            return False, "Arquivo não encontrado ou não pertence ao caso"
+            raise NotFoundException(resource="Arquivo", resource_id=arquivo_id)
 
+        # Delete file from filesystem if it exists
         if arquivo.link_arquivo and os.path.exists(arquivo.link_arquivo):
             try:
                 os.remove(arquivo.link_arquivo)
@@ -330,15 +405,28 @@ class CasoService:
                     f"Error deleting file {arquivo.link_arquivo}: {str(e)}",
                     exc_info=True,
                 )
-                return False, f"Erro ao deletar arquivo do sistema: {str(e)}"
+                raise FileOperationException(
+                    f"Erro ao deletar arquivo do sistema de arquivos: {str(e)}",
+                    operation="delete",
+                )
 
-        result = self.arquivo_repository.delete(arquivo_id)
-        if result:
-            logger.info(f"Arquivo deleted successfully with id: {arquivo_id}")
-            return True, "Arquivo deletado com sucesso"
-        else:
-            logger.warning(f"Failed to delete arquivo with id: {arquivo_id}")
-            return False, "Erro ao deletar arquivo do banco de dados"
+        # Delete from database
+        try:
+            with transaction():
+                result = self.arquivo_repository.delete(arquivo_id)
+                if not result:
+                    logger.warning(f"Failed to delete arquivo with id: {arquivo_id}")
+                    raise DatabaseException("Erro ao deletar arquivo do banco de dados")
+                logger.info(f"Arquivo deleted successfully with id: {arquivo_id}")
+        except DatabaseException:
+            raise
+        except Exception as e:
+            logger.error(
+                f"Error deleting arquivo from database: {str(e)}", exc_info=True
+            )
+            raise DatabaseException(
+                f"Erro ao deletar arquivo do banco de dados: {str(e)}"
+            )
 
     def _load_caso_dependencies(self, caso: Caso) -> None:
         caso.usuario_responsavel = User.to_info_optional(

@@ -5,6 +5,7 @@
 	import { setupAdminSchema, type SetupAdminData } from '$lib/forms/schemas/setup-admin-schema';
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/api-client';
+	import { ApiException } from '$lib/types';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import { superForm } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
@@ -22,17 +23,11 @@
 			const payload = Object.fromEntries(formData) as SetupAdminData;
 
 			try {
-				const response = await api.post('auth/setup-admin', payload);
+				const responseData = await api.post<{ token: string; user: any }>(
+					'auth/setup-admin',
+					payload
+				);
 
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					const errorMessage =
-						errorData.error || errorData.message || 'Erro ao configurar administrador';
-					toast.error(errorMessage);
-					return;
-				}
-
-				const responseData = await response.json();
 				if (responseData?.token && typeof document !== 'undefined') {
 					const maxAge = 60 * 60 * 8; // 8 hours
 					const secureFlag =
@@ -44,9 +39,13 @@
 
 				toast.success('Administrador criado com sucesso!');
 				goto('/');
-			} catch (error) {
-				console.error('Setup admin error:', error);
-				toast.error('Erro ao configurar administrador. Por favor, tente novamente.');
+			} catch (err) {
+				if (err instanceof ApiException) {
+					toast.error(err.message);
+				} else {
+					console.error('Setup admin error:', err);
+					toast.error('Erro ao configurar administrador. Por favor, tente novamente.');
+				}
 			}
 		}
 	});

@@ -8,6 +8,11 @@ import bcrypt
 from dateutil import parser as date_parser
 
 from gestaolegal.common import PageParams, PaginatedResult
+from gestaolegal.exceptions import (
+    DatabaseException,
+    NotFoundException,
+    UnauthorizedException,
+)
 from gestaolegal.models.user import User, UserInfo
 from gestaolegal.models.user_input import UserCreateInput, UserUpdateInput
 from gestaolegal.repositories.endereco_repository import EnderecoRepository
@@ -157,7 +162,7 @@ class UsuarioService:
         user = self.find_by_id(user_id)
         if not user:
             logger.error(f"Failed to create user with email: {user_input.email}")
-            raise ValueError("Failed to create user")
+            raise DatabaseException("Falha ao criar usuário")
         logger.info(
             f"User created successfully with id: {user_id}, email: {user_input.email}"
         )
@@ -173,7 +178,7 @@ class UsuarioService:
         existing = self.repository.find_by_id(user_id)
         if not existing:
             logger.error(f"Update failed: user not found with id: {user_id}")
-            raise ValueError(f"User with id {user_id} not found")
+            raise NotFoundException(resource="User", resource_id=user_id)
 
         user_data = user_input.model_dump(exclude_none=True)
 
@@ -222,14 +227,14 @@ class UsuarioService:
         user = self.repository.find_by_id(user_id)
         if not user:
             logger.error(f"Password change failed: user not found with id: {user_id}")
-            raise ValueError(f"User with id {user_id} not found")
+            raise NotFoundException(resource="User", resource_id=user_id)
 
         if not is_admin_change and current_password:
             if not self.check_password(user, current_password):
                 logger.warning(
                     f"Password change failed: incorrect current password for user id: {user_id}"
                 )
-                raise ValueError("Current password is incorrect")
+                raise UnauthorizedException("Senha atual incorreta")
 
         logger.info(f"Hashing password: {new_password}")
         hashed_password = bcrypt.hashpw(
@@ -343,7 +348,7 @@ class UsuarioService:
         user = self.find_by_id(user_id)
         if not user:
             logger.error(f"Failed to create admin user with email: {email}")
-            raise ValueError("Failed to create admin user")
+            raise DatabaseException("Falha ao criar usuário admin")
 
         logger.info(f"Admin user created successfully with id: {user_id}")
         return user

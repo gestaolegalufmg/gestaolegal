@@ -32,5 +32,5 @@ export const YES_NO_OPTIONS = [
 
 export const BOOLEAN_OPTIONS = [
 	{ value: 'true', label: 'Sim' },
-	{ value: '', label: 'Não' }
+	{ value: 'false', label: 'Não' }
 ];

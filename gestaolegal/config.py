@@ -38,14 +38,14 @@ def _get_or_generate_jwt_secret_key(env: Environment) -> str:
     if not jwt_secret_key:
         if env == "production":
             raise ValueError(
-                "JWT_SECRET_KEY is required in production! " + \
-                "Generate one with: python3 -c 'import secrets; print(secrets.token_hex(32))'"
+                "JWT_SECRET_KEY is required in production! "
+                + "Generate one with: python3 -c 'import secrets; print(secrets.token_hex(32))'"
             )
 
         generated_key = secrets.token_hex(32)
         warnings.warn(
-            "No JWT_SECRET_KEY set - using auto-generated key for development. " + \
-            "This key will change on restart, logging out all users.",
+            "No JWT_SECRET_KEY set - using auto-generated key for development. "
+            + "This key will change on restart, logging out all users.",
             UserWarning,
             stacklevel=2,
         )
@@ -53,9 +53,9 @@ def _get_or_generate_jwt_secret_key(env: Environment) -> str:
 
     if env == "production" and len(jwt_secret_key) < 32:
         raise ValueError(
-            f"JWT_SECRET_KEY too short for production ({len(jwt_secret_key)} chars). " + \
-            "Use at least 32 characters. " + \
-            "Generate one with: python3 -c 'import secrets; print(secrets.token_hex(32))'"
+            f"JWT_SECRET_KEY too short for production ({len(jwt_secret_key)} chars). "
+            + "Use at least 32 characters. "
+            + "Generate one with: python3 -c 'import secrets; print(secrets.token_hex(32))'"
         )
 
     return jwt_secret_key
@@ -125,7 +125,13 @@ class Config:
     SQLALCHEMY_DATABASE_URI: ClassVar[str] = (
         f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
     )
-    SQLALCHEMY_ENGINE_OPTIONS: ClassVar[dict[str, int]] = {"pool_recycle": 10}
+    SQLALCHEMY_ENGINE_OPTIONS: ClassVar[dict[str, int | bool]] = {
+        "pool_recycle": 3600,
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_timeout": 30,
+        "pool_pre_ping": True,
+    }
     SQLALCHEMY_TRACK_MODIFICATIONS: ClassVar[bool] = False
 
     ADMIN_PADRAO: ClassVar[int] = 10

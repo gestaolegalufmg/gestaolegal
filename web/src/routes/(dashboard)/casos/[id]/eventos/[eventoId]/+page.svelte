@@ -8,7 +8,7 @@
 	import FileText from '@lucide/svelte/icons/file-text';
 	import { TIPO_EVENTO } from '$lib/constants/tipo_evento';
 	import { toast } from 'svelte-sonner';
-	import { api } from '$lib/api-client';
+	import { apiFetch } from '$lib/api-client';
 
 	let { data }: PageProps = $props();
 	const { evento, caso } = data;
@@ -57,21 +57,26 @@
 	async function handleDownload() {
 		if (!evento.arquivo) return;
 
-		const response = await api.get(`caso/${caso.id}/eventos/${evento.id}/download`);
-		if (!response.ok) {
-			toast.error('Erro ao baixar arquivo');
-			return;
-		}
+		try {
+			const response = await apiFetch(`caso/${caso.id}/eventos/${evento.id}/download`);
 
-		const blob = await response.blob();
-		const url = window.URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = evento.arquivo.split('/').pop() || 'arquivo';
-		document.body.appendChild(a);
-		a.click();
-		window.URL.revokeObjectURL(url);
-		document.body.removeChild(a);
+			if (!response.ok) {
+				throw new Error('Erro ao baixar arquivo');
+			}
+
+			const blob = await response.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = evento.arquivo.split('/').pop() || 'arquivo';
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+			document.body.removeChild(a);
+		} catch (error) {
+			toast.error('Erro ao baixar arquivo');
+			console.error(error);
+		}
 	}
 </script>
 

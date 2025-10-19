@@ -8,6 +8,7 @@
 	import { api } from '$lib/api-client';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
+	import type { Atendido } from '$lib/types';
 
 	let {
 		data,
@@ -26,35 +27,27 @@
 	const form = superForm(data, {
 		SPA: true,
 		validators: zod4Client(assistidoCreateFormSchema),
-		onSubmit: async ({ formData }) => {
-			const data = Object.fromEntries(formData);
-
+		onUpdate: async ({ form, result }) => {
 			try {
-				// When editing an assistido (isAssistido=true), we update via the assistido endpoint
-				// Otherwise, we're creating a new assistido (tornar assistido)
-				const response = isAssistido
-					? await api.put(`atendido/${atendidoId}/assistido`, data)
-					: await api.post(`atendido/${atendidoId}/tornar-assistido`, data);
-
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao salvar assistido');
-					onError?.(errorData);
+				if (result.type === 'failure') {
+					toast.error('Por favor resolva os erros de preenchimento');
 					return;
 				}
 
-				const responseData = await response.json();
+				const response = isAssistido
+					? await api.put<Atendido>(`atendido/${atendidoId}/assistido`, form.data)
+					: await api.post<Atendido>(`atendido/${atendidoId}/tornar-assistido`, form.data);
+
 				toast.success(
 					isAssistido
 						? 'Assistido atualizado com sucesso!'
 						: 'Atendido convertido em assistido com sucesso!'
 				);
 
-				// Use custom onUpdate callback if provided, otherwise default redirect
 				if (onUpdate) {
-					onUpdate(responseData);
+					onUpdate(response);
 				} else {
-					goto('/plantao/atendidos-assistidos');
+					await goto('/plantao/atendidos-assistidos');
 				}
 			} catch (error) {
 				console.error('Assistido form error:', error);

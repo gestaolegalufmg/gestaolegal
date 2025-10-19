@@ -2,6 +2,8 @@ from typing import Any
 
 from flask.testing import FlaskClient
 
+from tests.api.conftest import assert_success_response, get_success_data
+
 
 def test_create_processo_with_date_strings(
     client: FlaskClient,
@@ -13,9 +15,10 @@ def test_create_processo_with_date_strings(
     caso_response = client.post(
         "/api/caso/", json=sample_caso_data, headers=auth_headers
     )
-    assert caso_response.status_code == 200
-    assert caso_response.json is not None
-    caso_id = caso_response.json["id"]
+    assert caso_response.status_code == 201
+    caso_data = get_success_data(caso_response)
+    assert caso_data is not None
+    caso_id = caso_data["id"]
 
     processo_data = {
         "especie": "Ação Civil Pública",
@@ -29,8 +32,8 @@ def test_create_processo_with_date_strings(
         f"/api/caso/{caso_id}/processos", json=processo_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
     assert data["especie"] == "Ação Civil Pública"
     assert data["numero"] == 1234567890
@@ -55,9 +58,10 @@ def test_create_processo_with_link_url(
     caso_response = client.post(
         "/api/caso/", json=sample_caso_data, headers=auth_headers
     )
-    assert caso_response.status_code == 200
-    assert caso_response.json is not None
-    caso_id = caso_response.json["id"]
+    assert caso_response.status_code == 201
+    caso_data = get_success_data(caso_response)
+    assert caso_data is not None
+    caso_id = caso_data["id"]
 
     processo_data = {
         "especie": "Ação Ordinária",
@@ -69,8 +73,8 @@ def test_create_processo_with_link_url(
         f"/api/caso/{caso_id}/processos", json=processo_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
     assert data["link"] == "https://esaj.tjmg.jus.br/processo/123456"
 
@@ -84,9 +88,10 @@ def test_create_processo_with_empty_link(
     caso_response = client.post(
         "/api/caso/", json=sample_caso_data, headers=auth_headers
     )
-    assert caso_response.status_code == 200
-    assert caso_response.json is not None
-    caso_id = caso_response.json["id"]
+    assert caso_response.status_code == 201
+    caso_data = get_success_data(caso_response)
+    assert caso_data is not None
+    caso_id = caso_data["id"]
 
     processo_data = {"especie": "Ação Monitória", "link": "", "status": True}
 
@@ -94,8 +99,8 @@ def test_create_processo_with_empty_link(
         f"/api/caso/{caso_id}/processos", json=processo_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
 
 
@@ -108,9 +113,10 @@ def test_create_processo_with_numeric_fields(
     caso_response = client.post(
         "/api/caso/", json=sample_caso_data, headers=auth_headers
     )
-    assert caso_response.status_code == 200
-    assert caso_response.json is not None
-    caso_id = caso_response.json["id"]
+    assert caso_response.status_code == 201
+    caso_data = get_success_data(caso_response)
+    assert caso_data is not None
+    caso_id = caso_data["id"]
 
     processo_data = {
         "especie": "Ação de Indenização",
@@ -123,8 +129,8 @@ def test_create_processo_with_numeric_fields(
         f"/api/caso/{caso_id}/processos", json=processo_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
     assert data["valor_causa_inicial"] == 50000
     assert data["valor_causa_atual"] == 75000
@@ -139,18 +145,20 @@ def test_update_processo_partial_data(
     caso_response = client.post(
         "/api/caso/", json=sample_caso_data, headers=auth_headers
     )
-    assert caso_response.status_code == 200
-    assert caso_response.json is not None
-    caso_id = caso_response.json["id"]
+    assert caso_response.status_code == 201
+    caso_data = get_success_data(caso_response)
+    assert caso_data is not None
+    caso_id = caso_data["id"]
 
     processo_data = {"especie": "Ação Trabalhista", "numero": 999999, "status": True}
 
     create_response = client.post(
         f"/api/caso/{caso_id}/processos", json=processo_data, headers=auth_headers
     )
-    assert create_response.status_code == 200
-    assert create_response.json is not None
-    processo_id = create_response.json["id"]
+    assert create_response.status_code == 201
+    processo_data_response = get_success_data(create_response)
+    assert processo_data_response is not None
+    processo_id = processo_data_response["id"]
 
     # Update only specific fields
     update_data = {"probabilidade": "Alta", "posicao_assistido": "Autor"}
@@ -162,7 +170,7 @@ def test_update_processo_partial_data(
     )
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert data["probabilidade"] == "Alta"
     assert data["posicao_assistido"] == "Autor"
@@ -178,9 +186,10 @@ def test_processo_with_all_optional_fields(
     caso_response = client.post(
         "/api/caso/", json=sample_caso_data, headers=auth_headers
     )
-    assert caso_response.status_code == 200
-    assert caso_response.json is not None
-    caso_id = caso_response.json["id"]
+    assert caso_response.status_code == 201
+    caso_data = get_success_data(caso_response)
+    assert caso_data is not None
+    caso_id = caso_data["id"]
 
     processo_data = {
         "especie": "Ação Completa",
@@ -202,8 +211,8 @@ def test_processo_with_all_optional_fields(
         f"/api/caso/{caso_id}/processos", json=processo_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
     assert data["especie"] == "Ação Completa"
     assert data["identificacao"] == "ID-2024-001"
@@ -220,18 +229,20 @@ def test_delete_processo(
     caso_response = client.post(
         "/api/caso/", json=sample_caso_data, headers=auth_headers
     )
-    assert caso_response.status_code == 200
-    assert caso_response.json is not None
-    caso_id = caso_response.json["id"]
+    assert caso_response.status_code == 201
+    caso_data = get_success_data(caso_response)
+    assert caso_data is not None
+    caso_id = caso_data["id"]
 
     processo_data = {"especie": "Ação a Deletar", "status": True}
 
     create_response = client.post(
         f"/api/caso/{caso_id}/processos", json=processo_data, headers=auth_headers
     )
-    assert create_response.status_code == 200
-    assert create_response.json is not None
-    processo_id = create_response.json["id"]
+    assert create_response.status_code == 201
+    processo_data_response = get_success_data(create_response)
+    assert processo_data_response is not None
+    processo_id = processo_data_response["id"]
 
     # Delete processo
     delete_response = client.delete(
@@ -239,3 +250,4 @@ def test_delete_processo(
     )
 
     assert delete_response.status_code == 200
+    assert_success_response(delete_response)

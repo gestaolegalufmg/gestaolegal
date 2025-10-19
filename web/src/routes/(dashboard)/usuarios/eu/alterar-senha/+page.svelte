@@ -15,6 +15,7 @@
 	import type { PageProps } from './$types';
 	import { passwordChangeSchema } from '$lib/forms/schemas/password-schema';
 	import { api } from '$lib/api-client';
+	import { ApiException } from '$lib/types';
 	import { toast } from 'svelte-sonner';
 
 	let { data }: PageProps = $props();
@@ -26,23 +27,21 @@
 			const formValues = Object.fromEntries(formData);
 
 			try {
-				const response = await api.put(`user/${data.me.id}/password`, {
+				await api.put(`user/${data.me.id}/password`, {
 					currentPassword: formValues.currentPassword,
 					newPassword: formValues.newPassword,
 					fromAdmin: false
 				});
 
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao alterar senha');
-					return;
-				}
-
 				toast.success('Senha alterada com sucesso!');
 				goto('/');
-			} catch (error) {
-				console.error('Password change error:', error);
-				toast.error('Erro ao alterar senha. Por favor, tente novamente.');
+			} catch (err) {
+				if (err instanceof ApiException) {
+					toast.error(err.message);
+				} else {
+					toast.error('Erro ao alterar senha');
+					console.error(err);
+				}
 			}
 		}
 	});

@@ -14,7 +14,8 @@
 	import type { User } from '$lib/types';
 	import UserPlus from '@lucide/svelte/icons/user-plus';
 	import X from '@lucide/svelte/icons/x';
-	import { apiFetch } from '$lib/api-client';
+	import { api } from '$lib/api-client';
+	import { ApiException } from '$lib/types';
 	import { toast } from 'svelte-sonner';
 	import { page } from '$app/stores';
 
@@ -44,24 +45,18 @@
 					}
 				}
 
-				const response = await apiFetch(`caso/${casoId}/eventos`, {
-					method: 'POST',
-					body: data,
-					headers: {}
-				});
-
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao criar evento');
-					return;
-				}
+				await api.post(`caso/${casoId}/eventos`, data, { headers: {} });
 
 				toast.success('Evento criado com sucesso!');
 				open = false;
 				await onSuccess();
-			} catch (error) {
-				console.error('Evento creation error:', error);
-				toast.error('Erro ao criar evento. Por favor, tente novamente.');
+			} catch (err) {
+				if (err instanceof ApiException) {
+					toast.error(err.message);
+				} else {
+					toast.error('Erro ao criar evento');
+					console.error(err);
+				}
 			}
 		}
 	});

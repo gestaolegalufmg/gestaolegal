@@ -1,5 +1,6 @@
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/public';
+import { ApiException, type ApiResponse } from './types/api-response';
 
 function getAuthToken(): string | null {
 	if (typeof document === 'undefined') return null;
@@ -75,12 +76,36 @@ export async function apiFetch(
 	return response;
 }
 
-export const api = {
-	get: (endpoint: string, options?: RequestInit, customFetch?: typeof fetch) =>
-		apiFetch(endpoint, { ...options, method: 'GET' }, customFetch),
+async function unwrapApiResponse<T>(response: Response): Promise<T> {
+	const apiResponse: ApiResponse<T> = await response.json();
 
-	post: (endpoint: string, data?: any, options?: RequestInit, customFetch?: typeof fetch) =>
-		apiFetch(
+	if (!apiResponse.success) {
+		throw new ApiException(
+			apiResponse.error?.message || 'Erro na requisição',
+			apiResponse.error?.code,
+			apiResponse.error?.details,
+			response.status
+		);
+	}
+
+	return apiResponse.data as T;
+}
+
+async function apiData<T>(
+	endpoint: string,
+	options?: RequestInit,
+	customFetch?: typeof fetch
+): Promise<T> {
+	const response = await apiFetch(endpoint, options, customFetch);
+	return unwrapApiResponse<T>(response);
+}
+
+export const api = {
+	get: <T>(endpoint: string, options?: RequestInit, customFetch?: typeof fetch) =>
+		apiData<T>(endpoint, { ...options, method: 'GET' }, customFetch),
+
+	post: <T>(endpoint: string, data?: any, options?: RequestInit, customFetch?: typeof fetch) =>
+		apiData<T>(
 			endpoint,
 			{
 				...options,
@@ -90,28 +115,28 @@ export const api = {
 			customFetch
 		),
 
-	put: (endpoint: string, data?: any, options?: RequestInit, customFetch?: typeof fetch) =>
-		apiFetch(
+	put: <T>(endpoint: string, data?: any, options?: RequestInit, customFetch?: typeof fetch) =>
+		apiData<T>(
 			endpoint,
 			{
 				...options,
 				method: 'PUT',
-				body: data ? JSON.stringify(data) : undefined
+				body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined
 			},
 			customFetch
 		),
 
-	patch: (endpoint: string, data?: any, options?: RequestInit, customFetch?: typeof fetch) =>
-		apiFetch(
+	patch: <T>(endpoint: string, data?: any, options?: RequestInit, customFetch?: typeof fetch) =>
+		apiData<T>(
 			endpoint,
 			{
 				...options,
 				method: 'PATCH',
-				body: data ? JSON.stringify(data) : undefined
+				body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined
 			},
 			customFetch
 		),
 
-	delete: (endpoint: string, options?: RequestInit, customFetch?: typeof fetch) =>
-		apiFetch(endpoint, { ...options, method: 'DELETE' }, customFetch)
+	delete: <T = void>(endpoint: string, options?: RequestInit, customFetch?: typeof fetch) =>
+		apiData<T>(endpoint, { ...options, method: 'DELETE' }, customFetch)
 };

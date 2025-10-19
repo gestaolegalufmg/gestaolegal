@@ -3,6 +3,8 @@ from typing import Any
 import pytest
 from flask.testing import FlaskClient
 
+from tests.api.conftest import assert_success_response, get_success_data
+
 
 @pytest.fixture
 def sample_orientacao_data() -> dict[str, Any]:
@@ -22,8 +24,8 @@ def test_create_orientacao_success(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
     assert data["area_direito"] == "penal"
     assert (
@@ -50,15 +52,17 @@ def test_get_orientacao_by_id(
     create_response = client.post(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
-    assert create_response.json is not None
-    orientacao_id = create_response.json["id"]
+    assert create_response.status_code == 201
+    create_data = get_success_data(create_response)
+    assert create_data is not None
+    orientacao_id = create_data["id"]
 
     response = client.get(
         f"/api/orientacao_juridica/{orientacao_id}", headers=auth_headers
     )
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert data["area_direito"] == "penal"
     assert data["id"] == orientacao_id
@@ -80,8 +84,10 @@ def test_update_orientacao(
     create_response = client.post(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
-    assert create_response.json is not None
-    orientacao_id = create_response.json["id"]
+    assert create_response.status_code == 201
+    create_data = get_success_data(create_response)
+    assert create_data is not None
+    orientacao_id = create_data["id"]
 
     update_data = {
         **sample_orientacao_data,
@@ -94,7 +100,7 @@ def test_update_orientacao(
     )
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert data["descricao"] == "Descrição atualizada da orientação"
     assert data["id"] == orientacao_id
@@ -108,14 +114,17 @@ def test_delete_orientacao(
     create_response = client.post(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
-    assert create_response.json is not None
-    orientacao_id = create_response.json["id"]
+    assert create_response.status_code == 201
+    create_data = get_success_data(create_response)
+    assert create_data is not None
+    orientacao_id = create_data["id"]
 
     response = client.delete(
         f"/api/orientacao_juridica/{orientacao_id}", headers=auth_headers
     )
 
     assert response.status_code == 200
+    assert_success_response(response)
 
 
 def test_search_orientacoes(
@@ -123,16 +132,17 @@ def test_search_orientacoes(
     auth_headers: dict[str, str],
     sample_orientacao_data: dict[str, Any],
 ) -> None:
-    client.post(
+    create_response = client.post(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
+    assert create_response.status_code == 201
 
     response = client.get("/api/orientacao_juridica/", headers=auth_headers)
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
-    assert isinstance(data, (dict, list))
+    assert isinstance(data, dict)
 
 
 def test_create_orientacao_with_atendidos(
@@ -144,16 +154,18 @@ def test_create_orientacao_with_atendidos(
     atendido_response = client.post(
         "/api/atendido/", json=sample_atendido_data, headers=auth_headers
     )
-    assert atendido_response.json is not None
-    atendido_id = atendido_response.json["id"]
+    assert atendido_response.status_code == 201
+    atendido_data = get_success_data(atendido_response)
+    assert atendido_data is not None
+    atendido_id = atendido_data["id"]
 
     orientacao_data = {**sample_orientacao_data, "atendidos_ids": [atendido_id]}
     response = client.post(
         "/api/orientacao_juridica/", json=orientacao_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
     has_atendidos = len(data.get("atendidos", [])) == 1 or data.get(
         "atendidos_ids"
@@ -166,25 +178,27 @@ def test_filter_orientacoes_by_area_direito(
     auth_headers: dict[str, str],
     sample_orientacao_data: dict[str, Any],
 ) -> None:
-    client.post(
+    create_response = client.post(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
+    assert create_response.status_code == 201
 
     trabalhista_data = {
         **sample_orientacao_data,
         "area_direito": "trabalhista",
         "descricao": "Orientação sobre direito trabalhista",
     }
-    client.post(
+    trabalhista_response = client.post(
         "/api/orientacao_juridica/", json=trabalhista_data, headers=auth_headers
     )
+    assert trabalhista_response.status_code == 201
 
     response = client.get("/api/orientacao_juridica/", headers=auth_headers)
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
-    items = data["items"] if isinstance(data, dict) and "items" in data else data
+    items = data["items"]
     assert isinstance(items, list)
     assert len(items) >= 2
 
@@ -197,28 +211,31 @@ def test_orientacao_show_inactive_false_excludes_inactive(
     active_orientacao_response = client.post(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
-    assert active_orientacao_response.status_code == 200
-    assert active_orientacao_response.json is not None
-    active_orientacao_id = active_orientacao_response.json["id"]
+    assert active_orientacao_response.status_code == 201
+    active_data = get_success_data(active_orientacao_response)
+    assert active_data is not None
+    active_orientacao_id = active_data["id"]
 
     inactive_orientacao_data = {**sample_orientacao_data, "area_direito": "civil"}
     inactive_orientacao_response = client.post(
         "/api/orientacao_juridica/", json=inactive_orientacao_data, headers=auth_headers
     )
-    assert inactive_orientacao_response.status_code == 200
-    assert inactive_orientacao_response.json is not None
-    inactive_orientacao_id = inactive_orientacao_response.json["id"]
+    assert inactive_orientacao_response.status_code == 201
+    inactive_data = get_success_data(inactive_orientacao_response)
+    assert inactive_data is not None
+    inactive_orientacao_id = inactive_data["id"]
 
     delete_response = client.delete(
         f"/api/orientacao_juridica/{inactive_orientacao_id}", headers=auth_headers
     )
     assert delete_response.status_code == 200
+    assert_success_response(delete_response)
 
     search_response = client.get(
         "/api/orientacao_juridica/?show_inactive=false", headers=auth_headers
     )
     assert search_response.status_code == 200
-    data = search_response.json
+    data = get_success_data(search_response)
     assert data is not None
 
     orientacao_ids = [orientacao["id"] for orientacao in data["items"]]
@@ -234,28 +251,31 @@ def test_orientacao_show_inactive_true_includes_inactive(
     active_orientacao_response = client.post(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
-    assert active_orientacao_response.status_code == 200
-    assert active_orientacao_response.json is not None
-    active_orientacao_id = active_orientacao_response.json["id"]
+    assert active_orientacao_response.status_code == 201
+    active_data = get_success_data(active_orientacao_response)
+    assert active_data is not None
+    active_orientacao_id = active_data["id"]
 
     inactive_orientacao_data = {**sample_orientacao_data, "area_direito": "trabalhista"}
     inactive_orientacao_response = client.post(
         "/api/orientacao_juridica/", json=inactive_orientacao_data, headers=auth_headers
     )
-    assert inactive_orientacao_response.status_code == 200
-    assert inactive_orientacao_response.json is not None
-    inactive_orientacao_id = inactive_orientacao_response.json["id"]
+    assert inactive_orientacao_response.status_code == 201
+    inactive_data = get_success_data(inactive_orientacao_response)
+    assert inactive_data is not None
+    inactive_orientacao_id = inactive_data["id"]
 
     delete_response = client.delete(
         f"/api/orientacao_juridica/{inactive_orientacao_id}", headers=auth_headers
     )
     assert delete_response.status_code == 200
+    assert_success_response(delete_response)
 
     search_response = client.get(
         "/api/orientacao_juridica/?show_inactive=true", headers=auth_headers
     )
     assert search_response.status_code == 200
-    data = search_response.json
+    data = get_success_data(search_response)
     assert data is not None
 
     orientacao_ids = [orientacao["id"] for orientacao in data["items"]]
@@ -271,26 +291,29 @@ def test_orientacao_show_inactive_default_excludes_inactive(
     active_orientacao_response = client.post(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
-    assert active_orientacao_response.status_code == 200
-    assert active_orientacao_response.json is not None
-    active_orientacao_id = active_orientacao_response.json["id"]
+    assert active_orientacao_response.status_code == 201
+    active_data = get_success_data(active_orientacao_response)
+    assert active_data is not None
+    active_orientacao_id = active_data["id"]
 
     inactive_orientacao_data = {**sample_orientacao_data, "area_direito": "consumidor"}
     inactive_orientacao_response = client.post(
         "/api/orientacao_juridica/", json=inactive_orientacao_data, headers=auth_headers
     )
-    assert inactive_orientacao_response.status_code == 200
-    assert inactive_orientacao_response.json is not None
-    inactive_orientacao_id = inactive_orientacao_response.json["id"]
+    assert inactive_orientacao_response.status_code == 201
+    inactive_data = get_success_data(inactive_orientacao_response)
+    assert inactive_data is not None
+    inactive_orientacao_id = inactive_data["id"]
 
     delete_response = client.delete(
         f"/api/orientacao_juridica/{inactive_orientacao_id}", headers=auth_headers
     )
     assert delete_response.status_code == 200
+    assert_success_response(delete_response)
 
     search_response = client.get("/api/orientacao_juridica/", headers=auth_headers)
     assert search_response.status_code == 200
-    data = search_response.json
+    data = get_success_data(search_response)
     assert data is not None
 
     orientacao_ids = [orientacao["id"] for orientacao in data["items"]]
@@ -311,8 +334,8 @@ def test_orientacao_conditional_sub_area_for_civel(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
     assert data["area_direito"] == "civel"
     assert data["sub_area"] == "Contratos"
@@ -331,8 +354,8 @@ def test_orientacao_conditional_sub_area_for_administrativo(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
     assert data["area_direito"] == "administrativo"
     assert data["sub_area"] == "Licitações"
@@ -351,8 +374,8 @@ def test_orientacao_sub_area_optional_for_penal(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
     assert data["area_direito"] == "penal"
     # sub_area can be None or not present
@@ -369,15 +392,19 @@ def test_orientacao_with_multiple_atendidos(
     atendido1_response = client.post(
         "/api/atendido/", json=sample_atendido_data, headers=auth_headers
     )
-    assert atendido1_response.json is not None
-    atendido1_id = atendido1_response.json["id"]
+    assert atendido1_response.status_code == 201
+    atendido1_data = get_success_data(atendido1_response)
+    assert atendido1_data is not None
+    atendido1_id = atendido1_data["id"]
 
     atendido2_data = {**sample_atendido_data, "cpf": "987.654.321-00"}
     atendido2_response = client.post(
         "/api/atendido/", json=atendido2_data, headers=auth_headers
     )
-    assert atendido2_response.json is not None
-    atendido2_id = atendido2_response.json["id"]
+    assert atendido2_response.status_code == 201
+    atendido2_data_resp = get_success_data(atendido2_response)
+    assert atendido2_data_resp is not None
+    atendido2_id = atendido2_data_resp["id"]
 
     # Create orientacao with both atendidos
     orientacao_data = {
@@ -388,8 +415,8 @@ def test_orientacao_with_multiple_atendidos(
         "/api/orientacao_juridica/", json=orientacao_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
     # Check that both atendidos are associated
     has_atendidos = len(data.get("atendidos", [])) == 2 or data.get(
@@ -410,8 +437,8 @@ def test_orientacao_with_empty_atendidos_ids(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
 
-    assert response.status_code == 200
-    data = response.json
+    assert response.status_code == 201
+    data = get_success_data(response)
     assert data is not None
     # Empty array should be accepted
 
@@ -428,8 +455,10 @@ def test_orientacao_update_sub_area(
     create_response = client.post(
         "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
     )
-    assert create_response.json is not None
-    orientacao_id = create_response.json["id"]
+    assert create_response.status_code == 201
+    create_data = get_success_data(create_response)
+    assert create_data is not None
+    orientacao_id = create_data["id"]
 
     # Update sub_area
     update_data = {"sub_area": "Responsabilidade Civil"}
@@ -440,7 +469,7 @@ def test_orientacao_update_sub_area(
     )
 
     assert response.status_code == 200
-    data = response.json
+    data = get_success_data(response)
     assert data is not None
     assert data["sub_area"] == "Responsabilidade Civil"
     assert data["area_direito"] == "civel"  # Original value preserved

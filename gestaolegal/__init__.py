@@ -30,6 +30,10 @@ def create_app(config_object=None):
 
     register_blueprints(app)
 
+    from gestaolegal.utils.error_handlers import register_error_handlers
+
+    register_error_handlers(app)
+
     return app
 
 

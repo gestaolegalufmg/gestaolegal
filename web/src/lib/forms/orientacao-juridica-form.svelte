@@ -1,5 +1,4 @@
 <script lang="ts">
-	import * as Form from '$lib/components/ui/form';
 	import { superForm, type Infer, type SuperValidated } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
 	import {
@@ -11,7 +10,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import AtendidoSelectorDialog from '$lib/components/atendido-selector-dialog.svelte';
 	import { Badge } from '$lib/components/ui/badge';
-	import type { Atendido } from '$lib/types';
+	import type { Atendido, OrientacaoJuridica } from '$lib/types';
 	import X from '@lucide/svelte/icons/x';
 	import UserPlus from '@lucide/svelte/icons/user-plus';
 	import {
@@ -47,39 +46,35 @@
 		dataType: 'json',
 		validators: zod4Client(orientacaoJuridicaCreateFormSchema),
 		resetForm: false,
-		onSubmit: async () => {
-			const rawData = get(formData);
-			const currentData =
-				typeof structuredClone === 'function'
-					? structuredClone(rawData)
-					: JSON.parse(JSON.stringify(rawData));
-			const targetOrientacaoId = orientacaoId ?? orientacao?.id;
-
+		onUpdate: async ({ form, result }) => {
 			try {
-				const response = isCreateMode
-					? await api.post('orientacao_juridica', currentData)
-					: await api.put(`orientacao_juridica/${targetOrientacaoId}`, currentData);
-
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					toast.error(errorData.message || 'Erro ao salvar orientação jurídica');
-					onError?.(errorData);
+				if (result.type === 'failure') {
+					toast.error('Por favor resolva os erros de preenchimento');
 					return;
 				}
 
-				const responseData = await response.json();
+				const targetOrientacaoId = orientacaoId ?? orientacao?.id;
+
+				const response = isCreateMode
+					? await api.post<OrientacaoJuridica>('orientacao_juridica', form.data)
+					: await api.put<OrientacaoJuridica>(
+							`orientacao_juridica/${targetOrientacaoId}`,
+							form.data
+						);
+
 				toast.success(
 					isCreateMode
 						? 'Orientação jurídica criada com sucesso!'
 						: 'Orientação jurídica atualizada com sucesso!'
 				);
-				onUpdate?.(responseData);
+
+				onUpdate?.(response);
 
 				const redirectTo = isCreateMode
 					? '/plantao/orientacoes-juridicas'
-					: `/plantao/orientacoes-juridicas/${responseData.id}`;
+					: `/plantao/orientacoes-juridicas/${response.id}`;
 
-				goto(redirectTo);
+				await goto(redirectTo);
 			} catch (error) {
 				console.error('Orientacao juridica form error:', error);
 				toast.error('Erro ao salvar orientação jurídica. Por favor, tente novamente.');

@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import type { User } from '$lib/types';
 import type { PageLoad } from './$types';
 import { api } from '$lib/api-client';
+import { ApiException } from '$lib/types';
 
 export const load: PageLoad = async ({ params, parent, fetch }) => {
 	const { me } = await parent();
@@ -22,14 +23,17 @@ export const load: PageLoad = async ({ params, parent, fetch }) => {
 		};
 	}
 
-	const response = await api.get(`user/${params.id}`, {}, fetch);
+	try {
+		const user = await api.get<User>(`user/${params.id}`, {}, fetch);
 
-	if (!response.ok) {
-		error(response.status, 'Falha ao carregar usuário');
+		return {
+			user,
+			canView: true
+		};
+	} catch (err) {
+		if (err instanceof ApiException) {
+			error(err.statusCode || 500, err.message);
+		}
+		throw err;
 	}
-
-	return {
-		user: (await response.json()) as User,
-		canView: true
-	};
 };
