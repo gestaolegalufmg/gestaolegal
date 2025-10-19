@@ -78,7 +78,7 @@
 							debounceMs={500}
 							placeholder="Buscar orientação..."
 						/>
-						<Select.Root bind:value={filters.area} name="area" type="single">
+						<Select.Root bind:value={filters.area} name="area" type="single" onValueChange={() => applyFilters()}>
 							<Select.Trigger class="w-[200px] data-[placeholder]:text-foreground">
 								{areaFilterOptions.find((option) => option.value === filters.area)?.label}
 							</Select.Trigger>
@@ -90,7 +90,7 @@
 						</Select.Root>
 					</div>
 					<label class="flex cursor-pointer items-center gap-2">
-						<Checkbox bind:checked={filters.show_inactive} />
+						<Checkbox bind:checked={filters.show_inactive} onCheckedChange={() => applyFilters()} />
 						<span class="text-sm">Incluir inativos</span>
 					</label>
 				</div>
