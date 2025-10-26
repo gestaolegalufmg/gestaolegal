@@ -852,6 +852,242 @@ def test_upload_arquivo_without_file(
     assert response.status_code == 400
 
 
+def test_filter_casos_by_user_me(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    non_admin_auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_admin_data = {
+        **sample_caso_data,
+        "area_direito": "penal",
+        "id_usuario_responsavel": 1,
+    }
+    admin_caso_response = client.post(
+        "/api/caso/", json=caso_admin_data, headers=auth_headers
+    )
+    assert admin_caso_response.status_code == 201
+    admin_caso = get_success_data(admin_caso_response)
+    assert admin_caso is not None
+    admin_caso_id = admin_caso["id"]
+
+    caso_non_admin_data = {
+        **sample_caso_data,
+        "area_direito": "civil",
+        "id_usuario_responsavel": 2,
+    }
+    non_admin_caso_response = client.post(
+        "/api/caso/", json=caso_non_admin_data, headers=non_admin_auth_headers
+    )
+    assert non_admin_caso_response.status_code == 201
+    non_admin_caso = get_success_data(non_admin_caso_response)
+    assert non_admin_caso is not None
+    non_admin_caso_id = non_admin_caso["id"]
+
+    response = client.get("/api/caso/?user=me", headers=auth_headers)
+
+    assert response.status_code == 200
+    data = get_success_data(response)
+    assert data is not None
+    items = data["items"]
+    assert isinstance(items, list)
+
+    caso_ids = [caso["id"] for caso in items]
+    assert admin_caso_id in caso_ids
+    assert non_admin_caso_id not in caso_ids
+
+
+def test_filter_casos_by_user_id(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    non_admin_auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_admin_data = {
+        **sample_caso_data,
+        "area_direito": "trabalhista",
+        "id_usuario_responsavel": 1,
+    }
+    admin_caso_response = client.post(
+        "/api/caso/", json=caso_admin_data, headers=auth_headers
+    )
+    assert admin_caso_response.status_code == 201
+    admin_caso = get_success_data(admin_caso_response)
+    assert admin_caso is not None
+    admin_caso_id = admin_caso["id"]
+    admin_user_id = admin_caso["id_usuario_responsavel"]
+
+    caso_non_admin_data = {
+        **sample_caso_data,
+        "area_direito": "consumidor",
+        "id_usuario_responsavel": 2,
+    }
+    non_admin_caso_response = client.post(
+        "/api/caso/", json=caso_non_admin_data, headers=non_admin_auth_headers
+    )
+    assert non_admin_caso_response.status_code == 201
+    non_admin_caso = get_success_data(non_admin_caso_response)
+    assert non_admin_caso is not None
+    non_admin_caso_id = non_admin_caso["id"]
+    non_admin_caso["id_usuario_responsavel"]
+
+    response = client.get(f"/api/caso/?user={admin_user_id}", headers=auth_headers)
+
+    assert response.status_code == 200
+    data = get_success_data(response)
+    assert data is not None
+    items = data["items"]
+    assert isinstance(items, list)
+
+    caso_ids = [caso["id"] for caso in items]
+    assert admin_caso_id in caso_ids
+    assert non_admin_caso_id not in caso_ids
+
+    for caso in items:
+        assert caso["id_usuario_responsavel"] == admin_user_id
+
+
+def test_filter_casos_by_user_id_as_non_admin(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    non_admin_auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_admin_data = {
+        **sample_caso_data,
+        "area_direito": "penal",
+        "id_usuario_responsavel": 1,
+    }
+    admin_caso_response = client.post(
+        "/api/caso/", json=caso_admin_data, headers=auth_headers
+    )
+    assert admin_caso_response.status_code == 201
+    admin_caso = get_success_data(admin_caso_response)
+    assert admin_caso is not None
+    admin_caso_id = admin_caso["id"]
+
+    caso_non_admin_data = {
+        **sample_caso_data,
+        "area_direito": "civil",
+        "id_usuario_responsavel": 2,
+    }
+    non_admin_caso_response = client.post(
+        "/api/caso/", json=caso_non_admin_data, headers=non_admin_auth_headers
+    )
+    assert non_admin_caso_response.status_code == 201
+    non_admin_caso = get_success_data(non_admin_caso_response)
+    assert non_admin_caso is not None
+    non_admin_caso_id = non_admin_caso["id"]
+    non_admin_user_id = non_admin_caso["id_usuario_responsavel"]
+
+    response = client.get(
+        f"/api/caso/?user={non_admin_user_id}", headers=non_admin_auth_headers
+    )
+
+    assert response.status_code == 200
+    data = get_success_data(response)
+    assert data is not None
+    items = data["items"]
+    assert isinstance(items, list)
+
+    caso_ids = [caso["id"] for caso in items]
+    assert non_admin_caso_id in caso_ids
+    assert admin_caso_id not in caso_ids
+
+    for caso in items:
+        assert caso["id_usuario_responsavel"] == non_admin_user_id
+
+
+def test_filter_casos_without_user_param_returns_all(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    non_admin_auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_admin_data = {
+        **sample_caso_data,
+        "area_direito": "ambiental",
+        "id_usuario_responsavel": 1,
+    }
+    admin_caso_response = client.post(
+        "/api/caso/", json=caso_admin_data, headers=auth_headers
+    )
+    assert admin_caso_response.status_code == 201
+    admin_caso = get_success_data(admin_caso_response)
+    assert admin_caso is not None
+    admin_caso_id = admin_caso["id"]
+
+    caso_non_admin_data = {
+        **sample_caso_data,
+        "area_direito": "tributario",
+        "id_usuario_responsavel": 2,
+    }
+    non_admin_caso_response = client.post(
+        "/api/caso/", json=caso_non_admin_data, headers=non_admin_auth_headers
+    )
+    assert non_admin_caso_response.status_code == 201
+    non_admin_caso = get_success_data(non_admin_caso_response)
+    assert non_admin_caso is not None
+    non_admin_caso_id = non_admin_caso["id"]
+
+    response = client.get("/api/caso/", headers=auth_headers)
+
+    assert response.status_code == 200
+    data = get_success_data(response)
+    assert data is not None
+    items = data["items"]
+    assert isinstance(items, list)
+
+    caso_ids = [caso["id"] for caso in items]
+    assert admin_caso_id in caso_ids
+    assert non_admin_caso_id in caso_ids
+
+
+def test_filter_casos_by_invalid_user_param_returns_all(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    non_admin_auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_admin_data = {
+        **sample_caso_data,
+        "area_direito": "familia",
+        "id_usuario_responsavel": 1,
+    }
+    admin_caso_response = client.post(
+        "/api/caso/", json=caso_admin_data, headers=auth_headers
+    )
+    assert admin_caso_response.status_code == 201
+    admin_caso = get_success_data(admin_caso_response)
+    assert admin_caso is not None
+    admin_caso_id = admin_caso["id"]
+
+    caso_non_admin_data = {
+        **sample_caso_data,
+        "area_direito": "previdenciario",
+        "id_usuario_responsavel": 2,
+    }
+    non_admin_caso_response = client.post(
+        "/api/caso/", json=caso_non_admin_data, headers=non_admin_auth_headers
+    )
+    assert non_admin_caso_response.status_code == 201
+    non_admin_caso = get_success_data(non_admin_caso_response)
+    assert non_admin_caso is not None
+    non_admin_caso_id = non_admin_caso["id"]
+
+    response = client.get("/api/caso/?user=invalid_value", headers=auth_headers)
+
+    assert response.status_code == 200
+    data = get_success_data(response)
+    assert data is not None
+    items = data["items"]
+    assert isinstance(items, list)
+
+    caso_ids = [caso["id"] for caso in items]
+    assert admin_caso_id in caso_ids
+    assert non_admin_caso_id in caso_ids
+
+
 def test_update_caso_not_found(
     client: FlaskClient, auth_headers: dict[str, str]
 ) -> None:
