@@ -97,7 +97,9 @@
 	function formatDate(value: string | number | Date): string {
 		if (!value) return '--';
 		const d = new Date(value);
-		return d.toLocaleDateString('pt-BR');
+		// Date-only columns: format in UTC so the calendar date is not shifted by
+		// the local timezone offset (backend serializes as GMT midnight).
+		return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 	}
 
 	function formatDateTime(value: string | number | Date): string {

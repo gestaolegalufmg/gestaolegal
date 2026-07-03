@@ -71,17 +71,21 @@ const baseAtendidoFormSchema = z
 
 		indicacao_orgao: z.string().max(80, 'Muito longo').nullish(),
 
-		procurou_outro_local: z.enum(['sim', 'nao'], {
-			error: 'Selecione se procurou outro local'
-		}),
+		procurou_outro_local: z
+			.enum(['sim', 'nao'], {
+				error: 'Selecione se procurou outro local'
+			})
+			.default('nao'),
 
 		procurou_qual_local: z.string().max(80, 'Muito longo').nullish(),
 
 		obs: z.string().max(1000, 'Observações muito longas').nullish(),
 
-		pj_constituida: z.enum(['sim', 'nao'], {
-			error: 'Selecione se a PJ está constituída'
-		}),
+		pj_constituida: z
+			.enum(['sim', 'nao'], {
+				error: 'Selecione se a PJ está constituída'
+			})
+			.default('nao'),
 
 		repres_legal: z.boolean().nullish(),
 

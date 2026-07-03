@@ -20,7 +20,8 @@
 
 	function formatDate(dateString: string) {
 		const date = new Date(dateString);
-		return date.toLocaleDateString('pt-BR');
+		// data_evento is a calendar date — format in UTC to avoid a timezone day-shift.
+		return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 	}
 
 	function getTipoLabel(tipo: string) {
