@@ -12,7 +12,8 @@
 	function formatDate(dateString: string | null): string {
 		if (!dateString) return 'Não informado';
 		const date = new Date(dateString);
-		return date.toLocaleDateString('pt-BR');
+		// Birth dates are calendar dates — format in UTC to avoid a timezone day-shift.
+		return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 	}
 
 	function formatCurrency(value: number | null): string {

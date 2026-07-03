@@ -30,6 +30,7 @@ from gestaolegal.repositories.repository import (
     or_clauses,
 )
 from gestaolegal.repositories.user_repository import UserRepository
+from gestaolegal.services.historico_service import HistoricoService
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,7 @@ class CasoService:
         self.atendido_repository = AtendidoRepository()
         self.processo_repository = ProcessoRepository()
         self.arquivo_repository = ArquivoCasoRepository()
+        self.historico_service = HistoricoService()
 
     def find_by_id(self, id: int) -> Caso | None:
         logger.info(f"Finding caso by id: {id}")
@@ -153,6 +155,10 @@ class CasoService:
                     f"Linked {len(caso_input.ids_clientes)} atendidos to caso: {caso_id}"
                 )
 
+            self.historico_service.registrar(
+                caso_id, criado_por_id, "criacao", "Caso criado"
+            )
+
             created_caso = self.find_by_id(caso_id)
             if not created_caso:
                 logger.error("Failed to create caso")
@@ -191,6 +197,10 @@ class CasoService:
                     f"Updated caso {caso_id} with {len(caso_input.ids_clientes)} linked atendidos"
                 )
 
+            self.historico_service.registrar(
+                caso_id, modificado_por_id, "edicao", "Caso editado"
+            )
+
             logger.info(f"Caso updated successfully with id: {caso_id}")
             return self.repository.find_by_id(caso_id)
 
@@ -219,7 +229,11 @@ class CasoService:
             "id_modificado_por": modificado_por_id,
         }
 
-        self.repository.update(caso_id, caso_data)
+        with transaction():
+            self.repository.update(caso_id, caso_data)
+            self.historico_service.registrar(
+                caso_id, modificado_por_id, "deferimento", "Caso deferido"
+            )
 
         logger.info(f"Caso deferred successfully with id: {caso_id}")
         return self.find_by_id(caso_id)
@@ -242,7 +256,14 @@ class CasoService:
             "id_modificado_por": modificado_por_id,
         }
 
-        self.repository.update(caso_id, caso_data)
+        with transaction():
+            self.repository.update(caso_id, caso_data)
+            self.historico_service.registrar(
+                caso_id,
+                modificado_por_id,
+                "indeferimento",
+                f"Caso indeferido: {justificativa}",
+            )
 
         logger.info(f"Caso indeferred successfully with id: {caso_id}")
         return self.find_by_id(caso_id)

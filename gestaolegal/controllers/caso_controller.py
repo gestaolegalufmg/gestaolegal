@@ -16,10 +16,16 @@ from gestaolegal.exceptions import (
 )
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
+from gestaolegal.models.lembrete_input import (
+    LembreteCreateInput,
+    LembreteUpdateInput,
+)
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
 from gestaolegal.models.user import UserInfo
 from gestaolegal.services.caso_service import CasoService
 from gestaolegal.services.evento_service import EventoService
+from gestaolegal.services.historico_service import HistoricoService
+from gestaolegal.services.lembrete_service import LembreteService
 from gestaolegal.services.processo_service import ProcessoService
 from gestaolegal.utils.api_decorators import authenticated, authorized
 from gestaolegal.utils.api_response import success_response
@@ -437,3 +443,94 @@ def delete_arquivo_caso(caso_id: int, arquivo_id: int):
     caso_service.delete_arquivo(arquivo_id, caso_id)
 
     return success_response(message="Arquivo removido com sucesso")
+
+
+# ----------------------------------------------------------------------------
+# Lembretes (per-case reminders)
+# ----------------------------------------------------------------------------
+
+
+@caso_controller.route("/<int:caso_id>/lembretes", methods=["GET"])
+@authenticated
+def get_lembretes_by_caso(caso_id: int):
+    lembrete_service = LembreteService()
+    lembretes = lembrete_service.get_by_caso(caso_id)
+    return success_response(data=[asdict(lembrete) for lembrete in lembretes])
+
+
+@caso_controller.route("/<int:caso_id>/lembretes", methods=["POST"])
+@authenticated
+def create_lembrete(caso_id: int):
+    current_user: UserInfo = RequestContext.get_current_user()
+    lembrete_service = LembreteService()
+
+    json_data = cast(dict[str, Any], request.get_json(force=True))
+    lembrete_input = LembreteCreateInput(**json_data)
+    lembrete = lembrete_service.create(
+        caso_id=caso_id, criador_id=cast(int, current_user.id), data=lembrete_input
+    )
+
+    return success_response(
+        data=asdict(lembrete),
+        message="Lembrete criado com sucesso",
+        status_code=201,
+    )
+
+
+@caso_controller.route("/<int:caso_id>/lembretes/<int:lembrete_id>", methods=["GET"])
+@authenticated
+def get_lembrete(caso_id: int, lembrete_id: int):
+    lembrete_service = LembreteService()
+    lembrete = lembrete_service.validate_lembrete_for_caso(lembrete_id, caso_id)
+    if not lembrete:
+        raise NotFoundException(resource="Lembrete", resource_id=lembrete_id)
+    detail = lembrete_service.find_by_id(lembrete_id)
+    return success_response(data=asdict(detail))
+
+
+@caso_controller.route("/<int:caso_id>/lembretes/<int:lembrete_id>", methods=["PUT"])
+@authenticated
+def update_lembrete(caso_id: int, lembrete_id: int):
+    lembrete_service = LembreteService()
+    existing = lembrete_service.validate_lembrete_for_caso(lembrete_id, caso_id)
+    if not existing:
+        raise NotFoundException(resource="Lembrete", resource_id=lembrete_id)
+
+    json_data = cast(dict[str, Any], request.get_json(force=True))
+    lembrete_input = LembreteUpdateInput(**json_data)
+    lembrete = lembrete_service.update(lembrete_id, lembrete_input)
+
+    return success_response(
+        data=asdict(lembrete), message="Lembrete atualizado com sucesso"
+    )
+
+
+@caso_controller.route("/<int:caso_id>/lembretes/<int:lembrete_id>", methods=["DELETE"])
+@authenticated
+def delete_lembrete(caso_id: int, lembrete_id: int):
+    lembrete_service = LembreteService()
+    existing = lembrete_service.validate_lembrete_for_caso(lembrete_id, caso_id)
+    if not existing:
+        raise NotFoundException(resource="Lembrete", resource_id=lembrete_id)
+
+    lembrete_service.delete(lembrete_id)
+    return success_response(message="Lembrete removido com sucesso")
+
+
+# ----------------------------------------------------------------------------
+# Histórico (case audit log)
+# ----------------------------------------------------------------------------
+
+
+@caso_controller.route("/<int:caso_id>/historico", methods=["GET"])
+@authenticated
+def get_historico_by_caso(caso_id: int):
+    historico_service = HistoricoService()
+
+    page = request.args.get("page", default=1, type=int)
+    per_page = request.args.get("per_page", default=20, type=int)
+
+    result = historico_service.get_by_caso(
+        caso_id, page_params=PageParams(page=page, per_page=per_page)
+    )
+    return success_response(data=result.to_dict())

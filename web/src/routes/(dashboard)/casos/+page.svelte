@@ -184,7 +184,7 @@
 						badgeMap: SITUACAO_DEFERIMENTO_BADGE_MAP,
 						type: 'badge'
 					},
-					{ header: 'Data', key: 'data_criacao', type: 'date', class: 'w-[120px]' },
+					{ header: 'Data', key: 'data_criacao', type: 'datetime', class: 'w-[150px]' },
 					{ header: 'Status', key: 'status', type: 'status', class: 'w-[100px]' }
 				]}
 				actions={{
