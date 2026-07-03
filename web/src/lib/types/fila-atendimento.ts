@@ -1,21 +1,33 @@
+export const FilaPrioridade = {
+	NORMAL: 0,
+	PRIORIDADE: 1,
+	SUPER_PRIORIDADE: 2
+} as const;
+
+export const FilaStatus = {
+	NA_FILA: 0,
+	CHAMADO: 1,
+	CANCELADO: 2
+} as const;
+
 export interface FilaItem {
 	id: number;
+	id_atendido: number | null;
+	nome: string | null;
 	senha: string;
-	posicao: number | null;
-	tipo: string | null;
 	prioridade: number;
-	/** 0 = aguardando, 1 = em atendimento, 2 = concluído */
+	psicologia: number;
 	status: number;
-	status_label: string;
-	data_criacao: string;
-	id_atendido: number;
-	atendido_nome: string;
-	atendido_cpf: string;
+	data_criacao: string | null;
+	data_saida: string | null;
 }
 
-export const TIPOS_FILA = [
-	'Atendimento Jurídico',
-	'Assistência Judiciária',
-	'Orientação Jurídica',
-	'Atendimento Psicológico'
-] as const;
+export interface FilaHoje {
+	data: string;
+	fila: FilaItem[];
+	atendidos_cancelados: FilaItem[];
+}
+
+export interface SenhaPreview {
+	senha: string;
+}

@@ -5,3 +5,4 @@ export * from './area_direito';
 export * from './region';
 export * from './situacao-deferimento';
 export * from './entity-icons';
+export * from './fila-atendimento';
