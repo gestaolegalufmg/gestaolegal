@@ -4,9 +4,15 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import Edit from '@lucide/svelte/icons/edit';
+	import EncaminharAssistenciaDialog from '$lib/components/encaminhar-assistencia-dialog.svelte';
+	import { invalidateAll } from '$app/navigation';
 
 	let { data }: { data: PageData } = $props();
-	let { orientacao } = data;
+	let { orientacao, assistencias } = $derived(data);
+
+	async function refreshEncaminhamentos() {
+		await invalidateAll();
+	}
 
 	function formatDate(dateString: string | null | undefined): string {
 		if (!dateString) return 'Não informado';
@@ -144,6 +150,50 @@
 					</Card.Content>
 				</Card.Root>
 			{/if}
+
+			<Card.Root>
+				<Card.Header>
+					<div class="flex items-center justify-between">
+						<div>
+							<Card.Title>Assistências Judiciárias</Card.Title>
+							<Card.Description>
+								Encaminhamentos desta orientação para assistências judiciárias
+							</Card.Description>
+						</div>
+						<EncaminharAssistenciaDialog
+							orientacaoId={orientacao.id}
+							onEncaminhado={refreshEncaminhamentos}
+						/>
+					</div>
+				</Card.Header>
+				<Card.Content>
+					{#if assistencias && assistencias.length > 0}
+						<div class="space-y-2">
+							{#each assistencias as assistencia}
+								<div class="flex items-center justify-between rounded-md bg-muted p-3">
+									<div>
+										<p class="font-medium">{assistencia.nome}</p>
+										{#if assistencia.cidade}
+											<p class="text-sm text-muted-foreground">{assistencia.cidade}</p>
+										{/if}
+									</div>
+									<Button
+										variant="outline"
+										size="sm"
+										href="/plantao/assistencias-judiciarias/{assistencia.id}"
+									>
+										Ver Detalhes
+									</Button>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<p class="text-sm text-muted-foreground">
+							Nenhuma assistência judiciária encaminhada
+						</p>
+					{/if}
+				</Card.Content>
+			</Card.Root>
 		</div>
 	</div>
 </div>

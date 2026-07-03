@@ -225,3 +225,80 @@ arquivos_caso = Table(
     Column("link_arquivo", String(300), nullable=True),
     Column("id_caso", Integer, ForeignKey("casos.id"), nullable=True),
 )
+
+assistencias_judiciarias = Table(
+    "assistencias_judiciarias",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("nome", String(150), nullable=False),
+    Column("regiao", String(80), nullable=False),
+    Column("areas_atendidas", String(1000), nullable=False),
+    Column("endereco_id", Integer, ForeignKey("enderecos.id"), nullable=True),
+    Column("telefone", String(18), nullable=False),
+    Column("email", String(80), nullable=False, unique=True),
+    Column("status", Integer, nullable=False),
+)
+
+assistenciasJudiciarias_xOrientacao_juridica = Table(
+    "assistenciasJudiciarias_xOrientacao_juridica",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column(
+        "id_orientacaoJuridica",
+        Integer,
+        ForeignKey("orientacao_juridica.id"),
+        nullable=True,
+    ),
+    Column(
+        "id_assistenciaJudiciaria",
+        Integer,
+        ForeignKey("assistencias_judiciarias.id"),
+        nullable=True,
+    ),
+)
+
+lembretes = Table(
+    "lembretes",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("num_lembrete", Integer, nullable=True),
+    Column("id_do_criador", Integer, ForeignKey("usuarios.id"), nullable=False),
+    Column("id_caso", Integer, ForeignKey("casos.id"), nullable=False),
+    Column("id_usuario", Integer, ForeignKey("usuarios.id"), nullable=False),
+    Column("data_criacao", DateTime, nullable=False),
+    Column("data_lembrete", DateTime, nullable=False),
+    Column("descricao", Text, nullable=False),
+    Column("status", Boolean, nullable=False),
+)
+
+historicos = Table(
+    "historicos",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("id_usuario", Integer, ForeignKey("usuarios.id"), nullable=False),
+    Column("id_caso", Integer, ForeignKey("casos.id"), nullable=False),
+    Column("data", DateTime, nullable=False),
+    Column("acao", String(50), nullable=True),
+    Column("descricao", String(500), nullable=True),
+)
+
+documentos_roteiro = Table(
+    "documentos_roteiro",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("area_direito", String(50), nullable=False),
+    Column("link", String(1000), nullable=True),
+)
+
+fila_atendimentos = Table(
+    "fila_atendimentos",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("psicologia", Integer, nullable=False),
+    Column("id_atendido", Integer, ForeignKey("atendidos.id"), nullable=False),
+    Column("prioridade", Integer, nullable=False),
+    Column("senha", String(10), nullable=False),
+    Column("data_criacao", DateTime, nullable=False),
+    Column("status", Integer, nullable=False),
+    Column("tipo", String(80), nullable=True),
+)

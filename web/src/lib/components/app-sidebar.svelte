@@ -8,6 +8,7 @@
 	import UsersIcon from '@lucide/svelte/icons/users';
 	import ClockIcon from '@lucide/svelte/icons/clock';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
+	import ChartBarIcon from '@lucide/svelte/icons/bar-chart-3';
 
 	const baseNavMain = [
 		{
@@ -15,6 +16,12 @@
 			url: '/usuarios',
 			icon: UsersIcon,
 			isActive: true,
+			items: []
+		},
+		{
+			title: 'Relatórios',
+			url: '/relatorios',
+			icon: ChartBarIcon,
 			items: []
 		},
 		{
@@ -33,6 +40,10 @@
 				{
 					title: 'Orientações Jurídicas',
 					url: '/plantao/orientacoes-juridicas'
+				},
+				{
+					title: 'Assistências Judiciárias',
+					url: '/plantao/assistencias-judiciarias'
 				}
 			]
 		},
@@ -48,6 +59,10 @@
 				{
 					title: 'Gestão de Casos',
 					url: '/casos'
+				},
+				{
+					title: 'Links de Roteiro',
+					url: '/casos/links-roteiro'
 				}
 			]
 		}
