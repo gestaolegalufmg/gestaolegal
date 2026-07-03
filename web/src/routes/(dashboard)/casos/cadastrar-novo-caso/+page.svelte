@@ -20,6 +20,7 @@
 			data={data.form}
 			onError={handleError}
 			isCreateMode={true}
+			currentUserId={data.me?.id}
 			usuarios={data.usuarios}
 			assistidos={data.assistidos}
 		/>

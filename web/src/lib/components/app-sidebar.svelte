@@ -19,12 +19,6 @@
 			items: []
 		},
 		{
-			title: 'Relatórios',
-			url: '/relatorios',
-			icon: ChartBarIcon,
-			items: []
-		},
-		{
 			title: 'Plantão',
 			url: '/plantao',
 			icon: ClockIcon,
@@ -65,6 +59,12 @@
 					url: '/casos/links-roteiro'
 				}
 			]
+		},
+		{
+			title: 'Relatórios',
+			url: '/relatorios',
+			icon: ChartBarIcon,
+			items: []
 		}
 	];
 

@@ -6,10 +6,6 @@
 
 	let { data }: { data: PageData } = $props();
 
-	function onUpdate(data: any) {
-		toast.success('Caso atualizado com sucesso');
-	}
-
 	function onError(error: App.Error | Error | string) {
 		if (typeof error === 'string') {
 			toast.error(error);
@@ -32,7 +28,6 @@
 		<CasoForm
 			data={data.form}
 			casoId={data.caso.id}
-			{onUpdate}
 			{onError}
 			isCreateMode={false}
 			usuarios={data.usuarios}
