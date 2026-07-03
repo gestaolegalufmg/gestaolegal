@@ -5,9 +5,13 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import Edit from '@lucide/svelte/icons/edit';
 	import UserPlus from '@lucide/svelte/icons/user-plus';
+	import ListPlus from '@lucide/svelte/icons/list-plus';
+	import SenhaModal from '$lib/components/senha-modal.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let { atendido } = data;
+
+	let senhaModalOpen = $state(false);
 
 	function formatDate(dateString: string | null): string {
 		if (!dateString) return 'Não informado';
@@ -125,6 +129,10 @@
 				</div>
 				<div class="flex gap-2">
 					<Button variant="outline" href="/plantao/atendidos-assistidos">Voltar</Button>
+					<Button variant="default" onclick={() => (senhaModalOpen = true)}>
+						<ListPlus class="mr-2 h-4 w-4" />
+						Incluir na Fila de Atendimento
+					</Button>
 					<Button variant="default" href="/plantao/atendidos-assistidos/{atendido.id}/editar">
 						<Edit class="mr-2 h-4 w-4" />
 						Editar
@@ -548,3 +556,5 @@
 		</div>
 	</div>
 </div>
+
+<SenhaModal bind:open={senhaModalOpen} atendidoId={atendido.id} atendidoNome={atendido.nome} />

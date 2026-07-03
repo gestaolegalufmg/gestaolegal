@@ -1,126 +1,145 @@
 import logging
-from datetime import datetime
-from typing import cast
+from datetime import date, datetime, time
+from typing import Any
 
-from gestaolegal.database.session import transaction
-from gestaolegal.exceptions import BusinessLogicException, NotFoundException
-from gestaolegal.models.fila_atendimento import FilaAtendimento, FilaAtendimentoItem
-from gestaolegal.models.fila_atendimento_input import AdicionarFilaInput
-from gestaolegal.repositories.atendido_repository import AtendidoRepository
+from gestaolegal.exceptions import NotFoundException, ValidationException
+from gestaolegal.models.fila_atendimento import (
+    SENHA_PREFIXOS,
+    FilaPrioridade,
+    FilaStatus,
+    ListFilaAtendimento,
+)
+from gestaolegal.models.fila_atendimento_input import FilaAtendimentoCreateInput
 from gestaolegal.repositories.fila_atendimento_repository import (
     FilaAtendimentoRepository,
 )
 
 logger = logging.getLogger(__name__)
 
-STATUS_AGUARDANDO = 0
-STATUS_EM_ATENDIMENTO = 1
-STATUS_CONCLUIDO = 2
-
-STATUS_LABELS = {
-    STATUS_AGUARDANDO: "Aguardando",
-    STATUS_EM_ATENDIMENTO: "Em Atendimento",
-    STATUS_CONCLUIDO: "Concluído",
-}
-
 
 class FilaAtendimentoService:
     repository: FilaAtendimentoRepository
-    atendido_repository: AtendidoRepository
 
     def __init__(self):
         self.repository = FilaAtendimentoRepository()
-        self.atendido_repository = AtendidoRepository()
 
-    def get_fila(self) -> list[FilaAtendimentoItem]:
-        entradas = self.repository.get_active()
-        atendido_ids = [e.id_atendido for e in entradas]
-        atendidos = self.atendido_repository.get_by_ids(atendido_ids)
-        atendido_map = {cast(int, a.id): a for a in atendidos if a.id is not None}
+    def _intervalo_do_dia(self, dia: date | None = None) -> tuple[datetime, datetime]:
+        """Início e fim (inclusivos) do dia informado (padrão: hoje)."""
+        dia = dia or date.today()
+        return (
+            datetime.combine(dia, time(0, 0, 0)),
+            datetime.combine(dia, time(23, 59, 59, 999999)),
+        )
 
-        items: list[FilaAtendimentoItem] = []
-        posicao = 0
-        for e in entradas:
-            atendido = atendido_map.get(e.id_atendido)
-            if e.status == STATUS_AGUARDANDO:
-                posicao += 1
-                posicao_atual: int | None = posicao
-            else:
-                posicao_atual = None
-            items.append(
-                FilaAtendimentoItem(
-                    id=cast(int, e.id),
-                    senha=e.senha,
-                    posicao=posicao_atual,
-                    tipo=e.tipo,
-                    prioridade=e.prioridade,
-                    status=e.status,
-                    status_label=STATUS_LABELS.get(e.status, "Desconhecido"),
-                    data_criacao=e.data_criacao,
-                    id_atendido=e.id_atendido,
-                    atendido_nome=atendido.nome if atendido else "—",
-                    atendido_cpf=atendido.cpf if atendido else "",
-                )
+    def _proximo_numero(self, prioridade: int) -> int:
+        inicio, fim = self._intervalo_do_dia()
+        total = self.repository.count_by_prioridade_no_periodo(prioridade, inicio, fim)
+        return total + 1
+
+    def _formatar_senha(self, prioridade: int, numero: int) -> str:
+        prefixo = SENHA_PREFIXOS[prioridade]
+        return f"{prefixo}{numero:02d}"
+
+    def preview_senha(self, prioridade: int) -> str:
+        """Prévia da senha que seria atribuída ao próximo atendido do grupo."""
+        if prioridade not in FilaPrioridade.VALORES:
+            raise ValidationException(
+                "prioridade deve ser 0 (normal), 1 (prioridade) ou 2 (super prioridade)",
+                field="prioridade",
             )
-        return items
+        return self._formatar_senha(prioridade, self._proximo_numero(prioridade))
 
-    def adicionar(self, data: AdicionarFilaInput) -> list[FilaAtendimentoItem]:
-        logger.info(f"Adding atendido {data.id_atendido} to fila as {data.tipo}")
-        atendido = self.atendido_repository.find_by_id(data.id_atendido)
-        if not atendido:
-            raise NotFoundException(resource="Atendido", resource_id=data.id_atendido)
+    def get_fila_hoje(self) -> dict[str, Any]:
+        """Retorna a fila do dia separada em ativos e concluídos (chamados/cancelados)."""
+        hoje = date.today()
+        inicio, fim = self._intervalo_do_dia(hoje)
+        rows = self.repository.list_no_periodo(inicio, fim)
 
-        with transaction():
-            senha = f"{self.repository.count_all() + 1:03d}"
-            self.repository.create(
-                {
-                    "psicologia": 1 if data.tipo == "Atendimento Psicológico" else 0,
-                    "id_atendido": data.id_atendido,
-                    "prioridade": data.prioridade,
-                    "senha": senha,
-                    "data_criacao": datetime.now(),
-                    "status": STATUS_AGUARDANDO,
-                    "tipo": data.tipo,
-                }
+        itens = [ListFilaAtendimento(**row) for row in rows]
+
+        na_fila = [i for i in itens if i.status == FilaStatus.NA_FILA]
+        concluidos = [i for i in itens if i.status != FilaStatus.NA_FILA]
+
+        # Fila ativa: maior prioridade primeiro; em empate, quem entrou antes.
+        na_fila.sort(
+            key=lambda i: (
+                -i.prioridade,
+                i.data_criacao or datetime.max,
             )
-        return self.get_fila()
+        )
 
-    def chamar_proximo(self) -> list[FilaAtendimentoItem]:
-        logger.info("Chamando próximo da fila de atendimento")
-        em_atendimento = self.repository.find_em_atendimento()
-        proximo = self.repository.find_proximo_aguardando()
+        # Atendidos/cancelados: ordenados pelo momento em que saíram da fila
+        # (mais antigo primeiro, ordem cronológica). Registros históricos sem
+        # data_saida usam a data de criação como referência.
+        concluidos.sort(
+            key=lambda i: (i.data_saida or i.data_criacao or datetime.min),
+        )
 
-        if not em_atendimento and not proximo:
-            raise BusinessLogicException(
-                message="Não há ninguém na fila de atendimento",
-                error_code="FILA_VAZIA",
-            )
+        return {
+            "data": hoje.isoformat(),
+            "fila": [i.__dict__ for i in na_fila],
+            "atendidos_cancelados": [i.__dict__ for i in concluidos],
+        }
 
-        with transaction():
-            for entrada in em_atendimento:
-                self.repository.update(
-                    cast(int, entrada.id), {"status": STATUS_CONCLUIDO}
-                )
-            if proximo:
-                self.repository.update(
-                    cast(int, proximo.id), {"status": STATUS_EM_ATENDIMENTO}
-                )
-        return self.get_fila()
+    def _item_por_id(self, fila_id: int) -> ListFilaAtendimento:
+        registro = self.repository.find_by_id(fila_id)
+        if not registro:
+            raise NotFoundException(resource="FilaAtendimento", resource_id=fila_id)
+        inicio, fim = self._intervalo_do_dia()
+        for row in self.repository.list_no_periodo(inicio, fim):
+            if row["id"] == fila_id:
+                return ListFilaAtendimento(**row)
+        # Registro de outro dia: monta a partir do próprio registro.
+        return ListFilaAtendimento(
+            id=registro.id,
+            id_atendido=registro.id_atendido,
+            nome=None,
+            senha=registro.senha,
+            prioridade=registro.prioridade,
+            psicologia=registro.psicologia,
+            status=registro.status,
+            data_criacao=registro.data_criacao,
+            data_saida=registro.data_saida,
+        )
 
-    def concluir(self, id: int) -> list[FilaAtendimentoItem]:
-        entrada = self._get_or_404(id)
-        with transaction():
-            self.repository.update(cast(int, entrada.id), {"status": STATUS_CONCLUIDO})
-        return self.get_fila()
+    def criar(self, dados: FilaAtendimentoCreateInput) -> ListFilaAtendimento:
+        logger.info(
+            f"Incluindo atendido {dados.id_atendido} na fila "
+            f"(prioridade={dados.prioridade}, psicologia={dados.psicologia})"
+        )
+        numero = self._proximo_numero(dados.prioridade)
+        senha = self._formatar_senha(dados.prioridade, numero)
 
-    def remover(self, id: int) -> list[FilaAtendimentoItem]:
-        entrada = self._get_or_404(id)
-        with transaction():
-            self.repository.delete(cast(int, entrada.id))
-        return self.get_fila()
+        novo = {
+            "id_atendido": dados.id_atendido,
+            "prioridade": dados.prioridade,
+            "psicologia": 1 if dados.psicologia else 0,
+            "senha": senha,
+            "status": FilaStatus.NA_FILA,
+            "data_criacao": datetime.now(),
+            "data_saida": None,
+        }
 
-    def _get_or_404(self, id: int) -> FilaAtendimento:
-        entrada = self.repository.find_by_id(id)
-        if not entrada:
-            raise NotFoundException(resource="Fila de Atendimento", resource_id=id)
-        return entrada
+        fila_id = self.repository.create(novo)
+        logger.info(f"Atendido incluído na fila com id {fila_id} e senha {senha}")
+        return self._item_por_id(fila_id)
+
+    def chamar(self, fila_id: int) -> ListFilaAtendimento:
+        return self._concluir(fila_id, FilaStatus.CHAMADO)
+
+    def cancelar(self, fila_id: int) -> ListFilaAtendimento:
+        return self._concluir(fila_id, FilaStatus.CANCELADO)
+
+    def _concluir(self, fila_id: int, novo_status: int) -> ListFilaAtendimento:
+        registro = self.repository.find_by_id(fila_id)
+        if not registro:
+            raise NotFoundException(resource="FilaAtendimento", resource_id=fila_id)
+        if registro.status != FilaStatus.NA_FILA:
+            raise ValidationException("Atendido já saiu da fila", field="status")
+
+        self.repository.update(
+            fila_id,
+            {"status": novo_status, "data_saida": datetime.now()},
+        )
+        logger.info(f"Fila {fila_id} atualizada para status {novo_status}")
+        return self._item_por_id(fila_id)

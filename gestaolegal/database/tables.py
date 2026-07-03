@@ -295,10 +295,10 @@ fila_atendimentos = Table(
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("psicologia", Integer, nullable=False),
-    Column("id_atendido", Integer, ForeignKey("atendidos.id"), nullable=False),
     Column("prioridade", Integer, nullable=False),
+    Column("data_criacao", DateTime, nullable=True),
     Column("senha", String(10), nullable=False),
-    Column("data_criacao", DateTime, nullable=False),
     Column("status", Integer, nullable=False),
-    Column("tipo", String(80), nullable=True),
+    Column("id_atendido", Integer, ForeignKey("atendidos.id"), nullable=True),
+    Column("data_saida", DateTime, nullable=True),
 )
