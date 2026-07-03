@@ -6,7 +6,10 @@ import {
 	type SubAreaDireitoAdministrativo,
 	type SubAreaDireitoCivel
 } from '$lib/constants/area_direito';
-import { SITUACAO_DEFERIMENTO_VALUES } from '$lib/constants/situacao-deferimento';
+import {
+	SITUACAO_DEFERIMENTO,
+	SITUACAO_DEFERIMENTO_VALUES
+} from '$lib/constants/situacao-deferimento';
 import { z } from 'zod/v4';
 
 export const casoCreateFormSchema = z
@@ -17,7 +20,9 @@ export const casoCreateFormSchema = z
 		id_orientador: z.number().optional().nullable(),
 		id_estagiario: z.number().optional().nullable(),
 		id_colaborador: z.number().optional().nullable(),
-		situacao_deferimento: z.enum(SITUACAO_DEFERIMENTO_VALUES),
+		situacao_deferimento: z
+			.enum(SITUACAO_DEFERIMENTO_VALUES)
+			.default(SITUACAO_DEFERIMENTO.AGUARDANDO_DEFERIMENTO),
 		justif_indeferimento: z.string().optional().nullable(),
 		descricao: z.string().optional().nullable(),
 		ids_clientes: z.array(z.number()).default([])

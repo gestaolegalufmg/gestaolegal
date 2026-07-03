@@ -35,6 +35,7 @@ from gestaolegal.services.historico_service import HistoricoService
 logger = logging.getLogger(__name__)
 
 CASO_FILES_DIR = Config.UPLOADS
+MAX_ARQUIVO_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 class CasoService:
@@ -359,6 +360,26 @@ class CasoService:
         if not file or not file.filename:
             logger.warning("Invalid file provided for upload")
             raise ValidationException("Arquivo inválido", field="arquivo")
+
+        # Only PDFs are accepted for case attachments.
+        is_pdf = file.filename.lower().endswith(".pdf") or (
+            file.mimetype == "application/pdf"
+        )
+        if not is_pdf:
+            logger.warning(f"Rejected non-PDF upload: {file.filename}")
+            raise ValidationException(
+                "Apenas arquivos PDF são permitidos", field="arquivo"
+            )
+
+        # Enforce the 10 MB size limit.
+        file.stream.seek(0, os.SEEK_END)
+        size = file.stream.tell()
+        file.stream.seek(0)
+        if size > MAX_ARQUIVO_BYTES:
+            logger.warning(f"Rejected oversized upload ({size} bytes): {file.filename}")
+            raise ValidationException(
+                "O arquivo excede o tamanho máximo de 10 MB", field="arquivo"
+            )
 
         filepath = None
         try:
