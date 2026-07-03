@@ -58,7 +58,7 @@
 			</div>
 			<div class="max-w-[260px] flex-1">
 				<Input
-					placeholder="Busque em todo o sistema (⌘K)"
+					placeholder="Busque em todo o sistema"
 					value={headerSearchValue}
 					oninput={handleHeaderSearchInput}
 				/>

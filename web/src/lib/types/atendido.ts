@@ -40,4 +40,9 @@ export interface Atendido {
 	status?: number;
 	created_at?: string;
 	updated_at?: string;
+	// The API returns the address as a nested object; the flat fields above are
+	// used by the create/edit form schema.
+	endereco?: Endereco;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	assistido?: any;
 }

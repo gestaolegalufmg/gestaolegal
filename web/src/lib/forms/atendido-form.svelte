@@ -72,8 +72,10 @@
 	);
 
 	let isLoadingCep = $state(false);
-	let addressFieldsDisabled = $state(true);
-	let lastCepLookup = $state('');
+	// When editing an existing atendido the address is already filled, so keep the
+	// fields enabled and seed the last-looked-up CEP to avoid a spurious refetch.
+	let addressFieldsDisabled = $state(!$formData.logradouro);
+	let lastCepLookup = $state(($formData.cep ?? '').replace(/\D/g, ''));
 
 	$effect(() => {
 		const cep = $formData.cep;

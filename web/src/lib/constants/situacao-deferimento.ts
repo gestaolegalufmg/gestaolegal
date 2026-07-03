@@ -21,22 +21,28 @@ export const SITUACAO_DEFERIMENTO_OPTIONS = [
 export const SITUACAO_DEFERIMENTO_BADGE_MAP = {
 	[SITUACAO_DEFERIMENTO.AGUARDANDO_DEFERIMENTO]: {
 		text: 'Aguardando Deferimento',
-		variant: 'secondary' as const
+		variant: 'secondary' as const,
+		class:
+			'border-transparent bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
 	},
 	[SITUACAO_DEFERIMENTO.ATIVO]: {
 		text: 'Ativo',
-		variant: 'default' as const
+		variant: 'default' as const,
+		class: 'border-transparent bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
 	},
 	[SITUACAO_DEFERIMENTO.INDEFERIDO]: {
 		text: 'Indeferido',
-		variant: 'secondary' as const
+		variant: 'secondary' as const,
+		class: 'border-transparent bg-pink-700 text-pink-50 dark:bg-pink-800 dark:text-pink-100'
 	},
 	[SITUACAO_DEFERIMENTO.ARQUIVADO]: {
 		text: 'Arquivado',
-		variant: 'secondary' as const
+		variant: 'secondary' as const,
+		class: 'border-transparent bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
 	},
 	[SITUACAO_DEFERIMENTO.SOLUCIONADO]: {
 		text: 'Solucionado',
-		variant: 'default' as const
+		variant: 'default' as const,
+		class: 'border-transparent bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
 	}
 } as const;
