@@ -19,5 +19,5 @@ export type { Endereco } from './endereco';
 export type { Caso, ListCaso } from './caso';
 export type { Processo, ListProcesso, ProcessoCreateInput, ProcessoUpdateInput } from './processo';
 export type { SearchResultGroup, SearchResults, SearchResponse, SearchResultItem } from './search';
-export type { FilaItem } from './fila-atendimento';
-export { TIPOS_FILA } from './fila-atendimento';
+export type { FilaItem, FilaHoje, SenhaPreview } from './fila-atendimento';
+export { FilaPrioridade, FilaStatus } from './fila-atendimento';
