@@ -16,9 +16,50 @@
 	import { toast } from 'svelte-sonner';
 	import { api, apiFetch } from '$lib/api-client';
 	import { ApiException } from '$lib/types';
+	import LembreteDialog from '$lib/components/lembrete-dialog.svelte';
+	import type { Lembrete } from '$lib/types';
+	import { invalidateAll } from '$app/navigation';
+	import { Bell, History } from '@lucide/svelte';
+	import { formatDateOnly } from '$lib/utils/date';
 
 	let { data }: PageProps = $props();
 	const { caso, eventoFormData, eventos: initialEventos } = data;
+	const lembretes = $derived(data.lembretes ?? []);
+	const historico = $derived(data.historico?.items ?? []);
+
+	let lembreteDialogOpen = $state(false);
+	let editingLembrete = $state<Lembrete | null>(null);
+
+	function openNewLembrete() {
+		editingLembrete = null;
+		lembreteDialogOpen = true;
+	}
+
+	function openEditLembrete(lembrete: Lembrete) {
+		editingLembrete = lembrete;
+		lembreteDialogOpen = true;
+	}
+
+	async function refreshLembretes() {
+		await invalidateAll();
+	}
+
+	async function deleteLembrete(lembreteId: number) {
+		try {
+			await api.delete(`caso/${caso.id}/lembretes/${lembreteId}`);
+			toast.success('Lembrete removido');
+			await invalidateAll();
+		} catch {
+			toast.error('Erro ao remover lembrete');
+		}
+	}
+
+	const acaoLabels: Record<string, string> = {
+		criacao: 'Criação',
+		edicao: 'Edição',
+		deferimento: 'Deferimento',
+		indeferimento: 'Indeferimento'
+	};
 
 	let arquivos = $state(caso.arquivos || []);
 	let fileInput: HTMLInputElement;
@@ -321,6 +362,80 @@
 			/>
 		</Card.Content>
 	</Card.Root>
+
+	<Card.Root>
+		<Card.Header>
+			<Card.Title class="flex items-center justify-between">
+				<span class="flex items-center gap-2"><Bell class="h-5 w-5" /> Lembretes</span>
+				<Button variant="default" size="sm" onclick={openNewLembrete}>
+					<Plus class="h-4 w-4" /> Novo Lembrete
+				</Button>
+			</Card.Title>
+		</Card.Header>
+		<Card.Content>
+			{#if lembretes.length === 0}
+				<p class="text-sm text-muted-foreground">Nenhum lembrete para este caso.</p>
+			{:else}
+				<div class="space-y-2">
+					{#each lembretes as lembrete (lembrete.id)}
+						<div class="flex items-start justify-between rounded-md border p-3">
+							<div class="space-y-1">
+								<p class="font-medium">#{lembrete.num_lembrete} — {lembrete.descricao}</p>
+								<p class="text-sm text-muted-foreground">
+									Notificar em {formatDateOnly(lembrete.data_lembrete)}
+									{#if lembrete.usuario}· Responsável: {lembrete.usuario.nome}{/if}
+								</p>
+							</div>
+							<div class="flex gap-1">
+								<Button variant="ghost" size="sm" onclick={() => openEditLembrete(lembrete)}>
+									<Edit class="h-4 w-4" />
+								</Button>
+								<Button variant="ghost" size="sm" onclick={() => deleteLembrete(lembrete.id)}>
+									<Trash2 class="h-4 w-4 text-destructive" />
+								</Button>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</Card.Content>
+	</Card.Root>
+
+	<Card.Root>
+		<Card.Header>
+			<Card.Title class="flex items-center gap-2"><History class="h-5 w-5" /> Histórico</Card.Title>
+		</Card.Header>
+		<Card.Content>
+			{#if historico.length === 0}
+				<p class="text-sm text-muted-foreground">Nenhum registro no histórico.</p>
+			{:else}
+				<div class="space-y-3">
+					{#each historico as item (item.id)}
+						<div class="flex items-start gap-3 border-l-2 border-muted pl-3">
+							<div class="space-y-0.5">
+								<p class="text-sm font-medium">
+									{acaoLabels[item.acao ?? ''] ?? item.acao ?? 'Alteração'}
+									{#if item.usuario}<span class="font-normal text-muted-foreground"
+											>· {item.usuario.nome}</span
+										>{/if}
+								</p>
+								{#if item.descricao}
+									<p class="text-sm text-muted-foreground">{item.descricao}</p>
+								{/if}
+								<p class="text-xs text-muted-foreground">{formatDateTime(item.data)}</p>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</Card.Content>
+	</Card.Root>
 </div>
 
 <EventoDialog {eventoFormData} open={eventoDialogOpen} onSuccess={refreshEventos} />
+<LembreteDialog
+	casoId={caso.id}
+	lembrete={editingLembrete}
+	bind:open={lembreteDialogOpen}
+	onSuccess={refreshLembretes}
+/>
