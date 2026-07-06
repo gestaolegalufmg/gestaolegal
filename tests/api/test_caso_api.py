@@ -120,7 +120,8 @@ def test_deferir_caso(
     assert response.status_code == 200
     data = get_success_data(response)
     assert data is not None
-    assert data["situacao_deferimento"] == "deferido"
+    # Um caso deferido passa a ser "ativo" (valor que filtros e badges esperam).
+    assert data["situacao_deferimento"] == "ativo"
 
 
 def test_indeferir_caso(

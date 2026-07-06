@@ -6,10 +6,21 @@
 	import Edit from '@lucide/svelte/icons/edit';
 	import UserPlus from '@lucide/svelte/icons/user-plus';
 	import ListPlus from '@lucide/svelte/icons/list-plus';
+	import Eye from '@lucide/svelte/icons/eye';
+	import Scale from '@lucide/svelte/icons/scale';
+	import Briefcase from '@lucide/svelte/icons/briefcase';
 	import SenhaModal from '$lib/components/senha-modal.svelte';
+	import { formatDateOnly } from '$lib/utils/date';
 
 	let { data }: { data: PageData } = $props();
 	let { atendido } = data;
+	const casos = $derived(data.casos ?? []);
+	const orientacoes = $derived(data.orientacoes ?? []);
+
+	function capitalize(value: string | null | undefined): string {
+		if (!value) return '--';
+		return value.charAt(0).toUpperCase() + value.slice(1);
+	}
 
 	let senhaModalOpen = $state(false);
 
@@ -112,10 +123,10 @@
 <div class="min-h-screen bg-background">
 	<div class="max-w-5xl py-1">
 		<div class="mb-8">
-			<div class="flex items-center justify-between">
-				<div>
-					<div class="flex items-center gap-3">
-						<h1 class="text-3xl font-bold tracking-tight text-foreground">
+			<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+				<div class="min-w-0">
+					<div class="flex flex-wrap items-center gap-2">
+						<h1 class="text-3xl font-bold tracking-tight break-words text-foreground">
 							{atendido.nome}
 						</h1>
 						<Badge variant={atendido.status === 1 ? 'default' : 'secondary'}>
@@ -123,11 +134,15 @@
 						</Badge>
 						{#if atendido.assistido}
 							<Badge variant="default" class="bg-green-600">Assistido</Badge>
+						{:else}
+							<Badge variant="secondary">Atendido</Badge>
 						{/if}
 					</div>
-					<p class="mt-2 text-muted-foreground">Informações detalhadas do atendido</p>
+					<p class="mt-2 text-muted-foreground">
+						Informações detalhadas do {atendido.assistido ? 'assistido' : 'atendido'}
+					</p>
 				</div>
-				<div class="flex gap-2">
+				<div class="flex flex-wrap gap-2 lg:justify-end">
 					<Button variant="outline" href="/plantao/atendidos-assistidos">Voltar</Button>
 					<Button variant="default" onclick={() => (senhaModalOpen = true)}>
 						<ListPlus class="mr-2 h-4 w-4" />
@@ -336,6 +351,79 @@
 					</Card.Content>
 				</Card.Root>
 			{/if}
+
+			<div class="grid gap-6 md:grid-cols-2">
+				<Card.Root>
+					<Card.Header>
+						<Card.Title class="flex items-center gap-2">
+							<Briefcase class="h-5 w-5" /> Casos
+						</Card.Title>
+					</Card.Header>
+					<Card.Content>
+						{#if casos.length === 0}
+							<p class="py-4 text-center text-sm text-muted-foreground">
+								Nenhum caso vinculado a esta pessoa.
+							</p>
+						{:else}
+							<div class="space-y-2">
+								{#each casos as caso (caso.id)}
+									<div class="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+										<div class="min-w-0">
+											<p class="truncate font-medium">
+												Caso #{caso.id} — {capitalize(caso.area_direito)}
+											</p>
+											<p class="text-xs text-muted-foreground">
+												{capitalize(caso.situacao_deferimento)}
+												{#if caso.data_criacao}· {formatDateOnly(caso.data_criacao)}{/if}
+											</p>
+										</div>
+										<Button variant="ghost" size="sm" href="/casos/{caso.id}">
+											<Eye class="h-4 w-4" />
+										</Button>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</Card.Content>
+				</Card.Root>
+
+				<Card.Root>
+					<Card.Header>
+						<Card.Title class="flex items-center gap-2">
+							<Scale class="h-5 w-5" /> Orientações Jurídicas
+						</Card.Title>
+					</Card.Header>
+					<Card.Content>
+						{#if orientacoes.length === 0}
+							<p class="py-4 text-center text-sm text-muted-foreground">
+								Nenhuma orientação jurídica vinculada a esta pessoa.
+							</p>
+						{:else}
+							<div class="space-y-2">
+								{#each orientacoes as orientacao (orientacao.id)}
+									<div class="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+										<div class="min-w-0">
+											<p class="truncate font-medium">{capitalize(orientacao.area_direito)}</p>
+											<p class="text-xs text-muted-foreground">
+												{#if orientacao.sub_area}{capitalize(orientacao.sub_area)} ·
+												{/if}
+												{#if orientacao.data_criacao}{formatDateOnly(orientacao.data_criacao)}{/if}
+											</p>
+										</div>
+										<Button
+											variant="ghost"
+											size="sm"
+											href="/plantao/orientacoes-juridicas/{orientacao.id}"
+										>
+											<Eye class="h-4 w-4" />
+										</Button>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</Card.Content>
+				</Card.Root>
+			</div>
 
 			{#if atendido.assistido}
 				<div class="border-t pt-6">

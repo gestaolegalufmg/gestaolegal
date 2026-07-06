@@ -56,7 +56,9 @@
 					isCreateMode ? 'Usuário criado com sucesso!' : 'Usuário atualizado com sucesso!'
 				);
 
-				await goto(`/usuarios/${response.id}`);
+				// invalidateAll so the destination view reloads fresh data instead of
+				// showing the pre-edit values from SvelteKit's cached load.
+				await goto(`/usuarios/${response.id}`, { invalidateAll: true });
 			} catch (error) {
 				console.error('User form error:', error);
 				toast.error('Erro ao salvar usuário. Por favor, tente novamente.');

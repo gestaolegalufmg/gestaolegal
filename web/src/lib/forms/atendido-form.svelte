@@ -55,7 +55,9 @@
 				if (onUpdate) {
 					onUpdate(response);
 				} else {
-					await goto(`/plantao/atendidos-assistidos/${response.id}`);
+					// invalidateAll so the destination view reloads fresh data instead of
+					// showing the pre-edit values from SvelteKit's cached load.
+					await goto(`/plantao/atendidos-assistidos/${response.id}`, { invalidateAll: true });
 				}
 			} catch (error) {
 				console.error('Atendido form error:', error);

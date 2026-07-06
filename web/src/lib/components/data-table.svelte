@@ -5,7 +5,7 @@
 		header: string;
 		key?: string;
 		class?: string;
-		type?: 'text' | 'mono' | 'date' | 'datetime' | 'badge' | 'status' | 'array' | 'tel';
+		type?: 'text' | 'mono' | 'date' | 'datetime' | 'badge' | 'status' | 'array' | 'tel' | 'preview';
 		badgeMap?: Record<string | number, { text: string; variant: BadgeVariant; class?: string }>;
 	};
 </script>
@@ -13,7 +13,8 @@
 <script lang="ts" generics="T extends { id:  number }">
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
+	import { Button, buttonVariants } from '$lib/components/ui/button';
+	import ConfirmAction from '$lib/components/confirm-action.svelte';
 	import type { Paginated } from '$lib/types';
 	import type { Component } from 'svelte';
 	import { cn } from '$lib/utils';
@@ -32,6 +33,13 @@
 		disabled?: (item: T) => boolean;
 		variant?: 'ghost' | 'default' | 'secondary' | 'destructive';
 		class?: string;
+		// When set, the action asks for confirmation (AlertDialog) before running
+		// onClick. Used for destructive actions like deactivating a record.
+		confirm?: {
+			title?: string;
+			description?: string;
+			confirmText?: string;
+		};
 	};
 
 	let {
@@ -239,6 +247,14 @@
 								><span class="text-sm">{formatTel(getNestedValue(item, column.key))}</span
 								></Table.Cell
 							>
+						{:else if column.type === 'preview'}
+							{@const raw = getNestedValue(item, column.key)}
+							<Table.Cell class={column.class}>
+								<span
+									class="block max-w-[280px] truncate text-sm text-muted-foreground"
+									title={raw ? String(raw) : ''}>{raw ? String(raw) : '--'}</span
+								>
+							</Table.Cell>
 						{:else}
 							<Table.Cell class={column.class}
 								><span class="text-sm">{String(getNestedValue(item, column.key) ?? '')}</span
@@ -256,22 +272,45 @@
 							<div class="flex items-center justify-end gap-1">
 								{#each actions.buttons as btn}
 									{#if !btn.show || btn.show(item)}
-										<Button
-											variant={btn.variant || 'ghost'}
-											size="sm"
-											class={btn.class || 'h-8 w-8 p-0'}
-											disabled={btn.disabled ? btn.disabled(item) : false}
-											href={btn.href ? btn.href(item) : undefined}
-											onclick={btn.onClick ? () => btn.onClick?.(item) : undefined}
-											title={btn.title}
-										>
-											{#if btn.icon}
-												{@const Icon = btn.icon}
-												<Icon class="h-4 w-4" />
-											{:else}
-												{btn.title}
-											{/if}
-										</Button>
+										{#if btn.confirm}
+											<ConfirmAction
+												title={btn.confirm.title}
+												description={btn.confirm.description}
+												confirmText={btn.confirm.confirmText}
+												buttonVariant={btn.variant === 'destructive' ? 'destructive' : 'default'}
+												onConfirm={() => btn.onClick?.(item)}
+												triggerClass={cn(
+													buttonVariants({ variant: btn.variant || 'ghost', size: 'sm' }),
+													btn.class || 'h-8 w-8 p-0'
+												)}
+											>
+												{#snippet trigger()}
+													{#if btn.icon}
+														{@const Icon = btn.icon}
+														<Icon class="h-4 w-4" />
+													{:else}
+														{btn.title}
+													{/if}
+												{/snippet}
+											</ConfirmAction>
+										{:else}
+											<Button
+												variant={btn.variant || 'ghost'}
+												size="sm"
+												class={btn.class || 'h-8 w-8 p-0'}
+												disabled={btn.disabled ? btn.disabled(item) : false}
+												href={btn.href ? btn.href(item) : undefined}
+												onclick={btn.onClick ? () => btn.onClick?.(item) : undefined}
+												title={btn.title}
+											>
+												{#if btn.icon}
+													{@const Icon = btn.icon}
+													<Icon class="h-4 w-4" />
+												{:else}
+													{btn.title}
+												{/if}
+											</Button>
+										{/if}
 									{/if}
 								{/each}
 							</div>
