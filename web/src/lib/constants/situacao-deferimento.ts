@@ -30,6 +30,13 @@ export const SITUACAO_DEFERIMENTO_BADGE_MAP = {
 		variant: 'default' as const,
 		class: 'border-transparent bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
 	},
+	// Legacy value: cases deferred before "deferido" was normalised to "ativo"
+	// still live in production; render them as green "Ativo" too.
+	deferido: {
+		text: 'Ativo',
+		variant: 'default' as const,
+		class: 'border-transparent bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+	},
 	[SITUACAO_DEFERIMENTO.INDEFERIDO]: {
 		text: 'Indeferido',
 		variant: 'secondary' as const,

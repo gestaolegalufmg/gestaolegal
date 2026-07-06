@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from gestaolegal.common import PaginatedResult
 from gestaolegal.database.tables import (
+    atendidos,
     atendido_xOrientacaoJuridica,
     orientacao_juridica,
 )
@@ -53,6 +54,33 @@ class OrientacaoJuridicaRepository(BaseRepository):
             page=page_params["page"] if page_params else 1,
             per_page=page_params["per_page"] if page_params else total,
         )
+
+    def find_ids_by_atendido_nome(self, nome: str) -> list[int]:
+        """IDs das orientações cujas partes envolvidas (atendidos) têm nome
+        contendo o termo buscado. Usado para permitir busca por nome de pessoa."""
+        stmt = (
+            select(atendido_xOrientacaoJuridica.c.id_orientacaoJuridica)
+            .join(
+                atendidos,
+                atendidos.c.id == atendido_xOrientacaoJuridica.c.id_atendido,
+            )
+            .where(atendidos.c.nome.ilike(f"%{nome}%"))
+            .distinct()
+        )
+        return [
+            row[0] for row in self.session.execute(stmt).all() if row[0] is not None
+        ]
+
+    def find_ids_by_atendido_id(self, atendido_id: int) -> list[int]:
+        """IDs das orientações vinculadas a um atendido/assistido específico."""
+        stmt = (
+            select(atendido_xOrientacaoJuridica.c.id_orientacaoJuridica)
+            .where(atendido_xOrientacaoJuridica.c.id_atendido == atendido_id)
+            .distinct()
+        )
+        return [
+            row[0] for row in self.session.execute(stmt).all() if row[0] is not None
+        ]
 
     def find_one(self, params: SearchParams) -> OrientacaoJuridica | None:
         stmt = select(orientacao_juridica)

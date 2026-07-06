@@ -7,6 +7,7 @@ import type { PageLoad } from './$types';
 import { api } from '$lib/api-client';
 import { ApiException } from '$lib/types';
 import type { Atendido } from '$lib/types';
+import { toISODateInput } from '$lib/utils/date';
 
 export const load: PageLoad = async ({ params, fetch }) => {
 	try {
@@ -18,6 +19,12 @@ export const load: PageLoad = async ({ params, fetch }) => {
 		const { endereco, ...atendidoRest } = atendido;
 		const atendidoFormSource = {
 			...atendidoRest,
+			// The API serializes dates as GMT strings; the form's date picker needs
+			// ISO "YYYY-MM-DD" or the update request fails backend validation.
+			data_nascimento: toISODateInput(atendidoRest.data_nascimento),
+			nascimento_repres_legal: toISODateInput(
+				(atendidoRest as { nascimento_repres_legal?: string }).nascimento_repres_legal
+			),
 			logradouro: endereco?.logradouro,
 			numero: endereco?.numero,
 			complemento: endereco?.complemento,

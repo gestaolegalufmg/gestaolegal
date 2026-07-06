@@ -173,6 +173,74 @@ def test_create_orientacao_with_atendidos(
     assert has_atendidos, f"Expected 1 atendido, got: {data}"
 
 
+def test_search_orientacoes_by_atendido_nome(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_orientacao_data: dict[str, Any],
+    sample_atendido_data: dict[str, Any],
+) -> None:
+    """Buscar por nome de uma parte envolvida (atendido) deve retornar a
+    orientação, mesmo que a descrição não contenha o termo."""
+    atendido_response = client.post(
+        "/api/atendido/", json=sample_atendido_data, headers=auth_headers
+    )
+    assert atendido_response.status_code == 201
+    atendido_id = get_success_data(atendido_response)["id"]
+
+    orientacao_data = {
+        **sample_orientacao_data,
+        "descricao": "Descrição sem o nome da pessoa",
+        "atendidos_ids": [atendido_id],
+    }
+    create_response = client.post(
+        "/api/orientacao_juridica/", json=orientacao_data, headers=auth_headers
+    )
+    assert create_response.status_code == 201
+    created_id = get_success_data(create_response)["id"]
+
+    # "silva" está no nome do atendido, não na descrição.
+    response = client.get(
+        "/api/orientacao_juridica/?search=silva", headers=auth_headers
+    )
+    assert response.status_code == 200
+    data = get_success_data(response)
+    ids = [item["id"] for item in data["items"]]
+    assert created_id in ids
+
+
+def test_search_orientacoes_by_atendido_nome_no_match(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_orientacao_data: dict[str, Any],
+    sample_atendido_data: dict[str, Any],
+) -> None:
+    """Um termo que não casa nem descrição nem nome não deve retornar a orientação."""
+    atendido_response = client.post(
+        "/api/atendido/", json=sample_atendido_data, headers=auth_headers
+    )
+    assert atendido_response.status_code == 201
+    atendido_id = get_success_data(atendido_response)["id"]
+
+    orientacao_data = {
+        **sample_orientacao_data,
+        "descricao": "Descrição qualquer",
+        "atendidos_ids": [atendido_id],
+    }
+    create_response = client.post(
+        "/api/orientacao_juridica/", json=orientacao_data, headers=auth_headers
+    )
+    assert create_response.status_code == 201
+    created_id = get_success_data(create_response)["id"]
+
+    response = client.get(
+        "/api/orientacao_juridica/?search=zzzznaoexiste", headers=auth_headers
+    )
+    assert response.status_code == 200
+    data = get_success_data(response)
+    ids = [item["id"] for item in data["items"]]
+    assert created_id not in ids
+
+
 def test_filter_orientacoes_by_area_direito(
     client: FlaskClient,
     auth_headers: dict[str, str],

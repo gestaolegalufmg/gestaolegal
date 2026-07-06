@@ -137,7 +137,7 @@
 			<SearchIcon class="mr-2 h-4 w-4 shrink-0 opacity-50" />
 			<Input
 				type="text"
-				placeholder="Busque por atendidos, casos, orientações..."
+				placeholder="Busque em todo o sistema"
 				class="border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
 				value={searchQuery}
 				oninput={handleSearchInput}

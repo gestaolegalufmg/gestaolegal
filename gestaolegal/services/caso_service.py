@@ -71,14 +71,21 @@ class CasoService:
         show_inactive: bool = False,
         situacao_deferimento: str | None = None,
         responsible_user: int | None = None,
+        atendido_id: int | None = None,
     ) -> PaginatedResult[Caso]:
         logger.info(
-            f"Searching casos with search: '{search}', situacao_deferimento: {situacao_deferimento}, responsible_user: {responsible_user}, show_inactive: {show_inactive}, page: {page_params['page']}, per_page: {page_params['per_page']}"
+            f"Searching casos with search: '{search}', situacao_deferimento: {situacao_deferimento}, responsible_user: {responsible_user}, show_inactive: {show_inactive}, atendido_id: {atendido_id}, page: {page_params['page']}, per_page: {page_params['per_page']}"
         )
         clauses: list[WhereClause | ComplexWhereClause] = []
 
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=True))
+
+        if atendido_id is not None:
+            # Restringe aos casos vinculados a este atendido/assistido.
+            # [-1] garante resultado vazio quando não há vínculos (em vez de todos).
+            caso_ids = self.repository.find_caso_ids_by_atendido_id(atendido_id) or [-1]
+            clauses.append(WhereClause(column="id", operator="in", value=caso_ids))
 
         if situacao_deferimento and situacao_deferimento != "todos":
             clauses.append(
@@ -106,6 +113,13 @@ class CasoService:
             if search.isdigit():
                 search_clauses.append(
                     WhereClause(column="id", operator="==", value=int(search))
+                )
+
+            # Também casa casos cujas partes envolvidas (clientes) têm o nome buscado.
+            caso_ids = self.repository.find_ids_by_atendido_nome(search)
+            if caso_ids:
+                search_clauses.append(
+                    WhereClause(column="id", operator="in", value=caso_ids)
                 )
 
             clauses.append(or_clauses(*search_clauses))
@@ -224,7 +238,9 @@ class CasoService:
             raise NotFoundException(resource="Caso", resource_id=caso_id)
 
         caso_data = {
-            "situacao_deferimento": "deferido",
+            # A deferred caso becomes an active one ("ativo"): this is the value
+            # the rest of the system (filters, status badges) expects.
+            "situacao_deferimento": "ativo",
             "justif_indeferimento": None,
             "data_modificacao": datetime.now(),
             "id_modificado_por": modificado_por_id,

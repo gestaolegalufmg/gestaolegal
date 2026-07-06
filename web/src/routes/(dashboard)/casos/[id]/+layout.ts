@@ -1,4 +1,5 @@
 import { eventoCreateFormSchema } from '$lib/forms/schemas/evento-schema';
+import { processoCreateFormSchema } from '$lib/forms/schemas/processo-schema';
 import type { Caso } from '$lib/types/caso';
 import type { Evento } from '$lib/types/evento';
 import type { Paginated } from '$lib/types/paginated';
@@ -19,13 +20,15 @@ export const load = async ({ params, fetch }) => {
 		]);
 
 		const eventoFormData = await superValidate(zod4(eventoCreateFormSchema));
+		const processoFormData = await superValidate(zod4(processoCreateFormSchema));
 
 		return {
 			caso,
 			eventos,
 			lembretes,
 			historico,
-			eventoFormData
+			eventoFormData,
+			processoFormData
 		};
 	} catch (err) {
 		if (err instanceof ApiException) {
