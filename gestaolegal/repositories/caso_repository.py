@@ -6,7 +6,7 @@ from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
 
 from gestaolegal.common import PaginatedResult
-from gestaolegal.database.tables import casos, casos_atendidos
+from gestaolegal.database.tables import atendidos, casos, casos_atendidos
 from gestaolegal.models.caso import Caso
 from gestaolegal.repositories.repository import (
     BaseRepository,
@@ -90,3 +90,27 @@ class CasoRepository(BaseRepository):
         )
         results = self.session.execute(stmt).all()
         return [row.id_atendido for row in results]
+
+    def find_caso_ids_by_atendido_id(self, atendido_id: int) -> list[int]:
+        """IDs dos casos vinculados a um atendido/assistido específico."""
+        stmt = (
+            select(casos_atendidos.c.id_caso)
+            .where(casos_atendidos.c.id_atendido == atendido_id)
+            .distinct()
+        )
+        return [
+            row[0] for row in self.session.execute(stmt).all() if row[0] is not None
+        ]
+
+    def find_ids_by_atendido_nome(self, nome: str) -> list[int]:
+        """IDs dos casos cujos clientes (atendidos) têm nome contendo o termo
+        buscado. Usado para permitir busca por nome de pessoa envolvida."""
+        stmt = (
+            select(casos_atendidos.c.id_caso)
+            .join(atendidos, atendidos.c.id == casos_atendidos.c.id_atendido)
+            .where(atendidos.c.nome.ilike(f"%{nome}%"))
+            .distinct()
+        )
+        return [
+            row[0] for row in self.session.execute(stmt).all() if row[0] is not None
+        ]

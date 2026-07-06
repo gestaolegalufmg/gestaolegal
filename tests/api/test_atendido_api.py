@@ -493,3 +493,69 @@ def test_atendido_pj_with_representante_legal(
     assert data["repres_legal"] is False
     assert data["nome_repres_legal"] == "Maria Silva"
     assert data["cpf_repres_legal"] == "987.654.321-00"
+
+
+def test_get_casos_by_atendido(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_atendido_data: dict[str, Any],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """Endpoint deve retornar os casos vinculados ao atendido."""
+    atendido_id = get_success_data(
+        client.post("/api/atendido/", json=sample_atendido_data, headers=auth_headers)
+    )["id"]
+
+    caso_data = {**sample_caso_data, "ids_clientes": [atendido_id]}
+    caso_id = get_success_data(
+        client.post("/api/caso/", json=caso_data, headers=auth_headers)
+    )["id"]
+
+    response = client.get(f"/api/atendido/{atendido_id}/casos", headers=auth_headers)
+    assert response.status_code == 200
+    data = get_success_data(response)
+    ids = [item["id"] for item in data["items"]]
+    assert caso_id in ids
+
+
+def test_get_orientacoes_by_atendido(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_atendido_data: dict[str, Any],
+    sample_orientacao_data: dict[str, Any],
+) -> None:
+    """Endpoint deve retornar as orientações vinculadas ao atendido."""
+    atendido_id = get_success_data(
+        client.post("/api/atendido/", json=sample_atendido_data, headers=auth_headers)
+    )["id"]
+
+    orientacao_data = {**sample_orientacao_data, "atendidos_ids": [atendido_id]}
+    orientacao_id = get_success_data(
+        client.post(
+            "/api/orientacao_juridica/", json=orientacao_data, headers=auth_headers
+        )
+    )["id"]
+
+    response = client.get(
+        f"/api/atendido/{atendido_id}/orientacoes", headers=auth_headers
+    )
+    assert response.status_code == 200
+    data = get_success_data(response)
+    ids = [item["id"] for item in data["items"]]
+    assert orientacao_id in ids
+
+
+def test_get_casos_by_atendido_empty(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_atendido_data: dict[str, Any],
+) -> None:
+    """Atendido sem casos vinculados deve retornar lista vazia (não todos os casos)."""
+    atendido_id = get_success_data(
+        client.post("/api/atendido/", json=sample_atendido_data, headers=auth_headers)
+    )["id"]
+
+    response = client.get(f"/api/atendido/{atendido_id}/casos", headers=auth_headers)
+    assert response.status_code == 200
+    data = get_success_data(response)
+    assert data["items"] == []

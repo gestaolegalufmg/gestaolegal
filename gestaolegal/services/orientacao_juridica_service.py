@@ -90,19 +90,35 @@ class OrientacaoJuridicaService:
         page_params: PageParams | None = None,
         show_inactive: bool = False,
         area: str = "",
+        atendido_id: int | None = None,
     ) -> PaginatedResult[OrientacaoJuridicaListItem]:
         logger.info(
-            f"Searching orientacoes juridicas with search: '{search}', area: {area}, show_inactive: {show_inactive}"
+            f"Searching orientacoes juridicas with search: '{search}', area: {area}, show_inactive: {show_inactive}, atendido_id: {atendido_id}"
         )
         clauses = []
 
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=1))
 
-        if search:
+        if atendido_id is not None:
+            # Restringe às orientações vinculadas a este atendido/assistido.
+            # [-1] garante resultado vazio quando não há vínculos (em vez de todas).
+            orientacao_ids = self.repository.find_ids_by_atendido_id(atendido_id) or [-1]
             clauses.append(
-                WhereClause(column="descricao", operator="ilike", value=f"%{search}%")
+                WhereClause(column="id", operator="in", value=orientacao_ids)
             )
+
+        if search:
+            # Busca por descrição OU por nome das partes envolvidas (atendidos).
+            search_clauses: list[WhereClause | ComplexWhereClause] = [
+                WhereClause(column="descricao", operator="ilike", value=f"%{search}%")
+            ]
+            atendido_ids = self.repository.find_ids_by_atendido_nome(search)
+            if atendido_ids:
+                search_clauses.append(
+                    WhereClause(column="id", operator="in", value=atendido_ids)
+                )
+            clauses.append(ComplexWhereClause(clauses=search_clauses, operator="or"))
 
         if area and area != "todas":
             clauses.append(

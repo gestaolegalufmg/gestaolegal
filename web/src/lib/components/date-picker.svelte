@@ -35,10 +35,16 @@
 	let date = $derived.by(() => {
 		if (!value) return undefined;
 
+		// `value` is an ISO "YYYY-MM-DD" string; parse it in UTC and note that
+		// getUTCMonth() is 0-indexed while CalendarDate expects a 1-indexed month.
 		const dateObj = new Date(value);
-		return dateObj
-			? new CalendarDate(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate())
-			: undefined;
+		if (isNaN(dateObj.getTime())) return undefined;
+
+		return new CalendarDate(
+			dateObj.getUTCFullYear(),
+			dateObj.getUTCMonth() + 1,
+			dateObj.getUTCDate()
+		);
 	});
 </script>
 

@@ -119,7 +119,9 @@
 				if (onUpdate) {
 					onUpdate(responseData);
 				} else {
-					await goto(`/casos/${responseData.id}`);
+					// invalidateAll so the destination view reloads fresh data instead of
+					// showing the pre-edit values from SvelteKit's cached load.
+					await goto(`/casos/${responseData.id}`, { invalidateAll: true });
 				}
 			} catch (err) {
 				if (err instanceof ApiException) {

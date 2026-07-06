@@ -78,7 +78,12 @@
 							debounceMs={500}
 							placeholder="Buscar orientação..."
 						/>
-						<Select.Root bind:value={filters.area} name="area" type="single" onValueChange={() => applyFilters()}>
+						<Select.Root
+							bind:value={filters.area}
+							name="area"
+							type="single"
+							onValueChange={() => applyFilters()}
+						>
 							<Select.Trigger class="w-[200px] data-[placeholder]:text-foreground">
 								{areaFilterOptions.find((option) => option.value === filters.area)?.label}
 							</Select.Trigger>
@@ -144,6 +149,12 @@
 							show: (o) => o.status && isAdmin,
 							onClick: async (o) => {
 								await handleDelete(o.id);
+							},
+							confirm: {
+								title: 'Desativar orientação jurídica?',
+								description:
+									'A orientação jurídica será inativada. Você poderá reativá-la depois exibindo os registros inativos.',
+								confirmText: 'Desativar'
 							},
 							class: 'h-8 w-8 p-0 text-destructive hover:text-destructive'
 						}
