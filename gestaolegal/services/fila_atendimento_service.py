@@ -1,6 +1,7 @@
 import logging
 from datetime import date, datetime, time
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from gestaolegal.exceptions import NotFoundException, ValidationException
 from gestaolegal.models.fila_atendimento import (
@@ -16,6 +17,23 @@ from gestaolegal.repositories.fila_atendimento_repository import (
 
 logger = logging.getLogger(__name__)
 
+# A fila é organizada por dia de Brasília (senhas zeram à 00h local, não em GMT).
+# O servidor roda em UTC, então precisamos converter explicitamente.
+FUSO_BRASILIA = ZoneInfo("America/Sao_Paulo")
+
+
+def _agora_brasilia() -> datetime:
+    """Data/hora atual no fuso de Brasília, como datetime "naive" (sem tzinfo).
+
+    Gravamos os timestamps da fila já no horário de parede de Brasília para que
+    a filtragem por dia (_intervalo_do_dia) seja consistente com o que é exibido.
+    """
+    return datetime.now(FUSO_BRASILIA).replace(tzinfo=None)
+
+
+def _hoje_brasilia() -> date:
+    return _agora_brasilia().date()
+
 
 class FilaAtendimentoService:
     repository: FilaAtendimentoRepository
@@ -24,8 +42,8 @@ class FilaAtendimentoService:
         self.repository = FilaAtendimentoRepository()
 
     def _intervalo_do_dia(self, dia: date | None = None) -> tuple[datetime, datetime]:
-        """Início e fim (inclusivos) do dia informado (padrão: hoje)."""
-        dia = dia or date.today()
+        """Início e fim (inclusivos) do dia informado (padrão: hoje em Brasília)."""
+        dia = dia or _hoje_brasilia()
         return (
             datetime.combine(dia, time(0, 0, 0)),
             datetime.combine(dia, time(23, 59, 59, 999999)),
@@ -51,7 +69,7 @@ class FilaAtendimentoService:
 
     def get_fila_hoje(self) -> dict[str, Any]:
         """Retorna a fila do dia separada em ativos e concluídos (chamados/cancelados)."""
-        hoje = date.today()
+        hoje = _hoje_brasilia()
         inicio, fim = self._intervalo_do_dia(hoje)
         rows = self.repository.list_no_periodo(inicio, fim)
 
@@ -116,7 +134,7 @@ class FilaAtendimentoService:
             "psicologia": 1 if dados.psicologia else 0,
             "senha": senha,
             "status": FilaStatus.NA_FILA,
-            "data_criacao": datetime.now(),
+            "data_criacao": _agora_brasilia(),
             "data_saida": None,
         }
 
@@ -139,7 +157,7 @@ class FilaAtendimentoService:
 
         self.repository.update(
             fila_id,
-            {"status": novo_status, "data_saida": datetime.now()},
+            {"status": novo_status, "data_saida": _agora_brasilia()},
         )
         logger.info(f"Fila {fila_id} atualizada para status {novo_status}")
         return self._item_por_id(fila_id)

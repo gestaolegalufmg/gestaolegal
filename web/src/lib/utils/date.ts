@@ -27,6 +27,22 @@ export function formatDateOnly(value: string | null | undefined): string {
 	});
 }
 
+/**
+ * Convert an API date value (RFC-1123 GMT, e.g. "Thu, 02 Jul 2026 00:00:00 GMT")
+ * into the ISO "YYYY-MM-DD" string the date picker / form expects. Returns
+ * undefined for empty/invalid input. Without this, edit forms would send the raw
+ * GMT string back and the backend would reject it with a validation error.
+ */
+export function toISODateInput(value: string | null | undefined): string | undefined {
+	if (!value) return undefined;
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return undefined;
+	const yyyy = date.getUTCFullYear();
+	const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+	const dd = String(date.getUTCDate()).padStart(2, '0');
+	return `${yyyy}-${mm}-${dd}`;
+}
+
 /** Format a timestamp (date + time) in the viewer's local timezone. */
 export function formatDateTime(value: string | null | undefined): string {
 	if (!value) return PLACEHOLDER;

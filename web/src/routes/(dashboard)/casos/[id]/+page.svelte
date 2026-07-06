@@ -1,6 +1,8 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
+	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
+	import ConfirmAction from '$lib/components/confirm-action.svelte';
+	import { cn } from '$lib/utils';
 	import InfoCard from '$lib/components/ui/info-card.svelte';
 	import type { PageProps } from './$types';
 	import { SITUACAO_DEFERIMENTO_OPTIONS } from '$lib/constants/situacao-deferimento';
@@ -9,7 +11,10 @@
 	import { Eye, File, Plus, FileText, Download, Upload, Trash2 } from '@lucide/svelte';
 	import DataTable, { type Column } from '$lib/components/data-table.svelte';
 	import EventoDialog from '$lib/components/evento-dialog.svelte';
+	import ProcessoDialog from '$lib/components/processo-dialog.svelte';
 	import type { Evento } from '$lib/types/evento';
+	import type { Processo } from '$lib/types';
+	import type { Paginated } from '$lib/types/paginated';
 	import type { TipoEvento } from '$lib/constants/tipo_evento';
 	import { TIPO_EVENTO } from '$lib/constants/tipo_evento';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
@@ -120,16 +125,11 @@
 	};
 
 	const eventoColumns: Column[] = [
-		{ header: 'ID', key: 'id' },
 		{ header: 'Número do Evento', key: 'num_evento' },
 		{ header: 'Tipo', key: 'tipo', type: 'badge', badgeMap: badges },
+		{ header: 'Descrição', key: 'descricao', type: 'preview' },
 		{ header: 'Data do Evento', key: 'data_evento', type: 'date' },
-		{ header: 'Responsável', key: 'usuario_responsavel.nome' },
-		{
-			header: 'Status',
-			key: 'status',
-			type: 'status'
-		}
+		{ header: 'Responsável', key: 'usuario_responsavel.nome' }
 	];
 
 	const eventoButtons = [
@@ -141,9 +141,40 @@
 	let eventos = $state(initialEventos);
 
 	async function refreshEventos() {
-		const eventosResponse = await api.get(`caso/${caso.id}/eventos`);
+		// api.get already unwraps the response body — it returns the paginated
+		// data directly, so there is no Response.json() to call here.
+		eventos = await api.get<Paginated<Evento>>(`caso/${caso.id}/eventos`);
+	}
 
-		eventos = await eventosResponse.json();
+	// --- Processos (CRUD via modal) ---
+	const isAdmin = $derived(data.me?.urole === 'admin');
+	const processos = $derived(data.caso.processos ?? []);
+	let processoDialogOpen = $state(false);
+	let editingProcesso = $state<Processo | undefined>(undefined);
+
+	function openNewProcesso() {
+		editingProcesso = undefined;
+		processoDialogOpen = true;
+	}
+
+	function openEditProcesso(processo: Processo) {
+		editingProcesso = processo;
+		processoDialogOpen = true;
+	}
+
+	async function deleteProcesso(processoId: number) {
+		try {
+			await api.delete(`caso/${caso.id}/processos/${processoId}`);
+			toast.success('Processo inativado com sucesso');
+			await invalidateAll();
+		} catch (err) {
+			if (err instanceof ApiException) {
+				toast.error(err.message);
+			} else {
+				toast.error('Erro ao inativar processo');
+				console.error(err);
+			}
+		}
 	}
 
 	async function handleFileUpload() {
@@ -272,24 +303,61 @@
 	<div class="grid gap-6 md:grid-cols-2">
 		<Card.Root>
 			<Card.Header>
-				<Card.Title>Processos</Card.Title>
+				<Card.Title class="flex items-center justify-between">
+					<span>Processos</span>
+					<Button variant="default" size="sm" onclick={openNewProcesso}>
+						<Plus class="h-4 w-4" /> Novo Processo
+					</Button>
+				</Card.Title>
 			</Card.Header>
 			<Card.Content>
 				<div class="space-y-2">
-					{#if !caso.processos || caso.processos.length === 0}
+					{#if processos.length === 0}
 						<div class="py-8 text-center text-muted-foreground">
 							<p>Nenhum processo associado a este caso.</p>
 						</div>
 					{:else}
-						{#each caso.processos as processo}
-							<div class="flex items-center justify-between rounded-lg bg-muted/50 p-2">
-								<div class="flex items-center gap-2">
-									<File class="h-4 w-4" />
-									<span>{processo.numero}</span>
+						{#each processos as processo (processo.id)}
+							<div class="flex items-center justify-between gap-2 rounded-lg bg-muted/50 p-3">
+								<div class="flex min-w-0 items-center gap-2">
+									<File class="h-4 w-4 shrink-0" />
+									<div class="min-w-0">
+										<p class="truncate font-medium">
+											{processo.especie}{processo.numero ? ` · Nº ${processo.numero}` : ''}
+										</p>
+										<p class="truncate text-xs text-muted-foreground">
+											{#if processo.vara}{processo.vara}{/if}
+											{#if processo.probabilidade}· Prob.: {processo.probabilidade}{/if}
+										</p>
+									</div>
 								</div>
-								<Button variant="ghost" size="sm" href="/casos/{caso.id}/processos/{processo.id}">
-									<Eye class="h-4 w-5" />
-								</Button>
+								<div class="flex shrink-0 gap-1">
+									<Button
+										variant="ghost"
+										size="sm"
+										onclick={() => openEditProcesso(processo)}
+										title="Editar"
+									>
+										<Edit class="h-4 w-4" />
+									</Button>
+									{#if isAdmin}
+										<ConfirmAction
+											title="Inativar processo?"
+											description="O processo será inativado e deixará de aparecer neste caso."
+											confirmText="Inativar"
+											buttonVariant="destructive"
+											onConfirm={() => deleteProcesso(processo.id)}
+											triggerClass={cn(
+												buttonVariants({ variant: 'ghost', size: 'sm' }),
+												'text-destructive hover:text-destructive'
+											)}
+										>
+											{#snippet trigger()}
+												<Trash2 class="h-4 w-4" />
+											{/snippet}
+										</ConfirmAction>
+									{/if}
+								</div>
 							</div>
 						{/each}
 					{/if}
@@ -433,6 +501,13 @@
 </div>
 
 <EventoDialog {eventoFormData} open={eventoDialogOpen} onSuccess={refreshEventos} />
+<ProcessoDialog
+	casoId={caso.id}
+	processo={editingProcesso}
+	formData={data.processoFormData}
+	bind:open={processoDialogOpen}
+	onSuccess={invalidateAll}
+/>
 <LembreteDialog
 	casoId={caso.id}
 	lembrete={editingLembrete}

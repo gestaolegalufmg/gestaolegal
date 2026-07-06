@@ -30,6 +30,7 @@
 	let fileInputValue = $state('');
 
 	const form = superForm(initialForm, {
+		id: 'evento-edit-form',
 		SPA: true,
 		validators: zod4Client(eventoUpdateFormSchema),
 		resetForm: false,
