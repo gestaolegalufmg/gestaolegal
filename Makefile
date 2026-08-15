@@ -2,7 +2,7 @@ ENV ?= development
 
 .PHONY: up test test-cov test-watch
 
-up: ensure_volumes
+up:
 	docker compose up -d
 
 test:

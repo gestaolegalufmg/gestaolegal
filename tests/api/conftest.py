@@ -303,6 +303,104 @@ def non_admin_auth_headers(
     return {"Authorization": f"Bearer {token}"}
 
 
+def criar_usuario(
+    email: str,
+    senha: str,
+    urole: str,
+    nome: str,
+    status: bool = True,
+) -> int:
+    """Cria (ou recupera) um usuário com o papel pedido e devolve o id.
+
+    Complementa `create_admin_user`/`create_non_admin_user` para os testes que
+    precisam de outros papéis (prof, estag_direito) ou de usuário inativo.
+    """
+    session = db_session_module.get_session()
+    try:
+        existente = session.execute(
+            text("SELECT id FROM usuarios WHERE email = :email"), {"email": email}
+        ).fetchone()
+        if existente:
+            return existente[0]
+
+        session.execute(
+            text("""
+                INSERT INTO enderecos (
+                    logradouro, numero, bairro, cep, cidade, estado
+                ) VALUES ('Rua Teste', '1', 'Centro', '30000-000',
+                          'Belo Horizonte', 'MG')
+            """)
+        )
+        endereco_row = session.execute(text("SELECT last_insert_rowid() as id")).fetchone()
+        assert endereco_row is not None
+
+        hashed = bcrypt.hashpw(senha.encode("utf-8"), bcrypt.gensalt())
+        session.execute(
+            text("""
+                INSERT INTO usuarios (
+                    nome, email, senha, urole, sexo, rg, cpf, profissao,
+                    estado_civil, nascimento, celular, data_entrada,
+                    bolsista, status, cert_atuacao_DAJ, criado, criadopor, endereco_id
+                ) VALUES (
+                    :nome, :email, :senha, :urole, 'M', '111', '111.111.111-11',
+                    'Testes', 'solteiro', '1990-01-01', '(31) 90000-0000',
+                    '2024-01-01', 0, :status, 'sim', :criado, 1, :endereco_id
+                )
+            """),
+            {
+                "nome": nome,
+                "email": email,
+                "senha": hashed.decode("utf-8"),
+                "urole": urole,
+                "status": status,
+                "criado": datetime.now(),
+                "endereco_id": endereco_row[0],
+            },
+        )
+        session.commit()
+
+        criado = session.execute(
+            text("SELECT id FROM usuarios WHERE email = :email"), {"email": email}
+        ).fetchone()
+        assert criado is not None
+        return criado[0]
+    finally:
+        session.close()
+
+
+def headers_para(client: FlaskClient, email: str, senha: str) -> dict[str, str]:
+    response = client.post("/api/auth/login", json={"email": email, "password": senha})
+    assert response.status_code == 200, f"Login de {email} falhou: {response.status_code}"
+    token = get_success_data(response)["token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+TEST_PROF_EMAIL = "prof@gl.com"
+TEST_PROF_PASSWORD = "profpass123"
+
+TEST_ESTAGIARIO_EMAIL = "estagiario@gl.com"
+TEST_ESTAGIARIO_PASSWORD = "estagpass123"
+
+
+@pytest.fixture
+def prof_auth_headers(client: FlaskClient, app: Flask) -> dict[str, str]:
+    with app.app_context():
+        criar_usuario(TEST_PROF_EMAIL, TEST_PROF_PASSWORD, "prof", "Professor Teste")
+    return headers_para(client, TEST_PROF_EMAIL, TEST_PROF_PASSWORD)
+
+
+@pytest.fixture
+def estagiario_auth_headers(client: FlaskClient, app: Flask) -> dict[str, str]:
+    with app.app_context():
+        criar_usuario(
+            TEST_ESTAGIARIO_EMAIL,
+            TEST_ESTAGIARIO_PASSWORD,
+            "estag_direito",
+            "Estagiário Teste",
+        )
+    return headers_para(client, TEST_ESTAGIARIO_EMAIL, TEST_ESTAGIARIO_PASSWORD)
+
+
 @pytest.fixture
 def sample_atendido_data() -> dict[str, Any]:
     return {

@@ -11,7 +11,9 @@ from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
-UserRole = Literal["admin", "colab_proj", "orient", "estag_direito", "colab_ext"]
+UserRole = Literal[
+    "admin", "colab_proj", "orient", "estag_direito", "colab_ext", "prof"
+]
 P = ParamSpec("P")
 
 
