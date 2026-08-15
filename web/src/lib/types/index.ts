@@ -21,3 +21,20 @@ export type { Processo, ListProcesso, ProcessoCreateInput, ProcessoUpdateInput }
 export type { SearchResultGroup, SearchResults, SearchResponse, SearchResultItem } from './search';
 export type { FilaItem, FilaHoje, SenhaPreview } from './fila-atendimento';
 export { FilaPrioridade, FilaStatus } from './fila-atendimento';
+export type {
+	JanelaPlantao,
+	DiaAberto,
+	EscalaItem,
+	MinhaMarcacao,
+	PaginaPlantao,
+	ConfiguracaoPlantao,
+	StatusPresenca,
+	EstadoPresenca,
+	RegistroPresencaResultado,
+	PresencaPendente,
+	PlantaoPendente,
+	Pendencias,
+	ConfirmacaoItem,
+	Confirmacao
+} from './plantao';
+export { CONFIRMACAO } from './plantao';

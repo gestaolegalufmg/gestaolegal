@@ -37,6 +37,11 @@
 			label: 'Registro de Presença',
 			href: '/plantao/registro-presenca'
 		},
+		'/plantao/escala': { label: 'Escala do Plantão', href: '/plantao/escala' },
+		'/plantao/configurar-abertura': {
+			label: 'Configurar Abertura',
+			href: '/plantao/configurar-abertura'
+		},
 		'/arquivos': { label: 'Arquivos', href: '/arquivos' },
 		'/arquivos/cadastrar-arquivo': {
 			label: 'Cadastrar Arquivo',
