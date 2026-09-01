@@ -6,7 +6,6 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { page } from '$app/state';
 	import Input from '$lib/components/ui/input/input.svelte';
-	import { Toaster } from 'svelte-sonner';
 	import { onMount } from 'svelte';
 
 	let { children, data } = $props();
@@ -45,7 +44,6 @@
 	});
 </script>
 
-<Toaster position="top-center" richColors />
 <GlobalSearchDialog bind:open={searchDialogOpen} bind:initialQuery={headerSearchValue} />
 
 <Sidebar.Provider>

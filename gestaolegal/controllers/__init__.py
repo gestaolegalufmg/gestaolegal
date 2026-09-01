@@ -6,6 +6,8 @@ from .fila_atendimento_controller import fila_atendimento_controller
 from .orientacao_juridica_controller import (
     orientacao_juridica_controller as orientacao_juridica_controller_api,
 )
+from .plantao_controller import plantao_controller
+from .presenca_controller import presenca_controller
 from .relatorio_controller import relatorio_controller
 from .roteiro_controller import roteiro_controller
 from .search_controller import search_controller
@@ -19,6 +21,8 @@ routes = [
     (orientacao_juridica_controller_api, "/api/orientacao_juridica"),
     (assistencia_judiciaria_controller, "/api/assistencia_judiciaria"),
     (fila_atendimento_controller, "/api/fila_atendimento"),
+    (plantao_controller, "/api/plantao"),
+    (presenca_controller, "/api/presenca"),
     (roteiro_controller, "/api/roteiro"),
     (relatorio_controller, "/api/relatorio"),
     (search_controller, "/api/search"),

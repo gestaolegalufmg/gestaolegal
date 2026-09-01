@@ -302,3 +302,50 @@ fila_atendimentos = Table(
     Column("id_atendido", Integer, ForeignKey("atendidos.id"), nullable=True),
     Column("data_saida", DateTime, nullable=True),
 )
+
+# Tabelas do plantão. Criadas pela migration baseline ed1b0a0a61a6 e declaradas
+# aqui para ficarem visíveis à aplicação, ao metadata.create_all dos testes e ao
+# autogenerate do Alembic. O schema espelha o baseline coluna a coluna.
+dias_plantao = Table(
+    "dias_plantao",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("data", Date, nullable=True),
+    # False = dia removido da configuração (soft delete)
+    Column("status", Boolean, nullable=False, default=True),
+)
+
+plantao = Table(
+    "plantao",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("data_abertura", DateTime, nullable=True),
+    Column("data_fechamento", DateTime, nullable=True),
+)
+
+dias_marcados_plantao = Table(
+    "dias_marcados_plantao",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("data_marcada", Date, nullable=True),
+    # aberto | confirmar | divergencia | ausencia
+    Column("confirmacao", String(15), nullable=False, default="aberto"),
+    # True = marcação ativa; False = apagada pelo usuário (soft delete)
+    Column("status", Boolean, nullable=False, default=True),
+    Column("id_usuario", Integer, ForeignKey("usuarios.id"), nullable=True),
+)
+
+registro_entrada = Table(
+    "registro_entrada",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("data_entrada", DateTime, nullable=False),
+    # NOT NULL no schema legado: enquanto o registro está em curso grava-se o
+    # provisório 23:59:59 do dia da entrada, sobrescrito na saída.
+    Column("data_saida", DateTime, nullable=False),
+    # True = em curso (entrada sem saída); False = fechado
+    Column("status", Boolean, nullable=False, default=True),
+    # aberto | confirmar | divergencia | ausencia
+    Column("confirmacao", String(15), nullable=False, default="aberto"),
+    Column("id_usuario", Integer, ForeignKey("usuarios.id"), nullable=True),
+)
