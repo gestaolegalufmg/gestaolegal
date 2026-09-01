@@ -10,12 +10,21 @@
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import ChartBarIcon from '@lucide/svelte/icons/bar-chart-3';
 
-	const baseNavMain = [
+	type NavItem = {
+		title: string;
+		url: string;
+		// Quando presente, o item só aparece para os papéis listados. A
+		// autorização de verdade é feita no backend; esconder o item é só UX.
+		roles?: string[];
+	};
+
+	const baseNavMain: (NavItem & { icon: unknown; isActive?: boolean; items: NavItem[] })[] = [
 		{
 			title: 'Gestão de Usuários',
 			url: '/usuarios',
 			icon: UsersIcon,
 			isActive: true,
+			roles: ['admin'],
 			items: []
 		},
 		{
@@ -23,6 +32,19 @@
 			url: '/plantao',
 			icon: ClockIcon,
 			items: [
+				{
+					title: 'Escala do Plantão',
+					url: '/plantao/escala'
+				},
+				{
+					title: 'Registro de Presença',
+					url: '/plantao/registro-presenca'
+				},
+				{
+					title: 'Confirmar Presença',
+					url: '/plantao/confirmar-presenca',
+					roles: ['admin', 'colab_proj', 'prof']
+				},
 				{
 					title: 'Atendidos e Assistidos',
 					url: '/plantao/atendidos-assistidos'
@@ -75,8 +97,15 @@
 		...restProps
 	}: ComponentProps<typeof Sidebar.Root> & { user: User } = $props();
 
+	const visivel = (item: NavItem, urole: string) => !item.roles || item.roles.includes(urole);
+
 	let navMainItems = $derived(
-		user.urole === 'admin' ? baseNavMain : baseNavMain.filter((item) => item.url !== '/usuarios')
+		baseNavMain
+			.filter((item) => visivel(item, user.urole))
+			.map((item) => ({
+				...item,
+				items: item.items.filter((subitem) => visivel(subitem, user.urole))
+			}))
 	);
 
 	let formattedUser = $derived({
