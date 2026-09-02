@@ -43,3 +43,28 @@ def casos_por_orientacao():
     data_inicio, data_final, areas = _params()
     result = RelatorioService().casos_por_orientacao(data_inicio, data_final, areas)
     return success_response(data=result)
+
+
+@relatorio_controller.route("/usuarios", methods=["GET"])
+@authorized(*ALLOWED_ROLES)
+def usuarios_disponiveis():
+    """Usuários ativos para filtrar o relatório de horários.
+
+    Existe porque a listagem geral de usuários é restrita ao admin, e o
+    relatório também pode ser gerado por orientadores e colaboradores externos.
+    """
+    return success_response(data={"items": RelatorioService().usuarios_disponiveis()})
+
+
+@relatorio_controller.route("/horarios", methods=["GET"])
+@authorized(*ALLOWED_ROLES)
+def horarios():
+    data_inicio = request.args.get("data_inicio", type=str)
+    data_final = request.args.get("data_final", type=str)
+    usuarios = request.args.get("usuarios", default=None, type=str)
+    if not data_inicio or not data_final:
+        raise ValidationException(
+            "Informe data_inicio e data_final.", field="data_inicio"
+        )
+    result = RelatorioService().horarios(data_inicio, data_final, usuarios)
+    return success_response(data=result)

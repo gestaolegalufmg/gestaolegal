@@ -49,7 +49,8 @@
 		},
 		'/arquivos/ver-arquivos': { label: 'Ver Arquivos', href: '/arquivos/ver-arquivos' },
 		'/notificacoes': { label: 'Notificações', href: '/notificacoes' },
-		'/relatorios': { label: 'Relatórios', href: '/relatorios' }
+		'/relatorios': { label: 'Relatórios', href: '/relatorios' },
+		'/termos-de-uso': { label: 'Termos de uso', href: '/termos-de-uso' }
 	};
 
 	const dynamicRoutePatterns = [

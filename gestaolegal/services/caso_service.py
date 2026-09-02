@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import datetime
+from typing import cast
 
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
@@ -11,6 +12,7 @@ from gestaolegal.database.session import transaction
 from gestaolegal.exceptions import (
     DatabaseException,
     FileOperationException,
+    GestaoLegalException,
     NotFoundException,
     ValidationException,
 )
@@ -72,6 +74,7 @@ class CasoService:
         situacao_deferimento: str | None = None,
         responsible_user: int | None = None,
         atendido_id: int | None = None,
+        criado_por: int | None = None,
     ) -> PaginatedResult[Caso]:
         logger.info(
             f"Searching casos with search: '{search}', situacao_deferimento: {situacao_deferimento}, responsible_user: {responsible_user}, show_inactive: {show_inactive}, atendido_id: {atendido_id}, page: {page_params['page']}, per_page: {page_params['per_page']}"
@@ -103,6 +106,11 @@ class CasoService:
                     operator="==",
                     value=responsible_user,
                 )
+            )
+
+        if criado_por is not None:
+            clauses.append(
+                WhereClause(column="id_criado_por", operator="==", value=criado_por)
             )
 
         if search:
@@ -373,41 +381,11 @@ class CasoService:
             logger.error(f"Caso not found with id: {caso_id}")
             raise NotFoundException(resource="Caso", resource_id=caso_id)
 
-        if not file or not file.filename:
-            logger.warning("Invalid file provided for upload")
-            raise ValidationException("Arquivo inválido", field="arquivo")
-
-        # Only PDFs are accepted for case attachments.
-        is_pdf = file.filename.lower().endswith(".pdf") or (
-            file.mimetype == "application/pdf"
-        )
-        if not is_pdf:
-            logger.warning(f"Rejected non-PDF upload: {file.filename}")
-            raise ValidationException(
-                "Apenas arquivos PDF são permitidos", field="arquivo"
-            )
-
-        # Enforce the 10 MB size limit.
-        file.stream.seek(0, os.SEEK_END)
-        size = file.stream.tell()
-        file.stream.seek(0)
-        if size > MAX_ARQUIVO_BYTES:
-            logger.warning(f"Rejected oversized upload ({size} bytes): {file.filename}")
-            raise ValidationException(
-                "O arquivo excede o tamanho máximo de 10 MB", field="arquivo"
-            )
+        self._validar_pdf(file)
 
         filepath = None
         try:
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{timestamp}_{filename}"
-
-            os.makedirs(CASO_FILES_DIR, exist_ok=True)
-
-            filepath = os.path.join(CASO_FILES_DIR, filename)
-            file.save(filepath)
-            logger.info(f"File saved to filesystem: {filepath}")
+            filepath = self._salvar_pdf(file)
 
             with transaction():
                 arquivo_id = self.arquivo_repository.create(
@@ -443,6 +421,85 @@ class CasoService:
             raise FileOperationException(
                 f"Erro ao fazer upload do arquivo: {str(e)}", operation="upload"
             )
+
+    @staticmethod
+    def _validar_pdf(file: FileStorage) -> None:
+        """Só PDFs de até 10 MB são aceitos como anexo de caso."""
+        if not file or not file.filename:
+            logger.warning("Invalid file provided for upload")
+            raise ValidationException("Arquivo inválido", field="arquivo")
+
+        is_pdf = file.filename.lower().endswith(".pdf") or (
+            file.mimetype == "application/pdf"
+        )
+        if not is_pdf:
+            logger.warning(f"Rejected non-PDF upload: {file.filename}")
+            raise ValidationException(
+                "Apenas arquivos PDF são permitidos", field="arquivo"
+            )
+
+        file.stream.seek(0, os.SEEK_END)
+        size = file.stream.tell()
+        file.stream.seek(0)
+        if size > MAX_ARQUIVO_BYTES:
+            logger.warning(f"Rejected oversized upload ({size} bytes): {file.filename}")
+            raise ValidationException(
+                "O arquivo excede o tamanho máximo de 10 MB", field="arquivo"
+            )
+
+    @staticmethod
+    def _salvar_pdf(file: FileStorage) -> str:
+        filename = secure_filename(cast(str, file.filename))
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        os.makedirs(CASO_FILES_DIR, exist_ok=True)
+        filepath = os.path.join(CASO_FILES_DIR, f"{timestamp}_{filename}")
+        file.save(filepath)
+        logger.info(f"File saved to filesystem: {filepath}")
+        return filepath
+
+    def replace_arquivo(
+        self, arquivo_id: int, caso_id: int, file: FileStorage
+    ) -> ArquivoCaso:
+        """Substitui o PDF de um anexo existente, mantendo o mesmo registro.
+
+        Equivale ao "editar arquivo do caso" da v2. O arquivo antigo só é
+        apagado do disco depois que o novo foi gravado e o banco atualizado.
+        """
+        logger.info(f"Replacing arquivo {arquivo_id} of caso {caso_id}")
+
+        arquivo = self.validate_arquivo_for_caso(arquivo_id, caso_id)
+        if not arquivo:
+            raise NotFoundException(resource="Arquivo", resource_id=arquivo_id)
+
+        self._validar_pdf(file)
+
+        novo_caminho = None
+        try:
+            novo_caminho = self._salvar_pdf(file)
+            with transaction():
+                self.arquivo_repository.update(arquivo_id, {"link_arquivo": novo_caminho})
+        except Exception as e:
+            if novo_caminho and os.path.exists(novo_caminho):
+                os.remove(novo_caminho)
+            if isinstance(e, GestaoLegalException):
+                raise
+            logger.error(f"Error replacing arquivo {arquivo_id}: {e}", exc_info=True)
+            raise FileOperationException(
+                f"Erro ao substituir o arquivo: {e}", operation="upload"
+            )
+
+        antigo = arquivo.link_arquivo
+        if antigo and antigo != novo_caminho and os.path.exists(antigo):
+            try:
+                os.remove(antigo)
+                logger.info(f"Old file removed: {antigo}")
+            except OSError as exc:
+                logger.error(f"Error removing old file {antigo}: {exc}")
+
+        atualizado = self.arquivo_repository.find_by_id(arquivo_id)
+        if not atualizado:
+            raise DatabaseException("Falha ao atualizar arquivo no banco de dados")
+        return atualizado
 
     def delete_arquivo(self, arquivo_id: int, caso_id: int) -> None:
         """

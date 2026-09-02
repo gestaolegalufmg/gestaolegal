@@ -32,10 +32,17 @@ class EventoRepository(BaseRepository):
         return [from_dict(Evento, dict(row._mapping)) for row in results]
 
     def find_by_caso_id_paginated(
-        self, caso_id: int, page_params: PageParams
+        self, caso_id: int, page_params: PageParams, tipo: str | None = None
     ) -> PaginatedResult[Evento]:
+        """Eventos ativos do caso, opcionalmente filtrados por tipo.
+
+        Eventos excluídos (status=False) ficam fora da listagem, mas continuam
+        acessíveis por id para preservar o histórico.
+        """
         stmt = select(eventos, func.count().over().label("total_count"))
-        stmt = stmt.where(eventos.c.id_caso == caso_id)
+        stmt = stmt.where(eventos.c.id_caso == caso_id, eventos.c.status.is_(True))
+        if tipo:
+            stmt = stmt.where(eventos.c.tipo == tipo)
         stmt = stmt.order_by(eventos.c.data_evento.desc())
         stmt = self._apply_pagination(stmt, page_params)
 

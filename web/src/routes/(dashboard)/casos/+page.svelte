@@ -30,6 +30,7 @@
 		show_inactive: boolean;
 		situacao_deferimento: string;
 		user: string;
+		criado_por: string;
 	};
 
 	const { filters, applyFilters, setFilters } = usePaginatedFilters<CasoFilters>({
@@ -37,13 +38,15 @@
 			search: page.url.searchParams.get('search') ?? '',
 			show_inactive: page.url.searchParams.get('show_inactive') === 'true',
 			situacao_deferimento: page.url.searchParams.get('situacao_deferimento') ?? 'todos',
-			user: page.url.searchParams.get('user') ?? ''
+			user: page.url.searchParams.get('user') ?? '',
+			criado_por: page.url.searchParams.get('criado_por') ?? ''
 		},
 		buildParams: (f) => ({
 			search: f.search,
 			show_inactive: f.show_inactive ? 'true' : 'false',
 			situacao_deferimento: f.situacao_deferimento,
-			user: f.user
+			user: f.user,
+			criado_por: f.criado_por
 		})
 	});
 
@@ -60,7 +63,9 @@
 
 <div class="space-y-6">
 	<div class="flex items-center justify-between">
-		<h1 class="text-3xl font-bold tracking-tight">Casos</h1>
+		<h1 class="text-3xl font-bold tracking-tight">
+			{filters.user === 'me' ? 'Meus Casos' : 'Casos'}
+		</h1>
 		<Button variant="default" href="/casos/cadastrar-novo-caso">Novo Caso</Button>
 	</div>
 
@@ -106,6 +111,16 @@
 								}}
 							/>
 							<span class="text-sm">Apenas meus casos</span>
+						</label>
+						<label class="flex cursor-pointer items-center gap-2">
+							<Checkbox
+								checked={filters.criado_por === 'me'}
+								onCheckedChange={(checked) => {
+									setFilters({ criado_por: checked ? 'me' : '' });
+									applyFilters();
+								}}
+							/>
+							<span class="text-sm">Cadastrados por mim</span>
 						</label>
 						<label class="flex cursor-pointer items-center gap-2">
 							<Checkbox
