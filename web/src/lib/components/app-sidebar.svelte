@@ -73,6 +73,10 @@
 					url: '/casos/cadastrar-novo-caso'
 				},
 				{
+					title: 'Meus Casos',
+					url: '/casos?user=me'
+				},
+				{
 					title: 'Gestão de Casos',
 					url: '/casos'
 				},
@@ -122,6 +126,12 @@
 		<NavMain items={navMainItems} />
 	</Sidebar.Content>
 	<Sidebar.Footer>
+		<a
+			href="/termos-de-uso"
+			class="px-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden hover:underline"
+		>
+			Termos de uso
+		</a>
 		<NavUser user={formattedUser} />
 	</Sidebar.Footer>
 	<Sidebar.Rail />

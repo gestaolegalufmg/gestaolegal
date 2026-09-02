@@ -35,5 +35,7 @@ class ListEvento:
     status: bool
 
     criado_por: str | None = None
+    id_criado_por: int | None = None
     usuario_responsavel: str | None = None
     num_evento: int | None = None
+    descricao: str | None = None
