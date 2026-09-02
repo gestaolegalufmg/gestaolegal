@@ -16,7 +16,9 @@
 	import type { Processo } from '$lib/types';
 	import type { Paginated } from '$lib/types/paginated';
 	import type { TipoEvento } from '$lib/constants/tipo_evento';
-	import { TIPO_EVENTO } from '$lib/constants/tipo_evento';
+	import { TIPO_EVENTO, TIPO_EVENTO_OPTIONS } from '$lib/constants/tipo_evento';
+	import * as Select from '$lib/components/ui/select';
+	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import { toast } from 'svelte-sonner';
 	import { api, apiFetch } from '$lib/api-client';
@@ -68,7 +70,10 @@
 
 	let arquivos = $state(caso.arquivos || []);
 	let fileInput: HTMLInputElement;
+	let replaceInput: HTMLInputElement;
 	let isUploading = $state(false);
+	// Anexo cuja substituição está em andamento (equivale ao "editar arquivo" da v2).
+	let replacingId = $state<number | null>(null);
 
 	function getSituacaoLabel(situacao: string) {
 		const option = SITUACAO_DEFERIMENTO_OPTIONS.find((opt) => opt.value === situacao);
@@ -125,29 +130,66 @@
 	};
 
 	const eventoColumns: Column[] = [
-		{ header: 'Número do Evento', key: 'num_evento' },
-		{ header: 'Tipo', key: 'tipo', type: 'badge', badgeMap: badges },
-		{ header: 'Descrição', key: 'descricao', type: 'preview' },
-		{ header: 'Data do Evento', key: 'data_evento', type: 'date' },
-		{ header: 'Responsável', key: 'usuario_responsavel.nome' }
+		{ header: 'Nº', key: 'num_evento', class: 'w-[60px] whitespace-nowrap' },
+		{ header: 'Tipo', key: 'tipo', type: 'badge', badgeMap: badges, class: 'w-[200px]' },
+		{ header: 'Descrição', key: 'descricao', type: 'preview', previewClass: 'max-w-[520px]' },
+		{ header: 'Data', key: 'data_evento', type: 'date', class: 'w-[120px] whitespace-nowrap' },
+		{ header: 'Responsável', key: 'usuario_responsavel.nome', class: 'w-[200px]' }
 	];
 
+	const isAdmin = $derived(data.me?.urole === 'admin');
+
+	// Regra herdada da v2: só o admin ou quem criou o evento pode excluí-lo.
+	function podeExcluirEvento(evento: Evento): boolean {
+		return isAdmin || evento.id_criado_por === data.me?.id;
+	}
+
+	async function deleteEvento(evento: Evento) {
+		try {
+			await api.delete(`caso/${caso.id}/eventos/${evento.id}`);
+			toast.success('Evento excluído com sucesso');
+			await refreshEventos();
+		} catch (err) {
+			if (err instanceof ApiException) toast.error(err.message);
+			else toast.error('Erro ao excluir evento');
+		}
+	}
+
 	const eventoButtons = [
-		{ title: 'Ver', icon: Eye, href: (v: Evento) => `/casos/${caso.id}/eventos/${v.id}` }
+		{ title: 'Ver', icon: Eye, href: (v: Evento) => `/casos/${caso.id}/eventos/${v.id}` },
+		{
+			title: 'Excluir',
+			icon: Trash2,
+			show: (v: Evento) => podeExcluirEvento(v),
+			onClick: (v: Evento) => deleteEvento(v),
+			confirm: {
+				title: 'Excluir evento?',
+				description: 'O evento deixará de aparecer no caso e o arquivo anexado será apagado.',
+				confirmText: 'Excluir'
+			},
+			class: 'h-8 w-8 p-0 text-destructive hover:text-destructive'
+		}
 	];
 
 	let eventoDialogOpen = $state(false);
 
 	let eventos = $state(initialEventos);
+	let eventoTipoFiltro = $state('todos');
+
+	const eventoTipoOptions = [{ value: 'todos', label: 'Todos os tipos' }, ...TIPO_EVENTO_OPTIONS];
 
 	async function refreshEventos() {
 		// api.get already unwraps the response body — it returns the paginated
 		// data directly, so there is no Response.json() to call here.
-		eventos = await api.get<Paginated<Evento>>(`caso/${caso.id}/eventos`);
+		const params = new URLSearchParams();
+		if (eventoTipoFiltro !== 'todos') params.set('tipo', eventoTipoFiltro);
+		const query = params.toString();
+		eventos = await api.get<Paginated<Evento>>(
+			`caso/${caso.id}/eventos${query ? `?${query}` : ''}`
+		);
 	}
 
 	// --- Processos (CRUD via modal) ---
-	const isAdmin = $derived(data.me?.urole === 'admin');
 	const processos = $derived(data.caso.processos ?? []);
 	let processoDialogOpen = $state(false);
 	let editingProcesso = $state<Processo | undefined>(undefined);
@@ -202,6 +244,36 @@
 			}
 		} finally {
 			isUploading = false;
+		}
+	}
+
+	function startReplace(arquivoId: number) {
+		replacingId = arquivoId;
+		replaceInput?.click();
+	}
+
+	async function handleFileReplace() {
+		const file = replaceInput.files?.[0];
+		const arquivoId = replacingId;
+		if (!file || arquivoId === null) return;
+
+		isUploading = true;
+		const formData = new FormData();
+		formData.append('arquivo', file);
+
+		try {
+			const atualizado = await api.put<any>(`caso/${caso.id}/arquivos/${arquivoId}`, formData, {
+				headers: {}
+			});
+			arquivos = arquivos.map((a) => (a.id === arquivoId ? atualizado : a));
+			toast.success('Arquivo substituído com sucesso');
+		} catch (err) {
+			if (err instanceof ApiException) toast.error(err.message);
+			else toast.error('Erro ao substituir arquivo');
+		} finally {
+			isUploading = false;
+			replacingId = null;
+			replaceInput.value = '';
 		}
 	}
 
@@ -382,6 +454,13 @@
 			</Card.Header>
 			<Card.Content>
 				<input type="file" bind:this={fileInput} onchange={handleFileUpload} class="hidden" />
+				<input
+					type="file"
+					accept="application/pdf"
+					bind:this={replaceInput}
+					onchange={handleFileReplace}
+					class="hidden"
+				/>
 				<div class="space-y-2">
 					{#if !arquivos || arquivos.length === 0}
 						<div class="py-8 text-center text-muted-foreground">
@@ -397,8 +476,22 @@
 									>
 								</div>
 								<div class="flex gap-1">
-									<Button variant="ghost" size="sm" onclick={() => handleDownload(arquivo)}>
+									<Button
+										variant="ghost"
+										size="sm"
+										onclick={() => handleDownload(arquivo)}
+										title="Baixar"
+									>
 										<Download class="h-4 w-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="sm"
+										onclick={() => startReplace(arquivo.id)}
+										disabled={isUploading}
+										title="Substituir arquivo"
+									>
+										<RefreshCw class="h-4 w-4" />
 									</Button>
 									<Button variant="ghost" size="sm" onclick={() => handleDelete(arquivo.id)}>
 										<Trash2 class="h-4 w-4 text-destructive" />
@@ -414,11 +507,27 @@
 
 	<Card.Root>
 		<Card.Header>
-			<Card.Title class="flex items-center justify-between">
+			<Card.Title class="flex flex-wrap items-center justify-between gap-2">
 				<span>Eventos</span>
-				<Button variant="default" size="sm" onclick={() => (eventoDialogOpen = true)}>
-					<Plus class="h-4 w-4" /> Novo Evento
-				</Button>
+				<div class="flex items-center gap-2">
+					<Select.Root
+						type="single"
+						bind:value={eventoTipoFiltro}
+						onValueChange={() => refreshEventos()}
+					>
+						<Select.Trigger class="w-[200px]" aria-label="Filtrar eventos por tipo">
+							{eventoTipoOptions.find((o) => o.value === eventoTipoFiltro)?.label}
+						</Select.Trigger>
+						<Select.Content>
+							{#each eventoTipoOptions as option (option.value)}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+					<Button variant="default" size="sm" onclick={() => (eventoDialogOpen = true)}>
+						<Plus class="h-4 w-4" /> Novo Evento
+					</Button>
+				</div>
 			</Card.Title>
 		</Card.Header>
 		<Card.Content>
@@ -500,7 +609,7 @@
 	</Card.Root>
 </div>
 
-<EventoDialog {eventoFormData} open={eventoDialogOpen} onSuccess={refreshEventos} />
+<EventoDialog {eventoFormData} bind:open={eventoDialogOpen} onSuccess={refreshEventos} />
 <ProcessoDialog
 	casoId={caso.id}
 	processo={editingProcesso}

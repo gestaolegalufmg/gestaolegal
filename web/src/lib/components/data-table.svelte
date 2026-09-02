@@ -7,6 +7,8 @@
 		class?: string;
 		type?: 'text' | 'mono' | 'date' | 'datetime' | 'badge' | 'status' | 'array' | 'tel' | 'preview';
 		badgeMap?: Record<string | number, { text: string; variant: BadgeVariant; class?: string }>;
+		// Largura máxima do texto truncado nas colunas do tipo 'preview' (padrão 280px).
+		previewClass?: string;
 	};
 </script>
 
@@ -251,7 +253,10 @@
 							{@const raw = getNestedValue(item, column.key)}
 							<Table.Cell class={column.class}>
 								<span
-									class="block max-w-[280px] truncate text-sm text-muted-foreground"
+									class={cn(
+										'block truncate text-sm text-muted-foreground',
+										column.previewClass ?? 'max-w-[280px]'
+									)}
 									title={raw ? String(raw) : ''}>{raw ? String(raw) : '--'}</span
 								>
 							</Table.Cell>

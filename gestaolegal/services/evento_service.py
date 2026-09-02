@@ -6,6 +6,7 @@ from typing import cast
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.exceptions import (
     DatabaseException,
+    ForbiddenException,
     NotFoundException,
 )
 from gestaolegal.models.evento import Evento, ListEvento
@@ -44,10 +45,10 @@ class EventoService:
         return evento
 
     def find_by_caso_id(
-        self, caso_id: int, page_params: PageParams
+        self, caso_id: int, page_params: PageParams, tipo: str | None = None
     ) -> PaginatedResult[ListEvento]:
-        logger.info(f"Finding eventos for caso id: {caso_id}")
-        result = self.repository.find_by_caso_id_paginated(caso_id, page_params)
+        logger.info(f"Finding eventos for caso id: {caso_id}, tipo: {tipo}")
+        result = self.repository.find_by_caso_id_paginated(caso_id, page_params, tipo)
 
         user_map = self.__get_user_map(result.items)
 
@@ -72,6 +73,8 @@ class EventoService:
                     if usuario_responsavel
                     else None,
                     criado_por=criado_por.nome if criado_por else None,
+                    id_criado_por=evento.id_criado_por,
+                    descricao=evento.descricao,
                 )
             )
 
@@ -141,6 +144,34 @@ class EventoService:
 
         logger.info(f"Evento updated successfully with id: {evento_id}")
         return self.repository.find_by_id(evento_id)
+
+    def delete(self, evento_id: int, caso_id: int, user: UserInfo) -> None:
+        """Exclui (soft delete) um evento e apaga o arquivo anexo.
+
+        Regra herdada da v2: só o admin ou quem criou o evento pode excluí-lo.
+        """
+        logger.info(f"Deleting evento {evento_id} from caso {caso_id} by user {user.id}")
+        evento = self.validate_evento_for_caso(evento_id, caso_id)
+        if not evento or not evento.status:
+            raise NotFoundException(resource="Evento", resource_id=evento_id)
+
+        if user.urole != "admin" and evento.id_criado_por != user.id:
+            logger.warning(
+                f"User {user.id} tried to delete evento {evento_id} created by {evento.id_criado_por}"
+            )
+            raise ForbiddenException(
+                "Apenas o administrador ou quem criou o evento pode excluí-lo"
+            )
+
+        if evento.arquivo and os.path.exists(evento.arquivo):
+            try:
+                os.remove(evento.arquivo)
+                logger.info(f"Evento file removed: {evento.arquivo}")
+            except OSError as exc:
+                logger.error(f"Error removing evento file {evento.arquivo}: {exc}")
+
+        self.repository.update(evento_id, {"status": False, "arquivo": None})
+        logger.info(f"Evento {evento_id} deleted successfully")
 
     def get_evento_file_for_download(
         self, evento_id: int, caso_id: int

@@ -143,6 +143,15 @@ def register_error_handlers(app: Flask) -> None:
             status_code=400,
         )
 
+    # Mensagens em português para os erros que o Werkzeug levanta sozinho,
+    # antes de a requisição chegar ao nosso código.
+    mensagens_http = {
+        404: "Recurso não encontrado",
+        405: "Método não permitido",
+        413: "O arquivo excede o tamanho máximo de 10 MB",
+        415: "Tipo de conteúdo não suportado",
+    }
+
     @app.errorhandler(HTTPException)
     def handle_http_exception(e: HTTPException) -> Response:
         """
@@ -155,7 +164,7 @@ def register_error_handlers(app: Flask) -> None:
             extra={"code": e.code, "description": e.description},
         )
         return error_response(
-            message=e.description or "Erro HTTP",
+            message=mensagens_http.get(e.code or 0) or e.description or "Erro HTTP",
             error_code=f"HTTP_{e.code}",
             status_code=e.code or 500,
         )
