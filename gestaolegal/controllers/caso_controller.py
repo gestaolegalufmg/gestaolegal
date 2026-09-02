@@ -35,6 +35,15 @@ from gestaolegal.utils.StringBool import StringBool
 caso_controller = Blueprint("caso_api", __name__)
 
 
+def _resolve_user_param(valor: str | None, current_user: UserInfo) -> int | None:
+    """Converte o parâmetro de usuário da query ("me" ou um id) em id numérico."""
+    if valor == "me":
+        return current_user.id
+    if valor is not None and valor.isdigit():
+        return int(valor)
+    return None
+
+
 @caso_controller.route("/", methods=["GET"])
 @authenticated
 def get():
@@ -49,12 +58,10 @@ def get():
         "situacao_deferimento", default=None, type=str
     )
     user = request.args.get("user", default=None, type=str)
+    criado_por = request.args.get("criado_por", default=None, type=str)
 
-    responsible_user = None
-    if user == "me":
-        responsible_user = current_user.id
-    elif user is not None and user.isdigit():
-        responsible_user = int(user)
+    responsible_user = _resolve_user_param(user, current_user)
+    criado_por_id = _resolve_user_param(criado_por, current_user)
 
     caso_service = CasoService()
     result = caso_service.search(
@@ -63,6 +70,7 @@ def get():
         show_inactive=show_inactive.value,
         situacao_deferimento=situacao_deferimento,
         responsible_user=responsible_user,
+        criado_por=criado_por_id,
     )
 
     return success_response(data=result.to_dict())
@@ -296,10 +304,14 @@ def get_eventos_by_caso(caso_id: int):
 
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
+    tipo = request.args.get("tipo", default=None, type=str)
+    if tipo == "todos":
+        tipo = None
 
     result = evento_service.find_by_caso_id(
         caso_id=caso_id,
         page_params=PageParams(page=page, per_page=per_page),
+        tipo=tipo,
     )
 
     return success_response(data=result.to_dict())
@@ -379,6 +391,15 @@ def update_evento(caso_id: int, evento_id: int):
     )
 
 
+@caso_controller.route("/<int:caso_id>/eventos/<int:evento_id>", methods=["DELETE"])
+@authenticated
+def delete_evento(caso_id: int, evento_id: int):
+    current_user: UserInfo = RequestContext.get_current_user()
+    EventoService().delete(evento_id, caso_id, current_user)
+
+    return success_response(message="Evento excluído com sucesso")
+
+
 @caso_controller.route(
     "/<int:caso_id>/eventos/<int:evento_id>/download", methods=["GET"]
 )
@@ -434,6 +455,19 @@ def download_arquivo_caso(caso_id: int, arquivo_id: int):
     filepath = caso_service.get_arquivo_for_download(arquivo_id, caso_id)
 
     return send_file(filepath, as_attachment=True)
+
+
+@caso_controller.route("/<int:caso_id>/arquivos/<int:arquivo_id>", methods=["PUT"])
+@authenticated
+def replace_arquivo_caso(caso_id: int, arquivo_id: int):
+    caso_service = CasoService()
+
+    if "arquivo" not in request.files:
+        raise ValidationException("Nenhum arquivo enviado", field="arquivo")
+
+    arquivo = caso_service.replace_arquivo(arquivo_id, caso_id, request.files["arquivo"])
+
+    return success_response(data=asdict(arquivo), message="Arquivo substituído com sucesso")
 
 
 @caso_controller.route("/<int:caso_id>/arquivos/<int:arquivo_id>", methods=["DELETE"])
