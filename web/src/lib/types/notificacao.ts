@@ -19,6 +19,10 @@ export type Notificacao = {
 	executor: string | null;
 };
 
+/** Visões da lista: ativas (padrão), só arquivadas ou todas. */
+export const FILTROS_ARQUIVADAS = ['nao', 'sim', 'todas'] as const;
+export type FiltroArquivadas = (typeof FILTROS_ARQUIVADAS)[number];
+
 /** Página de destino da notificação, conforme o tipo. */
 export function destinoDaNotificacao(n: Notificacao): string | null {
 	switch (n.tipo) {
