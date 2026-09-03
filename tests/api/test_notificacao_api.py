@@ -184,3 +184,78 @@ class TestLeitura:
 
     def test_exige_login(self, client):
         assert client.get("/api/notificacao/").status_code == 401
+
+
+class TestArquivamento:
+    def _arquivar(self, client, headers, id: int, arquivar: bool = True):
+        return client.patch(
+            f"/api/notificacao/{id}/arquivada", json={"arquivar": arquivar}, headers=headers
+        )
+
+    def test_arquivada_sai_da_lista_padrao_e_do_contador(
+        self, client, auth_headers, estagiario_auth_headers
+    ):
+        estag_id = _me(client, estagiario_auth_headers)
+        _criar_caso(client, auth_headers, id_usuario_responsavel=estag_id)
+        _criar_caso(client, auth_headers, id_usuario_responsavel=estag_id)
+        alvo = _listar(client, estagiario_auth_headers)["items"][0]["id"]
+
+        assert self._arquivar(client, estagiario_auth_headers, alvo).status_code == 200
+        assert _nao_lidas(client, estagiario_auth_headers) == 1
+
+        ativas = _listar(client, estagiario_auth_headers)
+        assert ativas["total"] == 1 and alvo not in [n["id"] for n in ativas["items"]]
+
+        arquivadas = get_success_data(
+            client.get("/api/notificacao/?arquivadas=sim", headers=estagiario_auth_headers)
+        )
+        assert [n["id"] for n in arquivadas["items"]] == [alvo]
+        assert arquivadas["items"][0]["data_arquivamento"] is not None
+
+        todas = get_success_data(
+            client.get("/api/notificacao/?arquivadas=todas", headers=estagiario_auth_headers)
+        )
+        assert todas["total"] == 2
+
+    def test_desarquivar_devolve_para_a_lista(
+        self, client, auth_headers, estagiario_auth_headers
+    ):
+        estag_id = _me(client, estagiario_auth_headers)
+        _criar_caso(client, auth_headers, id_usuario_responsavel=estag_id)
+        alvo = _listar(client, estagiario_auth_headers)["items"][0]["id"]
+
+        self._arquivar(client, estagiario_auth_headers, alvo)
+        assert _listar(client, estagiario_auth_headers)["total"] == 0
+
+        assert self._arquivar(client, estagiario_auth_headers, alvo, False).status_code == 200
+        ativas = _listar(client, estagiario_auth_headers)
+        assert ativas["total"] == 1 and ativas["items"][0]["data_arquivamento"] is None
+        assert _nao_lidas(client, estagiario_auth_headers) == 1
+
+    def test_arquivar_lidas_nao_toca_nas_nao_lidas(
+        self, client, auth_headers, estagiario_auth_headers
+    ):
+        estag_id = _me(client, estagiario_auth_headers)
+        for _ in range(3):
+            _criar_caso(client, auth_headers, id_usuario_responsavel=estag_id)
+        lida = _listar(client, estagiario_auth_headers)["items"][0]["id"]
+        client.patch(f"/api/notificacao/{lida}/lida", headers=estagiario_auth_headers)
+
+        data = get_success_data(
+            client.patch("/api/notificacao/arquivadas", headers=estagiario_auth_headers)
+        )
+        assert data["total"] == 1
+        assert _listar(client, estagiario_auth_headers)["total"] == 2
+        assert _nao_lidas(client, estagiario_auth_headers) == 2
+
+    def test_nao_arquiva_notificacao_alheia(
+        self, client, auth_headers, estagiario_auth_headers, non_admin_auth_headers
+    ):
+        estag_id = _me(client, estagiario_auth_headers)
+        _criar_caso(client, auth_headers, id_usuario_responsavel=estag_id)
+        alvo = _listar(client, estagiario_auth_headers)["items"][0]["id"]
+        assert self._arquivar(client, non_admin_auth_headers, alvo).status_code == 404
+
+    def test_filtro_invalido(self, client, estagiario_auth_headers):
+        response = client.get("/api/notificacao/?arquivadas=xpto", headers=estagiario_auth_headers)
+        assert response.status_code == 400

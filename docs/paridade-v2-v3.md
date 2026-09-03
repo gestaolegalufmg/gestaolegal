@@ -275,6 +275,22 @@ Bug encontrado no caminho e corrigido junto: casos com a situação legada
 Deferimento). Migração `9b4a1c7e30df` normaliza para `ativo` e o
 formulário converte o valor legado ao carregar.
 
+### 8.1 Arquivamento (acrescentado após o roteiro)
+
+A lista cresce indefinidamente e a paginação sozinha não resolve. Cada
+aviso pode ser arquivado (coluna `data_arquivamento`); a lista mostra por
+padrão só os ativos, com filtro para ver os arquivados ou todos. Como
+arquivar um a um seria inviável, há também "Arquivar lidas", que arquiva
+de uma vez tudo o que já foi lido. Notificação arquivada não conta no sino
+nem é alcançada por "Marcar todas como lidas".
+
+| Item | Status |
+|---|---|
+| 1. Arquivar um aviso: sai da lista e o sino cai, se era não lida | ⏳ |
+| 2. Filtro "Arquivadas" mostra o que foi arquivado; "Todas" mostra os dois | ⏳ |
+| 3. Desarquivar devolve o aviso à lista de ativas | ⏳ |
+| 4. "Arquivar lidas" não toca nas não lidas | ⏳ |
+
 ## 6. Pendências e ideias anotadas
 
 - Lembrete novo: pré-selecionar o usuário logado no campo "Usuário

@@ -17,6 +17,7 @@ class Notificacao:
     detalhe: str | None = None
     lida: bool = False
     data_criacao: datetime | None = None
+    data_arquivamento: datetime | None = None
     id: int | None = None
 
 

@@ -256,6 +256,8 @@ notificacao = Table(
     Column("detalhe", String(300), nullable=True),
     Column("lida", Boolean, nullable=False, default=False),
     Column("data_criacao", DateTime, nullable=True),
+    # Preenchida = notificação arquivada (some da lista padrão).
+    Column("data_arquivamento", DateTime, nullable=True),
 )
 
 assistencias_judiciarias = Table(

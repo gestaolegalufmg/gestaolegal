@@ -5,6 +5,8 @@
 	import Bell from '@lucide/svelte/icons/bell';
 	import CheckCheck from '@lucide/svelte/icons/check-check';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import Archive from '@lucide/svelte/icons/archive';
+	import ArchiveRestore from '@lucide/svelte/icons/archive-restore';
 	import Mail from '@lucide/svelte/icons/mail';
 	import MailOpen from '@lucide/svelte/icons/mail-open';
 	import { api } from '$lib/api-client';
@@ -17,9 +19,15 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-	const { notificacoes } = $derived(data);
+	const { notificacoes, arquivadas } = $derived(data);
 
 	const totalPaginas = $derived(Math.max(1, Math.ceil(notificacoes.total / notificacoes.per_page)));
+
+	const FILTROS = [
+		{ valor: 'nao', label: 'Ativas' },
+		{ valor: 'sim', label: 'Arquivadas' },
+		{ valor: 'todas', label: 'Todas' }
+	] as const;
 
 	const tipoLabel: Record<string, string> = {
 		caso: 'Caso',
@@ -65,6 +73,40 @@
 		}
 	}
 
+	async function arquivarNotificacao(n: Notificacao, arquivar = true) {
+		try {
+			await api.patch(`notificacao/${n.id}/arquivada`, { arquivar });
+			await invalidate('app:notificacoes');
+			await atualizarContador();
+			toast.success(arquivar ? 'Notificação arquivada' : 'Notificação desarquivada');
+		} catch (err) {
+			toast.error(mensagemDeErro(err, arquivar ? 'Erro ao arquivar' : 'Erro ao desarquivar'));
+		}
+	}
+
+	async function arquivarLidas() {
+		try {
+			const d = await api.patch<{ total: number }>('notificacao/arquivadas');
+			await invalidate('app:notificacoes');
+			await atualizarContador();
+			toast.success(
+				d.total === 1 ? '1 notificação arquivada' : `${d.total} notificações arquivadas`
+			);
+		} catch (err) {
+			toast.error(mensagemDeErro(err, 'Erro ao arquivar as notificações lidas'));
+		}
+	}
+
+	function irParaFiltro(valor: string) {
+		const params = new URLSearchParams(page.url.searchParams);
+		if (valor === 'nao') params.delete('arquivadas');
+		else params.set('arquivadas', valor);
+		// Troca de visão sempre volta para a primeira página.
+		params.delete('page');
+		const query = params.toString();
+		goto(query ? `/notificacoes?${query}` : '/notificacoes');
+	}
+
 	function irParaPagina(p: number) {
 		const params = new URLSearchParams(page.url.searchParams);
 		params.set('page', String(p));
@@ -80,17 +122,40 @@
 				Avisos de casos, eventos, lembretes e abertura do plantão em que você foi incluído.
 			</p>
 		</div>
-		{#if notificacoes.items.some((n) => !n.lida)}
-			<Button variant="outline" onclick={marcarTodas}>
-				<CheckCheck class="mr-2 h-4 w-4" /> Marcar todas como lidas
+		<div class="flex flex-wrap gap-2">
+			{#if notificacoes.items.some((n) => !n.lida)}
+				<Button variant="outline" onclick={marcarTodas}>
+					<CheckCheck class="mr-2 h-4 w-4" /> Marcar todas como lidas
+				</Button>
+			{/if}
+			{#if arquivadas !== 'sim' && notificacoes.items.some((n) => n.lida && !n.data_arquivamento)}
+				<Button variant="outline" onclick={arquivarLidas}>
+					<Archive class="mr-2 h-4 w-4" /> Arquivar lidas
+				</Button>
+			{/if}
+		</div>
+	</div>
+
+	<div class="flex flex-wrap gap-2">
+		{#each FILTROS as filtro (filtro.valor)}
+			<Button
+				variant={arquivadas === filtro.valor ? 'default' : 'outline'}
+				size="sm"
+				onclick={() => irParaFiltro(filtro.valor)}
+			>
+				{filtro.label}
 			</Button>
-		{/if}
+		{/each}
 	</div>
 
 	{#if notificacoes.items.length === 0}
 		<div class="flex flex-col items-center gap-2 rounded-lg border bg-card p-10 text-center">
 			<Bell class="h-8 w-8 text-muted-foreground" />
-			<p class="text-muted-foreground">Você não tem notificações.</p>
+			<p class="text-muted-foreground">
+				{arquivadas === 'sim'
+					? 'Você não tem notificações arquivadas.'
+					: 'Você não tem notificações.'}
+			</p>
 		</div>
 	{:else}
 		<ul class="divide-y rounded-lg border bg-card">
@@ -127,6 +192,26 @@
 					{:else if !n.lida}
 						<Button variant="ghost" size="sm" onclick={() => marcarLida(n)}>Marcar como lida</Button
 						>
+					{/if}
+					{#if n.data_arquivamento}
+						<Button
+							variant="ghost"
+							size="sm"
+							title="Desarquivar"
+							onclick={() => arquivarNotificacao(n, false)}
+						>
+							<ArchiveRestore class="mr-1 h-4 w-4" /> Desarquivar
+						</Button>
+					{:else}
+						<Button
+							variant="ghost"
+							size="sm"
+							title="Arquivar"
+							onclick={() => arquivarNotificacao(n)}
+						>
+							<Archive class="h-4 w-4" />
+							<span class="sr-only">Arquivar</span>
+						</Button>
 					{/if}
 				</li>
 			{/each}
