@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AppFooter from '$lib/components/app-footer.svelte';
 	import AppSidebar from '$lib/components/app-sidebar.svelte';
 	import DynamicBreadcrumb from '$lib/components/dynamic-breadcrumb.svelte';
 	import GlobalSearchDialog from '$lib/components/global-search-dialog.svelte';
@@ -68,5 +69,6 @@
 			{/if}
 			{@render children?.()}
 		</main>
+		<AppFooter class="mt-auto" />
 	</Sidebar.Inset>
 </Sidebar.Provider>
