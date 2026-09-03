@@ -83,7 +83,8 @@ def _parse_csv(value: str | None) -> list[str]:
 def _get_mail_config(env: Environment) -> _MailConfig:
     if env == "development":
         return _MailConfig(
-            server="mailpit",
+            # Nome do serviço do Mailpit no compose de desenvolvimento.
+            server=os.environ.get("MAIL_SERVER", "mailpit"),
             port=1025,
             use_ssl=False,
             use_tls=False,
@@ -154,3 +155,16 @@ class Config:
     MAIL_DEFAULT_SENDER: ClassVar[str] = _mail_config["default_sender"]
 
     CORS_ORIGINS: ClassVar[list[str]] = _parse_csv(os.environ.get("CORS_ORIGINS"))
+
+    # Endereço público do frontend, usado para montar o link enviado por
+    # e-mail na recuperação de senha.
+    FRONTEND_URL: ClassVar[str] = os.environ.get(
+        "FRONTEND_URL", "http://localhost:5001"
+    ).rstrip("/")
+    PASSWORD_RESET_TOKEN_TTL_MINUTES: ClassVar[int] = int(
+        os.environ.get("PASSWORD_RESET_TOKEN_TTL_MINUTES", "60")
+    )
+    # Pedidos de recuperação aceitos por usuário dentro da janela.
+    PASSWORD_RESET_MAX_PEDIDOS: ClassVar[int] = 3
+    PASSWORD_RESET_JANELA_MINUTES: ClassVar[int] = 15
+    PASSWORD_MIN_LENGTH: ClassVar[int] = 8
