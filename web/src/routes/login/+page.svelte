@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import AppFooter from '$lib/components/app-footer.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import SimpleInput from '$lib/components/forms/simple-input.svelte';
 	import { loginSchema, type LoginData } from '$lib/forms/schemas/login-schema';
@@ -66,73 +67,76 @@
 </script>
 
 <div
-	class="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary via-accent via-70% to-secondary px-4 py-12 sm:px-6 lg:px-8"
+	class="flex min-h-screen flex-col bg-gradient-to-br from-primary via-accent via-70% to-secondary"
 >
-	<div class="w-full max-w-md space-y-6">
-		<img
-			src="/logo-gestao-legal.png"
-			alt="Gestão Legal"
-			class="mx-auto w-96 max-w-full drop-shadow-lg"
-		/>
+	<div class="flex flex-1 items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+		<div class="w-full max-w-md space-y-6">
+			<img
+				src="/logo-gestao-legal.png"
+				alt="Gestão Legal"
+				class="mx-auto w-96 max-w-full drop-shadow-lg"
+			/>
 
-		<div class="space-y-8 rounded-xl bg-white/80 p-8 shadow-lg backdrop-blur-md">
-			<!-- O nome do sistema já aparece no logo acima; aqui basta a ação. -->
-			<h2 class="text-center text-xl font-extrabold text-gray-900">Acesse sua conta</h2>
+			<div class="space-y-8 rounded-xl bg-white/80 p-8 shadow-lg backdrop-blur-md">
+				<!-- O nome do sistema já aparece no logo acima; aqui basta a ação. -->
+				<h2 class="text-center text-xl font-extrabold text-gray-900">Acesse sua conta</h2>
 
-			{#if erroLogin}
-				<div
-					role="alert"
-					aria-live="assertive"
-					class="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-				>
-					<TriangleAlert class="mt-0.5 h-4 w-4 shrink-0" />
-					<div class="space-y-1">
-						<p>{erroLogin}</p>
-						{#if data.needsSetup}
-							<a href="/setup-admin" class="font-medium underline">Configurar administrador</a>
-						{/if}
-					</div>
-				</div>
-			{/if}
-
-			<form method="POST" use:enhance class="space-y-8">
-				<SimpleInput
-					{form}
-					name="email"
-					label="Email"
-					bind:value={$formData.email}
-					autocomplete="email"
-				/>
-				<SimpleInput
-					{form}
-					name="password"
-					type="password"
-					label="Senha"
-					bind:value={$formData.password}
-					autocomplete="current-password"
-				/>
-				<Button type="submit" class="h-12 w-full">
-					{#if $delayed}
-						<div class="flex items-center gap-2">
-							<span>Carregando...</span>
-							<LoaderCircle class="h-4 w-4 animate-spin" />
+				{#if erroLogin}
+					<div
+						role="alert"
+						aria-live="assertive"
+						class="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+					>
+						<TriangleAlert class="mt-0.5 h-4 w-4 shrink-0" />
+						<div class="space-y-1">
+							<p>{erroLogin}</p>
+							{#if data.needsSetup}
+								<a href="/setup-admin" class="font-medium underline">Configurar administrador</a>
+							{/if}
 						</div>
-					{:else}
-						Entrar
-					{/if}
-				</Button>
-			</form>
+					</div>
+				{/if}
 
-			{#if data.needsSetup}
-				<div class="mt-4 text-center text-sm text-gray-600">
-					<p class="cursor-default">
-						Primeiro acesso?
-						<a href="/setup-admin" class="font-medium text-primary hover:underline">
-							Configure o administrador
-						</a>
-					</p>
-				</div>
-			{/if}
+				<form method="POST" use:enhance class="space-y-8">
+					<SimpleInput
+						{form}
+						name="email"
+						label="Email"
+						bind:value={$formData.email}
+						autocomplete="email"
+					/>
+					<SimpleInput
+						{form}
+						name="password"
+						type="password"
+						label="Senha"
+						bind:value={$formData.password}
+						autocomplete="current-password"
+					/>
+					<Button type="submit" class="h-12 w-full">
+						{#if $delayed}
+							<div class="flex items-center gap-2">
+								<span>Carregando...</span>
+								<LoaderCircle class="h-4 w-4 animate-spin" />
+							</div>
+						{:else}
+							Entrar
+						{/if}
+					</Button>
+				</form>
+
+				{#if data.needsSetup}
+					<div class="mt-4 text-center text-sm text-gray-600">
+						<p class="cursor-default">
+							Primeiro acesso?
+							<a href="/setup-admin" class="font-medium text-primary hover:underline">
+								Configure o administrador
+							</a>
+						</p>
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
+	<AppFooter />
 </div>
