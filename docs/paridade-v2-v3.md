@@ -255,11 +255,25 @@ Eduardo) criado pela API, gerando 1 notificação para Olívia e 1 para Eduardo.
 
 | Item | Status |
 |---|---|
-| 1. Sino e página (Eduardo): contador 1, lista, Abrir → caso 5, contador 0 | ⏳ |
-| 2. Evento com responsável e lembrete (admin → Eduardo) | ⏳ |
-| 3. Editar caso incluindo Carla → só Carla é avisada | ⏳ |
-| 4. Abertura do plantão → aviso geral para Olívia e Eduardo, não para Carla | ⏳ |
-| 5. Marcar todas como lidas; paginação | ⏳ |
+| 1. Sino e página (Eduardo): contador 1, lista, Abrir → caso 5, contador 0 | ✅ |
+| 2. Evento com responsável e lembrete (admin → Eduardo) | ✅ |
+| 3. Editar caso incluindo Carla → só Carla é avisada | ✅ |
+| 4. Abertura do plantão → aviso geral para Olívia e Eduardo, não para Carla | ✅ |
+| 5. Marcar todas como lidas; paginação | ✅ |
+
+Roteiro aprovado em 03/09/2026. Ajustes pedidos durante o teste e já
+aplicados:
+
+- Linha de detalhe com o conteúdo do aviso (clientes ou descrição do caso,
+  descrição do evento ou do lembrete, período do plantão), em nova coluna
+  `detalhe`.
+- Envelope fechado/aberto no lugar do ponto colorido para indicar não lida
+  e lida.
+
+Bug encontrado no caminho e corrigido junto: casos com a situação legada
+`deferido` não podiam ser editados ("invalid input" no campo Situação do
+Deferimento). Migração `9b4a1c7e30df` normaliza para `ativo` e o
+formulário converte o valor legado ao carregar.
 
 ## 6. Pendências e ideias anotadas
 
