@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import cast
 
 from gestaolegal.common import PageParams, PaginatedResult
+from gestaolegal.database.session import transaction
 from gestaolegal.exceptions import (
     DatabaseException,
     ForbiddenException,
@@ -12,6 +13,7 @@ from gestaolegal.exceptions import (
 from gestaolegal.models.evento import Evento, ListEvento
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
 from gestaolegal.models.user import UserInfo
+from gestaolegal.services.notificacao_service import NotificacaoService
 from gestaolegal.repositories.evento_repository import EventoRepository
 from gestaolegal.repositories.user_repository import UserRepository
 
@@ -123,6 +125,9 @@ class EventoService:
         if not created_evento:
             logger.error("Failed to create evento")
             raise DatabaseException("Falha ao criar evento")
+
+        with transaction():
+            NotificacaoService().evento_criado(created_evento, criado_por_id)
 
         logger.info(f"Evento created successfully with id: {evento_id}")
         return created_evento

@@ -3,6 +3,7 @@
 	import AppSidebar from '$lib/components/app-sidebar.svelte';
 	import DynamicBreadcrumb from '$lib/components/dynamic-breadcrumb.svelte';
 	import GlobalSearchDialog from '$lib/components/global-search-dialog.svelte';
+	import NotificacaoBell from '$lib/components/notificacao-bell.svelte';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { page } from '$app/state';
@@ -61,6 +62,9 @@
 					value={headerSearchValue}
 					oninput={handleHeaderSearchInput}
 				/>
+			</div>
+			<div class="ml-auto">
+				<NotificacaoBell />
 			</div>
 		</header>
 		<main class="flex flex-1 flex-col gap-0.5 px-6 py-4">
