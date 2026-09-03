@@ -78,9 +78,9 @@ datas futuras; só usuários e marcações ativos.
    da fase 2); em teste (seção 8).**
 4. **Fase 4** — Recuperação de senha. **Implementada em 03/09/2026 na branch
    `feat/fase4-recuperacao-senha`** (seção 3d); em teste (seção 9).
-5. **Fase 5** — PJ, atalhos da home, atualizar a wiki. **Em andamento desde
-   03/09/2026 na branch `feat/fase5-home-wiki`**: PJ verificada (nada a
-   migrar, ver seção 1.1), atalhos da home implementados; wiki em revisão.
+5. **Fase 5** — PJ, atalhos da home, atualizar a wiki. **Implementada em
+   03/09/2026 na branch `feat/fase5-home-wiki`** (seção 3e); wiki publicada;
+   em teste (seção 10).
 
 Decisões tomadas em 03/09/2026: notificações só no sistema por enquanto (e-mail
 fica para depois da fase 4); SMTP via container Postfix como em `/opt/sanfili`;
@@ -371,16 +371,93 @@ Aprovado em 03/09/2026. Três defeitos apareceram no teste e foram corrigidos:
 - O superForms revalida os `load` após o envio; o `load` reconsultava o token
   recém-consumido e a tela piscava "link expirado" junto com o sucesso.
 
+## 3e. Fase 5 — o que foi implementado (branch `feat/fase5-home-wiki`)
+
+**Pessoa jurídica.** Verificação encerrada: não havia o que migrar (evidências
+na seção 1.1). O esqueleto herdado — model `AssistidoPessoaJuridica` e a tabela
+`assistidos_pessoa_juridica`, sem leitura nem escrita — foi registrado em
+`known_issues.md` como candidato a remoção.
+
+**Atalhos da home** (`web/src/routes/(dashboard)/+page.svelte`). A tela inicial
+tinha cinco atalhos e mostrava "Usuários" para todos os papéis. Passou a reunir
+os atalhos das duas versões — Casos, Meus Casos, Plantão, Atendimento,
+Atendidos/Assistidos, Ori. Jurídicas, Notificações, Arquivos, Relatórios e
+Usuários —, escondendo os que o papel não acessa. O helper de visibilidade saiu
+da sidebar para `$lib/utils/permissoes.ts` (`podeVer`), usado nos dois lugares.
+Notificações mostra o número de não lidas, buscado num `+page.ts` novo que
+devolve zero se a chamada falhar.
+
+**Wiki** (repositório `gestaolegal.wiki`, revisão completa publicada em
+03/09/2026):
+
+- *Manual de Instalação* reescrito a partir do compose atual (serviços `web`,
+  `api`, `db`, `migrate`, `mail`), `.env`, `/setup-admin`, e-mail em
+  desenvolvimento e produção, backup e solução de problemas.
+- *Manual do Sistema* reescrito em treze seções, cobrindo o que nunca foi
+  documentado: fila de atendimento, assistências judiciárias, processos,
+  lembretes, histórico, arquivos gerais, relatórios, notificações com
+  arquivamento e recuperação de senha.
+- *Tutorial do Sistema* refeito, com um terceiro tutorial para a recuperação da
+  própria senha.
+- *Permissões de Usuários* passou a ser o mapa conferido contra os decorators
+  `@authorized`; a antiga virou "(histórico)" e a "(2025)" foi absorvida.
+- *Arquitetura*: página nova, que o README linkava sem existir.
+- *Papéis*, *Glossário*, *Home* e *Como reportar erros* revisados.
+- 37 capturas de tela novas, da interface 3.0.
+
+Achado do caminho, registrado em `known_issues.md`: **o cadastro de usuário não
+pede senha** e gera uma aleatória que ninguém vê, de modo que a pessoa recém
+cadastrada só entra se o administrador definir uma senha ou se ela usar o
+"esqueci minha senha".
+
+## 10. Roteiro de testes — fase 5 (home e wiki)
+
+Ambiente: `web` em http://localhost:5002, `api` em http://localhost:5000.
+
+1. **Admin** (`rvnovaes@gmail.com` / `admin`). Entre e confira na tela inicial
+   os dez atalhos: Casos, Meus Casos, Plantão, Atendimento,
+   Atendidos/Assistidos, Ori. Jurídicas, Notificações, Arquivos, Relatórios e
+   Usuários. Clique em cada um e confirme o destino: Meus Casos abre a lista
+   filtrada, Plantão abre a escala, Atendimento abre a fila.
+
+2. **Eduardo, estagiário** (`estagiario@gl.local` / `senha123`). Entre e
+   confirme que a tela inicial **não** mostra Relatórios nem Usuários, e que
+   Notificações traz um número ao lado do ícone. Clique nele: a contagem deve
+   bater com as notificações não lidas da lista.
+
+3. **Olívia, orientadora** (`orientadora@gl.local` / `senha123`). Entre e
+   confirme que a tela inicial mostra Relatórios e **não** mostra Usuários.
+
+4. **Carla, colaboradora externa** (`colab.ext@gl.local` / `senha123`). Entre e
+   confirme o mesmo: Relatórios sim, Usuários não.
+
+5. **Eduardo** (`estagiario@gl.local` / `senha123`). Em Notificações, clique em
+   "Marcar todas como lidas" e volte à tela inicial: o número ao lado de
+   Notificações deve sumir.
+
+6. **Wiki** — abra
+   https://github.com/gestaolegalufmg/gestaolegal/wiki e percorra as páginas.
+   Confira se o Manual do Sistema descreve as telas como elas são, se as
+   capturas correspondem ao que você vê no sistema, e se a tabela de permissões
+   bate com o que cada papel consegue fazer.
+
 ## 6. Pendências e ideias anotadas
 
 - Lembrete novo: pré-selecionar o usuário logado no campo "Usuário
   responsável" (hoje começa vazio, como na 2.0).
 
+- Convite por e-mail a usuários novos: o cadastro não pede senha e gera uma
+  aleatória que ninguém vê, então quem entra hoje depende de o administrador
+  definir uma senha ou de usar o "esqueci minha senha". Um convite com link de
+  definição de senha resolveria, reaproveitando o token da fase 4. Registrado em
+  `known_issues.md` (descoberto ao escrever o manual, na fase 5).
+
 - ~~Esconder "Relatórios" na sidebar para papéis sem acesso~~ — feito
   (03/09): item só para admin, orient e colab_ext; página mostra "Você não tem
   permissão para gerar relatórios" no 403.
-- Wiki: reescrever Manual de Instalação a partir do README; arquivar
-  "Permissões de Usuários" antiga; documentar módulos novos.
+- ~~Wiki: reescrever Manual de Instalação a partir do README; arquivar
+  "Permissões de Usuários" antiga; documentar módulos novos.~~ — feito na
+  fase 5 (revisão completa, seção 3e).
 - Limitações já mapeadas (histórico de presença do plantão invisível após o
   encerramento, ausência de histórico de períodos, validação frouxa de
   `situacao_deferimento`) estão em `docs/known_issues.md`.
