@@ -383,3 +383,16 @@ registro_entrada = Table(
     Column("confirmacao", String(15), nullable=False, default="aberto"),
     Column("id_usuario", Integer, ForeignKey("usuarios.id"), nullable=True),
 )
+
+password_reset_tokens = Table(
+    "password_reset_tokens",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("usuario_id", Integer, ForeignKey("usuarios.id"), nullable=False),
+    # Só o hash do token é guardado: o valor em claro existe apenas no e-mail.
+    Column("token_hash", String(64), nullable=False, unique=True),
+    Column("expira_em", DateTime, nullable=False),
+    # Preenchida = token já consumido (uso único).
+    Column("usado_em", DateTime, nullable=True),
+    Column("criado_em", DateTime, nullable=False),
+)
