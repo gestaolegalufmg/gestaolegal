@@ -65,8 +65,8 @@ datas futuras; só usuários e marcações ativos.
 2. **Fase 2** — Arquivos gerais. **Implementada em 03/09/2026 na branch
    `feat/fase2-arquivos-gerais`; roteiro aprovado em 03/09/2026.**
 3. **Fase 3** — Notificações, só dentro do sistema (decisão de 03/09/2026).
-   **Implementada em 03/09/2026 na mesma branch `feat/fase2-arquivos-gerais`,
-   após a fase 2; em teste (seção 8).**
+   **Implementada em 03/09/2026 na branch `feat/fase3-notificacoes` (a partir
+   da fase 2); em teste (seção 8).**
 4. **Fase 4** — Recuperação de senha: serviço de e-mail, token PyJWT com
    expiração, endpoints públicos em auth, páginas e link no login. SMTP:
    não há servidor do projeto; replicar a estrutura de `/opt/sanfili`
@@ -152,7 +152,7 @@ Frontend:
 - `lib/forms/arquivo-form.svelte` (título, descrição, arquivo),
   `lib/utils/download.ts` (download autenticado reutilizável).
 
-## 3c. Fase 3 — Notificações (branch `feat/fase2-arquivos-gerais`)
+## 3c. Fase 3 — Notificações (branch `feat/fase3-notificacoes`)
 
 Regras da 2.0 mantidas: cada usuário vê as suas; orientadores e estagiários
 veem também os avisos gerais (destinatário nulo). Quem executa a ação não é
