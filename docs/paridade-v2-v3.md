@@ -63,7 +63,7 @@ datas futuras; só usuários e marcações ativos.
 
 1. **Fase 1** — ganhos rápidos sem migração (itens 5–9). **Concluída e aprovada em 03/09/2026 (PR #375).**
 2. **Fase 2** — Arquivos gerais. **Implementada em 03/09/2026 na branch
-   `feat/fase2-arquivos-gerais`; em teste (seção 7).**
+   `feat/fase2-arquivos-gerais`; roteiro aprovado em 03/09/2026.**
 3. **Fase 3** — Notificações: migração recriando `notificacao` com coluna `lida`
    e destino estruturado (tipo + ids); serviço único de disparo chamado por
    caso, evento, lembrete e configuração do plantão; endpoint paginado; página +
@@ -199,19 +199,19 @@ e 2 PDFs. Presenças e plantões inseridos por SQL entre 18/08 e 02/09/2026
    tem permissão para acessar os relatórios. Contate o administrador." (gate no
    `+page.ts`, mesmo padrão de configurar-abertura).
 
-## 7. Roteiro de testes — fase 2 (Arquivos gerais)
+## 7. Roteiro de testes — fase 2 (Arquivos gerais) — aprovado em 03/09/2026
 
 Seed: dois arquivos cadastrados pelo admin via API ("Regimento interno",
 `.txt`, com descrição; "Planilha modelo de controle", `.csv`, sem descrição).
 
 | Item | Status |
 |---|---|
-| 1. Menu e listagem (admin) | ⏳ |
-| 2. Cadastrar (admin): validações, sucesso, detalhe | ⏳ |
-| 3. Baixar (lista e detalhe) | ⏳ |
-| 4. Editar: só texto; substituir arquivo | ⏳ |
-| 5. Excluir com confirmação | ⏳ |
-| 6. Papéis: Eduardo (estagiário) e Carla (colab. externo) | ⏳ |
+| 1. Menu e listagem (admin) | ✅ OK |
+| 2. Cadastrar (admin): validações, sucesso, detalhe | ✅ OK |
+| 3. Baixar (lista e detalhe) | ✅ OK |
+| 4. Editar: só texto; substituir arquivo | ✅ OK |
+| 5. Excluir com confirmação | ✅ OK após corrigir o refresh da lista |
+| 6. Papéis: Eduardo (estagiário) e Carla (colab. externo) | ✅ OK |
 
 ## 6. Pendências e ideias anotadas
 
