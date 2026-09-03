@@ -5,15 +5,14 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { Toaster } from 'svelte-sonner';
+	import { ehRotaPublica } from '$lib/utils/rotas';
 
 	let { children } = $props();
 
 	onMount(() => {
 		if (browser) {
 			const hasAuthToken = document.cookie.split('; ').find((row) => row.startsWith('auth_token='));
-			const isPublicRoute = page.url.pathname === '/login';
-
-			if (!hasAuthToken && !isPublicRoute) {
+			if (!hasAuthToken && !ehRotaPublica(page.url.pathname)) {
 				goto('/login');
 			}
 		}
