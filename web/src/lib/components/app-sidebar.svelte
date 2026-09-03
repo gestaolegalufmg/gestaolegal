@@ -9,6 +9,7 @@
 	import ClockIcon from '@lucide/svelte/icons/clock';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import ChartBarIcon from '@lucide/svelte/icons/bar-chart-3';
+	import FolderIcon from '@lucide/svelte/icons/folder';
 
 	type NavItem = {
 		title: string;
@@ -83,6 +84,22 @@
 				{
 					title: 'Links de Roteiro',
 					url: '/casos/links-roteiro'
+				}
+			]
+		},
+		{
+			title: 'Arquivos',
+			url: '/arquivos',
+			icon: FolderIcon,
+			items: [
+				{
+					title: 'Cadastrar Arquivo',
+					url: '/arquivos/cadastrar-arquivo',
+					roles: ['admin', 'prof', 'colab_proj', 'colab_ext']
+				},
+				{
+					title: 'Ver Arquivos',
+					url: '/arquivos'
 				}
 			]
 		},

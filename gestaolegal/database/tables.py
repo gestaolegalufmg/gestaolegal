@@ -226,6 +226,19 @@ arquivos_caso = Table(
     Column("id_caso", Integer, ForeignKey("casos.id"), nullable=True),
 )
 
+arquivos = Table(
+    "arquivos",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("titulo", String(150), nullable=False),
+    Column("descricao", Text, nullable=True),
+    Column("nome", Text, nullable=False),
+    # Colunas abaixo são nulas em registros herdados da v2.
+    Column("caminho", String(300), nullable=True),
+    Column("data_criacao", DateTime, nullable=True),
+    Column("id_criado_por", Integer, ForeignKey("usuarios.id"), nullable=True),
+)
+
 assistencias_judiciarias = Table(
     "assistencias_judiciarias",
     metadata,

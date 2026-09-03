@@ -7,7 +7,8 @@ Flask + Jinja) para a 3.0 (API Flask + SvelteKit). Atualizado em 02/09/2026.
 
 ### 1.1 O que a 2.0 tem e a 3.0 não tem
 
-Módulos inteiros removidos (tabelas dropadas nas migrações da 3.0):
+Módulos inteiros removidos (as tabelas `arquivos` e `notificacao` continuam
+existindo no banco com o esquema da 2.0; só o código foi removido):
 
 | # | Funcionalidade 2.0 | Detalhes | Fase |
 |---|---|---|---|
@@ -61,9 +62,8 @@ datas futuras; só usuários e marcações ativos.
 ## 2. Plano
 
 1. **Fase 1** — ganhos rápidos sem migração (itens 5–9). **Concluída e aprovada em 03/09/2026 (PR #375).**
-2. **Fase 2** — Arquivos gerais: migração recriando `arquivos`, repo/service/
-   controller no padrão de `arquivosCaso`, páginas `/arquivos`, item na sidebar
-   restrito aos 4 papéis, testes.
+2. **Fase 2** — Arquivos gerais. **Implementada em 03/09/2026 na branch
+   `feat/fase2-arquivos-gerais`; roteiro aprovado em 03/09/2026.**
 3. **Fase 3** — Notificações: migração recriando `notificacao` com coluna `lida`
    e destino estruturado (tipo + ids); serviço único de disparo chamado por
    caso, evento, lembrete e configuração do plantão; endpoint paginado; página +
@@ -120,6 +120,35 @@ Testes: 216 passam (20 novos: `test_evento_api.py`, `test_caso_api.py`,
 `test_relatorio_api.py`). `svelte-check`: 21 erros, todos pré-existentes em
 arquivos não tocados. Build OK.
 
+## 3b. Fase 2 — Arquivos gerais (branch `feat/fase2-arquivos-gerais`)
+
+Regras iguais às da 2.0: todo usuário logado lista, visualiza e baixa; admin,
+professor, colab. de projeto e colab. externo cadastram e editam; colab.
+externo não exclui. Qualquer tipo de arquivo, até 10 MB.
+
+Backend:
+- A tabela `arquivos` da 2.0 (titulo, descricao, nome) nunca foi removida.
+  Migração `4e1eb1a09578` acrescenta `caminho`, `data_criacao` e
+  `id_criado_por` (nulos em registros herdados; o serviço resolve o caminho
+  deles como `ARQUIVOS_DIR/nome`). `Config.ARQUIVOS_DIR = STATIC_ROOT_DIR/arquivos`.
+- `gestaolegal/{models,repositories,services,controllers}/arquivo*.py`.
+  Rotas em `/api/arquivo`: `GET /?search&page&per_page` (lista com
+  `criado_por`, mais recentes primeiro), `GET /<id>`, `POST /` (multipart:
+  titulo, descricao, arquivo), `PUT /<id>` (multipart; arquivo opcional,
+  substitui e apaga o antigo), `DELETE /<id>` (apaga do disco),
+  `GET /<id>/download` (nome original).
+- 17 testes em `tests/api/test_arquivo_api.py` (236 no total).
+
+Frontend:
+- Sidebar: "Arquivos" (ícone pasta) com "Cadastrar Arquivo" (só papéis que
+  editam) e "Ver Arquivos". Breadcrumbs.
+- `/arquivos` lista com busca, colunas Título/Descrição/Arquivo/Cadastrado
+  por/Data e ações Baixar, Visualizar, Editar, Excluir (com confirmação),
+  conforme papel. `/arquivos/cadastrar-arquivo`, `/arquivos/[id]`,
+  `/arquivos/[id]/editar` (gate de papel no `+page.ts`).
+- `lib/forms/arquivo-form.svelte` (título, descrição, arquivo),
+  `lib/utils/download.ts` (download autenticado reutilizável).
+
 ## 4. Seed local (banco em localhost)
 
 Script: `scripts/seed_local.py` (cópia do usado). Usuários (senha `senha123`):
@@ -169,6 +198,20 @@ e 2 PDFs. Presenças e plantões inseridos por SQL entre 18/08 e 02/09/2026
    `/relatorios` pela URL, cai na página de erro "Acesso negado" com "Você não
    tem permissão para acessar os relatórios. Contate o administrador." (gate no
    `+page.ts`, mesmo padrão de configurar-abertura).
+
+## 7. Roteiro de testes — fase 2 (Arquivos gerais) — aprovado em 03/09/2026
+
+Seed: dois arquivos cadastrados pelo admin via API ("Regimento interno",
+`.txt`, com descrição; "Planilha modelo de controle", `.csv`, sem descrição).
+
+| Item | Status |
+|---|---|
+| 1. Menu e listagem (admin) | ✅ OK |
+| 2. Cadastrar (admin): validações, sucesso, detalhe | ✅ OK |
+| 3. Baixar (lista e detalhe) | ✅ OK |
+| 4. Editar: só texto; substituir arquivo | ✅ OK |
+| 5. Excluir com confirmação | ✅ OK após corrigir o refresh da lista |
+| 6. Papéis: Eduardo (estagiário) e Carla (colab. externo) | ✅ OK |
 
 ## 6. Pendências e ideias anotadas
 

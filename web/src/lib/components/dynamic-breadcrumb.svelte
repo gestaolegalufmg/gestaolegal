@@ -47,13 +47,24 @@
 			label: 'Cadastrar Arquivo',
 			href: '/arquivos/cadastrar-arquivo'
 		},
-		'/arquivos/ver-arquivos': { label: 'Ver Arquivos', href: '/arquivos/ver-arquivos' },
 		'/notificacoes': { label: 'Notificações', href: '/notificacoes' },
 		'/relatorios': { label: 'Relatórios', href: '/relatorios' },
 		'/termos-de-uso': { label: 'Termos de uso', href: '/termos-de-uso' }
 	};
 
 	const dynamicRoutePatterns = [
+		{
+			pattern: /^\/arquivos\/\d+$/,
+			label: 'Visualizar Arquivo',
+			parentLabel: 'Arquivos',
+			parentHref: '/arquivos'
+		},
+		{
+			pattern: /^\/arquivos\/\d+\/editar$/,
+			label: 'Editar Arquivo',
+			parentLabel: 'Arquivos',
+			parentHref: '/arquivos'
+		},
 		{
 			pattern: /^\/usuarios\/\d+\/editar$/,
 			label: 'Editar Usuário',
