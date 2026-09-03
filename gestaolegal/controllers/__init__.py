@@ -1,3 +1,4 @@
+from .arquivo_controller import arquivo_controller
 from .assistencia_judiciaria_controller import assistencia_judiciaria_controller
 from .atendido_controller import atendido_controller as atendido_controller_api
 from .auth_controller import auth_controller
@@ -18,6 +19,7 @@ routes = [
     (user_controller, "/api/user"),
     (atendido_controller_api, "/api/atendido"),
     (caso_controller, "/api/caso"),
+    (arquivo_controller, "/api/arquivo"),
     (orientacao_juridica_controller_api, "/api/orientacao_juridica"),
     (assistencia_judiciaria_controller, "/api/assistencia_judiciaria"),
     (fila_atendimento_controller, "/api/fila_atendimento"),
