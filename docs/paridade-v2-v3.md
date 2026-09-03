@@ -26,10 +26,19 @@ Ações pontuais ausentes em módulos existentes:
 | 7 | Substituir arquivo de caso (o de evento já existia via edição) | 1 ✅ |
 | 8 | Filtro de eventos por tipo | 1 ✅ |
 | 9 | "Meus Casos" no menu + filtro "Cadastrado por mim" | 1 ✅ |
-| 10 | Atalhos da home (2.0: Meus Casos, Plantão, Notificações, Relatórios, Arquivos) | 5 |
+| 10 | Atalhos da home (2.0: Meus Casos, Plantão, Notificações, Relatórios, Arquivos) | 5 ✅ |
 
-A verificar: 2.0 tinha tabela `assistidos_pessoa_juridica`; a 3.0 absorveu em
-`assistidos` (coluna `cnpj`). Não conferido campo a campo.
+Pessoa jurídica (verificado em 03/09/2026, fase 5): **não há o que migrar**. A
+tabela `assistidos_pessoa_juridica` existe nas duas versões, mas na 2.0 nunca
+foi usada — os quinze campos estão comentados em
+`gestaolegal/plantao/forms/tornar_assistido_form.py` (linhas 430–665 da tag
+`v2.0.2`), `setDadosAssistidoPessoaJuridica` (`views_util.py`) não é chamada por
+view nenhuma e o `assistido_form.html` só tem o comentário de cabeçalho da
+seção. O que a 2.0 de fato coletava de PJ está em `atendidos`
+(`pj_constituida`, `cnpj`, `repres_legal` e os cinco campos do representante,
+`pretende_constituir_pj`) e a 3.0 tem todos, conferidos campo a campo contra
+`cadastro_atendido_form.py`. O resto de legado que a 3.0 herdou está em
+`known_issues.md`.
 
 Já coberto pela 3.0: fila, busca geral, histórico, lembretes, processos,
 roteiros, presença, escala, assistências judiciárias + encaminhar, atendidos,
@@ -69,7 +78,9 @@ datas futuras; só usuários e marcações ativos.
    da fase 2); em teste (seção 8).**
 4. **Fase 4** — Recuperação de senha. **Implementada em 03/09/2026 na branch
    `feat/fase4-recuperacao-senha`** (seção 3d); em teste (seção 9).
-5. **Fase 5** — PJ, atalhos da home, atualizar a wiki.
+5. **Fase 5** — PJ, atalhos da home, atualizar a wiki. **Em andamento desde
+   03/09/2026 na branch `feat/fase5-home-wiki`**: PJ verificada (nada a
+   migrar, ver seção 1.1), atalhos da home implementados; wiki em revisão.
 
 Decisões tomadas em 03/09/2026: notificações só no sistema por enquanto (e-mail
 fica para depois da fase 4); SMTP via container Postfix como em `/opt/sanfili`;
