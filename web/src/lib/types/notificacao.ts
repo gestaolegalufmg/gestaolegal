@@ -13,6 +13,8 @@ export type Notificacao = {
 	/** Resumo do conteúdo: clientes do caso, descrição do lembrete etc. */
 	detalhe: string | null;
 	lida: boolean;
+	/** Preenchida = arquivada (fora da lista padrão). */
+	data_arquivamento: string | null;
 	/** Nome de quem executou a ação. */
 	executor: string | null;
 };

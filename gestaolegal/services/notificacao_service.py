@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Iterable
+from typing import Iterable, Literal
 
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.database.session import transaction
@@ -37,9 +37,14 @@ class NotificacaoService:
         return user.urole in PAPEIS_AVISOS_GERAIS
 
     def listar(
-        self, user: UserInfo, page_params: PageParams
+        self,
+        user: UserInfo,
+        page_params: PageParams,
+        arquivadas: Literal["nao", "sim", "todas"] = "nao",
     ) -> PaginatedResult[NotificacaoListItem]:
-        return self.repository.listar(user.id, self._inclui_gerais(user), page_params)
+        return self.repository.listar(
+            user.id, self._inclui_gerais(user), page_params, arquivadas
+        )
 
     def contar_nao_lidas(self, user: UserInfo) -> int:
         return self.repository.contar_nao_lidas(user.id, self._inclui_gerais(user))
@@ -55,6 +60,19 @@ class NotificacaoService:
             return self.repository.marcar_todas_lidas(
                 user.id, self._inclui_gerais(user)
             )
+
+    def arquivar(self, id: int, user: UserInfo, arquivar: bool = True) -> None:
+        """Tira o aviso da lista padrão (ou devolve, com `arquivar=False`)."""
+        with transaction():
+            ok = self.repository.arquivar(
+                id, user.id, self._inclui_gerais(user), arquivar
+            )
+        if not ok:
+            raise NotFoundException(resource="Notificação", resource_id=id)
+
+    def arquivar_lidas(self, user: UserInfo) -> int:
+        with transaction():
+            return self.repository.arquivar_lidas(user.id, self._inclui_gerais(user))
 
     # -------------------------------------------------------------- disparo
 

@@ -1,4 +1,5 @@
-from typing import Any
+from datetime import datetime
+from typing import Any, Literal
 
 from sqlalchemy import func, insert, or_, select
 from sqlalchemy import update as sql_update
@@ -23,6 +24,15 @@ class NotificacaoRepository(BaseRepository):
             cond = or_(cond, notificacao.c.id_usu_notificar.is_(None))
         return cond
 
+    @staticmethod
+    def _filtro_arquivamento(stmt, arquivadas: Literal["nao", "sim", "todas"]):
+        """Por padrão a lista traz só as ativas; arquivadas ficam à parte."""
+        if arquivadas == "nao":
+            return stmt.where(notificacao.c.data_arquivamento.is_(None))
+        if arquivadas == "sim":
+            return stmt.where(notificacao.c.data_arquivamento.is_not(None))
+        return stmt
+
     def find_by_id(self, id: int) -> Notificacao | None:
         row = self.session.execute(
             select(notificacao).where(notificacao.c.id == id)
@@ -30,7 +40,11 @@ class NotificacaoRepository(BaseRepository):
         return from_dict(Notificacao, dict(row._mapping)) if row else None
 
     def listar(
-        self, user_id: int, inclui_gerais: bool, page_params: PageParams
+        self,
+        user_id: int,
+        inclui_gerais: bool,
+        page_params: PageParams,
+        arquivadas: Literal["nao", "sim", "todas"] = "nao",
     ) -> PaginatedResult[NotificacaoListItem]:
         stmt = (
             select(
@@ -46,6 +60,7 @@ class NotificacaoRepository(BaseRepository):
             .where(self._visiveis_para(user_id, inclui_gerais))
             .order_by(notificacao.c.id.desc())
         )
+        stmt = self._filtro_arquivamento(stmt, arquivadas)
         stmt = self._apply_pagination(stmt, page_params)
         rows = self.session.execute(stmt).mappings().all()
         total = rows[0]["total_count"] if rows else 0
@@ -69,6 +84,7 @@ class NotificacaoRepository(BaseRepository):
             .select_from(notificacao)
             .where(self._visiveis_para(user_id, inclui_gerais))
             .where(notificacao.c.lida.is_(False))
+            .where(notificacao.c.data_arquivamento.is_(None))
         )
         return self.session.execute(stmt).scalar() or 0
 
@@ -96,6 +112,28 @@ class NotificacaoRepository(BaseRepository):
             sql_update(notificacao)
             .where(self._visiveis_para(user_id, inclui_gerais))
             .where(notificacao.c.lida.is_(False))
+            .where(notificacao.c.data_arquivamento.is_(None))
             .values(lida=True)
+        )
+        return self.session.execute(stmt).rowcount
+
+    def arquivar(
+        self, id: int, user_id: int, inclui_gerais: bool, arquivar: bool
+    ) -> bool:
+        stmt = (
+            sql_update(notificacao)
+            .where(notificacao.c.id == id)
+            .where(self._visiveis_para(user_id, inclui_gerais))
+            .values(data_arquivamento=datetime.now() if arquivar else None)
+        )
+        return self.session.execute(stmt).rowcount > 0
+
+    def arquivar_lidas(self, user_id: int, inclui_gerais: bool) -> int:
+        stmt = (
+            sql_update(notificacao)
+            .where(self._visiveis_para(user_id, inclui_gerais))
+            .where(notificacao.c.lida.is_(True))
+            .where(notificacao.c.data_arquivamento.is_(None))
+            .values(data_arquivamento=datetime.now())
         )
         return self.session.execute(stmt).rowcount
