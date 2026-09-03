@@ -158,15 +158,17 @@ e 2 PDFs. Presenças e plantões inseridos por SQL entre 18/08 e 02/09/2026
 4. 01/09–02/09 → 1 presença (Eduardo 08:30–12:30), 1 plantão (Olívia 02/09).
 5. Baixar CSV → duas seções, acentos OK.
 6. "Casos por Situação" continua funcionando.
-7. Olívia gera OK; Eduardo recebe "Erro ao gerar relatório" (backend nega
-   estagiário — pré-existente; melhoria de UX: esconder Relatórios no menu).
+7. Olívia gera OK; Eduardo não vê "Relatórios" no menu e, acessando
+   `/relatorios` pela URL, recebe "Você não tem permissão para gerar
+   relatórios".
 
 ## 6. Pendências e ideias anotadas
 
 - Lembrete novo: pré-selecionar o usuário logado no campo "Usuário
   responsável" (hoje começa vazio, como na 2.0).
 
-- Esconder "Relatórios" na sidebar para papéis sem acesso (estag_direito,
-  colab_proj, prof) e/ou gate no `+page.ts`.
+- ~~Esconder "Relatórios" na sidebar para papéis sem acesso~~ — feito
+  (03/09): item só para admin, orient e colab_ext; página mostra "Você não tem
+  permissão para gerar relatórios" no 403.
 - Wiki: reescrever Manual de Instalação a partir do README; arquivar
   "Permissões de Usuários" antiga; documentar módulos novos.
