@@ -33,6 +33,7 @@ from gestaolegal.repositories.repository import (
 )
 from gestaolegal.repositories.user_repository import UserRepository
 from gestaolegal.services.historico_service import HistoricoService
+from gestaolegal.services.notificacao_service import NotificacaoService
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,7 @@ class CasoService:
         self.processo_repository = ProcessoRepository()
         self.arquivo_repository = ArquivoCasoRepository()
         self.historico_service = HistoricoService()
+        self.notificacao_service = NotificacaoService()
 
     def find_by_id(self, id: int) -> Caso | None:
         logger.info(f"Finding caso by id: {id}")
@@ -187,6 +189,8 @@ class CasoService:
                 logger.error("Failed to create caso")
                 raise DatabaseException("Falha ao criar caso")
 
+            self.notificacao_service.caso_cadastrado(created_caso, criado_por_id)
+
             logger.info(f"Caso created successfully with id: {caso_id}")
             return created_caso
 
@@ -224,8 +228,14 @@ class CasoService:
                 caso_id, modificado_por_id, "edicao", "Caso editado"
             )
 
+            atualizado = self.repository.find_by_id(caso_id)
+            if atualizado:
+                self.notificacao_service.caso_editado(
+                    existing, atualizado, modificado_por_id
+                )
+
             logger.info(f"Caso updated successfully with id: {caso_id}")
-            return self.repository.find_by_id(caso_id)
+            return atualizado
 
     def soft_delete(self, caso_id: int) -> bool:
         logger.info(f"Soft deleting caso with id: {caso_id}")

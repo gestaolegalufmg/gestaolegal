@@ -10,6 +10,7 @@
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import ChartBarIcon from '@lucide/svelte/icons/bar-chart-3';
 	import FolderIcon from '@lucide/svelte/icons/folder';
+	import BellIcon from '@lucide/svelte/icons/bell';
 
 	type NavItem = {
 		title: string;
@@ -102,6 +103,12 @@
 					url: '/arquivos'
 				}
 			]
+		},
+		{
+			title: 'Notificações',
+			url: '/notificacoes',
+			icon: BellIcon,
+			items: []
 		},
 		{
 			title: 'Relatórios',
