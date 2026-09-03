@@ -66,6 +66,7 @@ class NotificacaoService:
         destinatarios: Iterable[int | None] = (),
         id_caso: int | None = None,
         id_referencia: int | None = None,
+        detalhe: str | None = None,
         geral: bool = False,
     ) -> int:
         """Cria uma notificação por destinatário (sem repetir e sem o executor).
@@ -94,6 +95,7 @@ class NotificacaoService:
                     "tipo": tipo,
                     "id_caso": id_caso,
                     "id_referencia": id_referencia,
+                    "detalhe": _resumo(detalhe),
                     "lida": False,
                 }
             )
@@ -114,6 +116,7 @@ class NotificacaoService:
                 caso.id_colaborador,
             ],
             id_caso=caso.id,
+            detalhe=_detalhe_do_caso(caso),
         )
 
     def caso_editado(self, antes, depois, executor_id: int) -> int:
@@ -130,7 +133,12 @@ class NotificacaoService:
             if getattr(depois, c) and getattr(depois, c) != getattr(antes, c)
         ]
         return self.notificar(
-            "caso", f"Cadastrado no caso {depois.id}", executor_id, novos, id_caso=depois.id
+            "caso",
+            f"Cadastrado no caso {depois.id}",
+            executor_id,
+            novos,
+            id_caso=depois.id,
+            detalhe=_detalhe_do_caso(depois),
         )
 
     def evento_criado(self, evento, executor_id: int) -> int:
@@ -143,10 +151,17 @@ class NotificacaoService:
             [evento.id_usuario_responsavel],
             id_caso=evento.id_caso,
             id_referencia=evento.id,
+            detalhe=evento.descricao or evento.tipo,
         )
 
     def lembrete_criado(
-        self, lembrete_id: int, num_lembrete: int, id_caso: int, id_usuario: int, executor_id: int
+        self,
+        lembrete_id: int,
+        num_lembrete: int,
+        id_caso: int,
+        id_usuario: int,
+        executor_id: int,
+        descricao: str | None = None,
     ) -> int:
         return self.notificar(
             "lembrete",
@@ -155,7 +170,32 @@ class NotificacaoService:
             [id_usuario],
             id_caso=id_caso,
             id_referencia=lembrete_id,
+            detalhe=descricao,
         )
 
-    def plantao_aberto(self, executor_id: int) -> int:
-        return self.notificar("plantao", "Abertura do plantão", executor_id, geral=True)
+    def plantao_aberto(self, executor_id: int, periodo: str | None = None) -> int:
+        return self.notificar(
+            "plantao", "Abertura do plantão", executor_id, detalhe=periodo, geral=True
+        )
+
+
+# Tamanho da coluna `detalhe`; textos longos entram resumidos.
+LIMITE_DETALHE = 300
+
+
+def _resumo(texto: str | None) -> str | None:
+    """Normaliza espaços e corta o texto no limite da coluna."""
+    if not texto:
+        return None
+    limpo = " ".join(texto.split())
+    if len(limpo) <= LIMITE_DETALHE:
+        return limpo or None
+    return limpo[: LIMITE_DETALHE - 1].rstrip() + "…"
+
+
+def _detalhe_do_caso(caso) -> str | None:
+    """Clientes do caso; sem eles, a descrição."""
+    clientes = [c.nome for c in (caso.clientes or []) if getattr(c, "nome", None)]
+    if clientes:
+        return ", ".join(clientes)
+    return caso.descricao

@@ -93,6 +93,7 @@ class TestEventoLembrete:
         assert n["tipo"] == "evento"
         assert n["id_caso"] == caso["id"] and n["id_referencia"] == evento["id"]
         assert n["acao"] == f"Cadastrado no evento {evento['num_evento']} do caso {caso['id']}"
+        assert n["detalhe"] == "Reunião"
 
     def test_evento_sem_responsavel_nao_notifica(self, client, auth_headers, estagiario_auth_headers):
         caso = _criar_caso(client, auth_headers, id_usuario_responsavel=_me(client, auth_headers))
@@ -118,6 +119,7 @@ class TestEventoLembrete:
         assert n["tipo"] == "lembrete"
         assert n["id_referencia"] == lembrete["id"]
         assert n["acao"] == f"Cadastrado no lembrete {lembrete['num_lembrete']} do caso {caso['id']}"
+        assert n["detalhe"] == "Protocolar"
 
 
 class TestPlantao:

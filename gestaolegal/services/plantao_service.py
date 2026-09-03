@@ -243,10 +243,20 @@ class PlantaoService:
             self.repository.create_plantao(janela)
 
         if executor_id is not None and dados.data_abertura != abertura_anterior:
-            NotificacaoService().plantao_aberto(executor_id)
+            NotificacaoService().plantao_aberto(executor_id, _periodo(dados))
 
         logger.info(
             f"Configuração do plantão salva: {len(desejados)} dias, "
             f"janela {dados.data_abertura} → {dados.data_fechamento}"
         )
         return self.get_configuracao()
+
+
+def _periodo(dados: ConfiguracaoPlantaoInput) -> str | None:
+    """Janela do plantão em texto, para o detalhe da notificação."""
+    if not dados.data_abertura:
+        return None
+    inicio = dados.data_abertura.strftime("%d/%m/%Y")
+    if not dados.data_fechamento:
+        return f"A partir de {inicio}"
+    return f"De {inicio} a {dados.data_fechamento.strftime('%d/%m/%Y')}"

@@ -252,6 +252,8 @@ notificacao = Table(
     Column("tipo", String(30), nullable=True),  # caso | evento | lembrete | plantao
     Column("id_caso", Integer, nullable=True),
     Column("id_referencia", Integer, nullable=True),  # id do evento ou lembrete
+    # Resumo do conteúdo do aviso (cliente do caso, descrição do lembrete etc.).
+    Column("detalhe", String(300), nullable=True),
     Column("lida", Boolean, nullable=False, default=False),
     Column("data_criacao", DateTime, nullable=True),
 )

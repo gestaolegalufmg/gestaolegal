@@ -10,6 +10,8 @@ export type Notificacao = {
 	tipo: 'caso' | 'evento' | 'lembrete' | 'plantao' | null;
 	id_caso: number | null;
 	id_referencia: number | null;
+	/** Resumo do conteúdo: clientes do caso, descrição do lembrete etc. */
+	detalhe: string | null;
 	lida: boolean;
 	/** Nome de quem executou a ação. */
 	executor: string | null;

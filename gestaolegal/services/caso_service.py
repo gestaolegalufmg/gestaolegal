@@ -228,7 +228,7 @@ class CasoService:
                 caso_id, modificado_por_id, "edicao", "Caso editado"
             )
 
-            atualizado = self.repository.find_by_id(caso_id)
+            atualizado = self.find_by_id(caso_id)
             if atualizado:
                 self.notificacao_service.caso_editado(
                     existing, atualizado, modificado_por_id
