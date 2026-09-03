@@ -27,7 +27,7 @@ from sqlalchemy.engine import Engine
 from werkzeug.test import TestResponse
 
 import gestaolegal.database.session as db_session_module
-from gestaolegal import create_app
+from gestaolegal import create_app, mail
 from gestaolegal.database.tables import metadata
 
 T = TypeVar("T")
@@ -75,6 +75,11 @@ def _setup_db_session_module() -> None:
 def app() -> Generator[Flask, None, None]:
     app = create_app()
     app.config["TESTING"] = True
+    # Nenhum teste fala com SMTP: as mensagens só são registradas (o estado da
+    # extensão é montado no init_app, então é preciso reinicializá-la depois
+    # de ligar a supressão).
+    app.config["MAIL_SUPPRESS_SEND"] = True
+    mail.init_app(app)
 
     with app.app_context():
         metadata.create_all(bind=test_engine)

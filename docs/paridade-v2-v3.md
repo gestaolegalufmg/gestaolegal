@@ -14,7 +14,7 @@ existindo no banco com o esquema da 2.0; só o código foi removido):
 |---|---|---|---|
 | 1 | **Notificações** (tabela `notificacao`) | Geradas em: cadastro de caso (avisa orientador, estagiário e colaborador), novo evento, novo lembrete e abertura do plantão (avisa todos orientadores e estagiários). Tela paginada com link para o destino. Orientadores e estagiários viam também as de broadcast (`id_usu_notificar` nulo). | 3 |
 | 2 | **Arquivos gerais** (tabela `arquivos`) | Título, descrição e arquivo. Listar/cadastrar/editar/visualizar/excluir. Acesso: admin, professor, colab. projeto, colab. externo. | 2 |
-| 3 | **Recuperação de senha por e-mail** | Token com expiração via Flask-Mail; rotas `esqueci-a-senha` e `resetar-a-senha/<token>`. `.env` da 3.0 tem `MAIL_*` comentado. Coluna `chave_recuperacao` já existe em `usuarios`. | 4 |
+| 3 | **Recuperação de senha por e-mail** | Token com expiração via Flask-Mail; rotas `esqueci-a-senha` e `resetar-a-senha/<token>`. `.env` da 3.0 tem `MAIL_*` comentado. Coluna `chave_recuperacao` já existe em `usuarios`. | 4 ✅ |
 | 4 | **Termos de uso** | Página estática (termos, privacidade LGPD, cookies). | 1 ✅ |
 | 5 | **Relatório de horários** | Presenças (`registro_entrada`) + plantões (`dias_marcados_plantao`) por período e usuários. Os outros 3 relatórios já existiam na 3.0. `relatorio_plantao`/`relatorio_casos` da 2.0 eram stubs quebrados. | 1 ✅ |
 
@@ -67,11 +67,8 @@ datas futuras; só usuários e marcações ativos.
 3. **Fase 3** — Notificações, só dentro do sistema (decisão de 03/09/2026).
    **Implementada em 03/09/2026 na branch `feat/fase3-notificacoes` (a partir
    da fase 2); em teste (seção 8).**
-4. **Fase 4** — Recuperação de senha: serviço de e-mail, token PyJWT com
-   expiração, endpoints públicos em auth, páginas e link no login. SMTP:
-   não há servidor do projeto; replicar a estrutura de `/opt/sanfili`
-   (Mailpit em desenvolvimento, `boky/postfix` como relay em produção,
-   configurado por `MAIL_HOST`/`MAIL_PORT`/`MAIL_FROM`). Decisão de 03/09/2026.
+4. **Fase 4** — Recuperação de senha. **Implementada em 03/09/2026 na branch
+   `feat/fase4-recuperacao-senha`** (seção 3d); em teste (seção 9).
 5. **Fase 5** — PJ, atalhos da home, atualizar a wiki.
 
 Decisões tomadas em 03/09/2026: notificações só no sistema por enquanto (e-mail
@@ -296,6 +293,72 @@ Aprovado em 03/09/2026. Um tropeço no caminho: constantes exportadas do
 exports conhecidos (`load`, `ssr`, `csr`...), e isso não aparece no
 `svelte-check`, só ao abrir a página. Helpers compartilhados vão para
 `$lib`.
+
+## 3d. Fase 4 — o que foi implementado (branch `feat/fase4-recuperacao-senha`)
+
+Infraestrutura de e-mail, que não existia: `flask-mail` estava instalado e
+inicializado, a configuração apontava para um host `mailpit` que nunca existiu
+no compose, e nenhum e-mail era enviado. Detalhes operacionais em
+`docs/email.md`.
+
+- `mailpit` (`axllent/mailpit:v1.21`) no override de desenvolvimento: captura
+  as mensagens sem entregar nada, visíveis em <http://localhost:8025>.
+- `mail` (`boky/postfix:v4.4.0`) no `docker-compose.yml`, sob o profile `mail`
+  para não subir em desenvolvimento: assina com DKIM e entrega direto, ou
+  repassa a um relay autenticado se `MAIL_RELAYHOST` estiver preenchido.
+  Produção sobe com `docker compose --profile mail up -d`.
+- `gestaolegal/utils/mail_service.py`: envio que nunca levanta exceção — falha
+  de SMTP vira log, não erro na tela do usuário.
+
+Recuperação de senha:
+
+- Tabela nova `password_reset_tokens` (migração `99b46509b0e1`): guarda o hash
+  SHA-256 do token, o prazo e o momento do uso. O valor em claro existe apenas
+  no link do e-mail.
+- `POST /api/auth/forgot-password`, `GET /api/auth/reset-password/<token>/validate`
+  e `POST /api/auth/reset-password`, todas públicas.
+- Páginas `/esqueci-a-senha` e `/redefinir-senha/<token>`, com link "Esqueci
+  minha senha" na tela de login.
+- Token de uso único, válido por uma hora; um pedido novo invalida os
+  anteriores; limite de três pedidos por usuário em quinze minutos.
+- **Dois defeitos da 2.0 não foram replicados**: lá o link nunca expirava de
+  fato (o `itsdangerous` era usado sem `max_age`, então os 2200 segundos
+  pretendidos nunca valiam) e a resposta dizia "E-mail não existe", permitindo
+  descobrir quem tem conta. Aqui conta inexistente, conta desativada e excesso
+  de pedidos recebem a mesma resposta.
+- A coluna legada `usuarios.chave_recuperacao` foi deixada como está: nenhum
+  código da 3.0 a usa, e reaproveitá-la criaria uma segunda fonte de verdade.
+- Correção que veio junto: `UsuarioService.change_password` gravava a senha em
+  texto claro no log.
+
+Pendências de infraestrutura para a entrega direta, fora do código e
+detalhadas em `docs/email.md`: subdomínio de envio com A, SPF, o TXT do DKIM
+gerado no primeiro boot, DMARC, PTR reverso batendo com `MAIL_HOSTNAME` e a
+porta 25 de saída liberada.
+
+## 9. Roteiro de testes — fase 4 (Recuperação de senha)
+
+Mailpit em <http://localhost:8025>. `FRONTEND_URL` no `.env` local aponta para
+a porta 5002, a mesma do `web`.
+
+| Item | Status |
+|---|---|
+| 1. Pedir o link como Eduardo e redefinir a senha | ✅ |
+| 2. Link de uso único e prazo | ✅ |
+| 3. E-mail sem conta e conta desativada: resposta igual, sem e-mail | ✅ |
+| 4. Validação da senha nova e do link inválido | ✅ |
+| 5. Limite de pedidos | ✅ |
+
+Aprovado em 03/09/2026. Três defeitos apareceram no teste e foram corrigidos:
+
+- O layout raiz tratava só `/login` como rota pública e mandava para o login
+  quem chegava sem sessão — o link do e-mail caía no login. `/setup-admin`,
+  a tela do primeiro acesso, já sofria do mesmo problema.
+- As telas chamavam a API no `onSubmit`, que roda antes da validação do
+  superForms: com as senhas divergentes, a tela mostrava o erro e mesmo assim
+  trocava a senha. Passaram a usar `onUpdate`, como `password-form.svelte`.
+- O superForms revalida os `load` após o envio; o `load` reconsultava o token
+  recém-consumido e a tela piscava "link expirado" junto com o sucesso.
 
 ## 6. Pendências e ideias anotadas
 

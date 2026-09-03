@@ -43,6 +43,53 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      mail:
+        # required=false: a API sobe mesmo sem o MTA (envio é melhor esforço) e
+        # sem o profile "mail", como em desenvolvimento.
+        condition: service_started
+        required: false
+
+  # MTA próprio: Postfix com OpenDKIM embutido. Assina as mensagens e entrega
+  # direto ao destinatário — ou repassa a um relay autenticado, se
+  # MAIL_RELAYHOST estiver preenchido. Ver docs/email.md.
+  mail:
+    image: boky/postfix:v4.4.0
+    # Profile: em desenvolvimento quem entrega é o Mailpit do override, então
+    # este serviço só sobe quando pedido — `docker compose --profile mail up`.
+    profiles: ["mail"]
+    restart: unless-stopped
+    # O HELO sai daqui: precisa ser um FQDN que resolva e que bata com o PTR
+    # reverso do IP, senão Gmail e Outlook recusam ou marcam como spam.
+    # Obrigatório em produção — sem valor, o Postfix recusa a subir.
+    hostname: ${MAIL_HOSTNAME:-}
+    environment:
+      # Só estes domínios podem ser remetentes; qualquer outro é recusado. É o
+      # que impede o contêiner de virar relay aberto.
+      # Obrigatório em produção.
+      ALLOWED_SENDER_DOMAINS: ${MAIL_ALLOWED_SENDER_DOMAINS:-}
+      # Gera o par de chaves na primeira subida e persiste no volume. A chave
+      # pública sai em /etc/opendkim/keys/<domínio>.txt, para publicar no DNS
+      # (selector "mail"). Regerar invalida o TXT já publicado.
+      DKIM_AUTOGENERATE: "true"
+      # Vazio = entrega direta na porta 25. Formato do relay: [smtp.host]:587
+      RELAYHOST: ${MAIL_RELAYHOST:-}
+      RELAYHOST_USERNAME: ${MAIL_RELAYHOST_USERNAME:-}
+      RELAYHOST_PASSWORD: ${MAIL_RELAYHOST_PASSWORD:-}
+      POSTFIX_myhostname: ${MAIL_HOSTNAME:-}
+      POSTFIX_smtp_helo_name: ${MAIL_HOSTNAME:-}
+      POSTFIX_inet_protocols: ipv4
+      POSTFIX_smtp_tls_security_level: may
+    volumes:
+      # A chave privada do DKIM tem de sobreviver a `docker compose down -v`:
+      # perdê-la obriga a gerar outra e republicar o TXT no DNS.
+      - mail_dkim:/etc/opendkim/keys
+    # Sem `ports:` de propósito: só a API fala com ele, pela rede interna.
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'QUIT\\r\\n' | nc -w 3 127.0.0.1 587 | grep -q 220"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   db:
     image: mysql:8.0.42
@@ -66,4 +113,6 @@ services:
 
 volumes:
   mysql_data:
+    driver: local
+  mail_dkim:
     driver: local

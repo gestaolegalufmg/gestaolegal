@@ -240,11 +240,9 @@ class UsuarioService:
                 )
                 raise UnauthorizedException("Senha atual incorreta")
 
-        logger.info(f"Hashing password: {new_password}")
         hashed_password = bcrypt.hashpw(
             new_password.encode("utf-8"), bcrypt.gensalt()
         ).decode("utf-8")
-        logger.info(f"Hashed password: {hashed_password}")
 
         password_data = {
             "senha": hashed_password,
