@@ -41,9 +41,24 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_APP=gestaolegal:create_app()
       - CORS_ORIGINS=http://localhost:5001
+    depends_on:
+      - mailpit
     develop:
       watch:
         - action: rebuild
           path: ./pyproject.toml
         - action: rebuild
           path: ./uv.lock
+
+  # MTA de desenvolvimento: o Mailpit captura tudo e não entrega nada para
+  # fora, então testar a recuperação de senha não manda e-mail para ninguém.
+  # As mensagens capturadas ficam em http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    ports:
+      # Só a interface web é publicada; a porta SMTP (1025) fica na rede interna.
+      - "${MAILPIT_UI_PORT:-8025}:8025"
