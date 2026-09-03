@@ -166,8 +166,9 @@ e 2 PDFs. Presenças e plantões inseridos por SQL entre 18/08 e 02/09/2026
 5. Baixar CSV → duas seções, acentos OK.
 6. "Casos por Situação" continua funcionando.
 7. Olívia gera OK; Eduardo não vê "Relatórios" no menu e, acessando
-   `/relatorios` pela URL, recebe "Você não tem permissão para gerar este
-   relatório. Contate o administrador.".
+   `/relatorios` pela URL, cai na página de erro "Acesso negado" com "Você não
+   tem permissão para acessar os relatórios. Contate o administrador." (gate no
+   `+page.ts`, mesmo padrão de configurar-abertura).
 
 ## 6. Pendências e ideias anotadas
 
