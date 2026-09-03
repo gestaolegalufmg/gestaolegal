@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import datetime
+from typing import cast
 
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
@@ -11,6 +12,7 @@ from gestaolegal.database.session import transaction
 from gestaolegal.exceptions import (
     DatabaseException,
     FileOperationException,
+    GestaoLegalException,
     NotFoundException,
     ValidationException,
 )
@@ -30,10 +32,13 @@ from gestaolegal.repositories.repository import (
     or_clauses,
 )
 from gestaolegal.repositories.user_repository import UserRepository
+from gestaolegal.services.historico_service import HistoricoService
+from gestaolegal.services.notificacao_service import NotificacaoService
 
 logger = logging.getLogger(__name__)
 
 CASO_FILES_DIR = Config.UPLOADS
+MAX_ARQUIVO_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 class CasoService:
@@ -49,6 +54,8 @@ class CasoService:
         self.atendido_repository = AtendidoRepository()
         self.processo_repository = ProcessoRepository()
         self.arquivo_repository = ArquivoCasoRepository()
+        self.historico_service = HistoricoService()
+        self.notificacao_service = NotificacaoService()
 
     def find_by_id(self, id: int) -> Caso | None:
         logger.info(f"Finding caso by id: {id}")
@@ -68,14 +75,22 @@ class CasoService:
         show_inactive: bool = False,
         situacao_deferimento: str | None = None,
         responsible_user: int | None = None,
+        atendido_id: int | None = None,
+        criado_por: int | None = None,
     ) -> PaginatedResult[Caso]:
         logger.info(
-            f"Searching casos with search: '{search}', situacao_deferimento: {situacao_deferimento}, responsible_user: {responsible_user}, show_inactive: {show_inactive}, page: {page_params['page']}, per_page: {page_params['per_page']}"
+            f"Searching casos with search: '{search}', situacao_deferimento: {situacao_deferimento}, responsible_user: {responsible_user}, show_inactive: {show_inactive}, atendido_id: {atendido_id}, page: {page_params['page']}, per_page: {page_params['per_page']}"
         )
         clauses: list[WhereClause | ComplexWhereClause] = []
 
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=True))
+
+        if atendido_id is not None:
+            # Restringe aos casos vinculados a este atendido/assistido.
+            # [-1] garante resultado vazio quando não há vínculos (em vez de todos).
+            caso_ids = self.repository.find_caso_ids_by_atendido_id(atendido_id) or [-1]
+            clauses.append(WhereClause(column="id", operator="in", value=caso_ids))
 
         if situacao_deferimento and situacao_deferimento != "todos":
             clauses.append(
@@ -95,6 +110,11 @@ class CasoService:
                 )
             )
 
+        if criado_por is not None:
+            clauses.append(
+                WhereClause(column="id_criado_por", operator="==", value=criado_por)
+            )
+
         if search:
             search_clauses: list[WhereClause] = [
                 WhereClause(column="descricao", operator="ilike", value=f"%{search}%")
@@ -103,6 +123,13 @@ class CasoService:
             if search.isdigit():
                 search_clauses.append(
                     WhereClause(column="id", operator="==", value=int(search))
+                )
+
+            # Também casa casos cujas partes envolvidas (clientes) têm o nome buscado.
+            caso_ids = self.repository.find_ids_by_atendido_nome(search)
+            if caso_ids:
+                search_clauses.append(
+                    WhereClause(column="id", operator="in", value=caso_ids)
                 )
 
             clauses.append(or_clauses(*search_clauses))
@@ -153,10 +180,16 @@ class CasoService:
                     f"Linked {len(caso_input.ids_clientes)} atendidos to caso: {caso_id}"
                 )
 
+            self.historico_service.registrar(
+                caso_id, criado_por_id, "criacao", "Caso criado"
+            )
+
             created_caso = self.find_by_id(caso_id)
             if not created_caso:
                 logger.error("Failed to create caso")
                 raise DatabaseException("Falha ao criar caso")
+
+            self.notificacao_service.caso_cadastrado(created_caso, criado_por_id)
 
             logger.info(f"Caso created successfully with id: {caso_id}")
             return created_caso
@@ -191,8 +224,18 @@ class CasoService:
                     f"Updated caso {caso_id} with {len(caso_input.ids_clientes)} linked atendidos"
                 )
 
+            self.historico_service.registrar(
+                caso_id, modificado_por_id, "edicao", "Caso editado"
+            )
+
+            atualizado = self.find_by_id(caso_id)
+            if atualizado:
+                self.notificacao_service.caso_editado(
+                    existing, atualizado, modificado_por_id
+                )
+
             logger.info(f"Caso updated successfully with id: {caso_id}")
-            return self.repository.find_by_id(caso_id)
+            return atualizado
 
     def soft_delete(self, caso_id: int) -> bool:
         logger.info(f"Soft deleting caso with id: {caso_id}")
@@ -213,13 +256,19 @@ class CasoService:
             raise NotFoundException(resource="Caso", resource_id=caso_id)
 
         caso_data = {
-            "situacao_deferimento": "deferido",
+            # A deferred caso becomes an active one ("ativo"): this is the value
+            # the rest of the system (filters, status badges) expects.
+            "situacao_deferimento": "ativo",
             "justif_indeferimento": None,
             "data_modificacao": datetime.now(),
             "id_modificado_por": modificado_por_id,
         }
 
-        self.repository.update(caso_id, caso_data)
+        with transaction():
+            self.repository.update(caso_id, caso_data)
+            self.historico_service.registrar(
+                caso_id, modificado_por_id, "deferimento", "Caso deferido"
+            )
 
         logger.info(f"Caso deferred successfully with id: {caso_id}")
         return self.find_by_id(caso_id)
@@ -242,7 +291,14 @@ class CasoService:
             "id_modificado_por": modificado_por_id,
         }
 
-        self.repository.update(caso_id, caso_data)
+        with transaction():
+            self.repository.update(caso_id, caso_data)
+            self.historico_service.registrar(
+                caso_id,
+                modificado_por_id,
+                "indeferimento",
+                f"Caso indeferido: {justificativa}",
+            )
 
         logger.info(f"Caso indeferred successfully with id: {caso_id}")
         return self.find_by_id(caso_id)
@@ -335,21 +391,11 @@ class CasoService:
             logger.error(f"Caso not found with id: {caso_id}")
             raise NotFoundException(resource="Caso", resource_id=caso_id)
 
-        if not file or not file.filename:
-            logger.warning("Invalid file provided for upload")
-            raise ValidationException("Arquivo inválido", field="arquivo")
+        self._validar_pdf(file)
 
         filepath = None
         try:
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{timestamp}_{filename}"
-
-            os.makedirs(CASO_FILES_DIR, exist_ok=True)
-
-            filepath = os.path.join(CASO_FILES_DIR, filename)
-            file.save(filepath)
-            logger.info(f"File saved to filesystem: {filepath}")
+            filepath = self._salvar_pdf(file)
 
             with transaction():
                 arquivo_id = self.arquivo_repository.create(
@@ -385,6 +431,85 @@ class CasoService:
             raise FileOperationException(
                 f"Erro ao fazer upload do arquivo: {str(e)}", operation="upload"
             )
+
+    @staticmethod
+    def _validar_pdf(file: FileStorage) -> None:
+        """Só PDFs de até 10 MB são aceitos como anexo de caso."""
+        if not file or not file.filename:
+            logger.warning("Invalid file provided for upload")
+            raise ValidationException("Arquivo inválido", field="arquivo")
+
+        is_pdf = file.filename.lower().endswith(".pdf") or (
+            file.mimetype == "application/pdf"
+        )
+        if not is_pdf:
+            logger.warning(f"Rejected non-PDF upload: {file.filename}")
+            raise ValidationException(
+                "Apenas arquivos PDF são permitidos", field="arquivo"
+            )
+
+        file.stream.seek(0, os.SEEK_END)
+        size = file.stream.tell()
+        file.stream.seek(0)
+        if size > MAX_ARQUIVO_BYTES:
+            logger.warning(f"Rejected oversized upload ({size} bytes): {file.filename}")
+            raise ValidationException(
+                "O arquivo excede o tamanho máximo de 10 MB", field="arquivo"
+            )
+
+    @staticmethod
+    def _salvar_pdf(file: FileStorage) -> str:
+        filename = secure_filename(cast(str, file.filename))
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        os.makedirs(CASO_FILES_DIR, exist_ok=True)
+        filepath = os.path.join(CASO_FILES_DIR, f"{timestamp}_{filename}")
+        file.save(filepath)
+        logger.info(f"File saved to filesystem: {filepath}")
+        return filepath
+
+    def replace_arquivo(
+        self, arquivo_id: int, caso_id: int, file: FileStorage
+    ) -> ArquivoCaso:
+        """Substitui o PDF de um anexo existente, mantendo o mesmo registro.
+
+        Equivale ao "editar arquivo do caso" da v2. O arquivo antigo só é
+        apagado do disco depois que o novo foi gravado e o banco atualizado.
+        """
+        logger.info(f"Replacing arquivo {arquivo_id} of caso {caso_id}")
+
+        arquivo = self.validate_arquivo_for_caso(arquivo_id, caso_id)
+        if not arquivo:
+            raise NotFoundException(resource="Arquivo", resource_id=arquivo_id)
+
+        self._validar_pdf(file)
+
+        novo_caminho = None
+        try:
+            novo_caminho = self._salvar_pdf(file)
+            with transaction():
+                self.arquivo_repository.update(arquivo_id, {"link_arquivo": novo_caminho})
+        except Exception as e:
+            if novo_caminho and os.path.exists(novo_caminho):
+                os.remove(novo_caminho)
+            if isinstance(e, GestaoLegalException):
+                raise
+            logger.error(f"Error replacing arquivo {arquivo_id}: {e}", exc_info=True)
+            raise FileOperationException(
+                f"Erro ao substituir o arquivo: {e}", operation="upload"
+            )
+
+        antigo = arquivo.link_arquivo
+        if antigo and antigo != novo_caminho and os.path.exists(antigo):
+            try:
+                os.remove(antigo)
+                logger.info(f"Old file removed: {antigo}")
+            except OSError as exc:
+                logger.error(f"Error removing old file {antigo}: {exc}")
+
+        atualizado = self.arquivo_repository.find_by_id(arquivo_id)
+        if not atualizado:
+            raise DatabaseException("Falha ao atualizar arquivo no banco de dados")
+        return atualizado
 
     def delete_arquivo(self, arquivo_id: int, caso_id: int) -> None:
         """

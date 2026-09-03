@@ -37,17 +37,34 @@
 			label: 'Registro de Presença',
 			href: '/plantao/registro-presenca'
 		},
+		'/plantao/escala': { label: 'Escala do Plantão', href: '/plantao/escala' },
+		'/plantao/configurar-abertura': {
+			label: 'Configurar Abertura',
+			href: '/plantao/configurar-abertura'
+		},
 		'/arquivos': { label: 'Arquivos', href: '/arquivos' },
 		'/arquivos/cadastrar-arquivo': {
 			label: 'Cadastrar Arquivo',
 			href: '/arquivos/cadastrar-arquivo'
 		},
-		'/arquivos/ver-arquivos': { label: 'Ver Arquivos', href: '/arquivos/ver-arquivos' },
 		'/notificacoes': { label: 'Notificações', href: '/notificacoes' },
-		'/relatorios': { label: 'Relatórios', href: '/relatorios' }
+		'/relatorios': { label: 'Relatórios', href: '/relatorios' },
+		'/termos-de-uso': { label: 'Termos de uso', href: '/termos-de-uso' }
 	};
 
 	const dynamicRoutePatterns = [
+		{
+			pattern: /^\/arquivos\/\d+$/,
+			label: 'Visualizar Arquivo',
+			parentLabel: 'Arquivos',
+			parentHref: '/arquivos'
+		},
+		{
+			pattern: /^\/arquivos\/\d+\/editar$/,
+			label: 'Editar Arquivo',
+			parentLabel: 'Arquivos',
+			parentHref: '/arquivos'
+		},
 		{
 			pattern: /^\/usuarios\/\d+\/editar$/,
 			label: 'Editar Usuário',

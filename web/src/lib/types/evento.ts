@@ -23,6 +23,8 @@ export interface ListEvento {
 	data_evento: string;
 	data_criacao: string;
 	criado_por?: string;
+	id_criado_por?: number;
+	descricao?: string;
 	usuario_responsavel?: string;
 	status: boolean;
 }

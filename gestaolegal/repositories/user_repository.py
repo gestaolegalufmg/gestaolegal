@@ -35,6 +35,15 @@ class UserRepository(BaseRepository):
         result = self.session.execute(stmt).one_or_none()
         return from_dict(User, dict(result._mapping)) if result else None
 
+    def opcoes_ativos(self) -> list[dict[str, Any]]:
+        """Usuários ativos (id, nome, urole) em ordem alfabética, para seletores."""
+        stmt = (
+            select(usuarios.c.id, usuarios.c.nome, usuarios.c.urole)
+            .where(usuarios.c.status.is_(True))
+            .order_by(usuarios.c.nome.asc())
+        )
+        return [dict(row) for row in self.session.execute(stmt).mappings().all()]
+
     def get(self, params: GetParams) -> list[User]:
         stmt = select(usuarios)
         stmt = self._apply_where_clause(stmt, params.get("where"), usuarios)

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import { superForm, type Infer, type SuperValidated } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
 	import {
@@ -70,14 +71,14 @@
 
 				onUpdate?.(response);
 
-				const redirectTo = isCreateMode
-					? '/plantao/orientacoes-juridicas'
-					: `/plantao/orientacoes-juridicas/${response.id}`;
-
-				await goto(redirectTo);
+				// After creating or editing, land on the record's detail page so the
+				// user can review what they just saved (issue: redirect to view).
+				await goto(`/plantao/orientacoes-juridicas/${response.id}`, { invalidateAll: true });
 			} catch (error) {
 				console.error('Orientacao juridica form error:', error);
-				toast.error('Erro ao salvar orientação jurídica. Por favor, tente novamente.');
+				toast.error(
+					mensagemDeErro(error, 'Erro ao salvar orientação jurídica. Por favor, tente novamente.')
+				);
 				onError?.(error);
 			}
 		}

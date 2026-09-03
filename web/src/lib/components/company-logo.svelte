@@ -1,6 +1,5 @@
 <script lang="ts">
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import GalleryVerticalEndIcon from '@lucide/svelte/icons/gallery-vertical-end';
 </script>
 
 <Sidebar.Menu>
@@ -11,11 +10,11 @@
 		>
 			{#snippet child({ props })}
 				<a href="/" {...props}>
-					<div
-						class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
-					>
-						<GalleryVerticalEndIcon class="size-4" />
-					</div>
+					<img
+						src="/capivara-avatar.png"
+						alt=""
+						class="aspect-square size-8 shrink-0 rounded-lg object-cover"
+					/>
 					<div class="grid flex-1 text-left text-sm leading-tight">
 						<span class="truncate font-medium"> Gestão Legal </span>
 					</div>

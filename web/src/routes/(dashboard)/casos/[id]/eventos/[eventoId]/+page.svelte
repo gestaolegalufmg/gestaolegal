@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import InfoCard from '$lib/components/ui/info-card.svelte';
@@ -7,11 +8,31 @@
 	import Download from '@lucide/svelte/icons/download';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import { TIPO_EVENTO } from '$lib/constants/tipo_evento';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import { toast } from 'svelte-sonner';
-	import { apiFetch } from '$lib/api-client';
+	import { api, apiFetch } from '$lib/api-client';
+	import { ApiException } from '$lib/types';
+	import ConfirmAction from '$lib/components/confirm-action.svelte';
+	import { goto } from '$app/navigation';
 
 	let { data }: PageProps = $props();
 	const { evento, caso } = data;
+
+	// Regra herdada da v2: só o admin ou quem criou o evento pode excluí-lo.
+	const podeExcluir = $derived(
+		evento.status && (data.me?.urole === 'admin' || evento.id_criado_por === data.me?.id)
+	);
+
+	async function excluir() {
+		try {
+			await api.delete(`caso/${caso.id}/eventos/${evento.id}`);
+			toast.success('Evento excluído com sucesso');
+			await goto(`/casos/${caso.id}`);
+		} catch (err) {
+			if (err instanceof ApiException) toast.error(err.message);
+			else toast.error('Erro ao excluir evento');
+		}
+	}
 
 	function formatDateTime(dateString: string) {
 		const date = new Date(dateString);
@@ -20,7 +41,8 @@
 
 	function formatDate(dateString: string) {
 		const date = new Date(dateString);
-		return date.toLocaleDateString('pt-BR');
+		// data_evento is a calendar date — format in UTC to avoid a timezone day-shift.
+		return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 	}
 
 	function getTipoLabel(tipo: string) {
@@ -74,7 +96,7 @@
 			window.URL.revokeObjectURL(url);
 			document.body.removeChild(a);
 		} catch (error) {
-			toast.error('Erro ao baixar arquivo');
+			toast.error(mensagemDeErro(error, 'Erro ao baixar arquivo'));
 			console.error(error);
 		}
 	}
@@ -103,6 +125,20 @@
 				<Edit class="mr-2 h-4 w-4" />
 				Editar
 			</Button>
+			{#if podeExcluir}
+				<ConfirmAction
+					title="Excluir evento?"
+					description="O evento deixará de aparecer no caso e o arquivo anexado será apagado."
+					confirmText="Excluir"
+					onConfirm={excluir}
+					buttonSize="default"
+				>
+					{#snippet trigger()}
+						<Trash2 class="mr-2 h-4 w-4" />
+						Excluir
+					{/snippet}
+				</ConfirmAction>
+			{/if}
 		</div>
 	</div>
 

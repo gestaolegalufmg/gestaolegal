@@ -5,18 +5,12 @@
 	import Eye from '@lucide/svelte/icons/eye';
 	import Edit from '@lucide/svelte/icons/edit';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
-	import Check from '@lucide/svelte/icons/check';
-	import X from '@lucide/svelte/icons/x';
 	import {
-		SITUACAO_DEFERIMENTO,
 		SITUACAO_DEFERIMENTO_BADGE_MAP,
 		SITUACAO_DEFERIMENTO_OPTIONS
 	} from '$lib/constants/situacao-deferimento';
 	import { AREA_BADGE_MAP } from '$lib/constants';
-	import IndeferirCasoDialog from '$lib/components/indeferir-caso-dialog.svelte';
 	import { api } from '$lib/api-client';
-	import { ApiException } from '$lib/types';
-	import { toast } from 'svelte-sonner';
 	import Input from '$lib/components/ui/input/input.svelte';
 	import { page } from '$app/state';
 	import * as Select from '$lib/components/ui/select';
@@ -31,14 +25,12 @@
 		...SITUACAO_DEFERIMENTO_OPTIONS
 	];
 
-	let indeferirDialogOpen = $state(false);
-	let casoToIndeferir = $state<number | null>(null);
-
 	type CasoFilters = {
 		search: string;
 		show_inactive: boolean;
 		situacao_deferimento: string;
 		user: string;
+		criado_por: string;
 	};
 
 	const { filters, applyFilters, setFilters } = usePaginatedFilters<CasoFilters>({
@@ -46,13 +38,15 @@
 			search: page.url.searchParams.get('search') ?? '',
 			show_inactive: page.url.searchParams.get('show_inactive') === 'true',
 			situacao_deferimento: page.url.searchParams.get('situacao_deferimento') ?? 'todos',
-			user: page.url.searchParams.get('user') ?? ''
+			user: page.url.searchParams.get('user') ?? '',
+			criado_por: page.url.searchParams.get('criado_por') ?? ''
 		},
 		buildParams: (f) => ({
 			search: f.search,
 			show_inactive: f.show_inactive ? 'true' : 'false',
 			situacao_deferimento: f.situacao_deferimento,
-			user: f.user
+			user: f.user,
+			criado_por: f.criado_por
 		})
 	});
 
@@ -65,51 +59,13 @@
 
 		applyFilters();
 	}
-
-	async function handleDeferir(id: number) {
-		try {
-			await api.patch(`caso/${id}/deferir`);
-			toast.success('Caso deferido com sucesso!');
-			applyFilters();
-		} catch (err) {
-			if (err instanceof ApiException) {
-				toast.error(err.message);
-			} else {
-				toast.error('Erro ao deferir caso');
-				console.error(err);
-			}
-		}
-	}
-
-	function openIndeferirDialog(id: number) {
-		casoToIndeferir = id;
-		indeferirDialogOpen = true;
-	}
-
-	async function handleIndeferir(justificativa: string) {
-		if (!casoToIndeferir) return;
-
-		try {
-			await api.patch(`caso/${casoToIndeferir}/indeferir`, {
-				justif_indeferimento: justificativa
-			});
-			toast.success('Caso indeferido com sucesso!');
-			casoToIndeferir = null;
-			applyFilters();
-		} catch (err) {
-			if (err instanceof ApiException) {
-				toast.error(err.message);
-			} else {
-				toast.error('Erro ao indeferir caso');
-				console.error(err);
-			}
-		}
-	}
 </script>
 
 <div class="space-y-6">
 	<div class="flex items-center justify-between">
-		<h1 class="text-3xl font-bold tracking-tight">Casos</h1>
+		<h1 class="text-3xl font-bold tracking-tight">
+			{filters.user === 'me' ? 'Meus Casos' : 'Casos'}
+		</h1>
 		<Button variant="default" href="/casos/cadastrar-novo-caso">Novo Caso</Button>
 	</div>
 
@@ -157,7 +113,20 @@
 							<span class="text-sm">Apenas meus casos</span>
 						</label>
 						<label class="flex cursor-pointer items-center gap-2">
-							<Checkbox bind:checked={filters.show_inactive} onCheckedChange={() => applyFilters()} />
+							<Checkbox
+								checked={filters.criado_por === 'me'}
+								onCheckedChange={(checked) => {
+									setFilters({ criado_por: checked ? 'me' : '' });
+									applyFilters();
+								}}
+							/>
+							<span class="text-sm">Cadastrados por mim</span>
+						</label>
+						<label class="flex cursor-pointer items-center gap-2">
+							<Checkbox
+								bind:checked={filters.show_inactive}
+								onCheckedChange={() => applyFilters()}
+							/>
 							<span class="text-sm">Incluir inativos</span>
 						</label>
 					</div>
@@ -184,7 +153,7 @@
 						badgeMap: SITUACAO_DEFERIMENTO_BADGE_MAP,
 						type: 'badge'
 					},
-					{ header: 'Data', key: 'data_criacao', type: 'date', class: 'w-[120px]' },
+					{ header: 'Data', key: 'data_criacao', type: 'datetime', class: 'w-[150px]' },
 					{ header: 'Status', key: 'status', type: 'status', class: 'w-[100px]' }
 				]}
 				actions={{
@@ -193,35 +162,17 @@
 						{ title: 'Visualizar', href: (c) => `/casos/${c.id}`, icon: Eye },
 						{ title: 'Editar', href: (c) => `/casos/${c.id}/editar`, icon: Edit },
 						{
-							title: 'Deferir',
-							icon: Check,
-							show: (c) =>
-								c.situacao_deferimento === SITUACAO_DEFERIMENTO.AGUARDANDO_DEFERIMENTO &&
-								!!c.status,
-							onClick: async (c) => {
-								await handleDeferir(c.id);
-							},
-							class: 'h-8 w-8 p-0 text-green-600 hover:text-green-700',
-							variant: 'ghost'
-						},
-						{
-							title: 'Indeferir',
-							icon: X,
-							show: (c) =>
-								c.situacao_deferimento === SITUACAO_DEFERIMENTO.AGUARDANDO_DEFERIMENTO &&
-								!!c.status,
-							onClick: (c) => {
-								openIndeferirDialog(c.id);
-							},
-							class: 'h-8 w-8 p-0 text-orange-600 hover:text-orange-700',
-							variant: 'ghost'
-						},
-						{
 							title: 'Desativar',
 							icon: Trash2,
 							show: (c) => c.status && isAdmin,
 							onClick: async (c) => {
 								await handleDelete(c.id);
+							},
+							confirm: {
+								title: 'Desativar caso?',
+								description:
+									'O caso será inativado. Você poderá reativá-lo depois exibindo os registros inativos.',
+								confirmText: 'Desativar'
 							},
 							class: 'h-8 w-8 p-0 text-destructive hover:text-destructive'
 						}
@@ -231,10 +182,3 @@
 		</div>
 	</div>
 </div>
-
-<IndeferirCasoDialog
-	bind:open={indeferirDialogOpen}
-	onConfirm={handleIndeferir}
-	title="Indeferir Caso"
-	description="Por favor, informe a justificativa para o indeferimento deste caso."
-/>

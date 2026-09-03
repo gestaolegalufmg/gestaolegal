@@ -77,7 +77,19 @@ export async function apiFetch(
 }
 
 async function unwrapApiResponse<T>(response: Response): Promise<T> {
-	const apiResponse: ApiResponse<T> = await response.json();
+	let apiResponse: ApiResponse<T>;
+	try {
+		apiResponse = await response.json();
+	} catch {
+		throw new ApiException(
+			response.status === 403
+				? 'Você não tem permissão para executar esta ação. Contate o administrador.'
+				: 'Erro na requisição',
+			undefined,
+			undefined,
+			response.status
+		);
+	}
 
 	if (!apiResponse.success) {
 		throw new ApiException(

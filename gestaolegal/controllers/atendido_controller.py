@@ -11,6 +11,8 @@ from gestaolegal.models.assistido_input import (
 )
 from gestaolegal.models.atendido_input import AtendidoCreateInput, AtendidoUpdateInput
 from gestaolegal.services.atendido_service import AtendidoService
+from gestaolegal.services.caso_service import CasoService
+from gestaolegal.services.orientacao_juridica_service import OrientacaoJuridicaService
 from gestaolegal.utils import StringBool
 from gestaolegal.utils.api_decorators import authenticated, authorized
 from gestaolegal.utils.api_response import success_response
@@ -48,6 +50,32 @@ def find_by_id(id: int):
         raise NotFoundException(resource="Atendido", resource_id=id)
 
     return success_response(data=asdict(atendido))
+
+
+@atendido_controller.route("/<int:id>/casos", methods=["GET"])
+@authenticated
+def get_casos(id: int):
+    """Casos vinculados a um atendido/assistido (partes envolvidas)."""
+    caso_service = CasoService()
+    result = caso_service.search(
+        page_params=PageParams(page=1, per_page=100),
+        show_inactive=True,
+        atendido_id=id,
+    )
+    return success_response(data=result.to_dict())
+
+
+@atendido_controller.route("/<int:id>/orientacoes", methods=["GET"])
+@authenticated
+def get_orientacoes(id: int):
+    """Orientações jurídicas vinculadas a um atendido/assistido."""
+    orientacao_service = OrientacaoJuridicaService()
+    result = orientacao_service.search(
+        page_params=PageParams(page=1, per_page=100),
+        show_inactive=True,
+        atendido_id=id,
+    )
+    return success_response(data=result.to_dict())
 
 
 @atendido_controller.route("/", methods=["POST"])
