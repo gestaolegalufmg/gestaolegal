@@ -90,7 +90,9 @@ def _get_mail_config(env: Environment) -> _MailConfig:
             use_tls=False,
             username=None,
             password=None,
-            default_sender="development@gestaolegal.com",
+            default_sender=os.environ.get(
+                "MAIL_DEFAULT_SENDER", "development@gestaolegal.com"
+            ),
         )
     else:
         return _MailConfig(

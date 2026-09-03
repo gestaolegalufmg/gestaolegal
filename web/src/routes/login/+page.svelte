@@ -90,6 +90,12 @@
 						<TriangleAlert class="mt-0.5 h-4 w-4 shrink-0" />
 						<div class="space-y-1">
 							<p>{erroLogin}</p>
+							<p class="mt-4 text-center text-sm text-gray-600">
+								<a href="/esqueci-a-senha" class="font-medium text-primary hover:underline">
+									Esqueci minha senha
+								</a>
+							</p>
+
 							{#if data.needsSetup}
 								<a href="/setup-admin" class="font-medium underline">Configurar administrador</a>
 							{/if}
@@ -124,6 +130,12 @@
 						{/if}
 					</Button>
 				</form>
+
+				<p class="mt-4 text-center text-sm text-gray-600">
+					<a href="/esqueci-a-senha" class="font-medium text-primary hover:underline">
+						Esqueci minha senha
+					</a>
+				</p>
 
 				{#if data.needsSetup}
 					<div class="mt-4 text-center text-sm text-gray-600">
