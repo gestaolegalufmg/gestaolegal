@@ -10,7 +10,26 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.7.17"
+          enable-cache: true
+
+      - name: Install dependencies
+        # O grupo "extra" traz pytest e pytest-cov; o grupo "dev" está vazio.
+        run: uv sync --locked --extra extra
+
+      - name: Run tests
+        run: uv run --no-sync pytest tests/ -v
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       packages: write
