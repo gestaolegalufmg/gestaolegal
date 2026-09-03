@@ -1,5 +1,10 @@
 import { api } from '$lib/api-client';
-import { ApiException, type Notificacao } from '$lib/types';
+import {
+	ApiException,
+	FILTROS_ARQUIVADAS,
+	type FiltroArquivadas,
+	type Notificacao
+} from '$lib/types';
 
 /** Formato paginado devolvido pela API (campos no nível raiz). */
 type PaginaNotificacoes = {
@@ -10,10 +15,6 @@ type PaginaNotificacoes = {
 	total_pages: number;
 };
 import { error } from '@sveltejs/kit';
-
-/** Visões da lista: ativas (padrão), só arquivadas ou todas. */
-export const FILTROS_ARQUIVADAS = ['nao', 'sim', 'todas'] as const;
-export type FiltroArquivadas = (typeof FILTROS_ARQUIVADAS)[number];
 
 export const load = async ({ depends, url, fetch }) => {
 	depends('app:notificacoes');
