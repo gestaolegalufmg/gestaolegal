@@ -68,3 +68,39 @@ mas consome recursos do servidor e do MTA.
 **Como resolver.** Limitar por IP exige estado compartilhado entre os workers
 do gunicorn — Flask-Limiter com Redis, ou `limit_req` no nginx à frente da
 API. A segunda opção não acrescenta dependência à aplicação.
+
+## Legado: cadastro de pessoa jurídica sem uso
+
+**O que acontece.** A tabela `assistidos_pessoa_juridica` (sócios, situação na
+receita, enquadramento, sede, área de atuação, faturamento, funcionários e mais)
+continua no banco, e a 3.0 tem o dataclass `AssistidoPessoaJuridica`
+(`gestaolegal/models/assistido_pessoa_juridica.py`, exportado em
+`models/__init__.py`) e o campo `assistido_pessoa_juridica` em `Assistido`.
+Nenhum repository, service ou controller lê ou grava qualquer um dos dois.
+
+**De onde vem.** Na 2.0 esse cadastro também nunca funcionou: os campos do
+formulário estão comentados e nenhuma view gravava a tabela (ver seção 1.1 de
+`paridade-v2-v3.md`). A 3.0 herdou o esqueleto junto com o resto do esquema.
+
+**Como resolver.** Se a coleta desses dados voltar a ser desejada, é
+funcionalidade nova — repository, service, rotas e formulário. Se não, o model
+e a tabela podem ser removidos por migração. Antes de remover, conferir se a
+tabela está vazia **em produção**: no banco de desenvolvimento está.
+
+## Usuários: o cadastro novo nasce sem senha utilizável
+
+**O que acontece.** O formulário de novo usuário não pede senha, e
+`UsuarioService.create` gera uma senha aleatória de 12 caracteres
+(`usuario_service.py`) que não é exibida na tela nem enviada a ninguém. A pessoa
+recém-cadastrada, portanto, não consegue entrar.
+
+**Como se contorna hoje.** O administrador abre a tela do usuário e define uma
+senha em **Alterar Senha** (a troca administrativa dispensa a senha atual), ou a
+pessoa usa o **Esqueci minha senha** com o e-mail cadastrado — possível desde a
+fase 4. O segundo caminho é melhor: a senha não passa por terceiros.
+
+**Como resolver.** Enviar, no cadastro, um e-mail de convite com um link de
+definição de senha, reaproveitando a infraestrutura de
+`password_reset_service.py` (token de uso único, com validade maior). É o item
+"convite por e-mail a usuários novos" da lista de pendências de
+`paridade-v2-v3.md`.

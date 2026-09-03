@@ -5,6 +5,7 @@
 	import type { ComponentProps } from 'svelte';
 	import CompanyLogo from './company-logo.svelte';
 	import type { User } from '$lib/types';
+	import { podeVer, type ItemComPapeis } from '$lib/utils/permissoes';
 	import UsersIcon from '@lucide/svelte/icons/users';
 	import ClockIcon from '@lucide/svelte/icons/clock';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
@@ -12,12 +13,9 @@
 	import FolderIcon from '@lucide/svelte/icons/folder';
 	import BellIcon from '@lucide/svelte/icons/bell';
 
-	type NavItem = {
+	type NavItem = ItemComPapeis & {
 		title: string;
 		url: string;
-		// Quando presente, o item só aparece para os papéis listados. A
-		// autorização de verdade é feita no backend; esconder o item é só UX.
-		roles?: string[];
 	};
 
 	const baseNavMain: (NavItem & { icon: unknown; isActive?: boolean; items: NavItem[] })[] = [
@@ -126,14 +124,12 @@
 		...restProps
 	}: ComponentProps<typeof Sidebar.Root> & { user: User } = $props();
 
-	const visivel = (item: NavItem, urole: string) => !item.roles || item.roles.includes(urole);
-
 	let navMainItems = $derived(
 		baseNavMain
-			.filter((item) => visivel(item, user.urole))
+			.filter((item) => podeVer(item, user.urole))
 			.map((item) => ({
 				...item,
-				items: item.items.filter((subitem) => visivel(subitem, user.urole))
+				items: item.items.filter((subitem) => podeVer(subitem, user.urole))
 			}))
 	);
 
