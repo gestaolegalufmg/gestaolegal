@@ -163,6 +163,9 @@ e 2 PDFs. Presenças e plantões inseridos por SQL entre 18/08 e 02/09/2026
 
 ## 6. Pendências e ideias anotadas
 
+- Lembrete novo: pré-selecionar o usuário logado no campo "Usuário
+  responsável" (hoje começa vazio, como na 2.0).
+
 - Esconder "Relatórios" na sidebar para papéis sem acesso (estag_direito,
   colab_proj, prof) e/ou gate no `+page.ts`.
 - Wiki: reescrever Manual de Instalação a partir do README; arquivar
