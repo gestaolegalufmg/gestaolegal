@@ -94,15 +94,6 @@ class RelatorioRepository(BaseRepository):
 
     # --- horários de chegada e saída -----------------------------------------
 
-    def usuarios_ativos(self) -> list[dict]:
-        """Usuários ativos para o seletor do relatório de horários."""
-        stmt = (
-            select(usuarios.c.id, usuarios.c.nome, usuarios.c.urole)
-            .where(usuarios.c.status.is_(True))
-            .order_by(usuarios.c.nome.asc())
-        )
-        return [dict(row) for row in self.session.execute(stmt).mappings().all()]
-
     def presencas_no_periodo(
         self, inicio: datetime, fim: datetime, usuarios_ids: list[int] | None
     ) -> list[dict]:

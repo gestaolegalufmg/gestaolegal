@@ -86,8 +86,13 @@ Backend:
 - `PUT /api/caso/<id>/arquivos/<arquivo_id>` (multipart) — substitui PDF;
   validação extraída para `_validar_pdf`/`_salvar_pdf` em `caso_service`.
 - `GET /api/caso/?criado_por=me|<id>` — combinável com `user=`.
-- `GET /api/relatorio/horarios?data_inicio&data_final&usuarios=1,2` e
-  `GET /api/relatorio/usuarios` (papéis: admin, orient, colab_ext).
+- `GET /api/relatorio/horarios?data_inicio&data_final&usuarios=1,2` (papéis:
+  admin, orient, colab_ext).
+- `GET /api/user/opcoes` — usuários ativos (id, nome, urole) em ordem
+  alfabética, para qualquer autenticado. Corrige bug pré-existente da 3.0
+  encontrado no teste 4: novo caso, editar caso e diálogo de lembrete
+  carregavam `GET /api/user` (só admin), então não-admins recebiam erro ao
+  abrir essas telas. Também usado no relatório de horários.
 - Erros HTTP do Werkzeug traduzidos (404, 405, 413 "O arquivo excede o tamanho
   máximo de 10 MB", 415) em `utils/error_handlers.py`.
 
@@ -127,18 +132,17 @@ e 2 PDFs. Presenças e plantões inseridos por SQL entre 18/08 e 02/09/2026
 | 1. Excluir evento (admin/criador, detalhe e lista) | ✅ OK |
 | 2. Filtro de eventos por tipo | ✅ OK após correções (ordem alfabética, botão Novo Evento) |
 | 3. Substituir arquivo (troca, download, não-PDF, >10 MB) | ✅ OK após tradução do 413 |
-| 4. Meus Casos / Cadastrados por mim | ⏳ pendente |
+| 4. Meus Casos / Cadastrados por mim | ✅ OK; revelou bug pré-existente (novo caso por não-admin) corrigido com `user/opcoes` |
 | 5. Termos de uso | ⏳ pendente |
 | 6. Relatório de horários | ⏳ pendente |
 
 ### Passos pendentes
 
-**4. Meus Casos e "Cadastrados por mim"**
-1. Admin: Casos › Meus Casos → título "Meus Casos", casos 1 e 4.
-2. Marcar "Cadastrados por mim" → só caso 1.
-3. Desmarcar "Apenas meus casos" → casos 1 e 2, título "Casos".
-4. Eduardo: "Cadastrados por mim" → caso 3; + "Apenas meus casos" → caso 3;
-   desmarcar "Cadastrados por mim" → casos 2 e 3.
+**4b. Novo caso / lembrete por não-admin (correção)**
+1. Eduardo: Casos › Novo caso → formulário abre, seletores de orientador,
+   estagiário e colaborador listam os 4 usuários em ordem alfabética.
+2. Eduardo: editar caso 3 → abre normalmente.
+3. Eduardo: novo lembrete em um caso → seletor de usuário preenchido.
 
 **5. Termos de uso**
 1. Link no rodapé da sidebar → página com 3 blocos e breadcrumb.
