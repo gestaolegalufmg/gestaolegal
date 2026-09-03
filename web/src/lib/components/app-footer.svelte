@@ -18,7 +18,7 @@
 				rel="noopener noreferrer"
 				class="font-semibold text-white underline-offset-2 hover:underline">LabP²</a
 			>
-			· Faculdade de Direito da UFMG
+			· Laboratório de Tecnologias Públicas para o Setor Público · Faculdade de Direito da UFMG
 		</p>
 		<div class="flex items-center gap-5 opacity-70 transition-opacity hover:opacity-100">
 			<a
