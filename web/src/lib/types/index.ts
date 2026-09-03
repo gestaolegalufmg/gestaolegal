@@ -13,6 +13,8 @@ export type {
 export type { Lembrete } from './lembrete';
 export type { Historico } from './historico';
 export type { Roteiro } from './roteiro';
+export type { Arquivo, ListArquivo } from './arquivo';
+export { ARQUIVO_PAPEIS_EDITAM, ARQUIVO_PAPEIS_EXCLUEM } from './arquivo';
 export type { Atendido, ListAtendido } from './atendido';
 export type { Paginated, PaginationMeta } from './paginated';
 export type { Endereco } from './endereco';

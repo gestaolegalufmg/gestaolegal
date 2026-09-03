@@ -115,6 +115,7 @@ class Config:
         "STATIC_ROOT_DIR", "/gestaolegal/gestaolegal/static/"
     )
     UPLOADS: ClassVar[str] = os.path.join(STATIC_ROOT_DIR, "casos")
+    ARQUIVOS_DIR: ClassVar[str] = os.path.join(STATIC_ROOT_DIR, "arquivos")
     MAX_CONTENT_LENGTH: ClassVar[int] = 10 * 1024 * 1024  # 10 MB
 
     DB_USER: ClassVar[str] = _get_required_env("DB_USER")
