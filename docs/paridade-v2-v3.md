@@ -343,11 +343,22 @@ a porta 5002, a mesma do `web`.
 
 | Item | Status |
 |---|---|
-| 1. Pedir o link como Eduardo e redefinir a senha | ⏳ |
-| 2. Link de uso único e prazo | ⏳ |
-| 3. E-mail sem conta e conta desativada: resposta igual, sem e-mail | ⏳ |
-| 4. Validação da senha nova e do link inválido | ⏳ |
-| 5. Limite de pedidos | ⏳ |
+| 1. Pedir o link como Eduardo e redefinir a senha | ✅ |
+| 2. Link de uso único e prazo | ✅ |
+| 3. E-mail sem conta e conta desativada: resposta igual, sem e-mail | ✅ |
+| 4. Validação da senha nova e do link inválido | ✅ |
+| 5. Limite de pedidos | ✅ |
+
+Aprovado em 03/09/2026. Três defeitos apareceram no teste e foram corrigidos:
+
+- O layout raiz tratava só `/login` como rota pública e mandava para o login
+  quem chegava sem sessão — o link do e-mail caía no login. `/setup-admin`,
+  a tela do primeiro acesso, já sofria do mesmo problema.
+- As telas chamavam a API no `onSubmit`, que roda antes da validação do
+  superForms: com as senhas divergentes, a tela mostrava o erro e mesmo assim
+  trocava a senha. Passaram a usar `onUpdate`, como `password-form.svelte`.
+- O superForms revalida os `load` após o envio; o `load` reconsultava o token
+  recém-consumido e a tela piscava "link expirado" junto com o sucesso.
 
 ## 6. Pendências e ideias anotadas
 
