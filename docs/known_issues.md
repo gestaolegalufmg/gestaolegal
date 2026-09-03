@@ -86,3 +86,21 @@ formulário estão comentados e nenhuma view gravava a tabela (ver seção 1.1 d
 funcionalidade nova — repository, service, rotas e formulário. Se não, o model
 e a tabela podem ser removidos por migração. Antes de remover, conferir se a
 tabela está vazia **em produção**: no banco de desenvolvimento está.
+
+## Usuários: o cadastro novo nasce sem senha utilizável
+
+**O que acontece.** O formulário de novo usuário não pede senha, e
+`UsuarioService.create` gera uma senha aleatória de 12 caracteres
+(`usuario_service.py`) que não é exibida na tela nem enviada a ninguém. A pessoa
+recém-cadastrada, portanto, não consegue entrar.
+
+**Como se contorna hoje.** O administrador abre a tela do usuário e define uma
+senha em **Alterar Senha** (a troca administrativa dispensa a senha atual), ou a
+pessoa usa o **Esqueci minha senha** com o e-mail cadastrado — possível desde a
+fase 4. O segundo caminho é melhor: a senha não passa por terceiros.
+
+**Como resolver.** Enviar, no cadastro, um e-mail de convite com um link de
+definição de senha, reaproveitando a infraestrutura de
+`password_reset_service.py` (token de uso único, com validade maior). É o item
+"convite por e-mail a usuários novos" da lista de pendências de
+`paridade-v2-v3.md`.
