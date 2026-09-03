@@ -74,7 +74,12 @@
 							debounceMs={500}
 							placeholder="Buscar atendido..."
 						/>
-						<Select.Root bind:value={filters.tipo_busca} name="tipo_busca" type="single" onValueChange={() => applyFilters()}>
+						<Select.Root
+							bind:value={filters.tipo_busca}
+							name="tipo_busca"
+							type="single"
+							onValueChange={() => applyFilters()}
+						>
 							<Select.Trigger class="w-full data-[placeholder]:text-foreground">
 								{tipoBuscaFilterOptions.find((option) => option.value === filters.tipo_busca)
 									?.label}
@@ -87,7 +92,7 @@
 						</Select.Root>
 					</div>
 					<label class="flex cursor-pointer items-center gap-2">
-						<Checkbox bind:checked={filters.show_inactive} onCheckedChange={() => applyFilters()}/>
+						<Checkbox bind:checked={filters.show_inactive} onCheckedChange={() => applyFilters()} />
 						<span class="text-sm">Incluir inativos</span>
 					</label>
 				</div>
@@ -137,6 +142,12 @@
 							show: (a) => a.status && isAdmin,
 							onClick: async (a) => {
 								await handleDelete(a.id);
+							},
+							confirm: {
+								title: 'Desativar atendido?',
+								description:
+									'O atendido/assistido será inativado. Você poderá reativá-lo depois exibindo os registros inativos.',
+								confirmText: 'Desativar'
 							},
 							class: 'h-8 w-8 p-0 text-destructive hover:text-destructive'
 						}

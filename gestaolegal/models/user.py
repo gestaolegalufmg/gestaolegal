@@ -10,7 +10,9 @@ if TYPE_CHECKING:
 class User:
     email: str
     senha: str
-    urole: Literal["admin", "colab_proj", "orient", "estag_direito", "colab_ext"]
+    urole: Literal[
+        "admin", "colab_proj", "orient", "estag_direito", "colab_ext", "prof"
+    ]
     nome: str
     sexo: str
     rg: str
@@ -57,7 +59,9 @@ class User:
 @dataclass
 class UserInfo:
     email: str
-    urole: Literal["admin", "colab_proj", "orient", "estag_direito", "colab_ext"]
+    urole: Literal[
+        "admin", "colab_proj", "orient", "estag_direito", "colab_ext", "prof"
+    ]
     nome: str
     sexo: str
     rg: str

@@ -120,7 +120,8 @@ def test_deferir_caso(
     assert response.status_code == 200
     data = get_success_data(response)
     assert data is not None
-    assert data["situacao_deferimento"] == "deferido"
+    # Um caso deferido passa a ser "ativo" (valor que filtros e badges esperam).
+    assert data["situacao_deferimento"] == "ativo"
 
 
 def test_indeferir_caso(
@@ -1159,3 +1160,155 @@ def test_get_evento_not_found(
     response = client.get(f"/api/caso/{caso_id}/eventos/99999", headers=auth_headers)
 
     assert response.status_code == 404
+
+
+def test_replace_arquivo_caso(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    import os
+
+    caso_id = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+
+    upload = client.post(
+        f"/api/caso/{caso_id}/arquivos",
+        data={"arquivo": (BytesIO(b"versao 1"), "original.pdf")},
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+    arquivo = get_success_data(upload)
+    caminho_antigo = arquivo["link_arquivo"]
+    assert os.path.exists(caminho_antigo)
+
+    response = client.put(
+        f"/api/caso/{caso_id}/arquivos/{arquivo['id']}",
+        data={"arquivo": (BytesIO(b"versao 2"), "corrigido.pdf")},
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+    atualizado = get_success_data(response)
+    assert atualizado["id"] == arquivo["id"]
+    assert atualizado["link_arquivo"] != caminho_antigo
+    assert atualizado["link_arquivo"].endswith("corrigido.pdf")
+    assert os.path.exists(atualizado["link_arquivo"])
+    assert not os.path.exists(caminho_antigo)
+
+    # O caso continua com um único anexo.
+    lista = get_success_data(client.get(f"/api/caso/{caso_id}/arquivos", headers=auth_headers))
+    assert len(lista["arquivos"]) == 1
+
+    os.remove(atualizado["link_arquivo"])
+
+
+def test_replace_arquivo_caso_rejects_non_pdf(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    import os
+
+    caso_id = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+    arquivo = get_success_data(
+        client.post(
+            f"/api/caso/{caso_id}/arquivos",
+            data={"arquivo": (BytesIO(b"pdf"), "doc.pdf")},
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        )
+    )
+
+    response = client.put(
+        f"/api/caso/{caso_id}/arquivos/{arquivo['id']}",
+        data={"arquivo": (BytesIO(b"texto"), "doc.txt")},
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert os.path.exists(arquivo["link_arquivo"])
+    os.remove(arquivo["link_arquivo"])
+
+
+def test_replace_arquivo_caso_not_found(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+    response = client.put(
+        f"/api/caso/{caso_id}/arquivos/99999",
+        data={"arquivo": (BytesIO(b"pdf"), "doc.pdf")},
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 404
+
+
+def test_filter_casos_by_criado_por_me(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    non_admin_auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    # Admin cria um caso cujo responsável é o usuário 2; o outro usuário cria um
+    # caso cujo responsável é o admin. "Cadastrado por mim" olha só o criador.
+    criado_pelo_admin = get_success_data(
+        client.post(
+            "/api/caso/",
+            json={**sample_caso_data, "id_usuario_responsavel": 2},
+            headers=auth_headers,
+        )
+    )["id"]
+    criado_pelo_outro = get_success_data(
+        client.post(
+            "/api/caso/",
+            json={**sample_caso_data, "id_usuario_responsavel": 1},
+            headers=non_admin_auth_headers,
+        )
+    )["id"]
+
+    ids = [
+        c["id"]
+        for c in get_success_data(client.get("/api/caso/?criado_por=me", headers=auth_headers))[
+            "items"
+        ]
+    ]
+    assert criado_pelo_admin in ids
+    assert criado_pelo_outro not in ids
+
+    # Pode combinar com o filtro de responsável (user=me): aqui nenhum caso
+    # satisfaz os dois ao mesmo tempo.
+    ids = [
+        c["id"]
+        for c in get_success_data(
+            client.get("/api/caso/?criado_por=me&user=me", headers=auth_headers)
+        )["items"]
+    ]
+    assert criado_pelo_admin not in ids
+    assert criado_pelo_outro not in ids
+
+
+def test_upload_arquivo_too_large_returns_portuguese_message(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+    grande = BytesIO(b"0" * (10 * 1024 * 1024 + 1024))
+    response = client.post(
+        f"/api/caso/{caso_id}/arquivos",
+        data={"arquivo": (grande, "grande.pdf")},
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 413
+    assert response.json["error"]["message"] == "O arquivo excede o tamanho máximo de 10 MB"

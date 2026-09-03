@@ -11,7 +11,10 @@
 	const isAdmin = $derived(me.urole === 'admin');
 
 	const personalData = [
-		{ label: 'Data de Nascimento', value: new Date(user.nascimento).toLocaleDateString('pt-BR') },
+		{
+			label: 'Data de Nascimento',
+			value: new Date(user.nascimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+		},
 		{ label: 'Sexo', value: user.sexo },
 		{ label: 'CPF', value: user.cpf },
 		{ label: 'RG', value: user.rg },
@@ -33,11 +36,14 @@
 	const registrationData = [
 		{ label: 'Email', value: user.email },
 		{ label: 'Telefone', value: user.telefone },
-		{ label: 'Data de Inclusão', value: new Date(user.data_entrada).toLocaleDateString('pt-BR') },
+		{
+			label: 'Data de Inclusão',
+			value: new Date(user.data_entrada).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+		},
 		{
 			label: 'Data de Exclusão',
 			value: user.data_saida,
-			formatter: (value: string) => new Date(value).toLocaleDateString('pt-BR')
+			formatter: (value: string) => new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
 		}
 	];
 
@@ -77,6 +83,8 @@
 			<InfoCard title="Agenda de Atendimento" items={agendaAtendimento} />
 		</div>
 	{:else}
-		<p class="text-muted-foreground">Você não tem permissão para visualizar usuários.</p>
+		<p class="text-muted-foreground">
+			Você não tem permissão para visualizar usuários. Contate o administrador.
+		</p>
 	{/if}
 </div>

@@ -6,12 +6,15 @@ from flask import make_response, request
 from flask.typing import ResponseReturnValue
 
 from gestaolegal.models.user import UserInfo
+from gestaolegal.exceptions import ForbiddenException
 from gestaolegal.utils.jwt_auth import JWTAuth
 from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
-UserRole = Literal["admin", "colab_proj", "orient", "estag_direito", "colab_ext"]
+UserRole = Literal[
+    "admin", "colab_proj", "orient", "estag_direito", "colab_ext", "prof"
+]
 P = ParamSpec("P")
 
 
@@ -54,7 +57,7 @@ def authorized(
             user = RequestContext.get_current_user()
 
             if user.urole not in roles:
-                return make_response("Forbidden", 403)
+                raise ForbiddenException()
 
             return func(*args, **kwargs)
 

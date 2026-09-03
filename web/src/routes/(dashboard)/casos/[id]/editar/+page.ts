@@ -1,17 +1,18 @@
 import { superValidate } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { casoCreateFormSchema } from '$lib/forms/schemas/caso-schema';
+import { normalizarSituacaoDeferimento } from '$lib/constants/situacao-deferimento';
 import type { PageLoad } from './$types';
 import { api } from '$lib/api-client';
 import { error } from '@sveltejs/kit';
 import { ApiException } from '$lib/types';
-import type { Caso, Paginated, User } from '$lib/types';
+import type { Caso, UserOption } from '$lib/types';
 
 export const load: PageLoad = async ({ params, fetch }) => {
 	try {
 		const [caso, usersData] = await Promise.all([
 			api.get<Caso>(`caso/${params.id}`, {}, fetch),
-			api.get<Paginated<User>>('user?per_page=1000', {}, fetch)
+			api.get<{ items: UserOption[] }>('user/opcoes', {}, fetch)
 		]);
 
 		const casoData = {
@@ -21,7 +22,9 @@ export const load: PageLoad = async ({ params, fetch }) => {
 			id_orientador: caso.id_orientador,
 			id_estagiario: caso.id_estagiario,
 			id_colaborador: caso.id_colaborador,
-			situacao_deferimento: caso.situacao_deferimento,
+			// Casos antigos gravaram "deferido"; sem normalizar, o select fica
+			// fora das opções e o formulário acusa "invalid input".
+			situacao_deferimento: normalizarSituacaoDeferimento(caso.situacao_deferimento),
 			justif_indeferimento: caso.justif_indeferimento,
 			descricao: caso.descricao,
 			ids_clientes: caso.clientes?.map((cliente: { id: number }) => cliente.id) ?? []

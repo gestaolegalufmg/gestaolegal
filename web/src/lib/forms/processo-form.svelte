@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import * as Form from '$lib/components/ui/form/index.js';
 	import { Button } from '$lib/components/ui/button';
 	import { FormSection, SimpleInput, SimpleSelect, SimpleTextArea } from '$lib/components/forms';
@@ -15,6 +16,7 @@
 		data,
 		onUpdate,
 		onError,
+		onCancel,
 		isCreateMode = true,
 		casoId,
 		processoId
@@ -25,6 +27,7 @@
 		processoId?: number;
 		onUpdate?: (data: any) => void;
 		onError?: (error: any) => void;
+		onCancel?: () => void;
 	} = $props();
 
 	const processoForm = superForm(data, {
@@ -54,7 +57,7 @@
 				}
 			} catch (error) {
 				console.error('Processo form error:', error);
-				toast.error('Erro ao salvar processo. Por favor, tente novamente.');
+				toast.error(mensagemDeErro(error, 'Erro ao salvar processo. Por favor, tente novamente.'));
 				onError?.(error);
 			}
 		}
@@ -212,7 +215,7 @@
 	</FormSection>
 
 	<div class="flex items-center justify-between border-t border-border pt-6">
-		<Button type="button" variant="outline">Cancelar</Button>
+		<Button type="button" variant="outline" onclick={() => onCancel?.()}>Cancelar</Button>
 		<div class="flex gap-3">
 			<Form.Button class="min-w-[140px]">
 				{isCreateMode ? 'Criar Processo' : 'Salvar Alterações'}

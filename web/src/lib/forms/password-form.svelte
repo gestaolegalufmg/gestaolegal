@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import { superForm, type Infer, type SuperValidated } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
 	import { passwordChangeSchema, type PasswordChangeSchema } from './schemas/password-schema';
@@ -48,7 +49,7 @@
 				await goto(`/usuarios/${userId}`);
 			} catch (error) {
 				console.error('Password change error:', error);
-				toast.error('Erro ao alterar senha. Por favor, tente novamente.');
+				toast.error(mensagemDeErro(error, 'Erro ao alterar senha. Por favor, tente novamente.'));
 				onError?.(error);
 			}
 		}

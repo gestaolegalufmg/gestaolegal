@@ -424,3 +424,132 @@ def test_download_evento_file(
 
     assert response.status_code == 200
     assert response.data == file_content
+
+
+# ---------------------------------------------------------------------------
+# Exclusão e filtro por tipo (paridade com a v2)
+# ---------------------------------------------------------------------------
+
+
+def _criar_caso(client: FlaskClient, headers: dict[str, str], caso_data: dict[str, Any]) -> int:
+    response = client.post("/api/caso/", json=caso_data, headers=headers)
+    assert response.status_code == 201
+    return get_success_data(response)["id"]
+
+
+def _criar_evento(
+    client: FlaskClient, headers: dict[str, str], caso_id: int, tipo: str = "reuniao"
+) -> int:
+    response = client.post(
+        f"/api/caso/{caso_id}/eventos",
+        data={"tipo": tipo, "data_evento": "2024-05-10", "descricao": f"Evento {tipo}"},
+        headers=headers,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 201
+    return get_success_data(response)["id"]
+
+
+def test_delete_evento_as_admin(
+    client: FlaskClient, auth_headers: dict[str, str], sample_caso_data: dict[str, Any]
+) -> None:
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    evento_id = _criar_evento(client, auth_headers, caso_id)
+
+    response = client.delete(f"/api/caso/{caso_id}/eventos/{evento_id}", headers=auth_headers)
+    assert response.status_code == 200
+
+    # Sai da listagem, mas continua acessível por id como inativo.
+    listagem = get_success_data(client.get(f"/api/caso/{caso_id}/eventos", headers=auth_headers))
+    assert evento_id not in [e["id"] for e in listagem["items"]]
+
+    detalhe = get_success_data(
+        client.get(f"/api/caso/{caso_id}/eventos/{evento_id}", headers=auth_headers)
+    )
+    assert detalhe["status"] is False
+
+    # Excluir de novo devolve 404.
+    response = client.delete(f"/api/caso/{caso_id}/eventos/{evento_id}", headers=auth_headers)
+    assert response.status_code == 404
+
+
+def test_delete_evento_by_creator(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    non_admin_auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    evento_id = _criar_evento(client, non_admin_auth_headers, caso_id)
+
+    response = client.delete(
+        f"/api/caso/{caso_id}/eventos/{evento_id}", headers=non_admin_auth_headers
+    )
+    assert response.status_code == 200
+
+
+def test_delete_evento_by_other_user_is_forbidden(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    non_admin_auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    evento_id = _criar_evento(client, auth_headers, caso_id)
+
+    response = client.delete(
+        f"/api/caso/{caso_id}/eventos/{evento_id}", headers=non_admin_auth_headers
+    )
+    assert response.status_code == 403
+
+    listagem = get_success_data(client.get(f"/api/caso/{caso_id}/eventos", headers=auth_headers))
+    assert evento_id in [e["id"] for e in listagem["items"]]
+
+
+def test_delete_evento_wrong_caso_returns_404(
+    client: FlaskClient, auth_headers: dict[str, str], sample_caso_data: dict[str, Any]
+) -> None:
+    caso_a = _criar_caso(client, auth_headers, sample_caso_data)
+    caso_b = _criar_caso(client, auth_headers, sample_caso_data)
+    evento_id = _criar_evento(client, auth_headers, caso_a)
+
+    response = client.delete(f"/api/caso/{caso_b}/eventos/{evento_id}", headers=auth_headers)
+    assert response.status_code == 404
+
+
+def test_filter_eventos_by_tipo(
+    client: FlaskClient, auth_headers: dict[str, str], sample_caso_data: dict[str, Any]
+) -> None:
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    reuniao = _criar_evento(client, auth_headers, caso_id, tipo="reuniao")
+    audiencia = _criar_evento(client, auth_headers, caso_id, tipo="audencia")
+    _criar_evento(client, auth_headers, caso_id, tipo="reuniao")
+
+    todos = get_success_data(client.get(f"/api/caso/{caso_id}/eventos", headers=auth_headers))
+    assert todos["total"] == 3
+
+    so_reuniao = get_success_data(
+        client.get(f"/api/caso/{caso_id}/eventos?tipo=reuniao", headers=auth_headers)
+    )
+    assert so_reuniao["total"] == 2
+    assert reuniao in [e["id"] for e in so_reuniao["items"]]
+    assert audiencia not in [e["id"] for e in so_reuniao["items"]]
+
+    # "todos" é tratado como ausência de filtro.
+    assert (
+        get_success_data(
+            client.get(f"/api/caso/{caso_id}/eventos?tipo=todos", headers=auth_headers)
+        )["total"]
+        == 3
+    )
+
+
+def test_list_eventos_exposes_creator_id(
+    client: FlaskClient, auth_headers: dict[str, str], sample_caso_data: dict[str, Any]
+) -> None:
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    _criar_evento(client, auth_headers, caso_id)
+
+    listagem = get_success_data(client.get(f"/api/caso/{caso_id}/eventos", headers=auth_headers))
+    assert listagem["items"][0]["id_criado_por"] == 1
+    assert listagem["items"][0]["descricao"] == "Evento reuniao"

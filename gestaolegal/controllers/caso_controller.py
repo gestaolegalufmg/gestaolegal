@@ -16,10 +16,16 @@ from gestaolegal.exceptions import (
 )
 from gestaolegal.models.caso_input import CasoCreateInput, CasoUpdateInput
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
+from gestaolegal.models.lembrete_input import (
+    LembreteCreateInput,
+    LembreteUpdateInput,
+)
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
 from gestaolegal.models.user import UserInfo
 from gestaolegal.services.caso_service import CasoService
 from gestaolegal.services.evento_service import EventoService
+from gestaolegal.services.historico_service import HistoricoService
+from gestaolegal.services.lembrete_service import LembreteService
 from gestaolegal.services.processo_service import ProcessoService
 from gestaolegal.utils.api_decorators import authenticated, authorized
 from gestaolegal.utils.api_response import success_response
@@ -27,6 +33,15 @@ from gestaolegal.utils.request_context import RequestContext
 from gestaolegal.utils.StringBool import StringBool
 
 caso_controller = Blueprint("caso_api", __name__)
+
+
+def _resolve_user_param(valor: str | None, current_user: UserInfo) -> int | None:
+    """Converte o parâmetro de usuário da query ("me" ou um id) em id numérico."""
+    if valor == "me":
+        return current_user.id
+    if valor is not None and valor.isdigit():
+        return int(valor)
+    return None
 
 
 @caso_controller.route("/", methods=["GET"])
@@ -43,12 +58,10 @@ def get():
         "situacao_deferimento", default=None, type=str
     )
     user = request.args.get("user", default=None, type=str)
+    criado_por = request.args.get("criado_por", default=None, type=str)
 
-    responsible_user = None
-    if user == "me":
-        responsible_user = current_user.id
-    elif user is not None and user.isdigit():
-        responsible_user = int(user)
+    responsible_user = _resolve_user_param(user, current_user)
+    criado_por_id = _resolve_user_param(criado_por, current_user)
 
     caso_service = CasoService()
     result = caso_service.search(
@@ -57,6 +70,7 @@ def get():
         show_inactive=show_inactive.value,
         situacao_deferimento=situacao_deferimento,
         responsible_user=responsible_user,
+        criado_por=criado_por_id,
     )
 
     return success_response(data=result.to_dict())
@@ -290,10 +304,14 @@ def get_eventos_by_caso(caso_id: int):
 
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
+    tipo = request.args.get("tipo", default=None, type=str)
+    if tipo == "todos":
+        tipo = None
 
     result = evento_service.find_by_caso_id(
         caso_id=caso_id,
         page_params=PageParams(page=page, per_page=per_page),
+        tipo=tipo,
     )
 
     return success_response(data=result.to_dict())
@@ -373,6 +391,15 @@ def update_evento(caso_id: int, evento_id: int):
     )
 
 
+@caso_controller.route("/<int:caso_id>/eventos/<int:evento_id>", methods=["DELETE"])
+@authenticated
+def delete_evento(caso_id: int, evento_id: int):
+    current_user: UserInfo = RequestContext.get_current_user()
+    EventoService().delete(evento_id, caso_id, current_user)
+
+    return success_response(message="Evento excluído com sucesso")
+
+
 @caso_controller.route(
     "/<int:caso_id>/eventos/<int:evento_id>/download", methods=["GET"]
 )
@@ -430,6 +457,19 @@ def download_arquivo_caso(caso_id: int, arquivo_id: int):
     return send_file(filepath, as_attachment=True)
 
 
+@caso_controller.route("/<int:caso_id>/arquivos/<int:arquivo_id>", methods=["PUT"])
+@authenticated
+def replace_arquivo_caso(caso_id: int, arquivo_id: int):
+    caso_service = CasoService()
+
+    if "arquivo" not in request.files:
+        raise ValidationException("Nenhum arquivo enviado", field="arquivo")
+
+    arquivo = caso_service.replace_arquivo(arquivo_id, caso_id, request.files["arquivo"])
+
+    return success_response(data=asdict(arquivo), message="Arquivo substituído com sucesso")
+
+
 @caso_controller.route("/<int:caso_id>/arquivos/<int:arquivo_id>", methods=["DELETE"])
 @authenticated
 def delete_arquivo_caso(caso_id: int, arquivo_id: int):
@@ -437,3 +477,94 @@ def delete_arquivo_caso(caso_id: int, arquivo_id: int):
     caso_service.delete_arquivo(arquivo_id, caso_id)
 
     return success_response(message="Arquivo removido com sucesso")
+
+
+# ----------------------------------------------------------------------------
+# Lembretes (per-case reminders)
+# ----------------------------------------------------------------------------
+
+
+@caso_controller.route("/<int:caso_id>/lembretes", methods=["GET"])
+@authenticated
+def get_lembretes_by_caso(caso_id: int):
+    lembrete_service = LembreteService()
+    lembretes = lembrete_service.get_by_caso(caso_id)
+    return success_response(data=[asdict(lembrete) for lembrete in lembretes])
+
+
+@caso_controller.route("/<int:caso_id>/lembretes", methods=["POST"])
+@authenticated
+def create_lembrete(caso_id: int):
+    current_user: UserInfo = RequestContext.get_current_user()
+    lembrete_service = LembreteService()
+
+    json_data = cast(dict[str, Any], request.get_json(force=True))
+    lembrete_input = LembreteCreateInput(**json_data)
+    lembrete = lembrete_service.create(
+        caso_id=caso_id, criador_id=cast(int, current_user.id), data=lembrete_input
+    )
+
+    return success_response(
+        data=asdict(lembrete),
+        message="Lembrete criado com sucesso",
+        status_code=201,
+    )
+
+
+@caso_controller.route("/<int:caso_id>/lembretes/<int:lembrete_id>", methods=["GET"])
+@authenticated
+def get_lembrete(caso_id: int, lembrete_id: int):
+    lembrete_service = LembreteService()
+    lembrete = lembrete_service.validate_lembrete_for_caso(lembrete_id, caso_id)
+    if not lembrete:
+        raise NotFoundException(resource="Lembrete", resource_id=lembrete_id)
+    detail = lembrete_service.find_by_id(lembrete_id)
+    return success_response(data=asdict(detail))
+
+
+@caso_controller.route("/<int:caso_id>/lembretes/<int:lembrete_id>", methods=["PUT"])
+@authenticated
+def update_lembrete(caso_id: int, lembrete_id: int):
+    lembrete_service = LembreteService()
+    existing = lembrete_service.validate_lembrete_for_caso(lembrete_id, caso_id)
+    if not existing:
+        raise NotFoundException(resource="Lembrete", resource_id=lembrete_id)
+
+    json_data = cast(dict[str, Any], request.get_json(force=True))
+    lembrete_input = LembreteUpdateInput(**json_data)
+    lembrete = lembrete_service.update(lembrete_id, lembrete_input)
+
+    return success_response(
+        data=asdict(lembrete), message="Lembrete atualizado com sucesso"
+    )
+
+
+@caso_controller.route("/<int:caso_id>/lembretes/<int:lembrete_id>", methods=["DELETE"])
+@authenticated
+def delete_lembrete(caso_id: int, lembrete_id: int):
+    lembrete_service = LembreteService()
+    existing = lembrete_service.validate_lembrete_for_caso(lembrete_id, caso_id)
+    if not existing:
+        raise NotFoundException(resource="Lembrete", resource_id=lembrete_id)
+
+    lembrete_service.delete(lembrete_id)
+    return success_response(message="Lembrete removido com sucesso")
+
+
+# ----------------------------------------------------------------------------
+# Histórico (case audit log)
+# ----------------------------------------------------------------------------
+
+
+@caso_controller.route("/<int:caso_id>/historico", methods=["GET"])
+@authenticated
+def get_historico_by_caso(caso_id: int):
+    historico_service = HistoricoService()
+
+    page = request.args.get("page", default=1, type=int)
+    per_page = request.args.get("per_page", default=20, type=int)
+
+    result = historico_service.get_by_caso(
+        caso_id, page_params=PageParams(page=page, per_page=per_page)
+    )
+    return success_response(data=result.to_dict())

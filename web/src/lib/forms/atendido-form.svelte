@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import { superForm } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
 	import { atendidoCreateFormSchema } from './schemas/atendido-schema';
@@ -55,11 +56,13 @@
 				if (onUpdate) {
 					onUpdate(response);
 				} else {
-					await goto(`/plantao/atendidos-assistidos/${response.id}`);
+					// invalidateAll so the destination view reloads fresh data instead of
+					// showing the pre-edit values from SvelteKit's cached load.
+					await goto(`/plantao/atendidos-assistidos/${response.id}`, { invalidateAll: true });
 				}
 			} catch (error) {
 				console.error('Atendido form error:', error);
-				toast.error('Erro ao salvar atendido. Por favor, tente novamente.');
+				toast.error(mensagemDeErro(error, 'Erro ao salvar atendido. Por favor, tente novamente.'));
 				onError?.(error);
 			}
 		}
@@ -72,8 +75,10 @@
 	);
 
 	let isLoadingCep = $state(false);
-	let addressFieldsDisabled = $state(true);
-	let lastCepLookup = $state('');
+	// When editing an existing atendido the address is already filled, so keep the
+	// fields enabled and seed the last-looked-up CEP to avoid a spurious refetch.
+	let addressFieldsDisabled = $state(!$formData.logradouro);
+	let lastCepLookup = $state(($formData.cep ?? '').replace(/\D/g, ''));
 
 	$effect(() => {
 		const cep = $formData.cep;

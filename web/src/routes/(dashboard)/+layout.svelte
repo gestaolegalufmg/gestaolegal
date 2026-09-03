@@ -1,12 +1,13 @@
 <script lang="ts">
+	import AppFooter from '$lib/components/app-footer.svelte';
 	import AppSidebar from '$lib/components/app-sidebar.svelte';
 	import DynamicBreadcrumb from '$lib/components/dynamic-breadcrumb.svelte';
 	import GlobalSearchDialog from '$lib/components/global-search-dialog.svelte';
+	import NotificacaoBell from '$lib/components/notificacao-bell.svelte';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { page } from '$app/state';
 	import Input from '$lib/components/ui/input/input.svelte';
-	import { Toaster } from 'svelte-sonner';
 	import { onMount } from 'svelte';
 
 	let { children, data } = $props();
@@ -45,7 +46,6 @@
 	});
 </script>
 
-<Toaster position="top-center" richColors />
 <GlobalSearchDialog bind:open={searchDialogOpen} bind:initialQuery={headerSearchValue} />
 
 <Sidebar.Provider>
@@ -58,10 +58,13 @@
 			</div>
 			<div class="max-w-[260px] flex-1">
 				<Input
-					placeholder="Busque em todo o sistema (⌘K)"
+					placeholder="Busque em todo o sistema"
 					value={headerSearchValue}
 					oninput={handleHeaderSearchInput}
 				/>
+			</div>
+			<div class="ml-auto">
+				<NotificacaoBell />
 			</div>
 		</header>
 		<main class="flex flex-1 flex-col gap-0.5 px-6 py-4">
@@ -70,5 +73,6 @@
 			{/if}
 			{@render children?.()}
 		</main>
+		<AppFooter class="mt-auto" />
 	</Sidebar.Inset>
 </Sidebar.Provider>

@@ -1,6 +1,9 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
+	import { mensagemDeErro } from '$lib/utils/erros';
+	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
+	import ConfirmAction from '$lib/components/confirm-action.svelte';
+	import { cn } from '$lib/utils';
 	import InfoCard from '$lib/components/ui/info-card.svelte';
 	import type { PageProps } from './$types';
 	import { SITUACAO_DEFERIMENTO_OPTIONS } from '$lib/constants/situacao-deferimento';
@@ -9,20 +12,69 @@
 	import { Eye, File, Plus, FileText, Download, Upload, Trash2 } from '@lucide/svelte';
 	import DataTable, { type Column } from '$lib/components/data-table.svelte';
 	import EventoDialog from '$lib/components/evento-dialog.svelte';
+	import ProcessoDialog from '$lib/components/processo-dialog.svelte';
 	import type { Evento } from '$lib/types/evento';
+	import type { Processo } from '$lib/types';
+	import type { Paginated } from '$lib/types/paginated';
 	import type { TipoEvento } from '$lib/constants/tipo_evento';
-	import { TIPO_EVENTO } from '$lib/constants/tipo_evento';
+	import { TIPO_EVENTO, TIPO_EVENTO_OPTIONS } from '$lib/constants/tipo_evento';
+	import * as Select from '$lib/components/ui/select';
+	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import type { BadgeVariant } from '$lib/components/ui/badge';
 	import { toast } from 'svelte-sonner';
 	import { api, apiFetch } from '$lib/api-client';
 	import { ApiException } from '$lib/types';
+	import LembreteDialog from '$lib/components/lembrete-dialog.svelte';
+	import type { Lembrete } from '$lib/types';
+	import { invalidateAll } from '$app/navigation';
+	import { Bell, History } from '@lucide/svelte';
+	import { formatDateOnly } from '$lib/utils/date';
 
 	let { data }: PageProps = $props();
 	const { caso, eventoFormData, eventos: initialEventos } = data;
+	const lembretes = $derived(data.lembretes ?? []);
+	const historico = $derived(data.historico?.items ?? []);
+
+	let lembreteDialogOpen = $state(false);
+	let editingLembrete = $state<Lembrete | null>(null);
+
+	function openNewLembrete() {
+		editingLembrete = null;
+		lembreteDialogOpen = true;
+	}
+
+	function openEditLembrete(lembrete: Lembrete) {
+		editingLembrete = lembrete;
+		lembreteDialogOpen = true;
+	}
+
+	async function refreshLembretes() {
+		await invalidateAll();
+	}
+
+	async function deleteLembrete(lembreteId: number) {
+		try {
+			await api.delete(`caso/${caso.id}/lembretes/${lembreteId}`);
+			toast.success('Lembrete removido');
+			await invalidateAll();
+		} catch (err) {
+			toast.error(mensagemDeErro(err, 'Erro ao remover lembrete'));
+		}
+	}
+
+	const acaoLabels: Record<string, string> = {
+		criacao: 'Criação',
+		edicao: 'Edição',
+		deferimento: 'Deferimento',
+		indeferimento: 'Indeferimento'
+	};
 
 	let arquivos = $state(caso.arquivos || []);
 	let fileInput: HTMLInputElement;
+	let replaceInput: HTMLInputElement;
 	let isUploading = $state(false);
+	// Anexo cuja substituição está em andamento (equivale ao "editar arquivo" da v2).
+	let replacingId = $state<number | null>(null);
 
 	function getSituacaoLabel(situacao: string) {
 		const option = SITUACAO_DEFERIMENTO_OPTIONS.find((opt) => opt.value === situacao);
@@ -79,30 +131,93 @@
 	};
 
 	const eventoColumns: Column[] = [
-		{ header: 'ID', key: 'id' },
-		{ header: 'Número do Evento', key: 'num_evento' },
-		{ header: 'Tipo', key: 'tipo', type: 'badge', badgeMap: badges },
-		{ header: 'Data do Evento', key: 'data_evento', type: 'date' },
-		{ header: 'Responsável', key: 'usuario_responsavel.nome' },
-		{
-			header: 'Status',
-			key: 'status',
-			type: 'status'
-		}
+		{ header: 'Nº', key: 'num_evento', class: 'w-[60px] whitespace-nowrap' },
+		{ header: 'Tipo', key: 'tipo', type: 'badge', badgeMap: badges, class: 'w-[200px]' },
+		{ header: 'Descrição', key: 'descricao', type: 'preview', previewClass: 'max-w-[520px]' },
+		{ header: 'Data', key: 'data_evento', type: 'date', class: 'w-[120px] whitespace-nowrap' },
+		{ header: 'Responsável', key: 'usuario_responsavel.nome', class: 'w-[200px]' }
 	];
 
+	const isAdmin = $derived(data.me?.urole === 'admin');
+
+	// Regra herdada da v2: só o admin ou quem criou o evento pode excluí-lo.
+	function podeExcluirEvento(evento: Evento): boolean {
+		return isAdmin || evento.id_criado_por === data.me?.id;
+	}
+
+	async function deleteEvento(evento: Evento) {
+		try {
+			await api.delete(`caso/${caso.id}/eventos/${evento.id}`);
+			toast.success('Evento excluído com sucesso');
+			await refreshEventos();
+		} catch (err) {
+			if (err instanceof ApiException) toast.error(err.message);
+			else toast.error('Erro ao excluir evento');
+		}
+	}
+
 	const eventoButtons = [
-		{ title: 'Ver', icon: Eye, href: (v: Evento) => `/casos/${caso.id}/eventos/${v.id}` }
+		{ title: 'Ver', icon: Eye, href: (v: Evento) => `/casos/${caso.id}/eventos/${v.id}` },
+		{
+			title: 'Excluir',
+			icon: Trash2,
+			show: (v: Evento) => podeExcluirEvento(v),
+			onClick: (v: Evento) => deleteEvento(v),
+			confirm: {
+				title: 'Excluir evento?',
+				description: 'O evento deixará de aparecer no caso e o arquivo anexado será apagado.',
+				confirmText: 'Excluir'
+			},
+			class: 'h-8 w-8 p-0 text-destructive hover:text-destructive'
+		}
 	];
 
 	let eventoDialogOpen = $state(false);
 
 	let eventos = $state(initialEventos);
+	let eventoTipoFiltro = $state('todos');
+
+	const eventoTipoOptions = [{ value: 'todos', label: 'Todos os tipos' }, ...TIPO_EVENTO_OPTIONS];
 
 	async function refreshEventos() {
-		const eventosResponse = await api.get(`caso/${caso.id}/eventos`);
+		// api.get already unwraps the response body — it returns the paginated
+		// data directly, so there is no Response.json() to call here.
+		const params = new URLSearchParams();
+		if (eventoTipoFiltro !== 'todos') params.set('tipo', eventoTipoFiltro);
+		const query = params.toString();
+		eventos = await api.get<Paginated<Evento>>(
+			`caso/${caso.id}/eventos${query ? `?${query}` : ''}`
+		);
+	}
 
-		eventos = await eventosResponse.json();
+	// --- Processos (CRUD via modal) ---
+	const processos = $derived(data.caso.processos ?? []);
+	let processoDialogOpen = $state(false);
+	let editingProcesso = $state<Processo | undefined>(undefined);
+
+	function openNewProcesso() {
+		editingProcesso = undefined;
+		processoDialogOpen = true;
+	}
+
+	function openEditProcesso(processo: Processo) {
+		editingProcesso = processo;
+		processoDialogOpen = true;
+	}
+
+	async function deleteProcesso(processoId: number) {
+		try {
+			await api.delete(`caso/${caso.id}/processos/${processoId}`);
+			toast.success('Processo inativado com sucesso');
+			await invalidateAll();
+		} catch (err) {
+			if (err instanceof ApiException) {
+				toast.error(err.message);
+			} else {
+				toast.error('Erro ao inativar processo');
+				console.error(err);
+			}
+		}
 	}
 
 	async function handleFileUpload() {
@@ -133,6 +248,36 @@
 		}
 	}
 
+	function startReplace(arquivoId: number) {
+		replacingId = arquivoId;
+		replaceInput?.click();
+	}
+
+	async function handleFileReplace() {
+		const file = replaceInput.files?.[0];
+		const arquivoId = replacingId;
+		if (!file || arquivoId === null) return;
+
+		isUploading = true;
+		const formData = new FormData();
+		formData.append('arquivo', file);
+
+		try {
+			const atualizado = await api.put<any>(`caso/${caso.id}/arquivos/${arquivoId}`, formData, {
+				headers: {}
+			});
+			arquivos = arquivos.map((a) => (a.id === arquivoId ? atualizado : a));
+			toast.success('Arquivo substituído com sucesso');
+		} catch (err) {
+			if (err instanceof ApiException) toast.error(err.message);
+			else toast.error('Erro ao substituir arquivo');
+		} finally {
+			isUploading = false;
+			replacingId = null;
+			replaceInput.value = '';
+		}
+	}
+
 	async function handleDownload(arquivo: any) {
 		try {
 			const response = await apiFetch(`caso/${caso.id}/arquivos/${arquivo.id}/download`);
@@ -151,7 +296,7 @@
 			window.URL.revokeObjectURL(url);
 			document.body.removeChild(a);
 		} catch (error) {
-			toast.error('Erro ao baixar arquivo');
+			toast.error(mensagemDeErro(error, 'Erro ao baixar arquivo'));
 			console.error(error);
 		}
 	}
@@ -231,24 +376,61 @@
 	<div class="grid gap-6 md:grid-cols-2">
 		<Card.Root>
 			<Card.Header>
-				<Card.Title>Processos</Card.Title>
+				<Card.Title class="flex items-center justify-between">
+					<span>Processos</span>
+					<Button variant="default" size="sm" onclick={openNewProcesso}>
+						<Plus class="h-4 w-4" /> Novo Processo
+					</Button>
+				</Card.Title>
 			</Card.Header>
 			<Card.Content>
 				<div class="space-y-2">
-					{#if !caso.processos || caso.processos.length === 0}
+					{#if processos.length === 0}
 						<div class="py-8 text-center text-muted-foreground">
 							<p>Nenhum processo associado a este caso.</p>
 						</div>
 					{:else}
-						{#each caso.processos as processo}
-							<div class="flex items-center justify-between rounded-lg bg-muted/50 p-2">
-								<div class="flex items-center gap-2">
-									<File class="h-4 w-4" />
-									<span>{processo.numero}</span>
+						{#each processos as processo (processo.id)}
+							<div class="flex items-center justify-between gap-2 rounded-lg bg-muted/50 p-3">
+								<div class="flex min-w-0 items-center gap-2">
+									<File class="h-4 w-4 shrink-0" />
+									<div class="min-w-0">
+										<p class="truncate font-medium">
+											{processo.especie}{processo.numero ? ` · Nº ${processo.numero}` : ''}
+										</p>
+										<p class="truncate text-xs text-muted-foreground">
+											{#if processo.vara}{processo.vara}{/if}
+											{#if processo.probabilidade}· Prob.: {processo.probabilidade}{/if}
+										</p>
+									</div>
 								</div>
-								<Button variant="ghost" size="sm" href="/casos/{caso.id}/processos/{processo.id}">
-									<Eye class="h-4 w-5" />
-								</Button>
+								<div class="flex shrink-0 gap-1">
+									<Button
+										variant="ghost"
+										size="sm"
+										onclick={() => openEditProcesso(processo)}
+										title="Editar"
+									>
+										<Edit class="h-4 w-4" />
+									</Button>
+									{#if isAdmin}
+										<ConfirmAction
+											title="Inativar processo?"
+											description="O processo será inativado e deixará de aparecer neste caso."
+											confirmText="Inativar"
+											buttonVariant="destructive"
+											onConfirm={() => deleteProcesso(processo.id)}
+											triggerClass={cn(
+												buttonVariants({ variant: 'ghost', size: 'sm' }),
+												'text-destructive hover:text-destructive'
+											)}
+										>
+											{#snippet trigger()}
+												<Trash2 class="h-4 w-4" />
+											{/snippet}
+										</ConfirmAction>
+									{/if}
+								</div>
 							</div>
 						{/each}
 					{/if}
@@ -273,6 +455,13 @@
 			</Card.Header>
 			<Card.Content>
 				<input type="file" bind:this={fileInput} onchange={handleFileUpload} class="hidden" />
+				<input
+					type="file"
+					accept="application/pdf"
+					bind:this={replaceInput}
+					onchange={handleFileReplace}
+					class="hidden"
+				/>
 				<div class="space-y-2">
 					{#if !arquivos || arquivos.length === 0}
 						<div class="py-8 text-center text-muted-foreground">
@@ -288,8 +477,22 @@
 									>
 								</div>
 								<div class="flex gap-1">
-									<Button variant="ghost" size="sm" onclick={() => handleDownload(arquivo)}>
+									<Button
+										variant="ghost"
+										size="sm"
+										onclick={() => handleDownload(arquivo)}
+										title="Baixar"
+									>
 										<Download class="h-4 w-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="sm"
+										onclick={() => startReplace(arquivo.id)}
+										disabled={isUploading}
+										title="Substituir arquivo"
+									>
+										<RefreshCw class="h-4 w-4" />
 									</Button>
 									<Button variant="ghost" size="sm" onclick={() => handleDelete(arquivo.id)}>
 										<Trash2 class="h-4 w-4 text-destructive" />
@@ -305,11 +508,27 @@
 
 	<Card.Root>
 		<Card.Header>
-			<Card.Title class="flex items-center justify-between">
+			<Card.Title class="flex flex-wrap items-center justify-between gap-2">
 				<span>Eventos</span>
-				<Button variant="default" size="sm" onclick={() => (eventoDialogOpen = true)}>
-					<Plus class="h-4 w-4" /> Novo Evento
-				</Button>
+				<div class="flex items-center gap-2">
+					<Select.Root
+						type="single"
+						bind:value={eventoTipoFiltro}
+						onValueChange={() => refreshEventos()}
+					>
+						<Select.Trigger class="w-[200px]" aria-label="Filtrar eventos por tipo">
+							{eventoTipoOptions.find((o) => o.value === eventoTipoFiltro)?.label}
+						</Select.Trigger>
+						<Select.Content>
+							{#each eventoTipoOptions as option (option.value)}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+					<Button variant="default" size="sm" onclick={() => (eventoDialogOpen = true)}>
+						<Plus class="h-4 w-4" /> Novo Evento
+					</Button>
+				</div>
 			</Card.Title>
 		</Card.Header>
 		<Card.Content>
@@ -321,6 +540,87 @@
 			/>
 		</Card.Content>
 	</Card.Root>
+
+	<Card.Root>
+		<Card.Header>
+			<Card.Title class="flex items-center justify-between">
+				<span class="flex items-center gap-2"><Bell class="h-5 w-5" /> Lembretes</span>
+				<Button variant="default" size="sm" onclick={openNewLembrete}>
+					<Plus class="h-4 w-4" /> Novo Lembrete
+				</Button>
+			</Card.Title>
+		</Card.Header>
+		<Card.Content>
+			{#if lembretes.length === 0}
+				<p class="text-sm text-muted-foreground">Nenhum lembrete para este caso.</p>
+			{:else}
+				<div class="space-y-2">
+					{#each lembretes as lembrete (lembrete.id)}
+						<div class="flex items-start justify-between rounded-md border p-3">
+							<div class="space-y-1">
+								<p class="font-medium">#{lembrete.num_lembrete} — {lembrete.descricao}</p>
+								<p class="text-sm text-muted-foreground">
+									Notificar em {formatDateOnly(lembrete.data_lembrete)}
+									{#if lembrete.usuario}· Responsável: {lembrete.usuario.nome}{/if}
+								</p>
+							</div>
+							<div class="flex gap-1">
+								<Button variant="ghost" size="sm" onclick={() => openEditLembrete(lembrete)}>
+									<Edit class="h-4 w-4" />
+								</Button>
+								<Button variant="ghost" size="sm" onclick={() => deleteLembrete(lembrete.id)}>
+									<Trash2 class="h-4 w-4 text-destructive" />
+								</Button>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</Card.Content>
+	</Card.Root>
+
+	<Card.Root>
+		<Card.Header>
+			<Card.Title class="flex items-center gap-2"><History class="h-5 w-5" /> Histórico</Card.Title>
+		</Card.Header>
+		<Card.Content>
+			{#if historico.length === 0}
+				<p class="text-sm text-muted-foreground">Nenhum registro no histórico.</p>
+			{:else}
+				<div class="space-y-3">
+					{#each historico as item (item.id)}
+						<div class="flex items-start gap-3 border-l-2 border-muted pl-3">
+							<div class="space-y-0.5">
+								<p class="text-sm font-medium">
+									{acaoLabels[item.acao ?? ''] ?? item.acao ?? 'Alteração'}
+									{#if item.usuario}<span class="font-normal text-muted-foreground"
+											>· {item.usuario.nome}</span
+										>{/if}
+								</p>
+								{#if item.descricao}
+									<p class="text-sm text-muted-foreground">{item.descricao}</p>
+								{/if}
+								<p class="text-xs text-muted-foreground">{formatDateTime(item.data)}</p>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</Card.Content>
+	</Card.Root>
 </div>
 
-<EventoDialog {eventoFormData} open={eventoDialogOpen} onSuccess={refreshEventos} />
+<EventoDialog {eventoFormData} bind:open={eventoDialogOpen} onSuccess={refreshEventos} />
+<ProcessoDialog
+	casoId={caso.id}
+	processo={editingProcesso}
+	formData={data.processoFormData}
+	bind:open={processoDialogOpen}
+	onSuccess={invalidateAll}
+/>
+<LembreteDialog
+	casoId={caso.id}
+	lembrete={editingLembrete}
+	bind:open={lembreteDialogOpen}
+	onSuccess={refreshLembretes}
+/>

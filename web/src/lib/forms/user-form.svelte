@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import * as Form from '$lib/components/ui/form/index.js';
 	import { Button } from '$lib/components/ui/button';
 	import {
@@ -56,10 +57,12 @@
 					isCreateMode ? 'Usuário criado com sucesso!' : 'Usuário atualizado com sucesso!'
 				);
 
-				await goto(`/usuarios/${response.id}`);
+				// invalidateAll so the destination view reloads fresh data instead of
+				// showing the pre-edit values from SvelteKit's cached load.
+				await goto(`/usuarios/${response.id}`, { invalidateAll: true });
 			} catch (error) {
 				console.error('User form error:', error);
-				toast.error('Erro ao salvar usuário. Por favor, tente novamente.');
+				toast.error(mensagemDeErro(error, 'Erro ao salvar usuário. Por favor, tente novamente.'));
 			}
 		}
 	});

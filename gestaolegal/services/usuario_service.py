@@ -55,6 +55,10 @@ class UsuarioService:
             logger.warning(f"User not found with email: {email}")
         return User.to_info_optional(user)
 
+    def opcoes(self) -> list[dict[str, Any]]:
+        """Lista enxuta de usuários ativos para seletores (caso, lembrete, relatório)."""
+        return self.repository.opcoes_ativos()
+
     def search(
         self,
         page_params: PageParams,
@@ -236,11 +240,9 @@ class UsuarioService:
                 )
                 raise UnauthorizedException("Senha atual incorreta")
 
-        logger.info(f"Hashing password: {new_password}")
         hashed_password = bcrypt.hashpw(
             new_password.encode("utf-8"), bcrypt.gensalt()
         ).decode("utf-8")
-        logger.info(f"Hashed password: {hashed_password}")
 
         password_data = {
             "senha": hashed_password,

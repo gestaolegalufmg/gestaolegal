@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import type { PageProps } from './$types';
@@ -30,6 +31,7 @@
 	let fileInputValue = $state('');
 
 	const form = superForm(initialForm, {
+		id: 'evento-edit-form',
 		SPA: true,
 		validators: zod4Client(eventoUpdateFormSchema),
 		resetForm: false,
@@ -130,7 +132,7 @@
 			window.URL.revokeObjectURL(url);
 			document.body.removeChild(a);
 		} catch (error) {
-			toast.error('Erro ao baixar arquivo');
+			toast.error(mensagemDeErro(error, 'Erro ao baixar arquivo'));
 			console.error(error);
 		}
 	}

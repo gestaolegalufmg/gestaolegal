@@ -6,6 +6,7 @@ import { api } from '$lib/api-client';
 import { error } from '@sveltejs/kit';
 import { ApiException } from '$lib/types';
 import type { Evento } from '$lib/types/evento';
+import { toISODateInput } from '$lib/utils/date';
 
 export const load: PageLoad = async ({ params, fetch }) => {
 	try {
@@ -15,12 +16,14 @@ export const load: PageLoad = async ({ params, fetch }) => {
 			{
 				tipo: evento.tipo,
 				descricao: evento.descricao ?? '',
-				data_evento: evento.data_evento,
+				// API sends dates as GMT strings; the picker/schema need ISO YYYY-MM-DD.
+				data_evento: toISODateInput(evento.data_evento),
 				id_usuario_responsavel: evento.id_usuario_responsavel ?? null,
 				status: evento.status,
 				arquivo: null
 			},
-			zod4(eventoUpdateFormSchema)
+			zod4(eventoUpdateFormSchema),
+			{ id: 'evento-edit-form' }
 		);
 
 		return {

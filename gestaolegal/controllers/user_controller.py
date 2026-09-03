@@ -25,6 +25,17 @@ def get_me():
     return success_response(data=asdict(current_user))
 
 
+@user_controller.route("/opcoes", methods=["GET"])
+@authenticated
+def opcoes():
+    """Usuários ativos (id, nome, urole) para seletores.
+
+    Existe porque a listagem geral é restrita ao admin, mas qualquer usuário
+    autenticado pode cadastrar caso ou lembrete e precisa escolher pessoas.
+    """
+    return success_response(data={"items": UsuarioService().opcoes()})
+
+
 @user_controller.route("/", methods=["GET"])
 @authorized("admin")
 def get():
