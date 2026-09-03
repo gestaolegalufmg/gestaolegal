@@ -53,3 +53,18 @@ opção (corrigido pela migração `9b4a1c7e30df` e pela normalização na carga
 do formulário). Fechar o conjunto no input evitaria a recorrência, mas
 alguns testes usam `deferido` de propósito e precisariam ser revistos
 junto.
+
+## Recuperação de senha: limite de pedidos só por usuário
+
+**O que acontece.** `PasswordResetService.solicitar` conta os pedidos de cada
+usuário nos últimos 15 minutos e para de enviar acima de três, o que protege
+uma caixa de entrada de ser inundada.
+
+**O que fica de fora.** Nada limita a quantidade de tentativas por origem: um
+script pode chamar `POST /api/auth/forgot-password` com milhares de endereços
+diferentes. A resposta é sempre a mesma, então isso não revela quem tem conta,
+mas consome recursos do servidor e do MTA.
+
+**Como resolver.** Limitar por IP exige estado compartilhado entre os workers
+do gunicorn — Flask-Limiter com Redis, ou `limit_req` no nginx à frente da
+API. A segunda opção não acrescenta dependência à aplicação.
