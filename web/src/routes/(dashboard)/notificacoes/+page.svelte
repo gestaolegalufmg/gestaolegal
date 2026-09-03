@@ -96,7 +96,9 @@
 				{@const destino = destinoDaNotificacao(n)}
 				<li class="flex flex-wrap items-center gap-3 p-4 {n.lida ? '' : 'bg-primary/5'}">
 					<span
-						class="h-2.5 w-2.5 shrink-0 rounded-full {n.lida ? 'bg-transparent' : 'bg-primary'}"
+						class="mt-1.5 h-2.5 w-2.5 shrink-0 self-start rounded-full {n.lida
+							? 'bg-transparent'
+							: 'bg-primary'}"
 						title={n.lida ? 'Lida' : 'Não lida'}
 					></span>
 					<div class="min-w-0 flex-1">
