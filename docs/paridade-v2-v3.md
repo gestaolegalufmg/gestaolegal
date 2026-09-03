@@ -286,10 +286,16 @@ nem é alcançada por "Marcar todas como lidas".
 
 | Item | Status |
 |---|---|
-| 1. Arquivar um aviso: sai da lista e o sino cai, se era não lida | ⏳ |
-| 2. Filtro "Arquivadas" mostra o que foi arquivado; "Todas" mostra os dois | ⏳ |
-| 3. Desarquivar devolve o aviso à lista de ativas | ⏳ |
-| 4. "Arquivar lidas" não toca nas não lidas | ⏳ |
+| 1. Arquivar um aviso: sai da lista e o sino cai, se era não lida | ✅ |
+| 2. Filtro "Arquivadas" mostra o que foi arquivado; "Todas" mostra os dois | ✅ |
+| 3. Desarquivar devolve o aviso à lista de ativas | ✅ |
+| 4. "Arquivar lidas" não toca nas não lidas | ✅ |
+
+Aprovado em 03/09/2026. Um tropeço no caminho: constantes exportadas do
+`+page.ts` derrubavam a rota — módulos de rota do SvelteKit só aceitam
+exports conhecidos (`load`, `ssr`, `csr`...), e isso não aparece no
+`svelte-check`, só ao abrir a página. Helpers compartilhados vão para
+`$lib`.
 
 ## 6. Pendências e ideias anotadas
 
