@@ -11,6 +11,7 @@ from gestaolegal.models.plantao import (
 )
 from gestaolegal.models.plantao_input import ConfiguracaoPlantaoInput, MarcarDiaInput
 from gestaolegal.models.user import UserInfo
+from gestaolegal.services.notificacao_service import NotificacaoService
 from gestaolegal.repositories.plantao_repository import PlantaoRepository
 from gestaolegal.utils.tempo import agora_brasilia
 
@@ -205,11 +206,15 @@ class PlantaoService:
             "dias": [dia.data.isoformat() for dia in self.repository.list_dias()],
         }
 
-    def salvar_configuracao(self, dados: ConfiguracaoPlantaoInput) -> dict[str, Any]:
+    def salvar_configuracao(
+        self, dados: ConfiguracaoPlantaoInput, executor_id: int | None = None
+    ) -> dict[str, Any]:
         """Salva a janela e faz o diff dos dias abertos.
 
         Dias retirados são desativados em vez de apagados: a v2 fazia DELETE
         físico, deixando marcações órfãs apontando para datas inexistentes.
+        Quando a data de abertura é definida ou alterada, avisa orientadores e
+        estagiários (notificação geral), como na v2.
         """
         atuais = {dia.data: dia for dia in self.repository.list_dias()}
         desejados = set(dados.dias)
@@ -231,10 +236,14 @@ class PlantaoService:
             "data_fechamento": dados.data_fechamento,
         }
         registro = self.repository.get_plantao()
+        abertura_anterior = registro.data_abertura if registro else None
         if registro:
             self.repository.update_plantao(registro.id, janela)
         else:
             self.repository.create_plantao(janela)
+
+        if executor_id is not None and dados.data_abertura != abertura_anterior:
+            NotificacaoService().plantao_aberto(executor_id)
 
         logger.info(
             f"Configuração do plantão salva: {len(desejados)} dias, "

@@ -59,7 +59,9 @@ def salvar_configuracao():
     dados = ConfiguracaoPlantaoInput.model_validate(json_data)
 
     service = PlantaoService()
-    configuracao = service.salvar_configuracao(dados)
+    configuracao = service.salvar_configuracao(
+        dados, executor_id=RequestContext.get_current_user().id
+    )
 
     return success_response(
         data=configuracao, message="Configuração do plantão salva com sucesso"

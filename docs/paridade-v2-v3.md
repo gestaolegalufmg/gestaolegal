@@ -64,16 +64,19 @@ datas futuras; só usuários e marcações ativos.
 1. **Fase 1** — ganhos rápidos sem migração (itens 5–9). **Concluída e aprovada em 03/09/2026 (PR #375).**
 2. **Fase 2** — Arquivos gerais. **Implementada em 03/09/2026 na branch
    `feat/fase2-arquivos-gerais`; roteiro aprovado em 03/09/2026.**
-3. **Fase 3** — Notificações: migração recriando `notificacao` com coluna `lida`
-   e destino estruturado (tipo + ids); serviço único de disparo chamado por
-   caso, evento, lembrete e configuração do plantão; endpoint paginado; página +
-   ícone com contador no cabeçalho.
-4. **Fase 4** — Recuperação de senha: SMTP no `.env`, serviço de e-mail, token
-   PyJWT com expiração, endpoints públicos em auth, páginas e link no login.
+3. **Fase 3** — Notificações, só dentro do sistema (decisão de 03/09/2026).
+   **Implementada em 03/09/2026 na mesma branch `feat/fase2-arquivos-gerais`,
+   após a fase 2; em teste (seção 8).**
+4. **Fase 4** — Recuperação de senha: serviço de e-mail, token PyJWT com
+   expiração, endpoints públicos em auth, páginas e link no login. SMTP:
+   não há servidor do projeto; replicar a estrutura de `/opt/sanfili`
+   (Mailpit em desenvolvimento, `boky/postfix` como relay em produção,
+   configurado por `MAIL_HOST`/`MAIL_PORT`/`MAIL_FROM`). Decisão de 03/09/2026.
 5. **Fase 5** — PJ, atalhos da home, atualizar a wiki.
 
-Decisões pendentes do usuário: notificações só in-app ou também e-mail; há SMTP
-disponível; reaproveitar texto dos termos (feito com o texto da 2.0).
+Decisões tomadas em 03/09/2026: notificações só no sistema por enquanto (e-mail
+fica para depois da fase 4); SMTP via container Postfix como em `/opt/sanfili`;
+termos reaproveitados da 2.0.
 
 ## 3. Fase 1 — o que foi implementado (branch `feat/fase1-paridade-v2`)
 
@@ -149,6 +152,38 @@ Frontend:
 - `lib/forms/arquivo-form.svelte` (título, descrição, arquivo),
   `lib/utils/download.ts` (download autenticado reutilizável).
 
+## 3c. Fase 3 — Notificações (branch `feat/fase2-arquivos-gerais`)
+
+Regras da 2.0 mantidas: cada usuário vê as suas; orientadores e estagiários
+veem também os avisos gerais (destinatário nulo). Quem executa a ação não é
+notificado da própria ação (a 2.0 notificava; era ruído).
+
+Disparos (serviço único `NotificacaoService`, chamado dentro da transação da
+ação de origem):
+- Cadastro de caso: responsável, orientador, estagiário e colaborador
+  ("Cadastrado no caso N"). Edição de caso: só quem passou a fazer parte.
+- Novo evento com responsável: o responsável ("Cadastrado no evento N do
+  caso M"). Novo lembrete: o usuário do lembrete.
+- Configuração do plantão com data de abertura nova ou alterada: aviso geral
+  "Abertura do plantão" (salvar sem mudar a abertura não repete).
+
+Backend:
+- A tabela `notificacao` da 2.0 nunca foi removida. Migração `2101e3af25b9`
+  acrescenta `tipo` (caso|evento|lembrete|plantao), `id_caso`,
+  `id_referencia` (id do evento/lembrete), `lida` e `data_criacao`. A 2.0
+  descobria o destino interpretando o texto da ação; agora é estruturado.
+- `/api/notificacao`: `GET /?page&per_page` (com nome do executor, mais
+  recentes primeiro), `GET /nao-lidas` (`{total}`), `PATCH /<id>/lida`,
+  `PATCH /lidas` (todas). 10 testes em `tests/api/test_notificacao_api.py`
+  (246 no total).
+
+Frontend:
+- Sino no cabeçalho (`notificacao-bell.svelte`) com contador de não lidas,
+  atualizado a cada 60 s e a cada navegação; leva a `/notificacoes`.
+- Página `/notificacoes`: lista paginada, não lidas em destaque, botão
+  "Abrir" (marca como lida e vai ao destino: caso, evento, caso do lembrete ou
+  escala do plantão), "Marcar todas como lidas". Item "Notificações" na sidebar.
+
 ## 4. Seed local (banco em localhost)
 
 Script: `scripts/seed_local.py` (cópia do usado). Usuários (senha `senha123`):
@@ -212,6 +247,19 @@ Seed: dois arquivos cadastrados pelo admin via API ("Regimento interno",
 | 4. Editar: só texto; substituir arquivo | ✅ OK |
 | 5. Excluir com confirmação | ✅ OK após corrigir o refresh da lista |
 | 6. Papéis: Eduardo (estagiário) e Carla (colab. externo) | ✅ OK |
+
+## 8. Roteiro de testes — fase 3 (Notificações)
+
+Seed: caso 5 (admin → responsável admin, orientadora Olívia, estagiário
+Eduardo) criado pela API, gerando 1 notificação para Olívia e 1 para Eduardo.
+
+| Item | Status |
+|---|---|
+| 1. Sino e página (Eduardo): contador 1, lista, Abrir → caso 5, contador 0 | ⏳ |
+| 2. Evento com responsável e lembrete (admin → Eduardo) | ⏳ |
+| 3. Editar caso incluindo Carla → só Carla é avisada | ⏳ |
+| 4. Abertura do plantão → aviso geral para Olívia e Eduardo, não para Carla | ⏳ |
+| 5. Marcar todas como lidas; paginação | ⏳ |
 
 ## 6. Pendências e ideias anotadas
 

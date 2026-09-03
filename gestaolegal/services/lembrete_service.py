@@ -9,6 +9,7 @@ from gestaolegal.models.lembrete_input import (
     LembreteCreateInput,
     LembreteUpdateInput,
 )
+from gestaolegal.services.notificacao_service import NotificacaoService
 from gestaolegal.repositories.lembrete_repository import LembreteRepository
 from gestaolegal.repositories.repository import GetParams, WhereClause
 from gestaolegal.repositories.user_repository import UserRepository
@@ -84,6 +85,9 @@ class LembreteService:
                     "descricao": data.descricao,
                     "status": True,
                 }
+            )
+            NotificacaoService().lembrete_criado(
+                lembrete_id, num_lembrete, caso_id, data.id_usuario, criador_id
             )
         created = self.find_by_id(lembrete_id)
         assert created is not None
