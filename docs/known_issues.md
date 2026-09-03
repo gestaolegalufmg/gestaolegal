@@ -68,3 +68,21 @@ mas consome recursos do servidor e do MTA.
 **Como resolver.** Limitar por IP exige estado compartilhado entre os workers
 do gunicorn — Flask-Limiter com Redis, ou `limit_req` no nginx à frente da
 API. A segunda opção não acrescenta dependência à aplicação.
+
+## Legado: cadastro de pessoa jurídica sem uso
+
+**O que acontece.** A tabela `assistidos_pessoa_juridica` (sócios, situação na
+receita, enquadramento, sede, área de atuação, faturamento, funcionários e mais)
+continua no banco, e a 3.0 tem o dataclass `AssistidoPessoaJuridica`
+(`gestaolegal/models/assistido_pessoa_juridica.py`, exportado em
+`models/__init__.py`) e o campo `assistido_pessoa_juridica` em `Assistido`.
+Nenhum repository, service ou controller lê ou grava qualquer um dos dois.
+
+**De onde vem.** Na 2.0 esse cadastro também nunca funcionou: os campos do
+formulário estão comentados e nenhuma view gravava a tabela (ver seção 1.1 de
+`paridade-v2-v3.md`). A 3.0 herdou o esqueleto junto com o resto do esquema.
+
+**Como resolver.** Se a coleta desses dados voltar a ser desejada, é
+funcionalidade nova — repository, service, rotas e formulário. Se não, o model
+e a tabela podem ser removidos por migração. Antes de remover, conferir se a
+tabela está vazia **em produção**: no banco de desenvolvimento está.
