@@ -119,7 +119,7 @@
 	$effect(() => {
 		if (isHorarios && usuarios === null) {
 			api
-				.get<{ items: UsuarioOption[] }>('relatorio/usuarios')
+				.get<{ items: UsuarioOption[] }>('user/opcoes')
 				.then((data) => (usuarios = data.items))
 				.catch(() => {
 					usuarios = [];

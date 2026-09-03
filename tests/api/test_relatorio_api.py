@@ -119,16 +119,3 @@ class TestRelatorioHorarios:
     def test_orientador_acessa(self, client, non_admin_auth_headers):
         response = _horarios(client, non_admin_auth_headers, "2024-03-01", "2024-03-30")
         assert response.status_code == 200
-
-
-class TestRelatorioUsuarios:
-    def test_lista_usuarios_ativos_para_orientador(self, client, non_admin_auth_headers):
-        data = get_success_data(client.get("/api/relatorio/usuarios", headers=non_admin_auth_headers))
-        nomes = [u["nome"] for u in data["items"]]
-        assert len(nomes) >= 2
-        assert nomes == sorted(nomes)
-        assert {"id", "nome", "urole"} <= set(data["items"][0].keys())
-
-    def test_estagiario_nao_acessa(self, client, estagiario_auth_headers):
-        response = client.get("/api/relatorio/usuarios", headers=estagiario_auth_headers)
-        assert response.status_code == 403

@@ -78,9 +78,6 @@ class RelatorioService:
             )
         return ids or None
 
-    def usuarios_disponiveis(self) -> list[dict]:
-        return self.repository.usuarios_ativos()
-
     def horarios(self, data_inicio: str, data_final: str, usuarios: str | None) -> dict:
         """Relatório "Horário de chegada e saída dos usuários" da v2.
 
