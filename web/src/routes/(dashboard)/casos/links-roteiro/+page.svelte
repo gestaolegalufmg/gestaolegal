@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import type { PageProps } from './$types';
 	import * as Card from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
@@ -30,8 +31,8 @@
 			await api.put('roteiro', { area_direito: area, link: links[area] || null });
 			toast.success('Roteiro atualizado');
 			await invalidateAll();
-		} catch {
-			toast.error('Erro ao salvar roteiro');
+		} catch (err) {
+			toast.error(mensagemDeErro(err, 'Erro ao salvar roteiro'));
 		} finally {
 			savingArea = null;
 		}

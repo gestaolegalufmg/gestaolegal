@@ -89,7 +89,10 @@ class ForbiddenException(GestaoLegalException):
         raise ForbiddenException("Apenas administradores podem executar esta ação")
     """
 
-    def __init__(self, message: str = "Acesso negado"):
+    def __init__(
+        self,
+        message: str = "Você não tem permissão para executar esta ação. Contate o administrador.",
+    ):
         super().__init__(message=message, error_code="FORBIDDEN")
 
 

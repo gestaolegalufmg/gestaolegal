@@ -93,6 +93,13 @@ Backend:
   encontrado no teste 4: novo caso, editar caso e diálogo de lembrete
   carregavam `GET /api/user` (só admin), então não-admins recebiam erro ao
   abrir essas telas. Também usado no relatório de horários.
+- Mensagens de permissão padronizadas (03/09): o decorator `authorized`
+  devolve JSON com "Você não tem permissão para executar esta ação. Contate o
+  administrador." (antes era texto puro "Forbidden", que quebrava o parse no
+  cliente). No web, `mensagemDeErro(err, padrão)` em `$lib/utils/erros.ts`
+  mostra a mensagem do backend em todos os toasts de erro; páginas com
+  bloqueio próprio (usuários, plantão, relatórios) terminam com "Contate o
+  administrador.".
 - Erros HTTP do Werkzeug traduzidos (404, 405, 413 "O arquivo excede o tamanho
   máximo de 10 MB", 415) em `utils/error_handlers.py`.
 
@@ -159,8 +166,8 @@ e 2 PDFs. Presenças e plantões inseridos por SQL entre 18/08 e 02/09/2026
 5. Baixar CSV → duas seções, acentos OK.
 6. "Casos por Situação" continua funcionando.
 7. Olívia gera OK; Eduardo não vê "Relatórios" no menu e, acessando
-   `/relatorios` pela URL, recebe "Você não tem permissão para gerar
-   relatórios".
+   `/relatorios` pela URL, recebe "Você não tem permissão para gerar este
+   relatório. Contate o administrador.".
 
 ## 6. Pendências e ideias anotadas
 

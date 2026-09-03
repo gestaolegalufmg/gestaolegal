@@ -102,7 +102,7 @@
 					calendarLabel="Dias de plantão"
 				/>
 			</Card.Content>
-			<Card.Footer class="text-muted-foreground justify-center text-sm">
+			<Card.Footer class="justify-center text-sm text-muted-foreground">
 				{diasISO.length}
 				{diasISO.length === 1 ? 'dia selecionado' : 'dias selecionados'}
 			</Card.Footer>

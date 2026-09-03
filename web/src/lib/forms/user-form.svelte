@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import * as Form from '$lib/components/ui/form/index.js';
 	import { Button } from '$lib/components/ui/button';
 	import {
@@ -61,7 +62,7 @@
 				await goto(`/usuarios/${response.id}`, { invalidateAll: true });
 			} catch (error) {
 				console.error('User form error:', error);
-				toast.error('Erro ao salvar usuário. Por favor, tente novamente.');
+				toast.error(mensagemDeErro(error, 'Erro ao salvar usuário. Por favor, tente novamente.'));
 			}
 		}
 	});

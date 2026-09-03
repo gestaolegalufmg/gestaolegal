@@ -66,7 +66,7 @@
 			<Card.Header>
 				<Card.Title class="text-center text-base font-normal">Registrando</Card.Title>
 			</Card.Header>
-			<Card.Content class="text-destructive text-center text-lg font-semibold">
+			<Card.Content class="text-center text-lg font-semibold text-destructive">
 				{acao}
 			</Card.Content>
 		</Card.Root>
