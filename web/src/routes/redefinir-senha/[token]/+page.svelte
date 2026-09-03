@@ -25,6 +25,9 @@
 		SPA: true,
 		validators: zod4Client(resetPasswordSchema),
 		resetForm: false,
+		// Sem revalidar os loads: o token acabou de ser consumido e a página
+		// piscaria "link expirado" por cima do sucesso.
+		invalidateAll: false,
 		// onUpdate, não onSubmit: este roda antes da validação e enviaria o
 		// formulário mesmo com as senhas divergentes.
 		onUpdate: async ({ form: validado, result }) => {
@@ -39,7 +42,7 @@
 					password: validado.data.password
 				});
 				toast.success('Senha redefinida. Entre com a senha nova.');
-				goto('/login');
+				await goto('/login');
 			} catch (err) {
 				// O link pode ter expirado entre abrir a página e enviar o formulário.
 				erro = mensagemDeErro(err, 'Não foi possível redefinir a senha. Tente novamente.');
