@@ -239,6 +239,27 @@ arquivos = Table(
     Column("id_criado_por", Integer, ForeignKey("usuarios.id"), nullable=True),
 )
 
+notificacao = Table(
+    "notificacao",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("id_executor_acao", Integer, ForeignKey("usuarios.id"), nullable=True),
+    # Nulo = aviso geral (abertura do plantão), visto por orientadores e estagiários.
+    Column("id_usu_notificar", Integer, ForeignKey("usuarios.id"), nullable=True),
+    Column("acao", String(200), nullable=False),
+    Column("data", Date, nullable=False),
+    # Colunas abaixo não existiam na v2 (nulas em registros herdados).
+    Column("tipo", String(30), nullable=True),  # caso | evento | lembrete | plantao
+    Column("id_caso", Integer, nullable=True),
+    Column("id_referencia", Integer, nullable=True),  # id do evento ou lembrete
+    # Resumo do conteúdo do aviso (cliente do caso, descrição do lembrete etc.).
+    Column("detalhe", String(300), nullable=True),
+    Column("lida", Boolean, nullable=False, default=False),
+    Column("data_criacao", DateTime, nullable=True),
+    # Preenchida = notificação arquivada (some da lista padrão).
+    Column("data_arquivamento", DateTime, nullable=True),
+)
+
 assistencias_judiciarias = Table(
     "assistencias_judiciarias",
     metadata,

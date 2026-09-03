@@ -18,6 +18,20 @@ export const SITUACAO_DEFERIMENTO_OPTIONS = [
 	{ value: SITUACAO_DEFERIMENTO.SOLUCIONADO, label: 'Solucionado' }
 ];
 
+/**
+ * Valores antigos que ainda existem no banco, com o equivalente atual.
+ * "deferido" virou "ativo" quando a situação foi normalizada.
+ */
+const SITUACAO_DEFERIMENTO_LEGADA: Record<string, SituacaoDeferimento> = {
+	deferido: SITUACAO_DEFERIMENTO.ATIVO
+};
+
+/** Converte valores legados para o valor atual, aceito pelo formulário. */
+export function normalizarSituacaoDeferimento(valor: string | null | undefined): string | null {
+	if (!valor) return valor ?? null;
+	return SITUACAO_DEFERIMENTO_LEGADA[valor] ?? valor;
+}
+
 export const SITUACAO_DEFERIMENTO_BADGE_MAP = {
 	[SITUACAO_DEFERIMENTO.AGUARDANDO_DEFERIMENTO]: {
 		text: 'Aguardando Deferimento',
