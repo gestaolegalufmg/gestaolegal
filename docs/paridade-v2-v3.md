@@ -60,7 +60,7 @@ datas futuras; só usuários e marcações ativos.
 
 ## 2. Plano
 
-1. **Fase 1** — ganhos rápidos sem migração (itens 5–9). **Concluída; em teste.**
+1. **Fase 1** — ganhos rápidos sem migração (itens 5–9). **Concluída e aprovada em 03/09/2026 (PR #375).**
 2. **Fase 2** — Arquivos gerais: migração recriando `arquivos`, repo/service/
    controller no padrão de `arquivosCaso`, páginas `/arquivos`, item na sidebar
    restrito aos 4 papéis, testes.
@@ -132,7 +132,7 @@ Eduardo), 4 (Olívia → admin). Caso 1: 5 eventos (2 admin, 2 Eduardo, 1 Olívi
 e 2 PDFs. Presenças e plantões inseridos por SQL entre 18/08 e 02/09/2026
 (7 presenças, 4 plantões ativos + 1 apagado), todas as situações de conferência.
 
-## 5. Roteiro de testes — status
+## 5. Roteiro de testes — status (fase 1 aprovada em 03/09/2026)
 
 | Item | Status |
 |---|---|
@@ -140,8 +140,8 @@ e 2 PDFs. Presenças e plantões inseridos por SQL entre 18/08 e 02/09/2026
 | 2. Filtro de eventos por tipo | ✅ OK após correções (ordem alfabética, botão Novo Evento) |
 | 3. Substituir arquivo (troca, download, não-PDF, >10 MB) | ✅ OK após tradução do 413 |
 | 4. Meus Casos / Cadastrados por mim | ✅ OK; revelou bug pré-existente (novo caso por não-admin) corrigido com `user/opcoes` |
-| 5. Termos de uso | ⏳ pendente |
-| 6. Relatório de horários | ⏳ pendente |
+| 5. Termos de uso | ✅ OK |
+| 6. Relatório de horários | ✅ OK após ajustes (largura do card, 403 traduzido, menu e página restritos por papel) |
 
 ### Passos pendentes
 
