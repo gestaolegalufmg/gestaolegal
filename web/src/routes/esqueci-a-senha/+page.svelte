@@ -23,11 +23,15 @@
 		SPA: true,
 		validators: zod4Client(forgotPasswordSchema),
 		resetForm: false,
-		onSubmit: async ({ formData }) => {
-			const payload = Object.fromEntries(formData) as ForgotPasswordData;
+		// onUpdate, não onSubmit: este roda antes da validação e enviaria o
+		// formulário mesmo com o e-mail inválido.
+		onUpdate: async ({ form: validado, result }) => {
 			erro = null;
+			if (result.type === 'failure' || !validado.valid) {
+				return;
+			}
 			try {
-				await api.post('auth/forgot-password', payload);
+				await api.post('auth/forgot-password', { email: validado.data.email });
 				// A API responde igual exista ou não a conta, para não revelar
 				// quem tem cadastro; a tela segue a mesma linha.
 				enviado = true;

@@ -25,11 +25,19 @@
 		SPA: true,
 		validators: zod4Client(resetPasswordSchema),
 		resetForm: false,
-		onSubmit: async ({ formData }) => {
-			const { password } = Object.fromEntries(formData) as ResetPasswordData;
+		// onUpdate, não onSubmit: este roda antes da validação e enviaria o
+		// formulário mesmo com as senhas divergentes.
+		onUpdate: async ({ form: validado, result }) => {
 			erro = null;
+			if (result.type === 'failure' || !validado.valid) {
+				erro = 'Corrija os campos destacados para continuar.';
+				return;
+			}
 			try {
-				await api.post('auth/reset-password', { token: page.params.token, password });
+				await api.post('auth/reset-password', {
+					token: page.params.token,
+					password: validado.data.password
+				});
 				toast.success('Senha redefinida. Entre com a senha nova.');
 				goto('/login');
 			} catch (err) {
