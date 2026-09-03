@@ -58,7 +58,12 @@
 								debounceMs={500}
 								placeholder="Buscar usuários..."
 							/>
-							<Select.Root bind:value={filters.funcao} name="funcao" type="single" onValueChange={() => applyFilters()}>
+							<Select.Root
+								bind:value={filters.funcao}
+								name="funcao"
+								type="single"
+								onValueChange={() => applyFilters()}
+							>
 								<Select.Trigger class="w-[180px] data-[placeholder]:text-foreground">
 									{roleFilterOptions.find((option) => option.value === filters.funcao)?.label}
 								</Select.Trigger>
@@ -70,7 +75,10 @@
 							</Select.Root>
 						</div>
 						<label class="flex cursor-pointer items-center gap-2">
-							<Checkbox bind:checked={filters.show_inactive} onCheckedChange={() => applyFilters()} />
+							<Checkbox
+								bind:checked={filters.show_inactive}
+								onCheckedChange={() => applyFilters()}
+							/>
 							<span class="text-sm">Incluir inativos</span>
 						</label>
 					</div>
@@ -122,6 +130,8 @@
 			</div>
 		</div>
 	{:else}
-		<p class="text-muted-foreground">Você não tem permissão para visualizar usuários.</p>
+		<p class="text-muted-foreground">
+			Você não tem permissão para visualizar usuários. Contate o administrador.
+		</p>
 	{/if}
 </div>

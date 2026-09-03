@@ -5,13 +5,13 @@ import type { PageLoad } from './$types';
 import { api } from '$lib/api-client';
 import { error } from '@sveltejs/kit';
 import { ApiException } from '$lib/types';
-import type { Caso, Paginated, User } from '$lib/types';
+import type { Caso, UserOption } from '$lib/types';
 
 export const load: PageLoad = async ({ params, fetch }) => {
 	try {
 		const [caso, usersData] = await Promise.all([
 			api.get<Caso>(`caso/${params.id}`, {}, fetch),
-			api.get<Paginated<User>>('user?per_page=1000', {}, fetch)
+			api.get<{ items: UserOption[] }>('user/opcoes', {}, fetch)
 		]);
 
 		const casoData = {

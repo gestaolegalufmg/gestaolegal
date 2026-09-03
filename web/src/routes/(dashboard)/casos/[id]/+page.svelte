@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import ConfirmAction from '$lib/components/confirm-action.svelte';
@@ -56,8 +57,8 @@
 			await api.delete(`caso/${caso.id}/lembretes/${lembreteId}`);
 			toast.success('Lembrete removido');
 			await invalidateAll();
-		} catch {
-			toast.error('Erro ao remover lembrete');
+		} catch (err) {
+			toast.error(mensagemDeErro(err, 'Erro ao remover lembrete'));
 		}
 	}
 
@@ -295,7 +296,7 @@
 			window.URL.revokeObjectURL(url);
 			document.body.removeChild(a);
 		} catch (error) {
-			toast.error('Erro ao baixar arquivo');
+			toast.error(mensagemDeErro(error, 'Erro ao baixar arquivo'));
 			console.error(error);
 		}
 	}

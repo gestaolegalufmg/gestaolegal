@@ -404,3 +404,15 @@ def test_user_update_with_individual_address_fields(
     assert data["endereco"]["cep"] == "99999-999"
     assert data["endereco"]["cidade"] == "Nova Cidade"
     assert data["endereco"]["estado"] == "SP"
+
+
+class TestUserOpcoes:
+    def test_lista_usuarios_ativos_para_qualquer_autenticado(self, client, estagiario_auth_headers):
+        data = get_success_data(client.get("/api/user/opcoes", headers=estagiario_auth_headers))
+        nomes = [u["nome"] for u in data["items"]]
+        assert len(nomes) >= 2
+        assert nomes == sorted(nomes)
+        assert {"id", "nome", "urole"} <= set(data["items"][0].keys())
+
+    def test_exige_autenticacao(self, client):
+        assert client.get("/api/user/opcoes").status_code == 401

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -41,8 +42,8 @@
 				`assistencia_judiciaria?${params.toString()}`
 			);
 			items = data.items;
-		} catch {
-			toast.error('Erro ao carregar assistências judiciárias');
+		} catch (err) {
+			toast.error(mensagemDeErro(err, 'Erro ao carregar assistências judiciárias'));
 		} finally {
 			loading = false;
 		}
@@ -66,8 +67,8 @@
 			selectedId = null;
 			search = '';
 			await onEncaminhado?.();
-		} catch {
-			toast.error('Erro ao encaminhar orientação');
+		} catch (err) {
+			toast.error(mensagemDeErro(err, 'Erro ao encaminhar orientação'));
 		} finally {
 			submitting = false;
 		}

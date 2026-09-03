@@ -37,3 +37,5 @@ export type User = {
 
 	endereco: Endereco;
 };
+
+export type UserOption = Pick<User, 'id' | 'nome' | 'urole'>;

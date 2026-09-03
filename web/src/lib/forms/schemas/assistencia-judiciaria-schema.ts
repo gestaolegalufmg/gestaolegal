@@ -24,9 +24,7 @@ const baseAssistenciaJudiciariaFormSchema = z.object({
 		{ error: 'Selecione a região' }
 	),
 
-	areas_atendidas: z
-		.array(z.string())
-		.min(1, 'Selecione ao menos uma área atendida'),
+	areas_atendidas: z.array(z.string()).min(1, 'Selecione ao menos uma área atendida'),
 
 	telefone: z
 		.string()

@@ -7,7 +7,7 @@ const PAPEIS_PERMITIDOS = ['admin', 'colab_proj', 'prof'];
 export const load = async ({ fetch, parent }) => {
 	const { me } = await parent();
 	if (!PAPEIS_PERMITIDOS.includes(me.urole)) {
-		error(403, 'Você não tem permissão para acessar essa página');
+		error(403, 'Você não tem permissão para acessar esta página. Contate o administrador.');
 	}
 
 	try {

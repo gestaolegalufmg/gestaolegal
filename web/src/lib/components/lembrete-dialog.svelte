@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { Textarea } from '$lib/components/ui/textarea';
@@ -8,7 +9,7 @@
 	import { api } from '$lib/api-client';
 	import { toast } from 'svelte-sonner';
 	import type { Lembrete } from '$lib/types';
-	import type { Paginated, User } from '$lib/types';
+	import type { UserOption } from '$lib/types';
 
 	let {
 		casoId,
@@ -27,7 +28,7 @@
 	let descricao = $state('');
 	let dataLembrete = $state('');
 	let idUsuario = $state<string>('');
-	let usuarios = $state<User[]>([]);
+	let usuarios = $state<UserOption[]>([]);
 	let submitting = $state(false);
 
 	function toDateInput(value: string | null | undefined): string {
@@ -37,10 +38,10 @@
 
 	async function loadUsuarios() {
 		try {
-			const data = await api.get<Paginated<User>>('user?per_page=100');
+			const data = await api.get<{ items: UserOption[] }>('user/opcoes');
 			usuarios = data.items;
-		} catch {
-			toast.error('Erro ao carregar usuários');
+		} catch (err) {
+			toast.error(mensagemDeErro(err, 'Erro ao carregar usuários'));
 		}
 	}
 
@@ -78,8 +79,8 @@
 			}
 			open = false;
 			await onSuccess?.();
-		} catch {
-			toast.error('Erro ao salvar lembrete');
+		} catch (err) {
+			toast.error(mensagemDeErro(err, 'Erro ao salvar lembrete'));
 		} finally {
 			submitting = false;
 		}

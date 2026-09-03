@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import * as Card from '$lib/components/ui/card';
 	import * as Select from '$lib/components/ui/select';
+	import { ApiException } from '$lib/types';
 	import * as Table from '$lib/components/ui/table';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -119,7 +121,7 @@
 	$effect(() => {
 		if (isHorarios && usuarios === null) {
 			api
-				.get<{ items: UsuarioOption[] }>('relatorio/usuarios')
+				.get<{ items: UsuarioOption[] }>('user/opcoes')
 				.then((data) => (usuarios = data.items))
 				.catch(() => {
 					usuarios = [];
@@ -173,8 +175,17 @@
 			rows = data.items;
 			total = data.total;
 			generatedType = currentType;
-		} catch {
-			toast.error('Erro ao gerar relatório');
+		} catch (err) {
+			if (err instanceof ApiException && err.statusCode === 403) {
+				toast.error(
+					mensagemDeErro(
+						err,
+						'Você não tem permissão para gerar este relatório. Contate o administrador.'
+					)
+				);
+			} else {
+				toast.error('Erro ao gerar relatório');
+			}
 		} finally {
 			loading = false;
 		}
@@ -220,7 +231,7 @@
 	}
 </script>
 
-<div class="max-w-4xl space-y-6">
+<div class="max-w-6xl space-y-6">
 	<div>
 		<h1 class="text-3xl font-bold tracking-tight">Relatórios</h1>
 		<p class="mt-2 text-muted-foreground">
@@ -233,11 +244,13 @@
 			<Card.Title>Parâmetros</Card.Title>
 		</Card.Header>
 		<Card.Content class="space-y-4">
-			<div class="grid gap-4 md:grid-cols-3">
-				<div class="space-y-1">
+			<div class="grid gap-4 md:grid-cols-[2fr_1fr_1fr]">
+				<div class="min-w-0 space-y-1">
 					<Label>Tipo de Relatório</Label>
 					<Select.Root type="single" bind:value={reportType}>
-						<Select.Trigger class="w-full">{currentType.label}</Select.Trigger>
+						<Select.Trigger class="w-full" title={currentType.label}>
+							<span class="truncate">{currentType.label}</span>
+						</Select.Trigger>
 						<Select.Content>
 							{#each reportTypes as rt}
 								<Select.Item value={rt.value}>{rt.label}</Select.Item>

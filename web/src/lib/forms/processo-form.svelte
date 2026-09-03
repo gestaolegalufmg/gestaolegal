@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import * as Form from '$lib/components/ui/form/index.js';
 	import { Button } from '$lib/components/ui/button';
 	import { FormSection, SimpleInput, SimpleSelect, SimpleTextArea } from '$lib/components/forms';
@@ -56,7 +57,7 @@
 				}
 			} catch (error) {
 				console.error('Processo form error:', error);
-				toast.error('Erro ao salvar processo. Por favor, tente novamente.');
+				toast.error(mensagemDeErro(error, 'Erro ao salvar processo. Por favor, tente novamente.'));
 				onError?.(error);
 			}
 		}

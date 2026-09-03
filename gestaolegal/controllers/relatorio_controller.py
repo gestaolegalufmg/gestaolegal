@@ -45,17 +45,6 @@ def casos_por_orientacao():
     return success_response(data=result)
 
 
-@relatorio_controller.route("/usuarios", methods=["GET"])
-@authorized(*ALLOWED_ROLES)
-def usuarios_disponiveis():
-    """Usuários ativos para filtrar o relatório de horários.
-
-    Existe porque a listagem geral de usuários é restrita ao admin, e o
-    relatório também pode ser gerado por orientadores e colaboradores externos.
-    """
-    return success_response(data={"items": RelatorioService().usuarios_disponiveis()})
-
-
 @relatorio_controller.route("/horarios", methods=["GET"])
 @authorized(*ALLOWED_ROLES)
 def horarios():
