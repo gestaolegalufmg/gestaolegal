@@ -90,6 +90,7 @@
 			title: 'Relatórios',
 			url: '/relatorios',
 			icon: ChartBarIcon,
+			roles: ['admin', 'orient', 'colab_ext'],
 			items: []
 		}
 	];
