@@ -1,0 +1,122 @@
+# Compose da máquina de teste (glteste.direito.ufmg.br), que vive em
+# /opt/gestaolegal/docker-compose.yml naquele servidor. Diferente do
+# docker-compose.yml deste repositório, consome as imagens publicadas no ghcr em
+# vez de compilar localmente — atualizar é `pull` + `up -d`.
+#
+# As credenciais saem do .env do servidor, que não é versionado.
+
+services:
+  qa_front:
+    image: ghcr.io/gestaolegalufmg/gestaolegal-web:latest
+    container_name: qa_front
+    restart: unless-stopped
+    ports:
+      - "5001:80"
+    environment:
+      - PUBLIC_API_URL=
+    volumes:
+      - /opt/gestaolegal/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - qa_network
+    depends_on:
+      - qa_backend
+
+  qa_backend:
+    image: ghcr.io/gestaolegalufmg/gestaolegal-api:latest
+    container_name: qa_backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    networks:
+      - qa_network
+    depends_on:
+      qa_db:
+        condition: service_healthy
+      qa_migrate:
+        condition: service_completed_successfully
+      qa_mailpit:
+        condition: service_started
+    volumes:
+      - /opt/gestaolegal/arquivos:/code/gestaolegal/static/arquivos
+
+  # Aplica as migrações do Alembic antes de a API subir, usando a mesma imagem
+  # dela. Sem este serviço as migrações ficavam acumulando: em 03/09/2026 o
+  # banco estava seis revisões atrás do código publicado.
+  qa_migrate:
+    image: ghcr.io/gestaolegalufmg/gestaolegal-api:latest
+    container_name: qa_migrate
+    env_file:
+      - .env
+    entrypoint: []
+    environment:
+      - PYTHONPATH=/code
+    command: ["alembic", "-c", "migrations/alembic.ini", "upgrade", "head"]
+    networks:
+      - qa_network
+    depends_on:
+      qa_db:
+        condition: service_healthy
+    restart: on-failure
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+
+  qa_db:
+    image: mysql:8.0.42
+    container_name: qa_db
+    command: --authentication-policy=caching_sha2_password
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - '3306:3306'
+    networks:
+      - qa_network
+    volumes:
+      - /opt/gestaolegal/mysql_data:/var/lib/mysql
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 55
+
+  # MTA de QA: o Mailpit captura as mensagens e não entrega nada para fora, então
+  # testar a recuperação de senha não manda e-mail para usuário nenhum. A
+  # interface web fica em 127.0.0.1:8025 (só por túnel SSH) porque as mensagens
+  # capturadas trazem os tokens de redefinição.
+  qa_mailpit:
+    image: axllent/mailpit:v1.21
+    container_name: qa_mailpit
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    ports:
+      - "127.0.0.1:8025:8025"
+    networks:
+      - qa_network
+
+  qa_adminer:
+    image: adminer
+    container_name: qa_adminer
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    networks:
+      - qa_network
+
+networks:
+  qa_network:
+    name: qa_network
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
