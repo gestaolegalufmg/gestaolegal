@@ -101,6 +101,9 @@
 					></span>
 					<div class="min-w-0 flex-1">
 						<p class={n.lida ? '' : 'font-semibold'}>{n.acao}</p>
+						{#if n.detalhe}
+							<p class="text-sm text-foreground/80">{n.detalhe}</p>
+						{/if}
 						<p class="text-sm text-muted-foreground">
 							{n.executor ?? 'Sistema'} · {formatDateTime(n.data_criacao ?? n.data)}
 							{#if n.id_usu_notificar === null}

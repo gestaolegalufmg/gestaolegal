@@ -14,6 +14,7 @@ class Notificacao:
     tipo: str | None = None
     id_caso: int | None = None
     id_referencia: int | None = None
+    detalhe: str | None = None
     lida: bool = False
     data_criacao: datetime | None = None
     id: int | None = None

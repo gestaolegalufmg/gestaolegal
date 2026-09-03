@@ -87,7 +87,12 @@ class LembreteService:
                 }
             )
             NotificacaoService().lembrete_criado(
-                lembrete_id, num_lembrete, caso_id, data.id_usuario, criador_id
+                lembrete_id,
+                num_lembrete,
+                caso_id,
+                data.id_usuario,
+                criador_id,
+                data.descricao,
             )
         created = self.find_by_id(lembrete_id)
         assert created is not None
