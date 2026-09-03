@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { invalidate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import Download from '@lucide/svelte/icons/download';
@@ -38,7 +39,7 @@
 		try {
 			await api.delete(`arquivo/${a.id}`);
 			toast.success('Arquivo excluído');
-			applyFilters();
+			await invalidate('app:arquivos');
 		} catch (err) {
 			toast.error(mensagemDeErro(err, 'Erro ao excluir arquivo'));
 		}
