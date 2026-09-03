@@ -12,7 +12,7 @@
 		SUB_AREA_DIREITO_CIVEL_OPTIONS
 	} from '$lib/constants/area_direito';
 	import { SITUACAO_DEFERIMENTO_OPTIONS } from '$lib/constants/situacao-deferimento';
-	import type { User, Atendido } from '$lib/types';
+	import type { UserOption, Atendido } from '$lib/types';
 	import AssistidoSelectorDialog from '$lib/components/assistido-selector-dialog.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import X from '@lucide/svelte/icons/x';
@@ -42,7 +42,7 @@
 		currentUserId?: number;
 		onUpdate?: (data: any) => void;
 		onError?: (error: any) => void;
-		usuarios?: User[];
+		usuarios?: UserOption[];
 		assistidos?: Atendido[];
 	} = $props();
 

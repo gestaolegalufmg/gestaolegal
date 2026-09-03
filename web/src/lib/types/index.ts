@@ -3,7 +3,7 @@ export type { ApiResponse, ApiError } from './api-response';
 export { ApiException } from './api-response';
 
 // Domain types
-export type { User } from './user';
+export type { User, UserOption } from './user';
 export type { OrientacaoJuridica } from './orientacao-juridica';
 export type {
 	AssistenciaJudiciaria,

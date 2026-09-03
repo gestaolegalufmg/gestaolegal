@@ -5,12 +5,12 @@ import type { PageLoad } from './$types';
 import { api } from '$lib/api-client';
 import { error } from '@sveltejs/kit';
 import { ApiException } from '$lib/types';
-import type { Paginated, User } from '$lib/types';
+import type { UserOption } from '$lib/types';
 
 export const load: PageLoad = async ({ fetch }) => {
 	try {
 		const form = await superValidate(zod4(casoCreateFormSchema));
-		const usersData = await api.get<Paginated<User>>('user?per_page=1000', {}, fetch);
+		const usersData = await api.get<{ items: UserOption[] }>('user/opcoes', {}, fetch);
 		const usuarios = usersData.items ?? [];
 
 		return { form, usuarios, assistidos: [] };

@@ -66,7 +66,7 @@
 </script>
 
 <div
-	class="from-primary via-accent to-secondary flex min-h-screen items-center justify-center bg-gradient-to-br via-70% px-4 py-12 sm:px-6 lg:px-8"
+	class="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary via-accent via-70% to-secondary px-4 py-12 sm:px-6 lg:px-8"
 >
 	<div class="w-full max-w-md space-y-6">
 		<img
@@ -83,7 +83,7 @@
 				<div
 					role="alert"
 					aria-live="assertive"
-					class="border-destructive/40 bg-destructive/10 text-destructive flex items-start gap-2 rounded-md border p-3 text-sm"
+					class="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
 				>
 					<TriangleAlert class="mt-0.5 h-4 w-4 shrink-0" />
 					<div class="space-y-1">
@@ -127,7 +127,7 @@
 				<div class="mt-4 text-center text-sm text-gray-600">
 					<p class="cursor-default">
 						Primeiro acesso?
-						<a href="/setup-admin" class="text-primary font-medium hover:underline">
+						<a href="/setup-admin" class="font-medium text-primary hover:underline">
 							Configure o administrador
 						</a>
 					</p>

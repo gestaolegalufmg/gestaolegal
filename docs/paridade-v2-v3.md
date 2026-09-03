@@ -60,7 +60,7 @@ datas futuras; só usuários e marcações ativos.
 
 ## 2. Plano
 
-1. **Fase 1** — ganhos rápidos sem migração (itens 5–9). **Concluída; em teste.**
+1. **Fase 1** — ganhos rápidos sem migração (itens 5–9). **Concluída e aprovada em 03/09/2026 (PR #375).**
 2. **Fase 2** — Arquivos gerais: migração recriando `arquivos`, repo/service/
    controller no padrão de `arquivosCaso`, páginas `/arquivos`, item na sidebar
    restrito aos 4 papéis, testes.
@@ -86,8 +86,20 @@ Backend:
 - `PUT /api/caso/<id>/arquivos/<arquivo_id>` (multipart) — substitui PDF;
   validação extraída para `_validar_pdf`/`_salvar_pdf` em `caso_service`.
 - `GET /api/caso/?criado_por=me|<id>` — combinável com `user=`.
-- `GET /api/relatorio/horarios?data_inicio&data_final&usuarios=1,2` e
-  `GET /api/relatorio/usuarios` (papéis: admin, orient, colab_ext).
+- `GET /api/relatorio/horarios?data_inicio&data_final&usuarios=1,2` (papéis:
+  admin, orient, colab_ext).
+- `GET /api/user/opcoes` — usuários ativos (id, nome, urole) em ordem
+  alfabética, para qualquer autenticado. Corrige bug pré-existente da 3.0
+  encontrado no teste 4: novo caso, editar caso e diálogo de lembrete
+  carregavam `GET /api/user` (só admin), então não-admins recebiam erro ao
+  abrir essas telas. Também usado no relatório de horários.
+- Mensagens de permissão padronizadas (03/09): o decorator `authorized`
+  devolve JSON com "Você não tem permissão para executar esta ação. Contate o
+  administrador." (antes era texto puro "Forbidden", que quebrava o parse no
+  cliente). No web, `mensagemDeErro(err, padrão)` em `$lib/utils/erros.ts`
+  mostra a mensagem do backend em todos os toasts de erro; páginas com
+  bloqueio próprio (usuários, plantão, relatórios) terminam com "Contate o
+  administrador.".
 - Erros HTTP do Werkzeug traduzidos (404, 405, 413 "O arquivo excede o tamanho
   máximo de 10 MB", 415) em `utils/error_handlers.py`.
 
@@ -120,25 +132,24 @@ Eduardo), 4 (Olívia → admin). Caso 1: 5 eventos (2 admin, 2 Eduardo, 1 Olívi
 e 2 PDFs. Presenças e plantões inseridos por SQL entre 18/08 e 02/09/2026
 (7 presenças, 4 plantões ativos + 1 apagado), todas as situações de conferência.
 
-## 5. Roteiro de testes — status
+## 5. Roteiro de testes — status (fase 1 aprovada em 03/09/2026)
 
 | Item | Status |
 |---|---|
 | 1. Excluir evento (admin/criador, detalhe e lista) | ✅ OK |
 | 2. Filtro de eventos por tipo | ✅ OK após correções (ordem alfabética, botão Novo Evento) |
 | 3. Substituir arquivo (troca, download, não-PDF, >10 MB) | ✅ OK após tradução do 413 |
-| 4. Meus Casos / Cadastrados por mim | ⏳ pendente |
-| 5. Termos de uso | ⏳ pendente |
-| 6. Relatório de horários | ⏳ pendente |
+| 4. Meus Casos / Cadastrados por mim | ✅ OK; revelou bug pré-existente (novo caso por não-admin) corrigido com `user/opcoes` |
+| 5. Termos de uso | ✅ OK |
+| 6. Relatório de horários | ✅ OK após ajustes (largura do card, 403 traduzido, menu e página restritos por papel) |
 
 ### Passos pendentes
 
-**4. Meus Casos e "Cadastrados por mim"**
-1. Admin: Casos › Meus Casos → título "Meus Casos", casos 1 e 4.
-2. Marcar "Cadastrados por mim" → só caso 1.
-3. Desmarcar "Apenas meus casos" → casos 1 e 2, título "Casos".
-4. Eduardo: "Cadastrados por mim" → caso 3; + "Apenas meus casos" → caso 3;
-   desmarcar "Cadastrados por mim" → casos 2 e 3.
+**4b. Novo caso / lembrete por não-admin (correção)**
+1. Eduardo: Casos › Novo caso → formulário abre, seletores de orientador,
+   estagiário e colaborador listam os 4 usuários em ordem alfabética.
+2. Eduardo: editar caso 3 → abre normalmente.
+3. Eduardo: novo lembrete em um caso → seletor de usuário preenchido.
 
 **5. Termos de uso**
 1. Link no rodapé da sidebar → página com 3 blocos e breadcrumb.
@@ -154,12 +165,18 @@ e 2 PDFs. Presenças e plantões inseridos por SQL entre 18/08 e 02/09/2026
 4. 01/09–02/09 → 1 presença (Eduardo 08:30–12:30), 1 plantão (Olívia 02/09).
 5. Baixar CSV → duas seções, acentos OK.
 6. "Casos por Situação" continua funcionando.
-7. Olívia gera OK; Eduardo recebe "Erro ao gerar relatório" (backend nega
-   estagiário — pré-existente; melhoria de UX: esconder Relatórios no menu).
+7. Olívia gera OK; Eduardo não vê "Relatórios" no menu e, acessando
+   `/relatorios` pela URL, cai na página de erro "Acesso negado" com "Você não
+   tem permissão para acessar os relatórios. Contate o administrador." (gate no
+   `+page.ts`, mesmo padrão de configurar-abertura).
 
 ## 6. Pendências e ideias anotadas
 
-- Esconder "Relatórios" na sidebar para papéis sem acesso (estag_direito,
-  colab_proj, prof) e/ou gate no `+page.ts`.
+- Lembrete novo: pré-selecionar o usuário logado no campo "Usuário
+  responsável" (hoje começa vazio, como na 2.0).
+
+- ~~Esconder "Relatórios" na sidebar para papéis sem acesso~~ — feito
+  (03/09): item só para admin, orient e colab_ext; página mostra "Você não tem
+  permissão para gerar relatórios" no 403.
 - Wiki: reescrever Manual de Instalação a partir do README; arquivar
   "Permissões de Usuários" antiga; documentar módulos novos.

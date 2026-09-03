@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import { superForm } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
 	import { atendidoCreateFormSchema } from './schemas/atendido-schema';
@@ -61,7 +62,7 @@
 				}
 			} catch (error) {
 				console.error('Atendido form error:', error);
-				toast.error('Erro ao salvar atendido. Por favor, tente novamente.');
+				toast.error(mensagemDeErro(error, 'Erro ao salvar atendido. Por favor, tente novamente.'));
 				onError?.(error);
 			}
 		}

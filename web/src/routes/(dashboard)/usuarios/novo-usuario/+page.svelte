@@ -23,7 +23,9 @@
 			</div>
 			<UserForm data={data.form} isCreateMode={true} />
 		{:else}
-			<p class="text-muted-foreground">Você não tem permissão para criar usuários.</p>
+			<p class="text-muted-foreground">
+				Você não tem permissão para criar usuários. Contate o administrador.
+			</p>
 		{/if}
 	</div>
 </div>
