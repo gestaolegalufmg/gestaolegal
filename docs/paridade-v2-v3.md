@@ -271,3 +271,6 @@ Eduardo) criado pela API, gerando 1 notificação para Olívia e 1 para Eduardo.
   permissão para gerar relatórios" no 403.
 - Wiki: reescrever Manual de Instalação a partir do README; arquivar
   "Permissões de Usuários" antiga; documentar módulos novos.
+- Limitações já mapeadas (histórico de presença do plantão invisível após o
+  encerramento, ausência de histórico de períodos, validação frouxa de
+  `situacao_deferimento`) estão em `docs/known_issues.md`.
