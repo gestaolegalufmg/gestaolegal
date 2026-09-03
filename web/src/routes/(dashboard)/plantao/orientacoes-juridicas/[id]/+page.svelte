@@ -188,9 +188,7 @@
 							{/each}
 						</div>
 					{:else}
-						<p class="text-sm text-muted-foreground">
-							Nenhuma assistência judiciária encaminhada
-						</p>
+						<p class="text-sm text-muted-foreground">Nenhuma assistência judiciária encaminhada</p>
 					{/if}
 				</Card.Content>
 			</Card.Root>

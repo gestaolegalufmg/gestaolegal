@@ -108,7 +108,7 @@
 
 	{#if !pagina.plantao.aberto}
 		<Card.Root class="border-destructive">
-			<Card.Content class="text-destructive py-4">
+			<Card.Content class="py-4 text-destructive">
 				O plantão não está aberto!
 				{#if pagina.pode_marcar}
 					<span class="text-muted-foreground">
@@ -134,12 +134,12 @@
 					{/snippet}
 				</Calendar>
 
-				<div class="text-muted-foreground flex items-center gap-4 text-xs">
+				<div class="flex items-center gap-4 text-xs text-muted-foreground">
 					<span class="flex items-center gap-1.5">
 						<span class="h-3 w-3 rounded-sm border-2 border-green-500"></span> Com vaga
 					</span>
 					<span class="flex items-center gap-1.5">
-						<span class="border-destructive h-3 w-3 rounded-sm border-2"></span> Sem vaga
+						<span class="h-3 w-3 rounded-sm border-2 border-destructive"></span> Sem vaga
 					</span>
 				</div>
 
@@ -190,11 +190,11 @@
 					{/if}
 
 					{#if diaAbertoSelecionado}
-						<p class="text-muted-foreground text-sm">
+						<p class="text-sm text-muted-foreground">
 							Vagas disponíveis: {diaAbertoSelecionado.vagas_restantes ?? 'Sem limites'}
 						</p>
 					{:else if dataSelecionadaISO}
-						<p class="text-muted-foreground text-sm">Esta data não foi aberta para plantão.</p>
+						<p class="text-sm text-muted-foreground">Esta data não foi aberta para plantão.</p>
 					{/if}
 				</Card.Content>
 			</Card.Root>

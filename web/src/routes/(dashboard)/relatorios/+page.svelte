@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import * as Card from '$lib/components/ui/card';
 	import * as Select from '$lib/components/ui/select';
 	import { ApiException } from '$lib/types';
@@ -176,7 +177,12 @@
 			generatedType = currentType;
 		} catch (err) {
 			if (err instanceof ApiException && err.statusCode === 403) {
-				toast.error('Você não tem permissão para gerar relatórios');
+				toast.error(
+					mensagemDeErro(
+						err,
+						'Você não tem permissão para gerar este relatório. Contate o administrador.'
+					)
+				);
 			} else {
 				toast.error('Erro ao gerar relatório');
 			}

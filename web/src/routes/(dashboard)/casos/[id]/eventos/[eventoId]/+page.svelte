@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import InfoCard from '$lib/components/ui/info-card.svelte';
@@ -95,7 +96,7 @@
 			window.URL.revokeObjectURL(url);
 			document.body.removeChild(a);
 		} catch (error) {
-			toast.error('Erro ao baixar arquivo');
+			toast.error(mensagemDeErro(error, 'Erro ao baixar arquivo'));
 			console.error(error);
 		}
 	}

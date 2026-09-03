@@ -83,6 +83,8 @@
 			<InfoCard title="Agenda de Atendimento" items={agendaAtendimento} />
 		</div>
 	{:else}
-		<p class="text-muted-foreground">Você não tem permissão para visualizar usuários.</p>
+		<p class="text-muted-foreground">
+			Você não tem permissão para visualizar usuários. Contate o administrador.
+		</p>
 	{/if}
 </div>

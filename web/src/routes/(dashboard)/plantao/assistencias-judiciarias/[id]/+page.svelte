@@ -64,7 +64,10 @@
 				</div>
 				<div class="flex gap-2">
 					<Button variant="outline" href="/plantao/assistencias-judiciarias">Voltar</Button>
-					<Button variant="default" href="/plantao/assistencias-judiciarias/{assistencia.id}/editar">
+					<Button
+						variant="default"
+						href="/plantao/assistencias-judiciarias/{assistencia.id}/editar"
+					>
 						<Edit class="mr-2 h-4 w-4" />
 						Editar
 					</Button>

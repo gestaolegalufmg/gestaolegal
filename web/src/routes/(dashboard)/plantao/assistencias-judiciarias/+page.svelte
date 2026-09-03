@@ -142,7 +142,13 @@
 				onPageChange={(page) => applyFilters({ page })}
 				columns={[
 					{ header: 'Nome', key: 'nome', class: 'w-[220px]' },
-					{ header: 'Região', key: 'regiao', type: 'badge', class: 'w-[130px]', badgeMap: REGION_BADGE_MAP },
+					{
+						header: 'Região',
+						key: 'regiao',
+						type: 'badge',
+						class: 'w-[130px]',
+						badgeMap: REGION_BADGE_MAP
+					},
 					{ header: 'Áreas Atendidas', key: 'areas_atendidas', type: 'array', class: 'w-[200px]' },
 					{ header: 'Cidade', key: 'cidade', class: 'w-[130px]' },
 					{ header: 'Telefone', key: 'telefone', type: 'tel', class: 'w-[140px]' },

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mensagemDeErro } from '$lib/utils/erros';
 	import { superForm, type Infer, type SuperValidated } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
 	import {
@@ -59,7 +60,12 @@
 				await goto(redirectTo);
 			} catch (error) {
 				console.error('Assistencia judiciaria form error:', error);
-				toast.error('Erro ao salvar assistência judiciária. Por favor, tente novamente.');
+				toast.error(
+					mensagemDeErro(
+						error,
+						'Erro ao salvar assistência judiciária. Por favor, tente novamente.'
+					)
+				);
 				onError?.(error);
 			}
 		}
