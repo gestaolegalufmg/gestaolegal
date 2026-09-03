@@ -5,6 +5,8 @@
 	import Bell from '@lucide/svelte/icons/bell';
 	import CheckCheck from '@lucide/svelte/icons/check-check';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import Mail from '@lucide/svelte/icons/mail';
+	import MailOpen from '@lucide/svelte/icons/mail-open';
 	import { api } from '$lib/api-client';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
@@ -95,12 +97,14 @@
 			{#each notificacoes.items as n (n.id)}
 				{@const destino = destinoDaNotificacao(n)}
 				<li class="flex flex-wrap items-center gap-3 p-4 {n.lida ? '' : 'bg-primary/5'}">
-					<span
-						class="mt-1.5 h-2.5 w-2.5 shrink-0 self-start rounded-full {n.lida
-							? 'bg-transparent'
-							: 'bg-primary'}"
-						title={n.lida ? 'Lida' : 'Não lida'}
-					></span>
+					<!-- Envelope aberto = lida; fechado, em destaque = não lida. -->
+					<span class="mt-0.5 shrink-0 self-start" title={n.lida ? 'Lida' : 'Não lida'}>
+						{#if n.lida}
+							<MailOpen class="h-5 w-5 text-muted-foreground" aria-label="Lida" />
+						{:else}
+							<Mail class="h-5 w-5 text-primary" aria-label="Não lida" />
+						{/if}
+					</span>
 					<div class="min-w-0 flex-1">
 						<p class={n.lida ? '' : 'font-semibold'}>{n.acao}</p>
 						{#if n.detalhe}
