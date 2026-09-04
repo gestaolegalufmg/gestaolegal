@@ -55,3 +55,20 @@ Started: sex. 04 set 2026 18:29:56 -03
     já existe; o vínculo de unidade precisa acontecer nos dois caminhos, senão a
     segunda chamada deixa o usuário sem unidade.
 ---
+
+## 2026-09-04 - f2-request-context-unidade
+- `RequestContext` ganhou `_unidade_ativa: ContextVar[int | None]`, com
+  `set_unidade_ativa`, `get_unidade_ativa` (RuntimeError quando ausente, no mesmo molde
+  de `get_current_user`) e `clear()` zerando usuário e unidade.
+- Criado `tests/api/test_request_context.py` com 3 casos: ausência levanta RuntimeError,
+  set/get devolve o valor, clear zera os dois.
+- Arquivos: `gestaolegal/utils/request_context.py`, `tests/api/test_request_context.py`.
+- `make test`: 265 passed (262 do baseline + 3 novos).
+- **Learnings for future iterations:**
+  - `RequestContext.clear()` é chamado em `gestaolegal/handlers.py:11` (teardown de
+    request). Qualquer ContextVar novo do contexto precisa entrar lá também, senão
+    vaza de uma requisição para a seguinte no mesmo worker.
+  - Para testar coisas do contexto sem subir a app, dá para montar um `UserInfo` com
+    `UserInfo(**{c.name: None for c in fields(UserInfo)})` — a dataclass não valida
+    tipos e são ~35 campos obrigatórios que não interessam ao teste.
+---
