@@ -72,3 +72,27 @@ Started: sex. 04 set 2026 18:29:56 -03
     `UserInfo(**{c.name: None for c in fields(UserInfo)})` — a dataclass não valida
     tipos e são ~35 campos obrigatórios que não interessam ao teste.
 ---
+
+## 2026-09-04 - f2-modelo-repo-unidade
+- Criado `gestaolegal/models/unidade.py` com a dataclass `Unidade` (nome, sigla, ativa,
+  criado, id opcional), exportada em `gestaolegal/models/__init__.py`.
+- Criado `gestaolegal/repositories/unidade_repository.py` (`UnidadeRepository`,
+  herdando de `BaseRepository`) com `find_by_id`, `list_ativas` (só ativas, ordenadas
+  por nome), `create`, `update`, `unidades_do_usuario` (JOIN único em
+  `usuarios_unidades`), `vincular` (apaga e reinsere) e `usuario_pertence`.
+- Criado `tests/api/test_unidade_repository.py` com 6 casos cobrindo os sete métodos.
+- Arquivos: `gestaolegal/models/unidade.py`,
+  `gestaolegal/repositories/unidade_repository.py`,
+  `gestaolegal/models/__init__.py`, `tests/api/test_unidade_repository.py`.
+- `make test`: 271 passed (265 do baseline + 6 novos).
+- **Learnings for future iterations:**
+  - `BaseRepository.__init__` chama `get_session()`, que fora de request context
+    devolve uma sessão **nova** a cada chamada. Em teste de repositório, instancie o
+    repo uma vez dentro de `app.app_context()` e use `repo.session` — duas instâncias
+    são duas sessões e uma não enxerga o que a outra ainda não comitou.
+  - Teste de repositório não precisa de FK válida: o SQLite dos testes não impõe
+    `PRAGMA foreign_keys`, então `usuarios_unidades` aceita `usuario_id` fictício.
+    Evita depender das fixtures de usuário e do `clean_db`.
+  - `unidades_do_usuario` ordena por `nome`; quem depender da ordem em asserção deve
+    lembrar que Belo Horizonte vem antes de Nova Lima.
+---
