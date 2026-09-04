@@ -102,6 +102,8 @@ def update_me():
     current_user = RequestContext.get_current_user()
     user_service = UsuarioService()
     json_data = cast(dict[str, Any], request.get_json(force=True))
+    # O próprio usuário não escolhe suas unidades: o vínculo é do admin.
+    json_data.pop("unidade_ids", None)
     user_input = UserUpdateInput.model_validate(json_data)
 
     user = user_service.update(

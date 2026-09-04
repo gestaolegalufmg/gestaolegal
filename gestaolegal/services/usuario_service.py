@@ -8,10 +8,12 @@ import bcrypt
 from dateutil import parser as date_parser
 
 from gestaolegal.common import PageParams, PaginatedResult
+from gestaolegal.database.tables import UNIDADE_PADRAO_ID
 from gestaolegal.exceptions import (
     DatabaseException,
     NotFoundException,
     UnauthorizedException,
+    ValidationException,
 )
 from gestaolegal.models.user import User, UserInfo
 from gestaolegal.models.user_input import UserCreateInput, UserUpdateInput
@@ -147,6 +149,9 @@ class UsuarioService:
         )
         user_data = user_input.model_dump()
 
+        unidade_ids = user_data.pop("unidade_ids")
+        self.__validar_unidades(unidade_ids)
+
         endereco_data = self.__extract_endereco_data(user_data)
         endereco_id = self.endereco_repository.create(endereco_data)
 
@@ -169,6 +174,7 @@ class UsuarioService:
         ).decode("utf-8")
 
         user_id = self.repository.create(user_data)
+        self.unidade_repository.vincular(user_id, unidade_ids)
         user = self.find_by_id(user_id)
         if not user:
             logger.error(f"Failed to create user with email: {user_input.email}")
@@ -192,6 +198,10 @@ class UsuarioService:
 
         user_data = user_input.model_dump(exclude_none=True)
 
+        unidade_ids: list[int] | None = user_data.pop("unidade_ids", None)
+        if unidade_ids is not None:
+            self.__validar_vinculo(user_id, unidade_ids, modificado_por)
+
         endereco_fields = [
             "logradouro",
             "numero",
@@ -212,6 +222,8 @@ class UsuarioService:
         user_data["modificado"] = datetime.now()
 
         self.repository.update(user_id, user_data)
+        if unidade_ids is not None:
+            self.unidade_repository.vincular(user_id, unidade_ids)
         logger.info(f"User updated successfully with id: {user_id}")
         return self.find_by_id(user_id)
 
@@ -258,6 +270,32 @@ class UsuarioService:
         self.repository.update(user_id, password_data)
         logger.info(f"Password changed successfully for user id: {user_id}")
         return self.find_by_id(user_id)
+
+    def __validar_unidades(self, unidade_ids: list[int]) -> None:
+        """Recusa unidade inexistente antes do insert.
+
+        Sem a checagem a FK de `usuarios_unidades` estouraria como
+        IntegrityError (500) em vez de 400.
+        """
+        for unidade_id in unidade_ids:
+            if not self.unidade_repository.find_by_id(unidade_id):
+                raise ValidationException(
+                    f"Unidade {unidade_id} não encontrada", field="unidade_ids"
+                )
+
+    def __validar_vinculo(
+        self, user_id: int, unidade_ids: list[int], modificado_por: int | None
+    ) -> None:
+        if not unidade_ids:
+            if modificado_por == user_id:
+                raise ValidationException(
+                    "Você não pode remover sua última unidade", field="unidade_ids"
+                )
+            raise ValidationException(
+                "Usuário precisa estar vinculado a pelo menos uma unidade",
+                field="unidade_ids",
+            )
+        self.__validar_unidades(unidade_ids)
 
     def __extract_endereco_data(self, user_data: dict[str, Any]):
         return {
@@ -362,6 +400,12 @@ class UsuarioService:
         }
 
         user_id = self.repository.create(user_data)
+        if self.unidade_repository.find_by_id(UNIDADE_PADRAO_ID):
+            self.unidade_repository.vincular(user_id, [UNIDADE_PADRAO_ID])
+        else:
+            logger.warning(
+                "Unidade padrão inexistente: admin inicial ficou sem vínculo de unidade"
+            )
         user = self.find_by_id(user_id)
         if not user:
             logger.error(f"Failed to create admin user with email: {email}")

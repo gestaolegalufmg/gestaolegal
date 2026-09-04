@@ -476,3 +476,59 @@ Started: sex. 04 set 2026 18:29:56 -03
     Sem a barra o Flask responde 308, que o `apiFetch` pode não seguir — o mesmo
     cuidado dos demais controllers.
 ---
+
+## 2026-09-04 - f4-usuario-vinculo
+- `UserCreateInput` ganhou `unidade_ids: list[int] = Field(min_length=1)` — obrigatório e
+  com pelo menos uma unidade; ausência ou lista vazia caem no handler de `ValidationError`
+  do pydantic e viram **400**. `UserUpdateInput` ganhou `unidade_ids: list[int] | None =
+  None`: ausente significa "não mexe no vínculo", e a lista vazia é recusada pelo service
+  (não pelo pydantic), para que a mensagem possa distinguir os dois casos.
+- `UsuarioService.create` retira `unidade_ids` do `user_data` antes do insert (a coluna não
+  existe em `usuarios`), valida as unidades e chama `UnidadeRepository.vincular` logo após
+  o `repository.create`, antes do `find_by_id` — assim a resposta do POST já traz
+  `unidades`.
+- `UsuarioService.update` idem: valida antes de gravar e vincula depois do
+  `repository.update`. Sem `unidade_ids` no payload, o vínculo fica intacto.
+- Privados novos: `__validar_unidades` (unidade inexistente → 400 em vez do
+  `IntegrityError` da FK, que seria 500) e `__validar_vinculo` (lista vazia; mensagem
+  "Você não pode remover sua última unidade" quando `modificado_por == user_id`, genérica
+  para os demais).
+- `create_admin` (setup inicial) passou a vincular o admin à `UNIDADE_PADRAO_ID` **se ela
+  existir**; se não existir, só loga aviso. Sem isso o primeiro admin nasceria sem unidade
+  nenhuma e o `X-Unidade-Id` recusaria todas as rotas — sistema inutilizável logo após o
+  setup.
+- `PUT /api/user/me` descarta `unidade_ids` do JSON antes de validar: o perfil próprio usa
+  o mesmo `UserUpdateInput` das rotas de admin, e sem o descarte qualquer usuário se
+  auto-vincularia a qualquer unidade (escalada de privilégio).
+- `sample_user_data` (conftest) ganhou `"unidade_ids": [1]`.
+- Testes: classe `TestUsuarioUnidades` em `tests/api/test_user_api.py`, 9 casos — create
+  sem o campo / com lista vazia / com unidade inexistente (400), create vinculando duas
+  unidades e `GET /user/<id>` devolvendo-as, update trocando o vínculo, update parcial
+  preservando o vínculo, update com lista vazia recusado (e vínculo intacto depois), admin
+  removendo a própria última unidade recusado, `PUT /me` ignorando `unidade_ids`.
+- Arquivos: `gestaolegal/models/user_input.py`,
+  `gestaolegal/services/usuario_service.py`,
+  `gestaolegal/controllers/user_controller.py`, `tests/api/conftest.py`,
+  `tests/api/test_user_api.py`.
+- `make test`: 343 passed (334 do baseline + 9 novos). Story só de API: não houve
+  verificação de browser.
+- **Learnings for future iterations:**
+  - **O front quebra até a `f5-form-usuario`.** `web/src` não manda `unidade_ids`, e o
+    campo agora é obrigatório no create: cadastrar usuário pela tela responde 400 até que
+    a f5 acrescente o seletor. É consequência esperada da ordem do cronograma, não
+    regressão.
+  - **Campo de input que não é coluna precisa de `pop` no service.** Os repositories
+    montam o insert com as chaves do dict; `unidade_ids` sobrando em `user_data` viraria
+    erro de coluna inexistente. Mesma armadilha dos campos de endereço, que já saem por
+    `__extract_endereco_data`.
+  - **Rota `/me` compartilha o input model com a rota de admin.** Todo campo novo que só o
+    admin pode decidir (vínculo, `urole`, `status`) precisa ser descartado explicitamente
+    em `update_me`, senão vira escalada de privilégio silenciosa.
+  - `model_dump(exclude_none=True)` no update faz `None` sumir mas **preserva `[]`** — é
+    o que permite distinguir "não mexe no vínculo" de "apaga o vínculo". Vale para
+    qualquer campo de lista opcional.
+  - `UsuarioService.search` continua **sem** filtrar por unidade (pendência apontada na
+    f3-relatorio-busca): a listagem de usuários do admin mostra todo mundo. Com o vínculo
+    agora existindo, é decisão de produto se a f5 ou uma story futura filtra por
+    `usuarios_unidades`.
+---
