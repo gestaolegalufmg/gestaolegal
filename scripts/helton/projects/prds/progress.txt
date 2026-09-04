@@ -748,3 +748,38 @@ Started: sex. 04 set 2026 18:29:56 -03
   - **Cuidado ao grepar a saída do `npm run check` por "unidades"**: o caminho da worktree
     (`/opt/gestaolegal-unidades`) casa com tudo. Filtre por `dashboard\)/unidades`.
 ---
+
+## 2026-09-04 - f6-seed
+- `scripts/seed_local.py` passou a ser multiunidade: lê `GET /api/unidades`, vincula o
+  admin e os três usuários de exemplo (Olívia, Eduardo, Carla) a **todas** as unidades
+  ativas e semeia 2 atendidos + 4 casos (+5 eventos e 2 PDFs no primeiro caso) em cada
+  uma delas. O header `X-Unidade-Id` deixou de ser global (`SEED_UNIDADE_ID`, removida)
+  e virou parâmetro `unidade=` de `call()`, escolhido chamada a chamada.
+- A URL já vinha de `APP_PORT` do `.env` do diretório atual — nada a mudar ali; o que
+  estava errado era a armadilha do `CLAUDE.md` que ainda afirmava `localhost:5000` fixo
+  no seed. Corrigida.
+- Arquivos: `scripts/seed_local.py`, `CLAUDE.md`.
+- Verificação: `make test` (343 passed) e o seed rodado **duas vezes** contra esta
+  worktree (`APP_PORT=5250`). Segunda execução devolveu exatamente os mesmos ids;
+  banco ficou com 2 atendidos e 4 casos por unidade, 10 eventos, 4 arquivos, e
+  `usuarios_unidades` com os 4 usuários nas unidades 1 e 2.
+- **SEED_CMD**: `scripts/helton/obra/obra.conf` é gate (não editado). Ele já traz
+  `SEED_CMD=(uv run python scripts/seed_local.py)`, que continua correto — o script
+  agora semeia as duas unidades sozinho, sem variável extra. Se o admin do canteiro
+  não for o padrão, o comando precisa de `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD`
+  antes dele (nesta worktree: `admin@teste.local` / `Admin123!`).
+- **Learnings for future iterations:**
+  - O admin criado por `auth/setup-admin` nasce vinculado **só à unidade padrão**
+    (`UNIDADE_PADRAO_ID`); quem quiser semear/testar a unidade 2 precisa dar o vínculo
+    antes, por `PUT /api/user/<id>` com `unidade_ids`. O token não guarda as unidades
+    (`JWTAuth.get_user_from_token` recarrega o usuário do banco), então **não** é
+    preciso relogar depois de mudar o vínculo.
+  - `GET /api/unidades` é `@authenticated(unidade=False)`: dá para descobrir as
+    unidades antes de ter uma ativa. `PUT /api/user/<id>` é `@authorized("admin")` e
+    **exige** o header — mande uma unidade que o admin já tenha.
+  - A busca de atendido é por **nome** e já vem filtrada pela unidade ativa; o CPF só
+    confirma o registro. Não há unicidade de CPF no banco, então CPF repetido entre
+    unidades passaria batido — o seed gera CPF por unidade (`cpf_seed`).
+  - Tabela de arquivos de caso no MySQL chama-se `arquivosCaso` (camelCase legado),
+    não `arquivos_casos`.
+---
