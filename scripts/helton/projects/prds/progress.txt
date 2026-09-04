@@ -783,3 +783,38 @@ Started: sex. 04 set 2026 18:29:56 -03
   - Tabela de arquivos de caso no MySQL chama-se `arquivosCaso` (camelCase legado),
     não `arquivos_casos`.
 ---
+
+## 2026-09-04 - f6-doc
+- `docs/unidades.md`: Fase A marcada como **entregue em 04/09/2026** no título da §5, com
+  nota dizendo que os passos 1–8 foram implementados na branch `helton/unidades`
+  (migration `b7c1d2e3f4a5_unidades`, API, front, 343 testes) e que o passo 9 (QA e
+  produção) segue aberto por causa da revisão `060d870f00e1`.
+- Nova §5.1 "Divergências em relação ao planejado", com o que mudou de rota ao longo das
+  19 stories anteriores: ordem invertida (migration por último, schema primeiro em
+  `tables.py`); `default=UNIDADE_PADRAO_ID` em `coluna_unidade()`, que não estava no
+  plano; filtro no **service** e não no repositório (com a exceção obrigatória das
+  escritas em massa); header ausente devolvendo 400 e não 403; as três rotas isentas do
+  header; evento/lembrete com coluna própria **e** guarda do pai; a tabela de ligação
+  assistência x orientação como ponto cego do §4; plantão, fila e ponto virando
+  singleton/sequência **por unidade**; `unidade_ids` obrigatório no POST de usuário e
+  descartado em `PUT /me`; e a tela `/unidades`, não prevista no plano.
+- Sub-bloco "O que ficou adiado": verificação em navegador das telas da Fase 5,
+  `UsuarioService.search` sem filtro por unidade, `/api/caso/<id>/processos` sem guarda do
+  pai, reativação de unidade pela interface e `notificacao`/`arquivos` sem filtro.
+- §6 Pendências: a pendência dos relatórios foi **fechada** (as cinco consultas de
+  `RelatorioRepository` filtram pela unidade ativa; não existe relatório consolidado) e
+  entraram cinco pendências novas, uma por item adiado, mais a reavaliação do
+  `default=UNIDADE_PADRAO_ID`. A pendência da revisão `060d870f00e1` fica como estava.
+- `docs/known_issues.md` **não** foi tocado, conforme o contexto da story.
+- Arquivos: `docs/unidades.md`.
+- Verificação: `uv run pytest tests/api/ -q` → 343 passed. Story só de documentação: sem
+  mudança de código e sem verificação de browser.
+- **Learnings for future iterations:**
+  - O `progress.txt` é a única fonte das divergências: nenhuma delas está no diff de um
+    commit só, e várias (o `default` da coluna, o 400 x 403, a guarda dupla de
+    evento/lembrete) só aparecem lendo os "Learnings" de três ou quatro stories juntos.
+    Story de documentação no fim do cronograma vale o custo — mas ela depende de as
+    anteriores terem registrado o **porquê**, não só o que mudou.
+  - Fechar pendência do documento exige conferir, não lembrar: a dos relatórios só pôde
+    ser marcada porque a `f3-relatorio-busca` listou as cinco consultas nominalmente.
+---
