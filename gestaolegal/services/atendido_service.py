@@ -21,6 +21,7 @@ from gestaolegal.repositories.repository import (
     SearchParams,
     WhereClause,
 )
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,9 @@ class AtendidoService:
 
     def find_by_id(self, atendido_id: int) -> Atendido | None:
         logger.info(f"Finding atendido by id: {atendido_id}")
-        atendido = self.repository.find_by_id(atendido_id)
+        atendido = self.repository.find_by_id(
+            atendido_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if atendido:
             if atendido.endereco_id:
                 atendido.endereco = self.endereco_repository.find_by_id(
@@ -63,7 +66,13 @@ class AtendidoService:
             + f"page_params: {page_params}, show_inactive: {show_inactive}"
         )
 
-        clauses: list[WhereClause] = []
+        clauses: list[WhereClause] = [
+            WhereClause(
+                column="unidade_id",
+                operator="==",
+                value=RequestContext.get_unidade_ativa(),
+            )
+        ]
 
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=1))
@@ -123,6 +132,7 @@ class AtendidoService:
         )
         atendido_data = atendido_input.model_dump()
         atendido_data["status"] = 1
+        atendido_data["unidade_id"] = RequestContext.get_unidade_ativa()
 
         endereco_data = self.__extract_endereco_data(atendido_data)
         atendido_data["endereco_id"] = self.endereco_repository.create(endereco_data)
@@ -137,7 +147,9 @@ class AtendidoService:
         atendido_input: AtendidoUpdateInput,
     ) -> Atendido | None:
         logger.info(f"Updating atendido with id: {atendido_id}")
-        existing = self.repository.find_by_id(atendido_id)
+        existing = self.repository.find_by_id(
+            atendido_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not existing:
             logger.error(f"Update failed: atendido not found with id: {atendido_id}")
             raise NotFoundException(resource="Atendido", resource_id=atendido_id)
@@ -158,7 +170,9 @@ class AtendidoService:
         self, id_atendido: int, assistido_input: AssistidoCreateInput
     ) -> Assistido:
         logger.info(f"Creating assistido for atendido id: {id_atendido}")
-        atendido = self.repository.find_by_id(id_atendido)
+        atendido = self.repository.find_by_id(
+            id_atendido, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not atendido:
             logger.error(
                 f"Create assistido failed: atendido not found with id: {id_atendido}"
@@ -181,7 +195,9 @@ class AtendidoService:
         assistido_input: AssistidoUpdateInput,
     ) -> Assistido:
         logger.info(f"Updating assistido for atendido id: {id_atendido}")
-        atendido = self.repository.find_by_id(id_atendido)
+        atendido = self.repository.find_by_id(
+            id_atendido, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not atendido:
             logger.error(
                 f"Update assistido failed: atendido not found with id: {id_atendido}"
@@ -216,6 +232,14 @@ class AtendidoService:
 
     def soft_delete(self, atendido_id: int):
         logger.info(f"Soft deleting atendido with id: {atendido_id}")
+        existing = self.repository.find_by_id(
+            atendido_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
+        if not existing:
+            logger.error(
+                f"Soft delete failed: atendido not found with id: {atendido_id}"
+            )
+            raise NotFoundException(resource="Atendido", resource_id=atendido_id)
         self.repository.delete(atendido_id)
         logger.info(f"Atendido soft deleted successfully with id: {atendido_id}")
 

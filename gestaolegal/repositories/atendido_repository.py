@@ -27,8 +27,10 @@ class AtendidoRepository(BaseRepository):
     def __init__(self):
         super().__init__()
 
-    def find_by_id(self, id: int) -> Atendido | None:
+    def find_by_id(self, id: int, unidade_id: int | None = None) -> Atendido | None:
         stmt = select(atendidos).where(atendidos.c.id == id)
+        if unidade_id is not None:
+            stmt = stmt.where(atendidos.c.unidade_id == unidade_id)
         result = self.session.execute(stmt).one_or_none()
         return from_dict(Atendido, dict(result._mapping)) if result else None
 

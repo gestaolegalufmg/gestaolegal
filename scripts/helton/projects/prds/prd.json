@@ -134,8 +134,8 @@
         "f2-decorator-unidade"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Filtro pela unidade ativa no service (RequestContext.get_unidade_ativa), nao no controller. AtendidoRepository.find_by_id ganhou o parametro opcional unidade_id, usado por todos os caminhos do service (find_by_id, update, create_assistido, update_assistido, soft_delete), para que registro de outra unidade responda 404. search recebe WhereClause de unidade_id; create grava unidade_id. Dataclass Atendido ganhou unidade_id opcional (o insert vem do input pydantic, entao nao ha risco do default anulado)."
     },
     {
       "id": "f3-caso",

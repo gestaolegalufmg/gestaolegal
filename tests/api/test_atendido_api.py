@@ -559,3 +559,91 @@ def test_get_casos_by_atendido_empty(
     assert response.status_code == 200
     data = get_success_data(response)
     assert data["items"] == []
+
+
+def test_atendido_listagem_isolada_por_unidade(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_atendido_data: dict[str, Any],
+) -> None:
+    """Cada unidade só enxerga os atendidos que criou."""
+    clean_tables("atendidos")
+
+    id_bh = get_success_data(
+        client.post("/api/atendido/", json=sample_atendido_data, headers=auth_headers)
+    )["id"]
+    id_nl = get_success_data(
+        client.post(
+            "/api/atendido/",
+            json={**sample_atendido_data, "cpf": "111.222.333-44"},
+            headers=auth_headers_nl,
+        )
+    )["id"]
+
+    data_bh = get_success_data(client.get("/api/atendido/", headers=auth_headers))
+    ids_bh = [item["id"] for item in data_bh["items"]]
+    assert ids_bh == [id_bh]
+    assert data_bh["total"] == 1
+
+    data_nl = get_success_data(client.get("/api/atendido/", headers=auth_headers_nl))
+    ids_nl = [item["id"] for item in data_nl["items"]]
+    assert ids_nl == [id_nl]
+    assert data_nl["total"] == 1
+
+
+def test_atendido_de_outra_unidade_responde_404(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_atendido_data: dict[str, Any],
+) -> None:
+    """Buscar por id um atendido de outra unidade não vaza a existência dele."""
+    clean_tables("atendidos")
+
+    id_bh = get_success_data(
+        client.post("/api/atendido/", json=sample_atendido_data, headers=auth_headers)
+    )["id"]
+
+    assert client.get(f"/api/atendido/{id_bh}", headers=auth_headers).status_code == 200
+    assert (
+        client.get(f"/api/atendido/{id_bh}", headers=auth_headers_nl).status_code == 404
+    )
+
+
+def test_atendido_create_grava_unidade_ativa(
+    client: FlaskClient,
+    auth_headers_nl: dict[str, str],
+    sample_atendido_data: dict[str, Any],
+) -> None:
+    """A criação grava a unidade ativa da requisição, não a unidade padrão."""
+    clean_tables("atendidos")
+
+    data = get_success_data(
+        client.post(
+            "/api/atendido/", json=sample_atendido_data, headers=auth_headers_nl
+        )
+    )
+    assert data["unidade_id"] == 2
+
+
+def test_tornar_assistido_de_outra_unidade_responde_404(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_atendido_data: dict[str, Any],
+    sample_assistido_data: dict[str, Any],
+) -> None:
+    """Assistido herda o isolamento do atendido, que é quem tem a unidade."""
+    clean_tables("atendidos")
+
+    id_bh = get_success_data(
+        client.post("/api/atendido/", json=sample_atendido_data, headers=auth_headers)
+    )["id"]
+
+    response = client.post(
+        f"/api/atendido/{id_bh}/tornar-assistido",
+        json=sample_assistido_data,
+        headers=auth_headers_nl,
+    )
+    assert response.status_code == 404
