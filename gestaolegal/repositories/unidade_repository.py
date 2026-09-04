@@ -1,7 +1,7 @@
 from typing import Any
 
 from sqlalchemy import delete as sql_delete
-from sqlalchemy import insert, select
+from sqlalchemy import insert, or_, select
 from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
 
@@ -36,6 +36,17 @@ class UnidadeRepository(BaseRepository):
     def update(self, id: int, data: dict[str, Any]) -> None:
         stmt = sql_update(unidades).where(unidades.c.id == id).values(**data)
         self.session.execute(stmt)
+
+    def existe_com_nome_ou_sigla(
+        self, nome: str, sigla: str, ignorar_id: int | None = None
+    ) -> bool:
+        """`nome` e `sigla` são UNIQUE; checar antes evita IntegrityError (500)."""
+        stmt = select(unidades.c.id).where(
+            or_(unidades.c.nome == nome, unidades.c.sigla == sigla)
+        )
+        if ignorar_id is not None:
+            stmt = stmt.where(unidades.c.id != ignorar_id)
+        return self.session.execute(stmt).first() is not None
 
     def unidades_do_usuario(self, usuario_id: int) -> list[Unidade]:
         """Unidades do usuário em uma única consulta.

@@ -438,3 +438,41 @@ Started: sex. 04 set 2026 18:29:56 -03
     `casos_atendidos`, `casos`, `atendido_xOrientacaoJuridica` e `orientacao_juridica`
     (ligação antes da raiz, como no resto da suíte).
 ---
+
+## 2026-09-04 - f4-unidade-controller
+- Novo blueprint `/api/unidades` em `gestaolegal/controllers/unidade_controller.py`:
+  - `GET /` com `@authenticated(unidade=False)` — dispensa o `X-Unidade-Id` porque é
+    esta rota que alimenta o seletor do front, que roda antes de haver unidade ativa.
+    Devolve só as unidades ativas.
+  - `POST /` e `PUT /<id>` com `@authorized("admin")`.
+- Criados `gestaolegal/services/unidade_service.py` (list_ativas, find_by_id, criar,
+  atualizar) e `gestaolegal/models/unidade_input.py` (`UnidadeCreateInput`,
+  `UnidadeUpdateInput`). A story listava só o controller, mas todo controller aqui
+  delega a um service; a alternativa seria SQL no controller.
+- `UnidadeRepository.existe_com_nome_ou_sigla(nome, sigla, ignorar_id=None)`: `nome` e
+  `sigla` são UNIQUE no schema, então sem a checagem prévia a colisão viraria
+  `IntegrityError` (500) em vez de 400.
+- Sigla normalizada para maiúscula e nome/sigla com `strip()`, no create e no update.
+- Registrado em `gestaolegal/controllers/__init__.py` (`/api/unidades`).
+- Novo `tests/api/test_unidade_api.py` com 10 casos: GET sem header, GET sem token
+  (401), inativa fora da listagem e voltando com PUT, create como admin (201), nome
+  repetido (400), create/update como não admin (403), update de admin, update de id
+  inexistente (404).
+- Arquivos: `gestaolegal/controllers/unidade_controller.py`,
+  `gestaolegal/controllers/__init__.py`, `gestaolegal/services/unidade_service.py`,
+  `gestaolegal/models/unidade_input.py`,
+  `gestaolegal/repositories/unidade_repository.py`, `tests/api/test_unidade_api.py`.
+- `make test`: 334 passed (324 do baseline + 10 novos).
+- **Learnings for future iterations:**
+  - `@authorized(...)` já embute `@authenticated` **com** exigência de unidade. Rota de
+    admin que precise dispensar o header não dá para escrever com `@authorized`; teria
+    de ser `@authenticated(unidade=False)` + checagem de urole na mão. Para
+    `/api/unidades` isso não é problema: só o GET dispensa.
+  - As linhas de `unidades` **não** são limpas entre testes — `clean_db` varre só
+    `usuarios_unidades`, `usuarios` e `enderecos`, e `ensure_unidades()` é idempotente
+    por id. Teste que cria unidade precisa de nome e sigla próprios, senão colide com o
+    de outro teste que rodou antes.
+  - O blueprint registra `GET /` com barra final; a URL do front é `/api/unidades/`.
+    Sem a barra o Flask responde 308, que o `apiFetch` pode não seguir — o mesmo
+    cuidado dos demais controllers.
+---

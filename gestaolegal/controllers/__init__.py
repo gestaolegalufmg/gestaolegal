@@ -13,6 +13,7 @@ from .presenca_controller import presenca_controller
 from .relatorio_controller import relatorio_controller
 from .roteiro_controller import roteiro_controller
 from .search_controller import search_controller
+from .unidade_controller import unidade_controller
 from .user_controller import user_controller
 
 routes = [
@@ -30,4 +31,5 @@ routes = [
     (roteiro_controller, "/api/roteiro"),
     (relatorio_controller, "/api/relatorio"),
     (search_controller, "/api/search"),
+    (unidade_controller, "/api/unidades"),
 ]
