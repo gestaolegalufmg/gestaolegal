@@ -257,7 +257,7 @@
         "f3-plantao-fila-presenca"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

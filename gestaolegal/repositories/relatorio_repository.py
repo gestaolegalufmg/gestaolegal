@@ -20,7 +20,11 @@ class RelatorioRepository(BaseRepository):
         super().__init__()
 
     def casos_cadastrados_por_area(
-        self, inicio: datetime, fim: datetime, areas: list[str] | None
+        self,
+        inicio: datetime,
+        fim: datetime,
+        areas: list[str] | None,
+        unidade_id: int | None = None,
     ) -> list[dict]:
         stmt = (
             select(
@@ -31,6 +35,8 @@ class RelatorioRepository(BaseRepository):
             .where(casos.c.data_criacao >= inicio)
             .where(casos.c.data_criacao < fim)
         )
+        if unidade_id is not None:
+            stmt = stmt.where(casos.c.unidade_id == unidade_id)
         if areas:
             stmt = stmt.where(casos.c.area_direito.in_(areas))
         stmt = stmt.group_by(casos.c.area_direito).order_by(casos.c.area_direito.asc())
@@ -42,7 +48,11 @@ class RelatorioRepository(BaseRepository):
         ]
 
     def casos_por_status(
-        self, inicio: datetime, fim: datetime, areas: list[str] | None
+        self,
+        inicio: datetime,
+        fim: datetime,
+        areas: list[str] | None,
+        unidade_id: int | None = None,
     ) -> list[dict]:
         stmt = (
             select(
@@ -53,6 +63,8 @@ class RelatorioRepository(BaseRepository):
             .where(casos.c.data_criacao >= inicio)
             .where(casos.c.data_criacao < fim)
         )
+        if unidade_id is not None:
+            stmt = stmt.where(casos.c.unidade_id == unidade_id)
         if areas:
             stmt = stmt.where(casos.c.area_direito.in_(areas))
         stmt = stmt.group_by(casos.c.situacao_deferimento).order_by(
@@ -69,7 +81,11 @@ class RelatorioRepository(BaseRepository):
         ]
 
     def orientacoes_por_area(
-        self, inicio: datetime, fim: datetime, areas: list[str] | None
+        self,
+        inicio: datetime,
+        fim: datetime,
+        areas: list[str] | None,
+        unidade_id: int | None = None,
     ) -> list[dict]:
         stmt = (
             select(
@@ -80,6 +96,8 @@ class RelatorioRepository(BaseRepository):
             .where(orientacao_juridica.c.data_criacao >= inicio)
             .where(orientacao_juridica.c.data_criacao < fim)
         )
+        if unidade_id is not None:
+            stmt = stmt.where(orientacao_juridica.c.unidade_id == unidade_id)
         if areas:
             stmt = stmt.where(orientacao_juridica.c.area_direito.in_(areas))
         stmt = stmt.group_by(orientacao_juridica.c.area_direito).order_by(
@@ -95,7 +113,11 @@ class RelatorioRepository(BaseRepository):
     # --- horários de chegada e saída -----------------------------------------
 
     def presencas_no_periodo(
-        self, inicio: datetime, fim: datetime, usuarios_ids: list[int] | None
+        self,
+        inicio: datetime,
+        fim: datetime,
+        usuarios_ids: list[int] | None,
+        unidade_id: int | None = None,
     ) -> list[dict]:
         """Registros de ponto fechados cuja saída caiu no período."""
         stmt = (
@@ -113,13 +135,19 @@ class RelatorioRepository(BaseRepository):
             .where(registro_entrada.c.data_saida >= inicio)
             .where(registro_entrada.c.data_saida < fim)
         )
+        if unidade_id is not None:
+            stmt = stmt.where(registro_entrada.c.unidade_id == unidade_id)
         if usuarios_ids:
             stmt = stmt.where(registro_entrada.c.id_usuario.in_(usuarios_ids))
         stmt = stmt.order_by(registro_entrada.c.data_entrada.asc(), usuarios.c.nome.asc())
         return [dict(row) for row in self.session.execute(stmt).mappings().all()]
 
     def plantoes_no_periodo(
-        self, inicio: datetime, fim: datetime, usuarios_ids: list[int] | None
+        self,
+        inicio: datetime,
+        fim: datetime,
+        usuarios_ids: list[int] | None,
+        unidade_id: int | None = None,
     ) -> list[dict]:
         """Dias de plantão marcados (ativos) no período."""
         stmt = (
@@ -136,6 +164,8 @@ class RelatorioRepository(BaseRepository):
             .where(dias_marcados_plantao.c.data_marcada >= inicio.date())
             .where(dias_marcados_plantao.c.data_marcada < fim.date())
         )
+        if unidade_id is not None:
+            stmt = stmt.where(dias_marcados_plantao.c.unidade_id == unidade_id)
         if usuarios_ids:
             stmt = stmt.where(dias_marcados_plantao.c.id_usuario.in_(usuarios_ids))
         stmt = stmt.order_by(

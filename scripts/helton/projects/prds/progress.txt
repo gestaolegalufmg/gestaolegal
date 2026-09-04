@@ -387,3 +387,54 @@ Started: sex. 04 set 2026 18:29:56 -03
     em dois lugares": ponto aberto, marcações e limite de plantões são todos por unidade,
     e o teste é só trocar `auth_headers` por `auth_headers_nl`.
 ---
+
+## 2026-09-04 - f3-relatorio-busca
+- `RelatorioService` ganhou o helper `_unidade()` (`RequestContext.get_unidade_ativa()`) e
+  passa `unidade_id` para as cinco consultas: `casos_cadastrados_por_area`,
+  `casos_por_status`, `orientacoes_por_area`, `presencas_no_periodo` e
+  `plantoes_no_periodo`.
+- `RelatorioRepository`: as cinco consultas ganharam `unidade_id: int | None = None`
+  (são leituras) e filtram por `casos.c.unidade_id`, `orientacao_juridica.c.unidade_id`,
+  `registro_entrada.c.unidade_id` e `dias_marcados_plantao.c.unidade_id`.
+- Busca global (`search_controller.global_search`): **nenhuma alteração de código**. Ela
+  delega a `AtendidoService.search`, `CasoService.search` e
+  `OrientacaoJuridicaService.search`, que já filtram desde as stories f3-atendido,
+  f3-caso e f3-orientacao-assistencia. O que faltava era prova, e ela virou
+  `tests/api/test_search_api.py`.
+- `notificacao_service.py` e `arquivo_service.py` seguem sem filtro, conforme a decisão 1
+  do plano. Não foram tocados.
+- Testes: 3 novos em `tests/api/test_relatorio_api.py` (classe `TestRelatorioPorUnidade`:
+  casos-cadastrados e casos-por-status contam só a unidade ativa, casos-por-orientacao
+  idem, horários ignoram presença e plantão de outra unidade) e o novo
+  `tests/api/test_search_api.py` com 4 (atendido, caso e orientação de outra unidade não
+  aparecem na busca; busca curta devolve a estrutura vazia).
+- Os helpers `_inserir_presenca` e `_inserir_plantao` de `test_relatorio_api.py` ganharam
+  `unidade_id: int = 1` — são inserts crus, e sem o parâmetro só dava para testar a
+  unidade padrão.
+- Arquivos: `gestaolegal/services/relatorio_service.py`,
+  `gestaolegal/repositories/relatorio_repository.py`, `tests/api/test_relatorio_api.py`,
+  `tests/api/test_search_api.py`.
+- `make test`: 325 passed (318 do baseline + 7 novos). Story só de API, sem tela nova:
+  não houve verificação de browser.
+- **Learnings for future iterations:**
+  - **Relatório é agregação: o vazamento não aparece como registro estranho, aparece como
+    número errado.** Um `count()` sem `unidade_id` soma as duas unidades e o teste que só
+    olha "a lista não tem item da outra unidade" não pega. Por isso os testes daqui
+    comparam **totais** entre `auth_headers` e `auth_headers_nl`, não conteúdo de linha.
+  - **Controller que só orquestra services não precisa de filtro próprio — precisa de
+    teste.** `global_search` não ganhou uma linha de código nesta story; ganhou um arquivo
+    de teste. Quando o isolamento é herdado, ele é invisível no diff e some numa
+    refatoração sem que nada acuse. Vale a mesma regra para qualquer endpoint futuro que
+    componha vários services.
+  - `usuarios` **não** é filtrado na busca global, e isso está certo por enquanto: a
+    tabela não tem `unidade_id` (o vínculo é `usuarios_unidades`, story
+    `f4-usuario-vinculo`). Quem fizer a f4 deve decidir se `UsuarioService.search` passa a
+    filtrar pelo vínculo — e, se passar, o teste de busca global precisa de um caso novo.
+  - Os relatórios de caso/orientação usam `data_criacao`, preenchida com o `now` do
+    create. Teste que cria pela API precisa de um período largo (aqui,
+    `2020-01-01`..`2099-12-31`), senão passa a depender do relógio do CI.
+  - `tests/api/test_relatorio_api.py` limpa as tabelas num `_reset` autouse; ao passar a
+    criar casos e orientações pela API, `TABELAS` teve de crescer com
+    `casos_atendidos`, `casos`, `atendido_xOrientacaoJuridica` e `orientacao_juridica`
+    (ligação antes da raiz, como no resto da suíte).
+---
