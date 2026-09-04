@@ -43,8 +43,8 @@
         "f1-schema-conftest"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "ContextVar _unidade_ativa com set/get e clear zerando os dois. Teste novo em tests/api/test_request_context.py (3 casos), sem fixture de app: UserInfo montado com todos os campos None, porque o contexto so guarda a instancia."
     },
     {
       "id": "f2-modelo-repo-unidade",
