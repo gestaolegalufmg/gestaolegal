@@ -17,13 +17,21 @@ class FilaAtendimentoRepository(BaseRepository):
     def __init__(self):
         super().__init__()
 
-    def find_by_id(self, id: int) -> FilaAtendimento | None:
+    def find_by_id(
+        self, id: int, unidade_id: int | None = None
+    ) -> FilaAtendimento | None:
         stmt = select(fila_atendimentos).where(fila_atendimentos.c.id == id)
+        if unidade_id is not None:
+            stmt = stmt.where(fila_atendimentos.c.unidade_id == unidade_id)
         result = self.session.execute(stmt).one_or_none()
         return from_dict(FilaAtendimento, dict(result._mapping)) if result else None
 
     def count_by_prioridade_no_periodo(
-        self, prioridade: int, inicio: datetime, fim: datetime
+        self,
+        prioridade: int,
+        inicio: datetime,
+        fim: datetime,
+        unidade_id: int | None = None,
     ) -> int:
         stmt = (
             select(func.count())
@@ -34,9 +42,13 @@ class FilaAtendimentoRepository(BaseRepository):
                 fila_atendimentos.c.data_criacao <= fim,
             )
         )
+        if unidade_id is not None:
+            stmt = stmt.where(fila_atendimentos.c.unidade_id == unidade_id)
         return self.session.execute(stmt).scalar() or 0
 
-    def list_no_periodo(self, inicio: datetime, fim: datetime) -> list[dict[str, Any]]:
+    def list_no_periodo(
+        self, inicio: datetime, fim: datetime, unidade_id: int | None = None
+    ) -> list[dict[str, Any]]:
         stmt = (
             select(
                 fila_atendimentos.c.id,
@@ -55,6 +67,8 @@ class FilaAtendimentoRepository(BaseRepository):
                 fila_atendimentos.c.data_criacao <= fim,
             )
         )
+        if unidade_id is not None:
+            stmt = stmt.where(fila_atendimentos.c.unidade_id == unidade_id)
         results = self.session.execute(stmt).mappings().all()
         return [dict(row) for row in results]
 
