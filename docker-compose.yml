@@ -6,7 +6,7 @@ services:
       target: prod
     restart: unless-stopped
     ports:
-      - "5001:80"
+      - "${WEB_PORT:-5001}:80"
     depends_on:
       - api
 
@@ -34,7 +34,7 @@ services:
       context: .
       target: prod
     ports:
-      - "5000:5000"
+      - "${APP_PORT:-5000}:5000"
     env_file:
       - .env
     restart: unless-stopped
@@ -101,7 +101,7 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:

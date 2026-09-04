@@ -17,7 +17,7 @@ services:
       - .env
     environment:
       - NODE_ENV=development
-      - PUBLIC_API_URL=http://localhost:5000
+      - PUBLIC_API_URL=http://localhost:${APP_PORT:-5000}
     develop:
       watch:
         - action: rebuild
@@ -30,7 +30,7 @@ services:
       target: dev
     command: ["flask", "--app", "gestaolegal:create_app()", "run", "--host=0.0.0.0", "--port=5000", "--debug"]
     ports:
-      - "5000:5000"
+      - "${APP_PORT:-5000}:5000"
     volumes:
       - ./gestaolegal:/code/gestaolegal
       - ./migrations:/code/migrations
@@ -40,7 +40,7 @@ services:
       - FLASK_DEBUG=1
       - PYTHONUNBUFFERED=1
       - FLASK_APP=gestaolegal:create_app()
-      - CORS_ORIGINS=http://localhost:5001
+      - CORS_ORIGINS=http://localhost:${WEB_PORT:-5001}
     depends_on:
       - mailpit
     develop:
