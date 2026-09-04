@@ -612,6 +612,7 @@ def sample_user_data() -> dict[str, Any]:
         "cidade": "Belo Horizonte",
         "estado": "MG",
         "complemento": None,
+        "unidade_ids": [1],
     }
 
 
