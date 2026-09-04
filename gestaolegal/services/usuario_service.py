@@ -22,6 +22,7 @@ from gestaolegal.repositories.repository import (
     SearchParams,
     WhereClause,
 )
+from gestaolegal.repositories.unidade_repository import UnidadeRepository
 from gestaolegal.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -30,16 +31,19 @@ logger = logging.getLogger(__name__)
 class UsuarioService:
     repository: UserRepository
     endereco_repository: EnderecoRepository
+    unidade_repository: UnidadeRepository
 
     def __init__(self):
         self.repository = UserRepository()
         self.endereco_repository = EnderecoRepository()
+        self.unidade_repository = UnidadeRepository()
 
     def find_by_id(self, id: int) -> UserInfo | None:
         logger.info(f"Finding user by id: {id}")
         user = self.repository.find_by_id(id)
         if user:
             self.__load_endereco(user)
+            self.__load_unidades(user)
             logger.info(f"User found with id: {id}")
         else:
             logger.warning(f"User not found with id: {id}")
@@ -50,6 +54,7 @@ class UsuarioService:
         user = self.repository.find_by_email(email)
         if user:
             self.__load_endereco(user)
+            self.__load_unidades(user)
             logger.info(f"User found with email: {email}")
         else:
             logger.warning(f"User not found with email: {email}")
@@ -126,6 +131,7 @@ class UsuarioService:
             logger.warning(f"Authentication failed: user not found for email: {email}")
             return None
         self.__load_endereco(user)
+        self.__load_unidades(user)
         if self.check_password(user, senha):
             logger.info(f"Authentication successful for email: {email}")
             return user.to_info()
@@ -289,6 +295,15 @@ class UsuarioService:
     def __load_endereco(self, user: User) -> None:
         if user.endereco_id:
             user.endereco = self.endereco_repository.find_by_id(user.endereco_id)
+
+    def __load_unidades(self, user: User) -> None:
+        """Carrega as unidades do usuário em uma única consulta.
+
+        `JWTAuth.get_user_from_token` recarrega o usuário a cada requisição;
+        `unidades_do_usuario` resolve o vínculo com JOIN para não virar N+1.
+        """
+        if user.id:
+            user.unidades = self.unidade_repository.unidades_do_usuario(user.id)
 
     def has_any_users(self) -> bool:
         count = self.repository.count(CountParams(where=None))

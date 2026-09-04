@@ -88,7 +88,7 @@
         "f2-modelo-repo-unidade"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
