@@ -162,3 +162,36 @@ Started: sex. 04 set 2026 18:29:56 -03
   - O prefixo do blueprint de atendido é `/api/atendido` (singular), definido em
     `gestaolegal/controllers/__init__.py`.
 ---
+
+## 2026-09-04 - f3-atendido
+- `AtendidoService` passou a filtrar tudo pela unidade ativa
+  (`RequestContext.get_unidade_ativa()`): `search` ganhou uma `WhereClause` de
+  `unidade_id` (que também cobre a busca global do `search_controller`) e `create` grava
+  `unidade_id` no insert.
+- `AtendidoRepository.find_by_id` ganhou o parâmetro opcional `unidade_id`; o service o
+  usa em `find_by_id`, `update`, `create_assistido`, `update_assistido` e `soft_delete`,
+  então atendido de outra unidade responde 404 em todos esses caminhos (antes,
+  `soft_delete` nem checava existência).
+- Dataclass `Atendido` ganhou `unidade_id: int | None = None`, exposto no `asdict` das
+  respostas.
+- Testes novos em `tests/api/test_atendido_api.py` (4): listagem isolada por unidade,
+  busca por id de outra unidade dá 404, criação grava a unidade ativa (NL) e
+  `tornar-assistido` de outra unidade dá 404.
+- Arquivos: `gestaolegal/services/atendido_service.py`,
+  `gestaolegal/repositories/atendido_repository.py`, `gestaolegal/models/atendido.py`,
+  `tests/api/test_atendido_api.py`.
+- `make test`: 286 passed (282 do baseline + 4 novos).
+- **Learnings for future iterations:**
+  - O filtro por unidade mora no **service**, não no controller nem no repositório: o
+    repositório só ganha um `unidade_id: int | None = None` opcional, para continuar
+    servindo aos outros services (`caso_service` e `orientacao_juridica_service` usam
+    `AtendidoRepository` e ainda não filtram — cada um filtra na sua story).
+  - Assistido não tem `unidade_id` próprio: o isolamento vem de sempre resolver o
+    atendido pela unidade antes de tocar no assistido.
+  - Adicionar `unidade_id` ao dataclass foi seguro **porque** o insert de atendido é
+    montado a partir do input pydantic, não do `to_dict` do modelo. Antes de repetir
+    isso em outra entidade, confira de onde o repositório tira os `values` (ver a
+    "Armadilha do default" nos Codebase Patterns).
+  - `clean_tables("atendidos")` no começo do teste é o que permite asserção de igualdade
+    exata na listagem (`ids == [id]`); sem isso os testes vizinhos deixam resíduo.
+---
