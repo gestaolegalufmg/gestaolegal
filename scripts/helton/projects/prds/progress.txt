@@ -25,6 +25,11 @@ Started: sex. 04 set 2026 18:29:56 -03
   recebe `unidade_id` **obrigatório**, não opcional: default nesses métodos faz uma
   leitura de uma unidade apagar dado de outra. Só as **leituras** usam
   `unidade_id: int | None = None`.
+- **Imagem do `migrate` carrega código copiado**: mexeu em `migrations/versions/`,
+  rode `docker compose build migrate` antes de `alembic heads`/`upgrade`, senão o
+  container ainda roda a árvore antiga.
+- **Coluna NOT NULL em tabela com dados** entra em três tempos: `add_column`
+  nullable, `UPDATE SET <valor>`, `alter_column nullable=False`.
 - **Armadilha do default**: NÃO adicione `unidade_id: int | None = None` a um dataclass
   de `gestaolegal/models/` sem que o service passe a preencher o valor. Os repositories
   montam o insert a partir do `to_dict` do modelo, e um `None` explícito anula o
@@ -532,3 +537,38 @@ Started: sex. 04 set 2026 18:29:56 -03
     agora existindo, é decisão de produto se a f5 ou uma story futura filtra por
     `usuarios_unidades`.
 ---
+
+## 2026-09-04 - f1-migration
+- Criada `migrations/versions/b7c1d2e3f4a5_unidades.py`, com
+  `down_revision = "99b46509b0e1"` (único head anterior).
+- `upgrade()` em três passos: (1) `create_table unidades` + `bulk_insert` de
+  (1, Belo Horizonte, BH) e (2, Nova Lima, NL), ambas ativas; (2)
+  `create_table usuarios_unidades` (PK composta, duas FKs) + `INSERT ... SELECT
+  id, 1 FROM usuarios`, colocando todo usuário herdado em BH; (3) para cada uma
+  das onze tabelas raiz, `add_column unidade_id` nullable, `UPDATE SET
+  unidade_id = 1`, `alter_column nullable=False`, índice `ix_<tabela>_unidade_id`
+  e FK `fk_<tabela>_unidade`. `downgrade()` desfaz na ordem inversa.
+- Arquivos: `migrations/versions/b7c1d2e3f4a5_unidades.py`.
+- Verificação: `alembic heads` → `b7c1d2e3f4a5 (head)`, único;
+  `docker compose run --rm migrate` aplica; `downgrade -1` seguido de
+  `upgrade head` roda de ponta a ponta; `uv run pytest tests/api/ -q` →
+  343 passed.
+- **Learnings for future iterations:**
+  - **A imagem do `migrate` carrega o código copiado, não o bind da worktree.**
+    Migration nova só aparece depois de `docker compose build migrate`; sem isso
+    `alembic heads` mostra o head antigo e dá a impressão falsa de que o arquivo
+    não foi lido.
+  - `alembic check` é o jeito barato de conferir "schema resultante bate com
+    `tables.py`" sem gerar arquivo. Ele **falha** neste projeto por drift
+    pré-existente da 2.0 (`arquivosEvento`, `assistidos_pessoa_juridica`,
+    `casos.numero_ultimo_processo` BIGINT vs Integer, nulabilidade em
+    `fila_atendimentos`, FKs sem nome). O critério útil é ler a lista e conferir
+    que **nada** ali menciona a sua mudança — foi o caso: nenhuma divergência
+    cita `unidade_id`, `unidades` nem `usuarios_unidades`.
+  - Coluna NOT NULL em tabela com dados entra sempre em três tempos (nullable →
+    UPDATE → `alter_column nullable=False`). `add_column` NOT NULL direto quebra
+    no MySQL assim que a tabela tem linha.
+  - O `default=UNIDADE_PADRAO_ID` de `coluna_unidade()` foi **mantido**. A F3
+    terminou e todos os services gravam a unidade explicitamente, mas o default
+    ainda é a rede de segurança de qualquer insert direto (conftest, seed) e sua
+    remoção não faz parte desta story.
