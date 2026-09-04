@@ -65,7 +65,7 @@
         "f1-schema-conftest"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
