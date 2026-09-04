@@ -279,8 +279,8 @@
         "f2-decorator-unidade"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Blueprint /api/unidades com GET / (@authenticated(unidade=False), so as ativas), POST / e PUT /<id> (@authorized('admin')). Criados tambem UnidadeService e gestaolegal/models/unidade_input.py, que a story nao listava mas os controllers sempre delegam a um service. Sigla e normalizada para maiuscula e a colisao de nome/sigla vira 400 pelo novo existe_com_nome_ou_sigla do repository (as colunas sao UNIQUE; sem a checagem o IntegrityError viraria 500). 10 testes em tests/api/test_unidade_api.py."
     },
     {
       "id": "f4-usuario-vinculo",
