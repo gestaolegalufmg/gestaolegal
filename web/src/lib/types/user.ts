@@ -1,4 +1,5 @@
 import type { Endereco } from './endereco';
+import type { Unidade } from './unidade';
 
 export type User = {
 	id: number;
@@ -36,6 +37,8 @@ export type User = {
 	chave_recuperacao: boolean | null;
 
 	endereco: Endereco;
+	/** Unidades a que o usuário está vinculado; a ativa vem do seletor do cabeçalho. */
+	unidades: Unidade[];
 };
 
 export type UserOption = Pick<User, 'id' | 'nome' | 'urole'>;
