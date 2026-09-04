@@ -16,6 +16,7 @@ class OrientacaoJuridica:
     data_criacao: datetime
     id: int | None = None
     id_usuario: int | None = None
+    unidade_id: int | None = None
 
     atendidos: list["Atendido"] | None = None
     usuario: "UserInfo | None" = None

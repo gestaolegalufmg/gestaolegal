@@ -231,3 +231,52 @@ Started: sex. 04 set 2026 18:29:56 -03
   - O padrão "guarda do pai" (`_caso_da_unidade_ativa`) é mais barato que espalhar
     `unidade_id` pelas tabelas filhas, e é o que mantém `f1-schema-conftest` de pé (só as
     onze tabelas raiz têm a coluna).
+
+## 2026-09-04 - f3-orientacao-assistencia
+- `OrientacaoJuridicaService` passou a filtrar pela unidade ativa: `search` ganhou a
+  `WhereClause` de `unidade_id` (cobre a busca global do `search_controller` e a
+  listagem de orientações por atendido do `atendido_controller`) e `create` grava
+  `unidade_id` no insert. `find_by_id`, `update` e `delete` resolvem a orientação com
+  `find_by_id(id, unidade_id=...)` — orientação de outra unidade dá 404.
+- `AssistenciaJudiciariaService` idem: `search` filtra, `create` grava, e `find_by_id`,
+  `update`, `delete`, `encaminhar` e `desvincular` só encontram assistência da unidade
+  ativa. `encaminhar` também exige que a **orientação** seja da unidade ativa (senão
+  a tabela de ligação viraria a porta de entrada entre unidades).
+- `get_by_orientacao` (rota `GET /api/assistencia_judiciaria?orientacao_id=`) passa
+  `unidade_id` ao repositório: a tabela de ligação
+  `assistenciasJudiciarias_xOrientacao_juridica` não tem `unidade_id`, então o filtro
+  vem da assistência do lado de lá do JOIN.
+- Repositórios: `OrientacaoJuridicaRepository.find_by_id` e
+  `AssistenciaJudiciariaRepository.find_by_id` ganharam `unidade_id: int | None = None`;
+  `get_assistencias_by_orientacao` também.
+- Dataclasses `OrientacaoJuridica` e `AssistenciaJudiciaria` ganharam
+  `unidade_id: int | None = None`.
+- Testes: 3 novos em `tests/api/test_orientacao_api.py` (listagem isolada, 404 em
+  GET/PUT/DELETE de outra unidade, create grava a unidade ativa) e o novo
+  `tests/api/test_assistencia_judiciaria_api.py` com 5 (listagem isolada, 404 em
+  GET/PUT/DELETE, create grava a unidade ativa, encaminhar orientação de outra unidade
+  dá 404, assistências por orientação respeitam a unidade).
+- Arquivos: `gestaolegal/services/orientacao_juridica_service.py`,
+  `gestaolegal/services/assistencia_judiciaria_service.py`,
+  `gestaolegal/repositories/orientacao_juridica_repository.py`,
+  `gestaolegal/repositories/assistencia_judiciaria_repository.py`,
+  `gestaolegal/models/orientacao_juridica.py`,
+  `gestaolegal/models/assistencia_judiciaria.py`,
+  `tests/api/test_orientacao_api.py`, `tests/api/test_assistencia_judiciaria_api.py`.
+- `make test`: 299 passed (291 do baseline + 8 novos).
+- **Learnings for future iterations:**
+  - **Tabela de ligação entre duas raízes** (aqui, assistência x orientação) é o ponto
+    cego do modelo: ela não tem `unidade_id`, e sem checar as **duas** pontas o vínculo
+    vira caminho para ler dado de outra unidade. Regra: quem cria vínculo valida os dois
+    lados pela unidade ativa; quem lê vínculo filtra pela entidade do outro lado do JOIN.
+  - `AssistenciaJudiciariaDetail` e `OrientacaoJuridicaDetail` **não** expõem
+    `unidade_id` (são dataclasses de apresentação montadas campo a campo). Só o POST de
+    orientação devolve `unidade_id`, porque `create` retorna a dataclass raiz. Para
+    assistência, a asserção de gravação é indireta: aparece na listagem da unidade que
+    criou e some na da outra.
+  - `assistencias_judiciarias.email` é `unique`: teste que cria duas assistências
+    precisa de e-mails distintos, senão quebra com IntegrityError em vez do que testa.
+  - Ordem do `clean_tables` aqui:
+    `("assistenciasJudiciarias_xOrientacao_juridica", "assistencias_judiciarias")` e
+    `("atendido_xOrientacaoJuridica", "orientacao_juridica")` — ligação antes da raiz.
+---

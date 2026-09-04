@@ -25,6 +25,7 @@ from gestaolegal.repositories.repository import (
     SearchParams,
     WhereClause,
 )
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,9 @@ class AssistenciaJudiciariaService:
 
     def find_by_id(self, id: int) -> AssistenciaJudiciariaDetail | None:
         logger.info(f"Finding assistencia judiciaria by id: {id}")
-        assistencia = self.repository.find_by_id(id)
+        assistencia = self.repository.find_by_id(
+            id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not assistencia:
             logger.warning(f"Assistencia judiciaria with id: {id} not found")
             return None
@@ -94,7 +97,13 @@ class AssistenciaJudiciariaService:
         logger.info(
             f"Searching assistencias judiciarias with search: '{search}', area: {area}, regiao: {regiao}, show_inactive: {show_inactive}"
         )
-        clauses = []
+        clauses: list[WhereClause | ComplexWhereClause] = [
+            WhereClause(
+                column="unidade_id",
+                operator="==",
+                value=RequestContext.get_unidade_ativa(),
+            )
+        ]
 
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=1))
@@ -174,6 +183,7 @@ class AssistenciaJudiciariaService:
             payload["endereco_id"] = endereco_id
             payload["areas_atendidas"] = ",".join(data.areas_atendidas)
             payload["status"] = 1
+            payload["unidade_id"] = RequestContext.get_unidade_ativa()
 
             assistencia_id = self.repository.create(payload)
 
@@ -192,7 +202,9 @@ class AssistenciaJudiciariaService:
         self, id: int, data: AssistenciaJudiciariaUpdateInput
     ) -> AssistenciaJudiciariaDetail:
         logger.info(f"Updating assistencia judiciaria with id: {id}")
-        existing = self.repository.find_by_id(id)
+        existing = self.repository.find_by_id(
+            id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not existing:
             raise NotFoundException(resource="Assistencia Judiciaria", resource_id=id)
 
@@ -225,7 +237,9 @@ class AssistenciaJudiciariaService:
 
     def delete(self, id: int) -> bool:
         logger.info(f"Deleting assistencia judiciaria with id: {id}")
-        existing = self.repository.find_by_id(id)
+        existing = self.repository.find_by_id(
+            id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not existing:
             raise NotFoundException(resource="Assistencia Judiciaria", resource_id=id)
 
@@ -240,12 +254,17 @@ class AssistenciaJudiciariaService:
         logger.info(
             f"Linking assistencia judiciaria {assistencia_id} to orientacao {id_orientacao}"
         )
-        assistencia = self.repository.find_by_id(assistencia_id)
+        unidade_ativa = RequestContext.get_unidade_ativa()
+        assistencia = self.repository.find_by_id(
+            assistencia_id, unidade_id=unidade_ativa
+        )
         if not assistencia:
             raise NotFoundException(
                 resource="Assistencia Judiciaria", resource_id=assistencia_id
             )
-        orientacao = self.orientacao_repository.find_by_id(id_orientacao)
+        orientacao = self.orientacao_repository.find_by_id(
+            id_orientacao, unidade_id=unidade_ativa
+        )
         if not orientacao:
             raise NotFoundException(
                 resource="Orientacao Juridica", resource_id=id_orientacao
@@ -262,13 +281,23 @@ class AssistenciaJudiciariaService:
         logger.info(
             f"Unlinking assistencia judiciaria {assistencia_id} from orientacao {id_orientacao}"
         )
+        assistencia = self.repository.find_by_id(
+            assistencia_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
+        if not assistencia:
+            raise NotFoundException(
+                resource="Assistencia Judiciaria", resource_id=assistencia_id
+            )
+
         with transaction():
             self.repository.unlink_orientacao(assistencia_id, id_orientacao)
 
     def get_by_orientacao(
         self, id_orientacao: int
     ) -> list[AssistenciaJudiciariaListItem]:
-        assistencias = self.repository.get_assistencias_by_orientacao(id_orientacao)
+        assistencias = self.repository.get_assistencias_by_orientacao(
+            id_orientacao, unidade_id=RequestContext.get_unidade_ativa()
+        )
         endereco_ids = [a.endereco_id for a in assistencias if a.endereco_id]
         enderecos = self.endereco_repository.get_by_ids(endereco_ids)
         endereco_map = {e.id: e for e in enderecos}

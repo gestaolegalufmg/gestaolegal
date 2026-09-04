@@ -17,6 +17,7 @@ class AssistenciaJudiciaria:
     status: int
     id: int | None = None
     endereco_id: int | None = None
+    unidade_id: int | None = None
 
     endereco: Endereco | None = None
 
