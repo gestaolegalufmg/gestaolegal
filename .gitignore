@@ -147,3 +147,5 @@ cython_debug/
 #Localhost config
 mysql_data
 docker-compose.override.yml
+# Dumps de banco (dados pessoais; nunca versionar)
+dumps/

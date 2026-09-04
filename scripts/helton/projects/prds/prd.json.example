@@ -1,0 +1,60 @@
+{
+  "_comentario": "Exemplo do schema que ESTA esteira usa. O /cronograma o escreve a partir de plans/<plano>.md; não escreva à mão. Difere do prd.json.example do snarktank/ralph: os campos de gate, dependência e esforço não existem lá, e é deles que o loop tira o que pode executar sozinho.",
+  "project": "meuprojeto",
+  "branchName": "helton/estoque-acerto",
+  "description": "Acerto manual de estoque com rastro de quem ajustou",
+  "execution": "sandboxed",
+  "userStories": [
+    {
+      "id": "f1-estoque-acerto-servico",
+      "title": "Registrar acerto de estoque no serviço, com motivo obrigatório",
+      "context": "O ajuste hoje grava a quantidade nova e perde o motivo (app/domain/stock/services/stock_service.py:88). A tabela já tem a coluna `reason`, nunca preenchida. Sem motivo, o inventário não se audita.",
+      "files": ["app/domain/stock/services/stock_service.py"],
+      "acceptance": "Ajuste sem motivo é recusado com erro de validação; com motivo, grava quantidade e motivo na mesma transação.",
+      "verify": "make ready",
+      "effort_label": "low",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": false,
+      "blocked_by_gate": false,
+      "depends_on": [],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f1-estoque-acerto-endpoint",
+      "title": "Expor o acerto no controller, escopado por tenant",
+      "context": "Controller em app/api/stock/stock.py. Handler síncrono, no molde dos vizinhos. O DTO novo muda o schema publicado.",
+      "files": ["app/api/stock/stock.py", "app/api/contracts/stock.py"],
+      "acceptance": "POST /stock/{id}/acerto devolve 200 com o registro criado, e 403 para tenant que não é dono do item.",
+      "verify": "make ready && pytest tests/api/test_stock.py",
+      "effort_label": "medium",
+      "human_gate": true,
+      "gate_reason": "Contrato de API publicado (gate 6) e escopo de tenant (gate 4): consumidor externo quebra em silêncio, e vazamento entre tenants não aparece em lint.",
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": ["f1-estoque-acerto-servico"],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f1-estoque-acerto-tela",
+      "title": "Diálogo de acerto na tela de estoque",
+      "context": "Reaproveitar o diálogo de movimentação. Verificação em browser é critério de aceite, não opcional.",
+      "files": ["web/src/routes/(app)/estoque/+page.svelte"],
+      "acceptance": "O operador informa quantidade e motivo, salva, e a linha da tabela reflete o novo saldo sem recarregar a página.",
+      "verify": "make ready + verificação em browser na porta desta worktree",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": false,
+      "blocked_by_gate": true,
+      "depends_on": ["f1-estoque-acerto-endpoint"],
+      "priority": 3,
+      "passes": false,
+      "notes": "blocked_by_gate: true é fechamento transitivo — depende de uma story barrada, então o loop não a pega até o humano liberar a de cima."
+    }
+  ]
+}

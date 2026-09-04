@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(./scripts/helton/helton.sh)",
+      "Edit(./scripts/helton/CLAUDE.md)",
+      "Edit(./scripts/helton/prompt.md)",
+      "Edit(./scripts/helton/obra/**)",
+      "Edit(./.claude/skills/**)",
+      "Edit(./.claude/settings.json)",
+      "Edit(./.claude/settings.local.json)",
+      "Edit(./Makefile)",
+      "Edit(./.github/workflows/**)"
+    ],
+    "allow": [
+      "mcp__plugin_browser-use_browser-use__browser_exec",
+      "mcp__plugin_browser-use_browser-use__browser_screenshot"
+    ]
+  },
+  "worktree": {
+    "bgIsolation": "none"
+  }
+}
