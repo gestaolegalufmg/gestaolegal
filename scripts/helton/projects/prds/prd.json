@@ -463,7 +463,7 @@
         "f6-seed"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]
