@@ -20,6 +20,10 @@ const baseUserFormSchema = z
 			error: 'Selecione uma função'
 		}),
 
+		// Ids vêm como string porque o MultipleSelect trabalha com string[];
+		// o formulário converte para número antes de mandar para a API.
+		unidade_ids: z.array(z.string()).min(1, 'Selecione ao menos uma unidade'),
+
 		status: z.boolean().default(true),
 
 		rg: z.string().min(1, 'RG é obrigatório').max(18, 'RG deve ter no máximo 18 caracteres'),

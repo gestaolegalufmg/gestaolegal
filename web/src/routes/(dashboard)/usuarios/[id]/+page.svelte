@@ -35,6 +35,10 @@
 
 	const registrationData = [
 		{ label: 'Email', value: user.email },
+		{
+			label: 'Unidades',
+			value: user.unidades?.length ? user.unidades.map((unidade) => unidade.nome).join(', ') : null
+		},
 		{ label: 'Telefone', value: user.telefone },
 		{
 			label: 'Data de Inclusão',
