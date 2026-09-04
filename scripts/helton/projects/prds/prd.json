@@ -352,8 +352,8 @@
         "f4-usuario-vinculo"
       ],
       "priority": 15,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Store `unidadeAtiva` (writable) em web/src/lib/stores/unidade.ts, persistida em localStorage sob 'unidade_ativa'; `sincronizarUnidades(unidades)` concilia a guardada com a lista do usuario e cai para a primeira. Chamada no login e no +layout.ts do (dashboard). apiFetch manda X-Unidade-Id quando ha valor. Verificacao de browser nao foi possivel (plugin browser-use exige consentimento manual); comportamento conferido por curl contra a API desta worktree: sem header 400, unidade 1 -> 200, unidade 2 -> 403."
     },
     {
       "id": "f5-seletor-cabecalho",

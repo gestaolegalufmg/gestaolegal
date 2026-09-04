@@ -30,6 +30,12 @@ Started: sex. 04 set 2026 18:29:56 -03
   container ainda roda a árvore antiga.
 - **Coluna NOT NULL em tabela com dados** entra em três tempos: `add_column`
   nullable, `UPDATE SET <valor>`, `alter_column nullable=False`.
+- **Portão do front está vermelho no master**: `npm run check` (21 erros) e `npm run lint`
+  (`arquivos/+page.svelte`) já falham sem nenhuma mudança. Compare com o baseline
+  revertendo suas mudanças; não persiga zero.
+- **Unidade ativa no front**: store `web/src/lib/stores/unidade.ts` (localStorage
+  `unidade_ativa`); `apiFetch` manda `X-Unidade-Id` a partir dela. Quem descobre a lista
+  de unidades (login, `+layout.ts` do dashboard) chama `sincronizarUnidades`.
 - **Armadilha do default**: NÃO adicione `unidade_id: int | None = None` a um dataclass
   de `gestaolegal/models/` sem que o service passe a preencher o valor. Os repositories
   montam o insert a partir do `to_dict` do modelo, e um `None` explícito anula o
@@ -572,3 +578,48 @@ Started: sex. 04 set 2026 18:29:56 -03
     terminou e todos os services gravam a unidade explicitamente, mas o default
     ainda é a rede de segurança de qualquer insert direto (conftest, seed) e sua
     remoção não faz parte desta story.
+
+## 2026-09-04 - f5-tipos-store-header
+- Criado `web/src/lib/types/unidade.ts` (tipo `Unidade`), `User` ganhou `unidades:
+  Unidade[]` e o tipo foi exportado no `index.ts`.
+- Criada a store `web/src/lib/stores/unidade.ts`: `unidadeAtiva` (writable com o id),
+  `definirUnidadeAtiva`, `unidadeAtivaId()` (leitura fora de componente) e
+  `sincronizarUnidades(unidades)`, que mantém a guardada quando ela ainda está na lista
+  do usuário e cai para a primeira quando não está. Persistência em localStorage sob a
+  chave `unidade_ativa`.
+- `apiFetch` (`web/src/lib/api-client.ts`) manda `X-Unidade-Id` sempre que há valor.
+- `sincronizarUnidades` é chamada no `+page.svelte` do login (logo após gravar o cookie,
+  com `user.unidades` da resposta) e no `+layout.ts` do grupo `(dashboard)` (com
+  `me.unidades`). O `any` do tipo de resposta do login virou `User`.
+- Arquivos: `web/src/lib/types/unidade.ts`, `web/src/lib/types/user.ts`,
+  `web/src/lib/types/index.ts`, `web/src/lib/stores/unidade.ts`,
+  `web/src/lib/api-client.ts`, `web/src/routes/login/+page.svelte`,
+  `web/src/routes/(dashboard)/+layout.ts`.
+- Verificação: `npm run check` → 21 errors / 51 warnings, **exatamente o mesmo baseline
+  de HEAD** (conferido revertendo as mudanças e rodando de novo); nenhum erro novo.
+  `npm run lint` acusa só `src/routes/(dashboard)/arquivos/+page.svelte`, quebra que já
+  vem do master (commit `ede7809`) e não foi tocada aqui; `prettier --check` nos sete
+  arquivos desta story passa. `uv run pytest tests/api/ -q` → 343 passed.
+- Verificação de browser **não** foi possível: o plugin browser-use morre em
+  `permission-blocked` (exige o consentimento manual descrito em `docs/manual_dev.md`).
+  Em lugar dela, contra a stack desta worktree (`APP_PORT=5250`), com admin criado por
+  `POST /api/auth/setup-admin`: `GET /api/caso/` sem header → 400, com `X-Unidade-Id: 1`
+  → 200, com `X-Unidade-Id: 2` → 403; `GET /api/user/me` traz `unidades` preenchido.
+  **Falta conferir na tela** (login → dashboard) quando houver consentimento.
+- **Learnings for future iterations:**
+  - **`npm run check` e `npm run lint` já estão vermelhos no master** (21 erros de
+    svelte-check, 1 arquivo fora do prettier). O critério útil é comparar com o baseline
+    revertendo as próprias mudanças, não esperar zero.
+  - **O front é SPA**: `web/src/routes/+layout.ts` tem `ssr = false`. Store com
+    `localStorage` no módulo funciona sem cerimônia, mas o guard `browser` fica porque
+    `svelte-check` roda o módulo no build.
+  - **Corrida de load**: o `+layout.ts` do `(dashboard)` e os `+page.ts` filhos rodam em
+    paralelo; só os que fazem `await parent()` veem a unidade já sincronizada. Na prática
+    o login grava a unidade antes de qualquer navegação, então a lacuna é só no primeiro
+    acesso com cookie válido e localStorage vazio. Se aparecer 400 esporádico numa tela,
+    é isto.
+  - **`setup-admin` já vincula o admin à unidade 1** (o create passa pelo caminho novo da
+    f4). Dá para levantar uma stack vazia e ter usuário utilizável sem seed.
+  - Banco desta worktree começa vazio (`f6-seed` ainda não rodou); as unidades 1 e 2 vêm
+    da migration.
+---
