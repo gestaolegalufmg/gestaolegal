@@ -12,6 +12,7 @@
 	import ChartBarIcon from '@lucide/svelte/icons/bar-chart-3';
 	import FolderIcon from '@lucide/svelte/icons/folder';
 	import BellIcon from '@lucide/svelte/icons/bell';
+	import BuildingIcon from '@lucide/svelte/icons/building-2';
 
 	type NavItem = ItemComPapeis & {
 		title: string;
@@ -106,6 +107,13 @@
 			title: 'Notificações',
 			url: '/notificacoes',
 			icon: BellIcon,
+			items: []
+		},
+		{
+			title: 'Unidades',
+			url: '/unidades',
+			icon: BuildingIcon,
+			roles: ['admin'],
 			items: []
 		},
 		{

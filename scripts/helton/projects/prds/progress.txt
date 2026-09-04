@@ -708,3 +708,43 @@ Started: sex. 04 set 2026 18:29:56 -03
   - **A listagem de usuários (`UsuarioService.search`) continua sem filtro por unidade.**
     O admin vê todo mundo; o formulário agora mostra o vínculo, mas a lista não o usa.
 ---
+
+## 2026-09-04 - f5-tela-unidades
+- Nova rota `web/src/routes/(dashboard)/unidades/`:
+  - `+page.ts`: guarda de papel (`me.urole !== 'admin'` → `error(403, ...)`, no molde de
+    `relatorios/+page.ts`), `depends('app:unidades')` e `api.get<Unidade[]>('unidades/')`.
+  - `+page.svelte`: tabela (Nome, Sigla, Situação como `Badge`, Criada em, ação Editar) e
+    um único `Dialog` que serve para criar e editar — `emEdicao: Unidade | null` decide o
+    título e se o submit é `POST unidades/` ou `PUT unidades/<id>`. Campos: nome, sigla e
+    checkbox "Unidade ativa". Depois de salvar, `invalidateAll()` (recarrega o
+    `+layout.ts` do dashboard, que é quem ressincroniza o seletor de unidade).
+- `app-sidebar.svelte`: item "Unidades" (`/unidades`, ícone `building-2`,
+  `roles: ['admin']`), entre Notificações e Relatórios. Não-admin não vê o item e, se
+  digitar a URL, cai no 403 do `+page.ts`.
+- Verificação: `npm run check` → 21 errors / 50 warnings, **idêntico ao baseline** das
+  iterações anteriores, e nenhum diagnóstico nos arquivos desta story;
+  `npx prettier --check .` acusa só `arquivos/+page.svelte` (quebra herdada do master);
+  `uv run pytest tests/api/ -q` → 343 passed.
+- Verificação de browser **não** foi possível: o binário `browser-use` não existe nesta
+  máquina. Em substituição: `docker compose up -d --build web` e o bundle servido contém
+  a tela (`grep 'Nova Unidade'` acha em `_app/immutable/nodes/39.*.js`); e os payloads
+  exatos do diálogo foram exercitados contra a API desta worktree (`APP_PORT=5250`) com
+  admin: `POST /api/unidades/ {"nome":"Contagem","sigla":"CTG","ativa":true}` → 201;
+  `PUT /api/unidades/3 {"nome":"Contagem Centro","sigla":"CTC","ativa":false}` → 200. A
+  unidade 3 foi apagada do banco do canteiro depois do teste. **Falta conferir na tela.**
+- **Learnings for future iterations:**
+  - **`GET /api/unidades/` só devolve as ativas** (`UnidadeRepository.list_ativas`). Logo,
+    desativar pela tela faz a unidade sumir da lista e **não há como reativá-la pela
+    interface** — para reativar hoje só via banco. O diálogo avisa isso quando se
+    desmarca "Unidade ativa" na edição. Se a Fase B precisar de reativação, o caminho é
+    um parâmetro tipo `?incluir_inativas=1` no controller (backend, fora do escopo desta
+    story).
+  - **`POST /api/auth/login` e `/api/auth/setup-admin` esperam `password`, não `senha`**
+    (o campo `senha` devolve `VALIDATION_ERROR: Email e senha são obrigatórios`, o que
+    engana). Admin desta worktree: `admin@teste.local` / `Admin123!`.
+  - `criado` é timestamp real: a convenção de `lib/utils/date.ts` (e das telas de arquivo
+    e notificação) é `formatDateTime`, não `formatDateOnly` — este último é só para datas
+    de calendário escolhidas pelo usuário.
+  - **Cuidado ao grepar a saída do `npm run check` por "unidades"**: o caminho da worktree
+    (`/opt/gestaolegal-unidades`) casa com tudo. Filtre por `dashboard\)/unidades`.
+---
