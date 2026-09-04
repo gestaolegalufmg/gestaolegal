@@ -19,6 +19,7 @@ class Caso:
     status: bool
 
     id: int | None = None
+    unidade_id: int | None = None
     sub_area: str | None = None
     id_orientador: int | None = None
     id_estagiario: int | None = None

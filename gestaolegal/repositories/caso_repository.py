@@ -22,8 +22,10 @@ class CasoRepository(BaseRepository):
     def __init__(self):
         super().__init__()
 
-    def find_by_id(self, id: int) -> Caso | None:
+    def find_by_id(self, id: int, unidade_id: int | None = None) -> Caso | None:
         stmt = select(casos).where(casos.c.id == id)
+        if unidade_id is not None:
+            stmt = stmt.where(casos.c.unidade_id == unidade_id)
         result = self.session.execute(stmt).one_or_none()
         return from_dict(Caso, dict(result._mapping)) if result else None
 

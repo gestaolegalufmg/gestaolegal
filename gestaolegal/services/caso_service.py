@@ -34,6 +34,7 @@ from gestaolegal.repositories.repository import (
 from gestaolegal.repositories.user_repository import UserRepository
 from gestaolegal.services.historico_service import HistoricoService
 from gestaolegal.services.notificacao_service import NotificacaoService
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,9 @@ class CasoService:
 
     def find_by_id(self, id: int) -> Caso | None:
         logger.info(f"Finding caso by id: {id}")
-        caso = self.repository.find_by_id(id)
+        caso = self.repository.find_by_id(
+            id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not caso:
             logger.warning(f"Caso not found with id: {id}")
             return None
@@ -81,7 +84,13 @@ class CasoService:
         logger.info(
             f"Searching casos with search: '{search}', situacao_deferimento: {situacao_deferimento}, responsible_user: {responsible_user}, show_inactive: {show_inactive}, atendido_id: {atendido_id}, page: {page_params['page']}, per_page: {page_params['per_page']}"
         )
-        clauses: list[WhereClause | ComplexWhereClause] = []
+        clauses: list[WhereClause | ComplexWhereClause] = [
+            WhereClause(
+                column="unidade_id",
+                operator="==",
+                value=RequestContext.get_unidade_ativa(),
+            )
+        ]
 
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=True))
@@ -171,6 +180,7 @@ class CasoService:
             caso_data["id_modificado_por"] = criado_por_id
             caso_data["numero_ultimo_processo"] = None
             caso_data["status"] = True
+            caso_data["unidade_id"] = RequestContext.get_unidade_ativa()
 
             caso_id = self.repository.create(caso_data)
 
@@ -203,7 +213,9 @@ class CasoService:
         logger.info(
             f"Updating caso with id: {caso_id}, modified by: {modificado_por_id}"
         )
-        existing = self.repository.find_by_id(caso_id)
+        existing = self.repository.find_by_id(
+            caso_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not existing:
             logger.error(f"Update failed: caso not found with id: {caso_id}")
             raise NotFoundException(resource="Caso", resource_id=caso_id)
@@ -239,6 +251,12 @@ class CasoService:
 
     def soft_delete(self, caso_id: int) -> bool:
         logger.info(f"Soft deleting caso with id: {caso_id}")
+        existing = self.repository.find_by_id(
+            caso_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
+        if not existing:
+            logger.warning(f"Soft delete failed: caso not found with id: {caso_id}")
+            return False
         result = self.repository.delete(caso_id)
         if result:
             logger.info(f"Caso soft deleted successfully with id: {caso_id}")
@@ -250,7 +268,9 @@ class CasoService:
         logger.info(
             f"Deferring caso with id: {caso_id}, modified by: {modificado_por_id}"
         )
-        existing = self.repository.find_by_id(caso_id)
+        existing = self.repository.find_by_id(
+            caso_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not existing:
             logger.error(f"Defer failed: caso not found with id: {caso_id}")
             raise NotFoundException(resource="Caso", resource_id=caso_id)
@@ -279,7 +299,9 @@ class CasoService:
         logger.info(
             f"Indeferring caso with id: {caso_id}, modified by: {modificado_por_id}"
         )
-        existing = self.repository.find_by_id(caso_id)
+        existing = self.repository.find_by_id(
+            caso_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not existing:
             logger.error(f"Indefer failed: caso not found with id: {caso_id}")
             raise NotFoundException(resource="Caso", resource_id=caso_id)
@@ -305,6 +327,8 @@ class CasoService:
 
     def find_arquivos_by_caso_id(self, caso_id: int) -> list[ArquivoCaso]:
         logger.info(f"Finding arquivos for caso id: {caso_id}")
+        if not self._caso_da_unidade_ativa(caso_id):
+            raise NotFoundException(resource="Caso", resource_id=caso_id)
         arquivos = self.arquivo_repository.find_by_caso_id(caso_id)
         logger.info(f"Found {len(arquivos)} arquivos for caso id: {caso_id}")
         return arquivos
@@ -320,6 +344,10 @@ class CasoService:
         self, arquivo_id: int, caso_id: int
     ) -> ArquivoCaso | None:
         logger.info(f"Validating arquivo {arquivo_id} for caso {caso_id}")
+        if not self._caso_da_unidade_ativa(caso_id):
+            logger.warning(f"Caso {caso_id} is not in the active unidade")
+            return None
+
         arquivo = self.arquivo_repository.find_by_id(arquivo_id)
 
         if not arquivo:
@@ -386,7 +414,9 @@ class CasoService:
         """
         logger.info(f"Uploading arquivo for caso id: {caso_id}")
 
-        caso = self.repository.find_by_id(caso_id)
+        caso = self.repository.find_by_id(
+            caso_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not caso:
             logger.error(f"Caso not found with id: {caso_id}")
             raise NotFoundException(resource="Caso", resource_id=caso_id)
@@ -562,6 +592,15 @@ class CasoService:
             raise DatabaseException(
                 f"Erro ao deletar arquivo do banco de dados: {str(e)}"
             )
+
+    def _caso_da_unidade_ativa(self, caso_id: int) -> bool:
+        """Anexos e derivados do caso só existem se o caso for da unidade ativa."""
+        return (
+            self.repository.find_by_id(
+                caso_id, unidade_id=RequestContext.get_unidade_ativa()
+            )
+            is not None
+        )
 
     def _load_caso_dependencies(self, caso: Caso) -> None:
         caso.usuario_responsavel = User.to_info_optional(

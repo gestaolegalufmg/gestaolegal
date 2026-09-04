@@ -16,6 +16,8 @@ Started: sex. 04 set 2026 18:29:56 -03
   `auth_headers_nl` (admin na unidade 2), `non_admin_auth_headers`,
   `prof_auth_headers`, `estagiario_auth_headers` e `headers_para` (unidade 1).
   O admin pertence às duas unidades; os demais usuários, só à 1.
+- **Guarda do pai**: entidade filha (processo, arquivo, histórico) não tem `unidade_id`;
+  o isolamento vem de checar o pai antes — ver `CasoService._caso_da_unidade_ativa`.
 - **Armadilha do default**: NÃO adicione `unidade_id: int | None = None` a um dataclass
   de `gestaolegal/models/` sem que o service passe a preencher o valor. Os repositories
   montam o insert a partir do `to_dict` do modelo, e um `None` explícito anula o
@@ -195,3 +197,37 @@ Started: sex. 04 set 2026 18:29:56 -03
   - `clean_tables("atendidos")` no começo do teste é o que permite asserção de igualdade
     exata na listagem (`ids == [id]`); sem isso os testes vizinhos deixam resíduo.
 ---
+
+## 2026-09-04 - f3-caso
+- `CasoService` passou a filtrar tudo pela unidade ativa: `search` ganhou a `WhereClause`
+  de `unidade_id` (cobre também a busca global do `search_controller` e a listagem por
+  atendido do `atendido_controller`) e `create` grava `unidade_id` no insert.
+- `CasoRepository.find_by_id` ganhou o parâmetro opcional `unidade_id`; o service o usa em
+  `find_by_id`, `update`, `soft_delete`, `deferir`, `indeferir` e `upload_arquivo` — caso de
+  outra unidade responde 404 em todos eles (antes, `soft_delete` nem checava existência).
+- Novo helper privado `_caso_da_unidade_ativa(caso_id)`, usado por
+  `find_arquivos_by_caso_id` (404) e `validate_arquivo_for_caso` (que devolve `None`, e o
+  chamador levanta 404): os anexos herdam o isolamento do caso.
+- `link_atendidos` continua **sem** filtro por unidade, de propósito (decisão 3 do plano):
+  atendido de uma unidade pode ser cliente de caso de outra.
+- Dataclass `Caso` ganhou `unidade_id: int | None = None`, exposto no `asdict`.
+- Testes novos em `tests/api/test_caso_api.py` (5): listagem isolada por unidade; caso de
+  outra unidade dá 404 em GET/PUT/DELETE; criação grava a unidade ativa (NL); atendido de
+  BH vinculado a caso de NL aparece em `clientes` mas não na listagem de atendidos de NL;
+  arquivos de caso de outra unidade dão 404 em listagem e upload.
+- Arquivos: `gestaolegal/services/caso_service.py`,
+  `gestaolegal/repositories/caso_repository.py`, `gestaolegal/models/caso.py`,
+  `tests/api/test_caso_api.py`.
+- `make test`: 291 passed (286 do baseline + 5 novos).
+- **Learnings for future iterations:**
+  - `clean_tables("casos_atendidos", "casos")` — a ordem importa: a tabela de vínculo sai
+    antes da tabela raiz. Para o teste do vínculo entre unidades, some `"atendidos"` no fim.
+  - **Processo, evento, histórico e lembrete não ganharam filtro nesta story.** Processo e
+    histórico são filhos do caso e não têm `unidade_id` próprio; hoje a rota
+    `/api/caso/<id>/processos` chama `ProcessoService.search_by_caso` sem passar pelo
+    `CasoService`, então ainda não checa a unidade do caso pai. Quem pegar
+    `f3-evento-lembrete` deve considerar aplicar o mesmo `_caso_da_unidade_ativa` às rotas
+    aninhadas de caso.
+  - O padrão "guarda do pai" (`_caso_da_unidade_ativa`) é mais barato que espalhar
+    `unidade_id` pelas tabelas filhas, e é o que mantém `f1-schema-conftest` de pé (só as
+    onze tabelas raiz têm a coluna).
