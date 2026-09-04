@@ -22,12 +22,21 @@ function normalizeUserDates(source: Record<string, unknown>): Record<string, unk
 	return result;
 }
 
+// O campo `unidade_ids` do formulário é string[] (o MultipleSelect exige);
+// a API devolve o vínculo como a lista de objetos `unidades`.
+function unidadeIdsDoUsuario(user: User): string[] {
+	return (user.unidades ?? []).map((unidade) => String(unidade.id));
+}
+
 export const load: PageLoad = async ({ params, fetch, parent }) => {
 	if (params.id === 'eu') {
 		const { me } = await parent();
 		return {
 			form: await superValidate(
-				normalizeUserDates(me as unknown as Record<string, unknown>),
+				{
+					...normalizeUserDates(me as unknown as Record<string, unknown>),
+					unidade_ids: unidadeIdsDoUsuario(me)
+				},
 				zod4(userUpdateFormSchema)
 			),
 			user: me
@@ -37,7 +46,7 @@ export const load: PageLoad = async ({ params, fetch, parent }) => {
 	try {
 		const user = await api.get<User>(`user/${params.id}`, {}, fetch);
 		const form = await superValidate(
-			normalizeUserDates(flattenObject(user)),
+			{ ...normalizeUserDates(flattenObject(user)), unidade_ids: unidadeIdsDoUsuario(user) },
 			zod4(userUpdateFormSchema)
 		);
 

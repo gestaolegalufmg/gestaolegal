@@ -36,6 +36,11 @@ Started: sex. 04 set 2026 18:29:56 -03
 - **Unidade ativa no front**: store `web/src/lib/stores/unidade.ts` (localStorage
   `unidade_ativa`); `apiFetch` manda `X-Unidade-Id` a partir dela. Quem descobre a lista
   de unidades (login, `+layout.ts` do dashboard) chama `sincronizarUnidades`.
+- **Campo array em formulário**: o `superForm` precisa de `dataType: 'json'` assim que
+  algum campo do schema é array; sem isso o superforms serializa em FormData e a lista
+  chega achatada. O componente de múltipla escolha é
+  `$lib/components/forms/multiple-select.svelte`, e ele trabalha com `string[]` —
+  ids numéricos entram como `String(id)` e voltam com `.map(Number)` antes do POST.
 - **Armadilha do default**: NÃO adicione `unidade_id: int | None = None` a um dataclass
   de `gestaolegal/models/` sem que o service passe a preencher o valor. Os repositories
   montam o insert a partir do `to_dict` do modelo, e um `None` explícito anula o
@@ -652,3 +657,54 @@ Started: sex. 04 set 2026 18:29:56 -03
     `String(id)` e volta por `Number(valor)` no `onValueChange`.
   - Em runes mode, `let x = data.y` no `+layout.svelte` é **cópia congelada**: depois de
     `invalidateAll()` continua o valor antigo. Use `$derived`.
+
+## 2026-09-04 - f5-form-usuario
+- `user-schema.ts`: campo `unidade_ids: z.array(z.string()).min(1, 'Selecione ao menos uma
+  unidade')` no `baseUserFormSchema` (vale para criar e editar). String[] porque é o que o
+  `MultipleSelect` do projeto aceita.
+- `user-form.svelte`: `MultipleSelect` "Unidades" na seção "Dados de Acesso ao Sistema",
+  alimentado por `api.get<Unidade[]>('unidades/')` no `onMount` (`unidades` em `$state`,
+  `unidadeOptions` em `$derived` mapeando `{value: String(id), label: nome}`). O
+  `superForm` ganhou `dataType: 'json'`, e o `onUpdate` monta `payload = {...form.data,
+  unidade_ids: form.data.unidade_ids.map(Number)}` antes do POST/PUT.
+- `usuarios/[id]/editar/+page.ts`: helper `unidadeIdsDoUsuario(user)` converte
+  `user.unidades` em `string[]` e alimenta o `superValidate` nos dois caminhos (`eu` e
+  `user/<id>`) — `flattenObject` preserva arrays, mas o nome do campo é outro.
+- `usuarios/[id]/+page.svelte`: "Unidades" entrou em `registrationData`, com os nomes
+  juntados por vírgula (`null` quando vazio, para o InfoCard mostrar "N/A").
+- Arquivos: `web/src/lib/forms/schemas/user-schema.ts`,
+  `web/src/lib/forms/user-form.svelte`,
+  `web/src/routes/(dashboard)/usuarios/[id]/editar/+page.ts`,
+  `web/src/routes/(dashboard)/usuarios/[id]/+page.svelte`.
+- Verificação: `npm run check` → 21 errors / 50 warnings, **idêntico ao baseline medido
+  antes das mudanças**; nenhum erro novo nos arquivos tocados (o erro em
+  `usuarios/[id]/editar/+page.svelte` sobre `onUpdate` é herdado). `npx prettier --check .`
+  acusa só `arquivos/+page.svelte`, quebra do master. `uv run pytest tests/api/ -q` →
+  343 passed.
+- Verificação de browser **não** foi possível: o binário `browser-use` não existe nesta
+  máquina (`comando não encontrado`) — nem chega ao `permission-blocked` das iterações
+  anteriores. Em substituição, `docker compose up -d --build web` e o bundle servido
+  contém o campo (`grep 'Selecione as unidades'` acha em
+  `_app/immutable/chunks/BKVCIogj.js`); e o payload exato do formulário foi exercitado
+  contra a API desta worktree (`APP_PORT=5250`): `POST /api/user` sem `unidade_ids` → 400
+  `VALIDATION_ERROR` em `unidade_ids`; com `[1, 2]` → 201 e a resposta traz `unidades`
+  preenchido, que é o que o detalhe exibe. **Falta conferir na tela**.
+- **Learnings for future iterations:**
+  - **`dataType: 'json'` é obrigatório no `superForm` assim que um campo é array.** Sem
+    ele o superforms serializa em FormData e a lista chega achatada na validação. O
+    `assistencia-judiciaria-form.svelte` já fazia isso; o `user-form.svelte` não fazia
+    porque não tinha array.
+  - **A API de usuário exige os campos opcionais explicitamente** (`oab`, `telefone`,
+    `obs`... com `null`), não aceita omissão. Quem for montar payload à mão para testar
+    tem que mandar o objeto inteiro; o formulário passa porque o `superValidate` preenche
+    todos os defaults do schema.
+  - **`POST /api/auth/login` devolve `data.token`, não `data.access_token`.** Perde-se
+    tempo achando que o login falhou quando o campo lido é o errado.
+  - `POST /api/auth/setup-admin` exige `setup_token` (o `ADMIN_SETUP_TOKEN` do `.env`) e
+    só funciona com a tabela `usuarios` vazia.
+  - `GET /api/unidades/` é `@authenticated(unidade=False)` de propósito: qualquer usuário
+    logado lista, sem `X-Unidade-Id`. Serve tanto ao seletor do cabeçalho quanto a este
+    formulário. **Note a barra final** — sem ela o Flask redireciona.
+  - **A listagem de usuários (`UsuarioService.search`) continua sem filtro por unidade.**
+    O admin vê todo mundo; o formulário agora mostra o vínculo, mas a lista não o usa.
+---
