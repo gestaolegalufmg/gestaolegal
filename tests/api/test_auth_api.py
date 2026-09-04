@@ -6,6 +6,8 @@ from tests.api.conftest import (
     get_success_data,
 )
 
+from .conftest import TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD
+
 
 def test_login_success(client: FlaskClient, create_admin_user: None) -> None:
     response = client.post(
@@ -18,6 +20,21 @@ def test_login_success(client: FlaskClient, create_admin_user: None) -> None:
     assert data is not None
     assert "token" in data
     assert "user" in data
+
+
+def test_login_devolve_unidades_do_usuario(
+    client: FlaskClient, create_admin_user: None
+) -> None:
+    """O admin de teste pertence às duas unidades; o login precisa dizer isso."""
+    response = client.post(
+        "/api/auth/login",
+        json={"email": TEST_ADMIN_EMAIL, "password": TEST_ADMIN_PASSWORD},
+    )
+
+    assert response.status_code == 200
+    user = get_success_data(response)["user"]
+    siglas = [unidade["sigla"] for unidade in user["unidades"]]
+    assert siglas == ["BH", "NL"]
 
 
 def test_login_wrong_password(client: FlaskClient, create_admin_user: None) -> None:

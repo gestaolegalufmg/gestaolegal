@@ -176,6 +176,27 @@ def test_get_me_endpoint(client: FlaskClient, auth_headers: dict[str, str]) -> N
     assert "nome" in data
 
 
+def test_get_me_devolve_unidades(
+    client: FlaskClient, auth_headers: dict[str, str]
+) -> None:
+    response = client.get("/api/user/me", headers=auth_headers)
+
+    assert response.status_code == 200
+    data = get_success_data(response)
+    assert [u["sigla"] for u in data["unidades"]] == ["BH", "NL"]
+
+
+def test_get_me_unidades_apenas_das_vinculadas(
+    client: FlaskClient, non_admin_auth_headers: dict[str, str]
+) -> None:
+    """Usuário comum só enxerga a unidade a que está vinculado."""
+    response = client.get("/api/user/me", headers=non_admin_auth_headers)
+
+    assert response.status_code == 200
+    data = get_success_data(response)
+    assert [u["sigla"] for u in data["unidades"]] == ["BH"]
+
+
 def test_get_me_endpoint_non_admin(
     client: FlaskClient, non_admin_auth_headers: dict[str, str]
 ) -> None:

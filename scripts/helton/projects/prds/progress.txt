@@ -96,3 +96,35 @@ Started: sex. 04 set 2026 18:29:56 -03
   - `unidades_do_usuario` ordena por `nome`; quem depender da ordem em asserção deve
     lembrar que Belo Horizonte vem antes de Nova Lima.
 ---
+
+## 2026-09-04 - f2-userinfo-unidades
+- `User` e `UserInfo` (gestaolegal/models/user.py) ganharam
+  `unidades: list[Unidade] = field(default_factory=list)`. Como `to_info` copia campo a
+  campo pelos nomes de `UserInfo`, o campo precisou existir nos dois dataclasses.
+- `UsuarioService` ganhou `unidade_repository: UnidadeRepository` e o privado
+  `__load_unidades`, chamado em `find_by_id`, `find_by_email` e `authenticate` — os três
+  caminhos que produzem um `UserInfo` de usuário identificado. É uma consulta com JOIN
+  (`unidades_do_usuario`), não N.
+- `POST /api/auth/login` e `GET /api/user/me` passam a devolver `user.unidades` sem
+  mudança nos controllers: ambos serializam com `asdict` e `Unidade` é dataclass.
+- Testes: `test_login_devolve_unidades_do_usuario` (admin nas duas unidades) e, em
+  test_user_api.py, `test_get_me_devolve_unidades` e
+  `test_get_me_unidades_apenas_das_vinculadas` (usuário comum só vê BH).
+- Arquivos: `gestaolegal/models/user.py`, `gestaolegal/services/usuario_service.py`,
+  `tests/api/test_auth_api.py`, `tests/api/test_user_api.py`.
+- `make test`: 274 passed (271 do baseline + 3 novos).
+- **Learnings for future iterations:**
+  - O contrato do front mudou: `user` agora tem `unidades`. Quem for fazer a
+    `f5-tipos-store-header` precisa refletir isso em `web/src/lib/types`.
+  - `UsuarioService.search` continua devolvendo `unidades: []` — ele usa `to_info()`
+    direto no resultado paginado, sem passar por `find_by_id`. Se a listagem de usuários
+    precisar das unidades (story `f4-usuario-vinculo`), o caminho é uma consulta em lote
+    por ids, não `__load_unidades` num laço.
+  - `setup_admin` cria o admin inicial sem vínculo de unidade: `create_admin` não grava
+    em `usuarios_unidades`, então o primeiro admin nasce com `unidades: []`. O conftest
+    dos testes é quem vincula. Vale lembrar disso na `f4-usuario-vinculo` e no seed.
+  - `models/user.py` agora importa `models/unidade.py` em tempo de import (não sob
+    `TYPE_CHECKING`, porque `field(default_factory=list)` não precisa do tipo mas o
+    dataclass resolve a anotação). `unidade.py` não importa nada do projeto — manter
+    assim evita ciclo.
+---
