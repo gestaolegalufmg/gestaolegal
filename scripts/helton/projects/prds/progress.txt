@@ -623,3 +623,32 @@ Started: sex. 04 set 2026 18:29:56 -03
   - Banco desta worktree começa vazio (`f6-seed` ainda não rodou); as unidades 1 e 2 vêm
     da migration.
 ---
+
+## 2026-09-04 - f5-seletor-cabecalho
+- Criado `web/src/lib/components/unidade-selector.svelte`: com mais de uma unidade
+  mostra `Select` (trigger com a sigla, itens com o nome); com uma só, mostra a sigla
+  como texto (`title` com o nome); com nenhuma, não renderiza nada.
+- Trocar de unidade chama `definirUnidadeAtiva(id)` e depois `await invalidateAll()`,
+  senão as listagens carregadas na unidade anterior ficam na tela.
+- `web/src/routes/(dashboard)/+layout.svelte`: o seletor entrou no `ml-auto`, antes do
+  `NotificacaoBell` (a div virou `flex items-center gap-3`). `let user = data.me` virou
+  `const user = $derived(data.me)` — cópia não reagia ao `invalidateAll()`, e some um
+  warning de `state_referenced_locally`.
+- Verificação: `npm run check` → 21 errors / 50 warnings (baseline é 21/51; o warning a
+  menos é o do `user` derivado). `prettier --check .` acusa só
+  `src/routes/(dashboard)/arquivos/+page.svelte`, quebra herdada do master.
+  `uv run pytest tests/api/ -q` → 343 passed.
+- Verificação de browser **de novo não foi possível**: `browser_exec` morre em
+  `permission-blocked` (consentimento manual de `docs/manual_dev.md`). Em substituição,
+  `docker compose up -d --build web` e o bundle servido contém o seletor
+  (`grep 'Unidade ativa'` acha em `_app/immutable/nodes/2.*.js`). **Falta conferir na
+  tela** com um usuário de duas unidades (o admin serve) e um de uma só.
+- **Learnings for future iterations:**
+  - **`npm run lint` engole a saída**: o script é `prettier --check .`, mas quando roda
+    pelo npm a lista de arquivos some e sobra `ESLint output (JSON parse failed...)`.
+    Rode `npx prettier --check . > /tmp/x 2>&1` e leia o arquivo — foi assim que apareceu
+    que o componente novo estava fora de formato.
+  - `Select.Root` do shadcn trabalha com `value: string`; id numérico entra como
+    `String(id)` e volta por `Number(valor)` no `onValueChange`.
+  - Em runes mode, `let x = data.y` no `+layout.svelte` é **cópia congelada**: depois de
+    `invalidateAll()` continua o valor antigo. Use `$derived`.
