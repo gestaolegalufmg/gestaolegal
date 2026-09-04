@@ -1,0 +1,57 @@
+# Helton Progress Log
+Started: sex. 04 set 2026 18:29:56 -03
+---
+
+## Codebase Patterns
+- Ambiente: `uv sync --all-groups` antes do primeiro `make test` — o pytest está no
+  grupo `extra` do pyproject e `uv sync` puro não o instala (o erro aparece como
+  `ModuleNotFoundError: No module named 'flask'`, que confunde).
+- CI e `make test` só rodam pytest; não há ruff nem basedpyright no portão.
+- `tests/api/conftest.py` insere usuários com SQL cru (`text(...)`); todo o resto dos
+  testes cria dados pela API, então coluna NOT NULL nova quebra os services, não só o
+  conftest.
+- `gestaolegal/database/tables.py`: toda tabela raiz ganha `coluna_unidade()`, helper
+  que devolve `unidade_id` NOT NULL indexada com `default=UNIDADE_PADRAO_ID` (1).
+- Fixtures de header já mandam `X-Unidade-Id`: `auth_headers` (unidade 1),
+  `auth_headers_nl` (admin na unidade 2), `non_admin_auth_headers`,
+  `prof_auth_headers`, `estagiario_auth_headers` e `headers_para` (unidade 1).
+  O admin pertence às duas unidades; os demais usuários, só à 1.
+- **Armadilha do default**: NÃO adicione `unidade_id: int | None = None` a um dataclass
+  de `gestaolegal/models/` sem que o service passe a preencher o valor. Os repositories
+  montam o insert a partir do `to_dict` do modelo, e um `None` explícito anula o
+  `default` da coluna e volta a violar o NOT NULL. Campo no modelo e gravação no service
+  andam na mesma story.
+
+---
+
+## 2026-09-04 - f1-schema-conftest
+- Criadas as tabelas `unidades` (id, nome unique, sigla unique, ativa, criado) e
+  `usuarios_unidades` (PK composta usuario_id + unidade_id) no metadata.
+- Adicionada `unidade_id` NOT NULL indexada com FK para `unidades.id` nas onze tabelas
+  raiz: atendidos, orientacao_juridica, casos, eventos, assistencias_judiciarias,
+  lembretes, fila_atendimentos, dias_plantao, plantao, dias_marcados_plantao,
+  registro_entrada. Não foi adicionada em arquivos, notificacao, documentos_roteiro nem
+  assistidos, conforme as decisões 1 e 3 do plano.
+- Conftest: `ensure_unidades()` cria as unidades 1 (Belo Horizonte/BH) e 2 (Nova
+  Lima/NL); `vincular_unidades()` popula `usuarios_unidades`; fixture `unidades`;
+  fixture `auth_headers_nl`; todas as fixtures de header passam `X-Unidade-Id`;
+  `clean_db` limpa `usuarios_unidades` antes de `usuarios`.
+- Arquivos: `gestaolegal/database/tables.py`, `tests/api/conftest.py`.
+- `make test`: 262 passed (mesmo total do baseline).
+- **Learnings for future iterations:**
+  - Sem o `default=UNIDADE_PADRAO_ID` na coluna, 149 dos 262 testes quebram em
+    `IntegrityError: NOT NULL constraint failed`, porque nenhum service grava a unidade
+    ainda. O default é ponte, não desenho final: quando a F3 terminar (todos os services
+    gravando explicitamente), vale reavaliar se ele sai — a story `f1-migration` é o
+    ponto natural, com o modelo já fechado. Ele não esconde erro das stories F3: um
+    registro criado com `auth_headers_nl` que caísse no default apareceria na unidade 1
+    e o teste de isolamento falharia.
+  - `unidades` está declarada perto do fim de `tables.py`, depois das tabelas que a
+    referenciam. Funciona porque a FK é resolvida por string e o `create_all` ordena por
+    dependência.
+  - O admin de teste foi vinculado às unidades 1 e 2 de propósito: é ele quem exercita o
+    isolamento (`auth_headers` x `auth_headers_nl`) sem precisar de um segundo usuário.
+  - `ensure_admin_user_exists` e `criar_usuario` têm retorno antecipado quando o usuário
+    já existe; o vínculo de unidade precisa acontecer nos dois caminhos, senão a
+    segunda chamada deixa o usuário sem unidade.
+---
