@@ -19,14 +19,14 @@ user_controller = Blueprint("user", __name__)
 
 
 @user_controller.route("/me", methods=["GET"])
-@authenticated
+@authenticated(unidade=False)
 def get_me():
     current_user = RequestContext.get_current_user()
     return success_response(data=asdict(current_user))
 
 
 @user_controller.route("/opcoes", methods=["GET"])
-@authenticated
+@authenticated(unidade=False)
 def opcoes():
     """Usuários ativos (id, nome, urole) para seletores.
 

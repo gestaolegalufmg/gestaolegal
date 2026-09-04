@@ -128,3 +128,37 @@ Started: sex. 04 set 2026 18:29:56 -03
     dataclass resolve a anotação). `unidade.py` não importa nada do projeto — manter
     assim evita ciclo.
 ---
+
+## 2026-09-04 - f2-decorator-unidade
+- `@authenticated` passou a aceitar as duas formas de uso: `@authenticated` (exige o
+  header `X-Unidade-Id`) e `@authenticated(unidade=False)` para as rotas que existem
+  antes de haver unidade ativa. Nenhuma das ~87 chamadas sem parênteses precisou mudar.
+- Novo helper `_resolver_unidade_ativa(user)`: header ausente ou não numérico levanta
+  `ValidationException` (400, "Unidade ativa não informada"); unidade fora de
+  `user.unidades` levanta `ForbiddenException` (403); caso válido chama
+  `RequestContext.set_unidade_ativa`.
+- Isentas do header: `GET /api/user/me` e `GET /api/user/opcoes` (as rotas de
+  `/api/auth/*` nunca usaram `@authenticated`). A listagem de unidades do seletor será
+  isentada quando nascer, na `f4-unidade-controller`.
+- Novo `tests/api/test_unidade_auth.py` com 8 casos: sem header 400, header não numérico
+  400, unidade não pertencente 403, unidade válida 200, unidade válida chega ao
+  `RequestContext`, `user/me` sem header devolve 200 com as duas unidades,
+  `user/opcoes` sem header 200, login sem header 200.
+- Arquivos: `gestaolegal/utils/api_decorators.py`,
+  `gestaolegal/controllers/user_controller.py`, `tests/api/test_unidade_auth.py`.
+- `make test`: 282 passed (274 do baseline + 8 novos).
+- **Learnings for future iterations:**
+  - `@authorized(...)` empilha `@authenticated` internamente, então **toda rota com
+    `@authorized` já exige unidade** — inclusive as de administração de usuário. Se
+    alguma precisar de isenção, é `authorized` que ganha o parâmetro, não a rota.
+  - Erros de decorator devem ser exceções do domínio, não `make_response` cru: o
+    `error_handlers.py` transforma `ValidationException`/`ForbiddenException` no JSON
+    `{"success": false, "error": {"message", "code"}}` que o front espera. Os 401 de
+    token continuam sendo string crua — é dívida antiga, não copie o padrão.
+  - Em teste, a mensagem de erro está em `response.get_json()["error"]["message"]`,
+    não em `["message"]`.
+  - `JWTAuth.get_user_from_token` chama `UsuarioService.find_by_id`, que já carrega
+    `unidades` — a validação do header não custa consulta extra.
+  - O prefixo do blueprint de atendido é `/api/atendido` (singular), definido em
+    `gestaolegal/controllers/__init__.py`.
+---
