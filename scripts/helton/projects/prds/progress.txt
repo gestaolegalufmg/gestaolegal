@@ -18,6 +18,9 @@ Started: sex. 04 set 2026 18:29:56 -03
   O admin pertence às duas unidades; os demais usuários, só à 1.
 - **Guarda do pai**: entidade filha (processo, arquivo, histórico) não tem `unidade_id`;
   o isolamento vem de checar o pai antes — ver `CasoService._caso_da_unidade_ativa`.
+- **Filha com coluna própria** (evento, lembrete): a unidade vem do **caso**, não do
+  header — `evento_data["unidade_id"] = caso.unidade_id`. Ainda assim se resolve o caso
+  pela unidade ativa antes de criar/listar, senão a filha vira porta de entrada.
 - **Armadilha do default**: NÃO adicione `unidade_id: int | None = None` a um dataclass
   de `gestaolegal/models/` sem que o service passe a preencher o valor. Os repositories
   montam o insert a partir do `to_dict` do modelo, e um `None` explícito anula o
@@ -279,4 +282,46 @@ Started: sex. 04 set 2026 18:29:56 -03
   - Ordem do `clean_tables` aqui:
     `("assistenciasJudiciarias_xOrientacao_juridica", "assistencias_judiciarias")` e
     `("atendido_xOrientacaoJuridica", "orientacao_juridica")` — ligação antes da raiz.
+---
+
+## 2026-09-04 - f3-evento-lembrete
+- `EventoService` e `LembreteService` ganharam `caso_repository` e o helper
+  `_caso_da_unidade_ativa(caso_id)`, que resolve o caso pela unidade ativa e devolve o
+  próprio caso (diferente do `CasoService`, que devolve booleano — aqui o `create`
+  precisa do `unidade_id` do caso).
+- `create` de evento e de lembrete grava `unidade_id = caso.unidade_id` (a unidade do
+  caso, não a do header) e responde 404 quando o caso não é da unidade ativa.
+- Listagens (`find_by_caso_id`, `get_by_caso`) levantam `NotFoundException(Caso)` quando
+  o caso é de outra unidade e ainda filtram os registros por `unidade_id` no SQL.
+- `find_by_id`, `validate_*_for_caso`, `update` e `delete` resolvem evento/lembrete com
+  `find_by_id(id, unidade_id=...)`: detalhe, edição, exclusão e download de evento de
+  outra unidade dão 404.
+- Repositórios: `EventoRepository.find_by_id` e `find_by_caso_id_paginated`,
+  `LembreteRepository.find_by_id` e `get_by_caso` ganharam `unidade_id: int | None = None`.
+- Dataclasses `Evento` e `Lembrete` ganharam `unidade_id: int | None = None`;
+  `LembreteListItem` expõe `unidade_id` (é o que o POST devolve).
+- Testes: 4 novos em `tests/api/test_evento_api.py` (herda a unidade do caso, agenda de
+  caso de outra unidade dá 404, 404 em GET/PUT/DELETE/download, criar evento em caso de
+  outra unidade dá 404) e o novo `tests/api/test_lembrete_api.py` com 5 (criar/listar,
+  herda a unidade do caso, listagem de outra unidade dá 404, 404 em GET/PUT/DELETE,
+  criar em caso de outra unidade dá 404).
+- Arquivos: `gestaolegal/services/evento_service.py`,
+  `gestaolegal/services/lembrete_service.py`,
+  `gestaolegal/repositories/evento_repository.py`,
+  `gestaolegal/repositories/lembrete_repository.py`, `gestaolegal/models/evento.py`,
+  `gestaolegal/models/lembrete.py`, `tests/api/test_evento_api.py`,
+  `tests/api/test_lembrete_api.py`.
+- `make test`: 308 passed (299 do baseline + 9 novos).
+- **Learnings for future iterations:**
+  - O 404 da listagem é a forma de "não aparece na agenda": não existe endpoint de
+    agenda global hoje (`grep -rn "agenda"` em `gestaolegal/` não acha nada), a agenda é
+    a rota aninhada `/api/caso/<id>/eventos`. Se `f3-relatorio-busca` criar uma agenda
+    que cruze casos, ela deve filtrar por `eventos.unidade_id` diretamente.
+  - Guardar o pai **e** filtrar a coluna própria é redundante de propósito: registro
+    herdado da 2.0 pode ter caído no `default` da coluna com a unidade errada, e aí o
+    filtro segura; caso movido de unidade no futuro, a guarda do pai segura.
+  - `LembreteListItem` é montado campo a campo; campo novo no dataclass exige mexer em
+    `_to_list_item`, senão quebra com TypeError de argumento faltando.
+  - `/api/caso/<id>/processos` continua sem checar a unidade do caso pai (herdado da
+    f3-caso). Segue como pendência para quem mexer em processo.
 ---

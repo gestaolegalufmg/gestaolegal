@@ -17,6 +17,7 @@ class Evento:
     status: bool
 
     id: int | None = None
+    unidade_id: int | None = None
     num_evento: int | None = None
     descricao: str | None = None
     arquivo: str | None = None
