@@ -37,6 +37,7 @@ def _inserir_registro(
     saida: datetime | None = None,
     status: bool = True,
     confirmacao: str = "aberto",
+    unidade_id: int = 1,
 ) -> int:
     from sqlalchemy import insert
 
@@ -52,6 +53,7 @@ def _inserir_registro(
                 id_usuario=id_usuario,
                 status=status,
                 confirmacao=confirmacao,
+                unidade_id=unidade_id,
             )
         )
         session.commit()
@@ -336,3 +338,111 @@ class TestConfirmacao:
     def test_requer_autenticacao(self, client):
         assert client.get("/api/presenca/confirmacao").status_code == 401
         assert client.post("/api/presenca/confirmacao", json={}).status_code == 401
+
+
+class TestUnidade:
+    def test_ponto_aberto_em_uma_unidade_nao_aparece_na_outra(
+        self, client, auth_headers, auth_headers_nl
+    ):
+        assert get_success_data(_registrar(client, auth_headers, "09:00"))["acao"] == "entrada"
+
+        # A mesma pessoa, em Nova Lima, ainda não bateu entrada por lá.
+        estado_nl = _estado(client, auth_headers_nl)
+        assert estado_nl["status_presenca"] == "entrada"
+        assert estado_nl["registro_aberto"] is None
+
+        assert (
+            get_success_data(_registrar(client, auth_headers_nl, "10:00"))["acao"]
+            == "entrada"
+        )
+
+        # A saída em BH não fecha o registro que está em curso em Nova Lima.
+        assert get_success_data(_registrar(client, auth_headers, "12:00"))["acao"] == "saida"
+        assert _estado(client, auth_headers)["registro_aberto"] is None
+        assert _estado(client, auth_headers_nl)["status_presenca"] == "saida"
+
+    def test_conferencia_lista_so_a_unidade_ativa(
+        self, client, auth_headers, auth_headers_nl, app
+    ):
+        ontem = date.today() - timedelta(days=1)
+        admin_id = _id_do_usuario(app, "admin@gl.com")
+        entrada = datetime.combine(ontem, time(9, 0))
+
+        registro_bh = _inserir_registro(
+            app, admin_id, entrada, saida=entrada + timedelta(hours=3), status=False
+        )
+        registro_nl = _inserir_registro(
+            app,
+            admin_id,
+            entrada,
+            saida=entrada + timedelta(hours=3),
+            status=False,
+            unidade_id=2,
+        )
+
+        dia = ontem.isoformat()
+        assert [p["id"] for p in _confirmacao(client, auth_headers, dia)["presencas"]] == [
+            registro_bh
+        ]
+        assert [
+            p["id"] for p in _confirmacao(client, auth_headers_nl, dia)["presencas"]
+        ] == [registro_nl]
+
+    def test_confirmar_registro_de_outra_unidade_responde_404(
+        self, client, auth_headers_nl, app
+    ):
+        ontem = date.today() - timedelta(days=1)
+        admin_id = _id_do_usuario(app, "admin@gl.com")
+        entrada = datetime.combine(ontem, time(9, 0))
+        registro_bh = _inserir_registro(
+            app, admin_id, entrada, saida=entrada + timedelta(hours=3), status=False
+        )
+
+        response = client.post(
+            "/api/presenca/confirmacao",
+            json={
+                "presencas": [{"id": registro_bh, "confirmacao": "confirmar"}],
+                "plantoes": [],
+            },
+            headers=auth_headers_nl,
+        )
+        assert response.status_code == 404
+
+    def test_plantao_de_outra_unidade_nao_entra_na_conferencia(
+        self, client, auth_headers, auth_headers_nl, app
+    ):
+        from sqlalchemy import insert
+
+        from gestaolegal.database.session import get_session
+        from gestaolegal.database.tables import dias_marcados_plantao
+
+        ontem = date.today() - timedelta(days=1)
+        admin_id = _id_do_usuario(app, "admin@gl.com")
+        with app.app_context():
+            session = get_session()
+            marcacao_bh = session.execute(
+                insert(dias_marcados_plantao).values(
+                    data_marcada=ontem,
+                    id_usuario=admin_id,
+                    confirmacao="aberto",
+                    status=True,
+                    unidade_id=1,
+                )
+            ).lastrowid
+            session.commit()
+
+        dia = ontem.isoformat()
+        assert [p["id"] for p in _confirmacao(client, auth_headers, dia)["plantoes"]] == [
+            marcacao_bh
+        ]
+        assert _confirmacao(client, auth_headers_nl, dia)["plantoes"] == []
+
+        response = client.post(
+            "/api/presenca/confirmacao",
+            json={
+                "presencas": [],
+                "plantoes": [{"id": marcacao_bh, "confirmacao": "confirmar"}],
+            },
+            headers=auth_headers_nl,
+        )
+        assert response.status_code == 404

@@ -17,13 +17,23 @@ class PresencaRepository(BaseRepository):
     def __init__(self):
         super().__init__()
 
-    def find_by_id(self, id: int) -> RegistroEntrada | None:
+    def find_by_id(
+        self, id: int, unidade_id: int | None = None
+    ) -> RegistroEntrada | None:
         stmt = select(registro_entrada).where(registro_entrada.c.id == id)
+        if unidade_id is not None:
+            stmt = stmt.where(registro_entrada.c.unidade_id == unidade_id)
         row = self.session.execute(stmt).first()
         return from_dict(RegistroEntrada, dict(row._mapping)) if row else None
 
-    def find_aberto_do_usuario(self, id_usuario: int) -> RegistroEntrada | None:
-        """Registro em curso (entrada sem saída) da pessoa, se houver."""
+    def find_aberto_do_usuario(
+        self, id_usuario: int, unidade_id: int | None = None
+    ) -> RegistroEntrada | None:
+        """Registro em curso (entrada sem saída) da pessoa, se houver.
+
+        O ponto é por unidade: quem atende nas duas pode ter um registro aberto
+        em cada uma sem que a saída de uma feche o da outra.
+        """
         stmt = (
             select(registro_entrada)
             .where(
@@ -32,6 +42,8 @@ class PresencaRepository(BaseRepository):
             )
             .order_by(registro_entrada.c.data_entrada.desc())
         )
+        if unidade_id is not None:
+            stmt = stmt.where(registro_entrada.c.unidade_id == unidade_id)
         row = self.session.execute(stmt).first()
         return from_dict(RegistroEntrada, dict(row._mapping)) if row else None
 
@@ -47,7 +59,9 @@ class PresencaRepository(BaseRepository):
             .values(**data)
         )
 
-    def list_para_confirmacao(self, dia: date) -> list[dict[str, Any]]:
+    def list_para_confirmacao(
+        self, dia: date, unidade_id: int | None = None
+    ) -> list[dict[str, Any]]:
         """Registros fechados do dia que ainda não passaram pela conferência."""
         inicio = datetime.combine(dia, time.min)
         fim = datetime.combine(dia, time.max)
@@ -71,6 +85,8 @@ class PresencaRepository(BaseRepository):
             )
             .order_by(usuarios.c.nome)
         )
+        if unidade_id is not None:
+            stmt = stmt.where(registro_entrada.c.unidade_id == unidade_id)
         return [dict(row) for row in self.session.execute(stmt).mappings().all()]
 
     def update_confirmacao(self, id: int, confirmacao: str) -> None:

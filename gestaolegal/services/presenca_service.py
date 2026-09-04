@@ -12,6 +12,7 @@ from gestaolegal.models.presenca_input import (
 from gestaolegal.models.user import UserInfo
 from gestaolegal.repositories.plantao_repository import PlantaoRepository
 from gestaolegal.repositories.presenca_repository import PresencaRepository
+from gestaolegal.utils.request_context import RequestContext
 from gestaolegal.utils.tempo import agora_brasilia, dia_util_anterior, hoje_brasilia
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,9 @@ class PresencaService:
         # A tela de conferência confere presenças e dias de plantão lado a lado.
         self.plantao_repository = PlantaoRepository()
 
+    def _unidade(self) -> int:
+        return RequestContext.get_unidade_ativa()
+
     # --- relógio de ponto --------------------------------------------------
 
     def _fechar_registros_vencidos(self, id_usuario: int) -> None:
@@ -34,7 +38,9 @@ class PresencaService:
         A v2 comparava dia, mês e ano em campos separados, o que deixava passar
         registros da virada de mês ou de ano.
         """
-        aberto = self.repository.find_aberto_do_usuario(id_usuario)
+        aberto = self.repository.find_aberto_do_usuario(
+            id_usuario, unidade_id=self._unidade()
+        )
         if not aberto or aberto.data_entrada.date() >= hoje_brasilia():
             return
 
@@ -47,7 +53,9 @@ class PresencaService:
     def get_estado(self, user: UserInfo) -> dict[str, Any]:
         self._fechar_registros_vencidos(user.id)
 
-        aberto = self.repository.find_aberto_do_usuario(user.id)
+        aberto = self.repository.find_aberto_do_usuario(
+            user.id, unidade_id=self._unidade()
+        )
         agora = agora_brasilia()
 
         return {
@@ -71,7 +79,9 @@ class PresencaService:
         horas, minutos = (int(parte) for parte in dados.hora.split(":"))
         momento = datetime.combine(hoje_brasilia(), time(horas, minutos))
 
-        aberto = self.repository.find_aberto_do_usuario(user.id)
+        aberto = self.repository.find_aberto_do_usuario(
+            user.id, unidade_id=self._unidade()
+        )
         if aberto:
             self.repository.update(
                 aberto.id, {"data_saida": momento, "status": False}
@@ -87,6 +97,7 @@ class PresencaService:
                     "id_usuario": user.id,
                     "status": True,
                     "confirmacao": Confirmacao.ABERTO,
+                    "unidade_id": self._unidade(),
                 }
             )
             acao = StatusPresenca.ENTRADA
@@ -109,7 +120,9 @@ class PresencaService:
                 "data_saida": p["data_saida"],
                 "confirmacao": p["confirmacao"],
             }
-            for p in self.repository.list_para_confirmacao(dia)
+            for p in self.repository.list_para_confirmacao(
+                dia, unidade_id=self._unidade()
+            )
         ]
 
         plantoes = [
@@ -121,19 +134,23 @@ class PresencaService:
                 "data_marcada": m["data_marcada"].isoformat(),
                 "confirmacao": m["confirmacao"],
             }
-            for m in self.plantao_repository.list_marcacoes_para_confirmacao(dia)
+            for m in self.plantao_repository.list_marcacoes_para_confirmacao(
+                dia, unidade_id=self._unidade()
+            )
         ]
 
         return {"data": dia.isoformat(), "presencas": presencas, "plantoes": plantoes}
 
     def confirmar_em_lote(self, dados: ConfirmacaoBatchInput) -> dict[str, int]:
         for item in dados.presencas:
-            if not self.repository.find_by_id(item.id):
+            if not self.repository.find_by_id(item.id, unidade_id=self._unidade()):
                 raise NotFoundException(resource="RegistroEntrada", resource_id=item.id)
             self.repository.update_confirmacao(item.id, item.confirmacao)
 
         for item in dados.plantoes:
-            if not self.plantao_repository.find_marcacao_by_id(item.id):
+            if not self.plantao_repository.find_marcacao_by_id(
+                item.id, unidade_id=self._unidade()
+            ):
                 raise NotFoundException(
                     resource="DiaMarcadoPlantao", resource_id=item.id
                 )

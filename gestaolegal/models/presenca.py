@@ -23,3 +23,4 @@ class RegistroEntrada:
     confirmacao: str = Confirmacao.ABERTO
     status: bool = True
     id: int | None = None
+    unidade_id: int | None = None

@@ -21,6 +21,10 @@ Started: sex. 04 set 2026 18:29:56 -03
 - **Filha com coluna própria** (evento, lembrete): a unidade vem do **caso**, não do
   header — `evento_data["unidade_id"] = caso.unidade_id`. Ainda assim se resolve o caso
   pela unidade ativa antes de criar/listar, senão a filha vira porta de entrada.
+- **Escrita em massa sem WHERE de entidade** (`desativar_todos_*`, limpezas de status)
+  recebe `unidade_id` **obrigatório**, não opcional: default nesses métodos faz uma
+  leitura de uma unidade apagar dado de outra. Só as **leituras** usam
+  `unidade_id: int | None = None`.
 - **Armadilha do default**: NÃO adicione `unidade_id: int | None = None` a um dataclass
   de `gestaolegal/models/` sem que o service passe a preencher o valor. Os repositories
   montam o insert a partir do `to_dict` do modelo, e um `None` explícito anula o
@@ -324,4 +328,62 @@ Started: sex. 04 set 2026 18:29:56 -03
     `_to_list_item`, senão quebra com TypeError de argumento faltando.
   - `/api/caso/<id>/processos` continua sem checar a unidade do caso pai (herdado da
     f3-caso). Segue como pendência para quem mexer em processo.
+---
+
+## 2026-09-04 - f3-plantao-fila-presenca
+- `FilaAtendimentoService`: senha, contagem, listagem do dia e conclusão (chamar/cancelar)
+  passaram a usar `RequestContext.get_unidade_ativa()`; `criar` grava `unidade_id`. A
+  sequência de senhas é por unidade — cada local começa em N01/P01/S01 no dia.
+- `PlantaoService`: o plantão deixou de ser singleton global e virou **singleton por
+  unidade**. `get_plantao`, `list_dias`, `find_dia_por_data`, `list_marcacoes_ativas`,
+  `list_marcacoes_ativas_do_usuario` e `list_marcacoes_para_confirmacao` filtram por
+  `unidade_id`; `create_plantao`, `create_dia` e `create_marcacao` gravam. O helper
+  `_unidade()` concentra a leitura do contexto.
+- `_encerrar_se_expirado` desativa dias e marcações **só da unidade ativa**
+  (`desativar_todos_dias` e `desativar_todas_marcacoes` passaram a exigir `unidade_id`):
+  ler a escala de BH não pode encerrar o plantão de Nova Lima.
+  `desativar_marcacoes_do_usuario` (botão "Editar") idem.
+- `PresencaService`: o relógio de ponto é por unidade — `find_aberto_do_usuario` filtra,
+  então quem atende nas duas pode ter um registro em curso em cada uma, e a saída em uma
+  não fecha o da outra. `create` grava `unidade_id`; `listar_para_confirmacao` e
+  `confirmar_em_lote` (presenças e plantões) só enxergam a unidade ativa — item de outra
+  unidade dá 404.
+- Dataclasses `FilaAtendimento`, `Plantao`, `DiaPlantao`, `DiaMarcadoPlantao` e
+  `RegistroEntrada` ganharam `unidade_id: int | None = None`. Nenhum insert desses
+  repositórios é montado a partir do `to_dict` do modelo (todos passam valores
+  explícitos), então a "armadilha do default" não se aplica aqui.
+- Testes: 2 novos em `test_fila_atendimento_api.py` (fila e sequência de senhas isoladas,
+  chamar/cancelar item de outra unidade dá 404), 4 em `test_plantao_api.py`
+  (configuração/escala isoladas, marcar dia aberto em outra unidade é recusado,
+  encerramento não encerra o plantão da outra unidade, limpar marcações não apaga as da
+  outra) e 4 em `test_presenca_api.py` (ponto aberto isolado, conferência isolada, 404 ao
+  confirmar presença e ao confirmar plantão de outra unidade).
+- Arquivos: `gestaolegal/services/fila_atendimento_service.py`,
+  `gestaolegal/services/plantao_service.py`, `gestaolegal/services/presenca_service.py`,
+  `gestaolegal/repositories/fila_atendimento_repository.py`,
+  `gestaolegal/repositories/plantao_repository.py`,
+  `gestaolegal/repositories/presenca_repository.py`,
+  `gestaolegal/models/fila_atendimento.py`, `gestaolegal/models/plantao.py`,
+  `gestaolegal/models/presenca.py`, `tests/api/test_fila_atendimento_api.py`,
+  `tests/api/test_plantao_api.py`, `tests/api/test_presenca_api.py`.
+- `make test`: 318 passed (308 do baseline + 10 novos). Story só de API, sem tela nova:
+  não houve verificação de browser.
+- **Learnings for future iterations:**
+  - **Escrita destrutiva em massa é o risco desta área.** `desativar_todos_dias` e
+    `desativar_todas_marcacoes` rodam sem `WHERE` de entidade; sem `unidade_id` elas
+    limpariam a escala das outras unidades a cada leitura da página de plantão. Por isso
+    esses dois métodos ganharam `unidade_id` **obrigatório**, e não opcional como nas
+    leituras: parâmetro com default é convite a esquecer justamente onde não pode.
+  - Marcar dia de plantão aberto em outra unidade cai em `ValidationException` ("Data
+    selecionada não foi aberta para plantão") → **400**, não 404 nem o 422 dos
+    `BusinessLogicException`. O isolamento aqui vem de graça: o dia nem entra na lista de
+    dias abertos da unidade.
+  - `tests/api/test_plantao_api.py::test_plantao_fechado_bloqueia_marcacao_mas_nao_admin`
+    insere `dias_plantao` com SQL cru sem `unidade_id` e continua verde porque a coluna
+    tem `default=UNIDADE_PADRAO_ID`. Se `f1-migration` retirar esse default, todo insert
+    cru nos testes precisa passar a unidade — `_inserir_registro` de
+    `test_presenca_api.py` já ganhou o parâmetro `unidade_id=1`.
+  - O admin de teste está nas duas unidades, o que torna barato testar "a mesma pessoa
+    em dois lugares": ponto aberto, marcações e limite de plantões são todos por unidade,
+    e o teste é só trocar `auth_headers` por `auth_headers_nl`.
 ---

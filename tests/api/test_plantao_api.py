@@ -382,3 +382,89 @@ class TestMarcacoes:
         assert client.get("/api/plantao/").status_code == 401
         assert client.post("/api/plantao/marcacoes", json={}).status_code == 401
         assert client.delete("/api/plantao/marcacoes").status_code == 401
+
+
+class TestUnidade:
+    def test_configuracao_e_escala_isoladas_por_unidade(
+        self, client, auth_headers, auth_headers_nl
+    ):
+        dia_bh, dia_nl = _dias(2)
+        _configurar(client, auth_headers, [dia_bh])
+        _configurar(client, auth_headers_nl, [dia_nl])
+
+        config_bh = get_success_data(
+            client.get("/api/plantao/configuracao", headers=auth_headers)
+        )
+        config_nl = get_success_data(
+            client.get("/api/plantao/configuracao", headers=auth_headers_nl)
+        )
+        assert config_bh["dias"] == [dia_bh]
+        assert config_nl["dias"] == [dia_nl]
+
+        assert _marcar(client, auth_headers, dia_bh).status_code == 201
+
+        pagina_bh = _pagina(client, auth_headers)
+        assert [d["data"] for d in pagina_bh["dias_abertos"]] == [dia_bh]
+        assert [m["data_marcada"] for m in pagina_bh["meus_dias"]] == [dia_bh]
+        assert len(pagina_bh["escala"]) == 1
+
+        # A mesma pessoa, na outra unidade, não vê a marcação nem o dia de BH.
+        pagina_nl = _pagina(client, auth_headers_nl)
+        assert [d["data"] for d in pagina_nl["dias_abertos"]] == [dia_nl]
+        assert pagina_nl["meus_dias"] == []
+        assert pagina_nl["escala"] == []
+
+    def test_marcar_dia_aberto_em_outra_unidade_e_recusado(
+        self, client, auth_headers, auth_headers_nl
+    ):
+        (dia,) = _dias(1)
+        _configurar(client, auth_headers, [dia])
+
+        # O dia pertence a BH; para Nova Lima ele simplesmente não foi aberto.
+        response = _marcar(client, auth_headers_nl, dia)
+        assert response.status_code == 400
+
+    def test_encerramento_nao_encerra_plantao_de_outra_unidade(
+        self, client, auth_headers, auth_headers_nl
+    ):
+        dia_bh, dia_nl = _dias(2)
+        _configurar(client, auth_headers_nl, [dia_nl])
+        _marcar(client, auth_headers_nl, dia_nl)
+
+        passado = datetime.now() - timedelta(days=10)
+        _configurar(
+            client,
+            auth_headers,
+            [dia_bh],
+            data_abertura=passado.isoformat(timespec="seconds"),
+            data_fechamento=(passado + timedelta(days=1)).isoformat(timespec="seconds"),
+        )
+        _marcar(client, auth_headers, dia_bh)
+
+        # A leitura em BH dispara o encerramento automático da janela vencida.
+        pagina_bh = _pagina(client, auth_headers)
+        assert pagina_bh["plantao"]["data_abertura"] is None
+        assert pagina_bh["dias_abertos"] == []
+        assert pagina_bh["meus_dias"] == []
+
+        # Nova Lima segue intacta: janela aberta, dia e marcação preservados.
+        pagina_nl = _pagina(client, auth_headers_nl)
+        assert pagina_nl["plantao"]["aberto"] is True
+        assert [d["data"] for d in pagina_nl["dias_abertos"]] == [dia_nl]
+        assert [m["data_marcada"] for m in pagina_nl["meus_dias"]] == [dia_nl]
+
+    def test_limpar_marcacoes_so_apaga_as_da_unidade_ativa(
+        self, client, auth_headers, auth_headers_nl
+    ):
+        dia_bh, dia_nl = _dias(2)
+        _configurar(client, auth_headers, [dia_bh])
+        _configurar(client, auth_headers_nl, [dia_nl])
+        _marcar(client, auth_headers, dia_bh)
+        _marcar(client, auth_headers_nl, dia_nl)
+
+        assert client.delete("/api/plantao/marcacoes", headers=auth_headers).status_code == 200
+
+        assert _pagina(client, auth_headers)["meus_dias"] == []
+        assert [
+            m["data_marcada"] for m in _pagina(client, auth_headers_nl)["meus_dias"]
+        ] == [dia_nl]

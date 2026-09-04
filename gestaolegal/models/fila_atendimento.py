@@ -43,6 +43,7 @@ class FilaAtendimento:
     id_atendido: int | None = None
     data_criacao: datetime | None = None
     data_saida: datetime | None = None
+    unidade_id: int | None = None
 
     atendido: "Atendido | None" = None
 
