@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from gestaolegal.exceptions import ValidationException
 from gestaolegal.repositories.relatorio_repository import RelatorioRepository
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,10 @@ class RelatorioService:
 
     def __init__(self):
         self.repository = RelatorioRepository()
+
+    @staticmethod
+    def _unidade() -> int:
+        return RequestContext.get_unidade_ativa()
 
     @staticmethod
     def _parse_range(data_inicio: str, data_final: str) -> tuple[datetime, datetime]:
@@ -42,7 +47,7 @@ class RelatorioService:
     ) -> dict:
         inicio, fim = self._parse_range(data_inicio, data_final)
         rows = self.repository.casos_cadastrados_por_area(
-            inicio, fim, self._parse_areas(areas)
+            inicio, fim, self._parse_areas(areas), unidade_id=self._unidade()
         )
         return {"items": rows, "total": sum(r["quantidade"] for r in rows)}
 
@@ -50,7 +55,9 @@ class RelatorioService:
         self, data_inicio: str, data_final: str, areas: str | None
     ) -> dict:
         inicio, fim = self._parse_range(data_inicio, data_final)
-        rows = self.repository.casos_por_status(inicio, fim, self._parse_areas(areas))
+        rows = self.repository.casos_por_status(
+            inicio, fim, self._parse_areas(areas), unidade_id=self._unidade()
+        )
         return {"items": rows, "total": sum(r["quantidade"] for r in rows)}
 
     def casos_por_orientacao(
@@ -58,7 +65,7 @@ class RelatorioService:
     ) -> dict:
         inicio, fim = self._parse_range(data_inicio, data_final)
         rows = self.repository.orientacoes_por_area(
-            inicio, fim, self._parse_areas(areas)
+            inicio, fim, self._parse_areas(areas), unidade_id=self._unidade()
         )
         return {"items": rows, "total": sum(r["quantidade"] for r in rows)}
 
@@ -86,6 +93,7 @@ class RelatorioService:
         """
         inicio, fim = self._parse_range(data_inicio, data_final)
         ids = self._parse_usuarios(usuarios)
+        unidade_id = self._unidade()
 
         presencas = [
             {
@@ -98,7 +106,9 @@ class RelatorioService:
                 "saida": p["data_saida"].strftime("%H:%M"),
                 "confirmacao": p["confirmacao"],
             }
-            for p in self.repository.presencas_no_periodo(inicio, fim, ids)
+            for p in self.repository.presencas_no_periodo(
+                inicio, fim, ids, unidade_id=unidade_id
+            )
         ]
         plantoes = [
             {
@@ -109,7 +119,9 @@ class RelatorioService:
                 "data": m["data_marcada"].isoformat(),
                 "confirmacao": m["confirmacao"],
             }
-            for m in self.repository.plantoes_no_periodo(inicio, fim, ids)
+            for m in self.repository.plantoes_no_periodo(
+                inicio, fim, ids, unidade_id=unidade_id
+            )
         ]
         return {
             "presencas": presencas,

@@ -5,7 +5,14 @@ from flask.testing import FlaskClient
 
 from tests.api.conftest import clean_tables, get_success_data
 
-TABELAS = ("registro_entrada", "dias_marcados_plantao")
+TABELAS = (
+    "registro_entrada",
+    "dias_marcados_plantao",
+    "casos_atendidos",
+    "casos",
+    "atendido_xOrientacaoJuridica",
+    "orientacao_juridica",
+)
 
 
 @pytest.fixture(autouse=True)
@@ -15,7 +22,7 @@ def _reset(app):
     yield
 
 
-def _inserir_presenca(app, id_usuario: int, dia: date, entrada: str, saida: str, confirmacao="aberto"):
+def _inserir_presenca(app, id_usuario: int, dia: date, entrada: str, saida: str, confirmacao="aberto", unidade_id: int = 1):
     from sqlalchemy import insert
 
     from gestaolegal.database.session import get_session
@@ -32,12 +39,13 @@ def _inserir_presenca(app, id_usuario: int, dia: date, entrada: str, saida: str,
                 id_usuario=id_usuario,
                 status=False,
                 confirmacao=confirmacao,
+                unidade_id=unidade_id,
             )
         )
         session.commit()
 
 
-def _inserir_plantao(app, id_usuario: int, dia: date, status=True, confirmacao="aberto"):
+def _inserir_plantao(app, id_usuario: int, dia: date, status=True, confirmacao="aberto", unidade_id: int = 1):
     from sqlalchemy import insert
 
     from gestaolegal.database.session import get_session
@@ -51,6 +59,7 @@ def _inserir_plantao(app, id_usuario: int, dia: date, status=True, confirmacao="
                 id_usuario=id_usuario,
                 status=status,
                 confirmacao=confirmacao,
+                unidade_id=unidade_id,
             )
         )
         session.commit()
@@ -119,3 +128,70 @@ class TestRelatorioHorarios:
     def test_orientador_acessa(self, client, non_admin_auth_headers):
         response = _horarios(client, non_admin_auth_headers, "2024-03-01", "2024-03-30")
         assert response.status_code == 200
+
+
+def _relatorio(client: FlaskClient, headers, rota: str, inicio: str, fim: str, areas: str | None = None):
+    url = f"/api/relatorio/{rota}?data_inicio={inicio}&data_final={fim}"
+    if areas:
+        url += f"&areas={areas}"
+    return client.get(url, headers=headers)
+
+
+PERIODO_AMPLO = ("2020-01-01", "2099-12-31")
+
+
+class TestRelatorioPorUnidade:
+    """Os cinco relatórios contam apenas a unidade ativa."""
+
+    def test_casos_cadastrados_e_por_status_contam_so_a_unidade_ativa(
+        self, client, auth_headers, auth_headers_nl, sample_caso_data
+    ):
+        assert client.post("/api/caso/", json=sample_caso_data, headers=auth_headers).status_code == 201
+        for _ in range(2):
+            assert (
+                client.post("/api/caso/", json=sample_caso_data, headers=auth_headers_nl).status_code
+                == 201
+            )
+
+        inicio, fim = PERIODO_AMPLO
+        bh = get_success_data(_relatorio(client, auth_headers, "casos-cadastrados", inicio, fim))
+        nl = get_success_data(_relatorio(client, auth_headers_nl, "casos-cadastrados", inicio, fim))
+        assert bh["total"] == 1
+        assert nl["total"] == 2
+
+        bh = get_success_data(_relatorio(client, auth_headers, "casos-por-status", inicio, fim))
+        nl = get_success_data(_relatorio(client, auth_headers_nl, "casos-por-status", inicio, fim))
+        assert bh["total"] == 1
+        assert nl["total"] == 2
+
+    def test_casos_por_orientacao_conta_so_a_unidade_ativa(
+        self, client, auth_headers, auth_headers_nl, sample_orientacao_data
+    ):
+        assert (
+            client.post(
+                "/api/orientacao_juridica/", json=sample_orientacao_data, headers=auth_headers
+            ).status_code
+            == 201
+        )
+
+        inicio, fim = PERIODO_AMPLO
+        bh = get_success_data(_relatorio(client, auth_headers, "casos-por-orientacao", inicio, fim))
+        nl = get_success_data(_relatorio(client, auth_headers_nl, "casos-por-orientacao", inicio, fim))
+        assert bh["total"] == 1
+        assert nl["total"] == 0
+
+    def test_horarios_ignora_presenca_e_plantao_de_outra_unidade(
+        self, client, auth_headers, auth_headers_nl, app
+    ):
+        _inserir_presenca(app, 1, date(2024, 3, 4), "08:00", "12:00", unidade_id=1)
+        _inserir_presenca(app, 1, date(2024, 3, 5), "08:00", "12:00", unidade_id=2)
+        _inserir_plantao(app, 1, date(2024, 3, 6), unidade_id=1)
+        _inserir_plantao(app, 1, date(2024, 3, 7), unidade_id=2)
+
+        bh = get_success_data(_horarios(client, auth_headers, "2024-03-01", "2024-03-30"))
+        assert [p["data"] for p in bh["presencas"]] == ["2024-03-04"]
+        assert [p["data"] for p in bh["plantoes"]] == ["2024-03-06"]
+
+        nl = get_success_data(_horarios(client, auth_headers_nl, "2024-03-01", "2024-03-30"))
+        assert [p["data"] for p in nl["presencas"]] == ["2024-03-05"]
+        assert [p["data"] for p in nl["plantoes"]] == ["2024-03-07"]
