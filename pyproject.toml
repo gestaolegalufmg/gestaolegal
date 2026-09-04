@@ -13,7 +13,7 @@ dependencies = [
     "flask==3.1.3",
     "flask-mail",
     "flask-cors",
-    "gunicorn==20.0.4",
+    "gunicorn==22.0.0",
     "pymysql",
     "python-dateutil==2.8.1",
     "python-dotenv==1.2.2",
