@@ -26,6 +26,7 @@ from gestaolegal.repositories.repository import (
     WhereClause,
 )
 from gestaolegal.repositories.user_repository import UserRepository
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,9 @@ class OrientacaoJuridicaService:
 
     def find_by_id(self, id: int) -> OrientacaoJuridicaDetail | None:
         logger.info(f"Finding orientacao juridica by id: {id}")
-        orientacao = self.repository.find_by_id(id)
+        orientacao = self.repository.find_by_id(
+            id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not orientacao:
             logger.warning(f"Orientacao juridica with id: {id} not found")
             return None
@@ -95,7 +98,13 @@ class OrientacaoJuridicaService:
         logger.info(
             f"Searching orientacoes juridicas with search: '{search}', area: {area}, show_inactive: {show_inactive}, atendido_id: {atendido_id}"
         )
-        clauses = []
+        clauses: list[WhereClause | ComplexWhereClause] = [
+            WhereClause(
+                column="unidade_id",
+                operator="==",
+                value=RequestContext.get_unidade_ativa(),
+            )
+        ]
 
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=1))
@@ -197,7 +206,9 @@ class OrientacaoJuridicaService:
 
     def delete(self, id: int):
         logger.info(f"Deleting orientacao juridica with id: {id}")
-        existing = self.repository.find_by_id(id)
+        existing = self.repository.find_by_id(
+            id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not existing:
             logger.warning(f"Orientacao juridica not found with id: {id}")
             raise NotFoundException(resource="Orientacao Juridica", resource_id=id)
@@ -218,6 +229,7 @@ class OrientacaoJuridicaService:
             orientacao_data["id_usuario"] = id_usuario
             orientacao_data["status"] = 1
             orientacao_data["data_criacao"] = datetime.now()
+            orientacao_data["unidade_id"] = RequestContext.get_unidade_ativa()
 
             orientacao_id = self.repository.create(orientacao_data)
 
@@ -257,7 +269,9 @@ class OrientacaoJuridicaService:
         self, id: int, orientacao_input: OrientacaoJuridicaUpdate
     ) -> OrientacaoJuridica:
         logger.info(f"Updating orientacao juridica with id: {id}")
-        existing = self.repository.find_by_id(id)
+        existing = self.repository.find_by_id(
+            id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not existing:
             logger.error(f"Update failed: orientacao juridica not found with id: {id}")
             raise NotFoundException(resource="Orientacao Juridica", resource_id=id)

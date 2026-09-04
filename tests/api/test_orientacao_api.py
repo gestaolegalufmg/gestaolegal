@@ -3,7 +3,11 @@ from typing import Any
 import pytest
 from flask.testing import FlaskClient
 
-from tests.api.conftest import assert_success_response, get_success_data
+from tests.api.conftest import (
+    assert_success_response,
+    clean_tables,
+    get_success_data,
+)
 
 
 @pytest.fixture
@@ -541,3 +545,99 @@ def test_orientacao_update_sub_area(
     assert data is not None
     assert data["sub_area"] == "Responsabilidade Civil"
     assert data["area_direito"] == "civel"  # Original value preserved
+
+
+def test_orientacao_listagem_isolada_por_unidade(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_orientacao_data: dict[str, Any],
+) -> None:
+    """Cada unidade só enxerga as orientações jurídicas que criou."""
+    clean_tables("atendido_xOrientacaoJuridica", "orientacao_juridica")
+
+    id_bh = get_success_data(
+        client.post(
+            "/api/orientacao_juridica/",
+            json=sample_orientacao_data,
+            headers=auth_headers,
+        )
+    )["id"]
+    id_nl = get_success_data(
+        client.post(
+            "/api/orientacao_juridica/",
+            json=sample_orientacao_data,
+            headers=auth_headers_nl,
+        )
+    )["id"]
+
+    data_bh = get_success_data(
+        client.get("/api/orientacao_juridica", headers=auth_headers)
+    )
+    assert [item["id"] for item in data_bh["items"]] == [id_bh]
+    assert data_bh["total"] == 1
+
+    data_nl = get_success_data(
+        client.get("/api/orientacao_juridica", headers=auth_headers_nl)
+    )
+    assert [item["id"] for item in data_nl["items"]] == [id_nl]
+    assert data_nl["total"] == 1
+
+
+def test_orientacao_de_outra_unidade_responde_404(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_orientacao_data: dict[str, Any],
+) -> None:
+    """Orientação de outra unidade não é lida, alterada nem inativada."""
+    id_bh = get_success_data(
+        client.post(
+            "/api/orientacao_juridica/",
+            json=sample_orientacao_data,
+            headers=auth_headers,
+        )
+    )["id"]
+
+    assert (
+        client.get(
+            f"/api/orientacao_juridica/{id_bh}", headers=auth_headers
+        ).status_code
+        == 200
+    )
+    assert (
+        client.get(
+            f"/api/orientacao_juridica/{id_bh}", headers=auth_headers_nl
+        ).status_code
+        == 404
+    )
+    assert (
+        client.put(
+            f"/api/orientacao_juridica/{id_bh}",
+            json={"sub_area": "Contratos"},
+            headers=auth_headers_nl,
+        ).status_code
+        == 404
+    )
+    assert (
+        client.delete(
+            f"/api/orientacao_juridica/{id_bh}", headers=auth_headers_nl
+        ).status_code
+        == 404
+    )
+
+
+def test_orientacao_create_grava_unidade_ativa(
+    client: FlaskClient,
+    auth_headers_nl: dict[str, str],
+    sample_orientacao_data: dict[str, Any],
+) -> None:
+    """A criação grava a unidade ativa da requisição, não a unidade padrão."""
+    data = get_success_data(
+        client.post(
+            "/api/orientacao_juridica/",
+            json=sample_orientacao_data,
+            headers=auth_headers_nl,
+        )
+    )
+    assert data["unidade_id"] == 2
