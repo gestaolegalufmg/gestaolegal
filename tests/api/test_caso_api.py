@@ -3,7 +3,11 @@ from typing import Any
 
 from flask.testing import FlaskClient
 
-from tests.api.conftest import assert_success_response, get_success_data
+from tests.api.conftest import (
+    assert_success_response,
+    clean_tables,
+    get_success_data,
+)
 
 
 def test_create_caso_success(
@@ -1312,3 +1316,135 @@ def test_upload_arquivo_too_large_returns_portuguese_message(
     )
     assert response.status_code == 413
     assert response.json["error"]["message"] == "O arquivo excede o tamanho máximo de 10 MB"
+
+
+def test_caso_listagem_isolada_por_unidade(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """Cada unidade só enxerga os casos que criou."""
+    clean_tables("casos_atendidos", "casos")
+
+    id_bh = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+    id_nl = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers_nl)
+    )["id"]
+
+    data_bh = get_success_data(client.get("/api/caso/", headers=auth_headers))
+    assert [item["id"] for item in data_bh["items"]] == [id_bh]
+    assert data_bh["total"] == 1
+
+    data_nl = get_success_data(client.get("/api/caso/", headers=auth_headers_nl))
+    assert [item["id"] for item in data_nl["items"]] == [id_nl]
+    assert data_nl["total"] == 1
+
+
+def test_caso_de_outra_unidade_responde_404(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """Caso de outra unidade não é acessível por id, nem para editar."""
+    clean_tables("casos_atendidos", "casos")
+
+    id_bh = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+
+    assert client.get(f"/api/caso/{id_bh}", headers=auth_headers).status_code == 200
+    assert client.get(f"/api/caso/{id_bh}", headers=auth_headers_nl).status_code == 404
+
+    update = client.put(
+        f"/api/caso/{id_bh}",
+        json={**sample_caso_data, "descricao": "Tentativa de outra unidade"},
+        headers=auth_headers_nl,
+    )
+    assert update.status_code == 404
+
+    assert (
+        client.delete(f"/api/caso/{id_bh}", headers=auth_headers_nl).status_code == 404
+    )
+
+
+def test_caso_create_grava_unidade_ativa(
+    client: FlaskClient,
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """A criação grava a unidade ativa da requisição, não a unidade padrão."""
+    clean_tables("casos_atendidos", "casos")
+
+    data = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers_nl)
+    )
+    assert data["unidade_id"] == 2
+
+
+def test_caso_vincula_atendido_de_outra_unidade(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_atendido_data: dict[str, Any],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """Atendido de BH pode ser cliente de um caso de NL (decisão 3 do plano):
+    o caso mostra o atendido, mas a listagem de atendidos de NL não."""
+    clean_tables("casos_atendidos", "casos", "atendidos")
+
+    id_atendido_bh = get_success_data(
+        client.post("/api/atendido/", json=sample_atendido_data, headers=auth_headers)
+    )["id"]
+
+    caso_nl = get_success_data(
+        client.post(
+            "/api/caso/",
+            json={**sample_caso_data, "ids_clientes": [id_atendido_bh]},
+            headers=auth_headers_nl,
+        )
+    )
+    assert caso_nl["unidade_id"] == 2
+    assert [cliente["id"] for cliente in caso_nl["clientes"]] == [id_atendido_bh]
+
+    detalhe = get_success_data(
+        client.get(f"/api/caso/{caso_nl['id']}", headers=auth_headers_nl)
+    )
+    assert [cliente["id"] for cliente in detalhe["clientes"]] == [id_atendido_bh]
+
+    atendidos_nl = get_success_data(client.get("/api/atendido/", headers=auth_headers_nl))
+    assert [item["id"] for item in atendidos_nl["items"]] == []
+
+
+def test_arquivos_de_caso_de_outra_unidade_responde_404(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """Anexos herdam o isolamento do caso a que pertencem."""
+    clean_tables("casos_atendidos", "casos")
+
+    id_bh = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+
+    assert (
+        client.get(f"/api/caso/{id_bh}/arquivos", headers=auth_headers).status_code
+        == 200
+    )
+    assert (
+        client.get(f"/api/caso/{id_bh}/arquivos", headers=auth_headers_nl).status_code
+        == 404
+    )
+
+    upload = client.post(
+        f"/api/caso/{id_bh}/arquivos",
+        data={"arquivo": (BytesIO(b"%PDF-1.4 teste"), "doc.pdf")},
+        headers=auth_headers_nl,
+        content_type="multipart/form-data",
+    )
+    assert upload.status_code == 404
