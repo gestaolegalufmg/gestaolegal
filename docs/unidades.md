@@ -35,7 +35,7 @@ Ordem escolhida: estrutura primeiro, importação depois. Motivos:
 | eventos | 678 | 422 |
 | orientações jurídicas | 1919 | 130 |
 | fila de atendimento | 2825 | 741 |
-| revisão Alembic | `060d870f00e1` (não existe no repositório) | `03085453841c` |
+| revisão Alembic | `060d870f00e1` (rótulo órfão; schema equivale a `03085453841c` — ver §5.2) | `03085453841c` |
 
 Colisões a tratar na importação:
 
@@ -175,8 +175,9 @@ A API é stateless (JWT + `RequestContext`). A unidade ativa vai em um header
 
 Os oito primeiros passos foram implementados na branch `helton/unidades`
 (migration `b7c1d2e3f4a5_unidades`, API, front e 343 testes verdes). O passo 9
-(subir em QA e produção) continua aberto: depende da pendência da revisão
-`060d870f00e1` da base de BH. O que ficou diferente do planejado está em §5.1.
+(subir em QA e produção) continua aberto, mas a pendência da revisão
+`060d870f00e1` da base de BH foi **resolvida** — ver §5.2. O que ficou diferente
+do planejado está em §5.1.
 
 #### 5.1 Divergências em relação ao planejado
 
@@ -294,15 +295,70 @@ manda o header a partir dela; trocar de unidade dispara `invalidateAll()`.
 
 ### Fase C: dump de BH
 
-A base de BH será a própria base da 3.0 após a Fase A, então não há
-importação de BH. Fica pendente apenas alinhar a revisão `060d870f00e1`
-(desconhecida) com a cadeia do repositório antes de rodar a migração da Fase A
-em produção.
+A base de BH será a própria base da 3.0 após a Fase A, então não há importação de
+BH. Restava alinhar a revisão `060d870f00e1` com a cadeia do repositório antes de
+rodar a migração da Fase A em produção. **Resolvido em 05/09/2026** — o
+diagnóstico e o roteiro estão em §5.2.
+
+#### 5.2 A revisão `060d870f00e1` da base de BH (resolvido em 05/09/2026)
+
+**O que era.** A `alembic_version` do dump de BH trazia `060d870f00e1`, revisão
+que não existe neste repositório. Isso travava qualquer migração: o Alembic falha
+antes de fazer nada, com `Can't locate revision identified by '060d870f00e1'` —
+tanto no `upgrade` quanto no `current` e no próprio `stamp`, porque os três
+precisam resolver a revisão atual primeiro.
+
+**O diagnóstico.** Comparando o schema do dump degrau a degrau com a cadeia de
+migrations, `03085453841c` já estava aplicada (o índice `email` não existe mais em
+`atendidos`, que é exatamente o que ela faz) e **nada** depois dela estava:
+
+| migration | marcador no schema | presente no dump de BH |
+|---|---|---|
+| `03085453841c` | índice `email` em `atendidos` removido | sim (aplicada) |
+| `a1b2c3d4e5f6` | `historicos.acao_descricao` | não |
+| `e7f8a9b0c1d2` | `fila_atendimentos.data_saida` | não |
+| `4e1eb1a09578` | colunas gerais de `arquivos` | não |
+| `2101e3af25b9` | `notificacao.lida` | não |
+| `7c3d5b9f21ae` | `notificacao.detalhe` | não |
+| `3f8c2d61b45a` | `notificacao.data_arquivamento` | não |
+| `99b46509b0e1` | tabela `password_reset_tokens` | não |
+
+Ou seja: **o schema de BH está exatamente em `03085453841c`**, o mesmo degrau de
+Nova Lima. `060d870f00e1` é rótulo órfão — quase certamente da numeração da 2.0 —
+sobre um schema que é um ponto conhecido da nossa cadeia. Não há divergência
+estrutural a reconciliar, e **não** é preciso escrever migração de compatibilidade.
+
+**O roteiro.** Como o `stamp` também falha ao resolver a revisão atual, o carimbo
+tem de ser feito por SQL:
+
+```sql
+UPDATE alembic_version SET version_num = '03085453841c';
+```
+
+e em seguida `alembic -c migrations/alembic.ini upgrade head`, que aplica as nove
+pendentes (as oito da tabela acima mais `b7c1d2e3f4a5_unidades`). A de unidades
+coloca todos os usuários e todos os registros herdados em Belo Horizonte.
+
+**Já executado** sobre o dump de 04/09/2026 restaurado em banco local: as nove
+aplicaram sem erro, `alembic_version` terminou em `b7c1d2e3f4a5`, as unidades 1
+(BH) e 2 (NL) foram criadas, os 213 usuários e os 3255 atendidos e 606 casos
+ficaram na unidade 1, e o login voltou a funcionar (antes dava 500 em
+`Table 'gestaolegal.unidades' doesn't exist`, porque o login carrega
+`UserInfo.unidades`).
+
+**Falta executar em QA e em produção**, com dump novo, backup antes e janela
+combinada. O ensaio local não substitui isso: o dump de produção na virada será
+outro, e convém repetir a conferência da tabela acima antes de carimbar, para
+garantir que a base não andou nesse meio-tempo.
+
 
 ## 6. Pendências
 
-- [ ] Descobrir o que a revisão `060d870f00e1` do banco de BH alterou e
+- [x] Descobrir o que a revisão `060d870f00e1` do banco de BH alterou e
       registrar a migração correspondente (ou carimbar a revisão equivalente).
+      **Não alterou nada**: é rótulo órfão sobre um schema que equivale a
+      `03085453841c`. Carimbar e aplicar as nove pendentes — roteiro em §5.2.
+      Falta executar em QA e em produção.
 - [x] Confirmar se os relatórios (horários, casos, etc.) filtram por unidade
       ativa ou se algum precisa consolidar as duas. **Todos filtram pela unidade
       ativa** (as cinco consultas de `RelatorioRepository`). Não há relatório
