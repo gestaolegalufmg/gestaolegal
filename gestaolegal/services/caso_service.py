@@ -1,11 +1,9 @@
 import logging
 import os
 from datetime import datetime
-from typing import cast
 
 from flask import current_app
 from werkzeug.datastructures import FileStorage
-from werkzeug.utils import secure_filename
 
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.database.session import transaction
@@ -32,6 +30,7 @@ from gestaolegal.repositories.repository import (
     or_clauses,
 )
 from gestaolegal.repositories.user_repository import UserRepository
+from gestaolegal.services import private_file_storage
 from gestaolegal.services.historico_service import HistoricoService
 from gestaolegal.services.notificacao_service import NotificacaoService
 from gestaolegal.utils.request_context import RequestContext
@@ -39,11 +38,6 @@ from gestaolegal.utils.request_context import RequestContext
 logger = logging.getLogger(__name__)
 
 CASO_CATEGORIA = "casos"
-
-
-def _caso_files_dir() -> str:
-    """Resolvida a cada chamada: a raiz vem da config do app, não do import."""
-    return os.path.join(current_app.config["PRIVATE_FILES_ROOT"], CASO_CATEGORIA)
 
 
 def _max_arquivo_bytes() -> int:
@@ -341,12 +335,13 @@ class CasoService:
         logger.info(f"Found {len(arquivos)} arquivos for caso id: {caso_id}")
         return arquivos
 
-    def find_arquivo_by_id(self, arquivo_id: int) -> ArquivoCaso | None:
-        logger.info(f"Finding arquivo by id: {arquivo_id}")
-        arquivo = self.arquivo_repository.find_by_id(arquivo_id)
-        if not arquivo:
-            logger.warning(f"Arquivo not found with id: {arquivo_id}")
-        return arquivo
+    def find_arquivo_by_id(self, arquivo_id: int, caso_id: int) -> ArquivoCaso | None:
+        """Anexo pelo id, **sempre** dentro de um caso da unidade ativa.
+
+        O `caso_id` não é opcional de propósito: sem ele, qualquer id de anexo
+        de qualquer unidade voltaria.
+        """
+        return self.validate_arquivo_for_caso(arquivo_id, caso_id)
 
     def validate_arquivo_for_caso(
         self, arquivo_id: int, caso_id: int
@@ -368,7 +363,9 @@ class CasoService:
 
         return arquivo
 
-    def get_arquivo_for_download(self, arquivo_id: int, caso_id: int) -> str:
+    def get_arquivo_for_download(
+        self, arquivo_id: int, caso_id: int
+    ) -> tuple[str, str]:
         """
         Get the file path for downloading an arquivo.
 
@@ -377,7 +374,9 @@ class CasoService:
             caso_id: ID of the caso (for validation)
 
         Returns:
-            File path for download
+            Tupla (caminho absoluto no volume privado, nome a oferecer ao
+            usuário). O caminho nunca sai daqui para o banco nem para a
+            resposta da API.
 
         Raises:
             NotFoundException: If arquivo is not found or doesn't belong to caso
@@ -395,14 +394,17 @@ class CasoService:
                 "Arquivo não possui link no sistema", operation="download"
             )
 
-        if not os.path.exists(arquivo.link_arquivo):
-            logger.error(f"File not found in filesystem: {arquivo.link_arquivo}")
+        if not private_file_storage.exists(CASO_CATEGORIA, arquivo.link_arquivo):
+            logger.error(f"Anexo ausente no volume privado: {arquivo.link_arquivo}")
             raise FileOperationException(
                 "Arquivo não encontrado no servidor", operation="download"
             )
 
         logger.info(f"Arquivo {arquivo_id} ready for download: {arquivo.link_arquivo}")
-        return arquivo.link_arquivo
+        return (
+            private_file_storage.resolve(CASO_CATEGORIA, arquivo.link_arquivo),
+            private_file_storage.nome_original(arquivo.link_arquivo),
+        )
 
     def upload_arquivo(self, caso_id: int, file: FileStorage) -> ArquivoCaso:
         """
@@ -431,44 +433,36 @@ class CasoService:
 
         self._validar_pdf(file)
 
-        filepath = None
+        ref = None
         try:
-            filepath = self._salvar_pdf(file)
+            ref = private_file_storage.save(CASO_CATEGORIA, file)
 
             with transaction():
                 arquivo_id = self.arquivo_repository.create(
                     {
                         "id_caso": caso_id,
-                        "link_arquivo": filepath,
+                        "link_arquivo": ref,
                     }
                 )
                 arquivo = self.arquivo_repository.find_by_id(arquivo_id)
                 if not arquivo:
                     raise DatabaseException("Falha ao criar arquivo no banco de dados")
-                logger.info(f"Arquivo created successfully with id: {arquivo_id}")
-                return arquivo
-        except (NotFoundException, ValidationException, DatabaseException):
-            # Re-raise our custom exceptions
-            if filepath and os.path.exists(filepath):
-                try:
-                    os.remove(filepath)
-                    logger.info(f"Cleaned up file after error: {filepath}")
-                except Exception:
-                    pass
-            raise
         except Exception as e:
+            # A transação não confirmou: o arquivo recém-gravado não é
+            # referenciado por ninguém e não pode ficar no volume.
+            if ref:
+                private_file_storage.remove(CASO_CATEGORIA, ref)
+            if isinstance(e, GestaoLegalException):
+                raise
             logger.error(
                 f"Error uploading arquivo for caso {caso_id}: {str(e)}", exc_info=True
             )
-            if filepath and os.path.exists(filepath):
-                try:
-                    os.remove(filepath)
-                    logger.info(f"Cleaned up file after error: {filepath}")
-                except Exception:
-                    pass
             raise FileOperationException(
                 f"Erro ao fazer upload do arquivo: {str(e)}", operation="upload"
             )
+
+        logger.info(f"Arquivo created successfully with id: {arquivo_id}")
+        return arquivo
 
     @staticmethod
     def _validar_pdf(file: FileStorage) -> None:
@@ -497,17 +491,6 @@ class CasoService:
                 field="arquivo",
             )
 
-    @staticmethod
-    def _salvar_pdf(file: FileStorage) -> str:
-        filename = secure_filename(cast(str, file.filename))
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        caso_files_dir = _caso_files_dir()
-        os.makedirs(caso_files_dir, exist_ok=True)
-        filepath = os.path.join(caso_files_dir, f"{timestamp}_{filename}")
-        file.save(filepath)
-        logger.info(f"File saved to filesystem: {filepath}")
-        return filepath
-
     def replace_arquivo(
         self, arquivo_id: int, caso_id: int, file: FileStorage
     ) -> ArquivoCaso:
@@ -524,14 +507,17 @@ class CasoService:
 
         self._validar_pdf(file)
 
-        novo_caminho = None
+        nova_ref = None
         try:
-            novo_caminho = self._salvar_pdf(file)
+            nova_ref = private_file_storage.save(CASO_CATEGORIA, file)
             with transaction():
-                self.arquivo_repository.update(arquivo_id, {"link_arquivo": novo_caminho})
+                self.arquivo_repository.update(
+                    arquivo_id, {"link_arquivo": nova_ref}
+                )
         except Exception as e:
-            if novo_caminho and os.path.exists(novo_caminho):
-                os.remove(novo_caminho)
+            # Nada confirmado: some com o novo e o anexo anterior segue de pé.
+            if nova_ref:
+                private_file_storage.remove(CASO_CATEGORIA, nova_ref)
             if isinstance(e, GestaoLegalException):
                 raise
             logger.error(f"Error replacing arquivo {arquivo_id}: {e}", exc_info=True)
@@ -540,12 +526,8 @@ class CasoService:
             )
 
         antigo = arquivo.link_arquivo
-        if antigo and antigo != novo_caminho and os.path.exists(antigo):
-            try:
-                os.remove(antigo)
-                logger.info(f"Old file removed: {antigo}")
-            except OSError as exc:
-                logger.error(f"Error removing old file {antigo}: {exc}")
+        if antigo and antigo != nova_ref:
+            self._remover_do_volume(antigo, contexto=f"anexo {arquivo_id} substituído")
 
         atualizado = self.arquivo_repository.find_by_id(arquivo_id)
         if not atualizado:
@@ -562,7 +544,6 @@ class CasoService:
 
         Raises:
             NotFoundException: If arquivo is not found or doesn't belong to caso
-            FileOperationException: If file deletion fails
             DatabaseException: If database deletion fails
         """
         logger.info(f"Deleting arquivo with id: {arquivo_id}")
@@ -571,22 +552,9 @@ class CasoService:
         if not arquivo:
             raise NotFoundException(resource="Arquivo", resource_id=arquivo_id)
 
-        # Delete file from filesystem if it exists
-        if arquivo.link_arquivo and os.path.exists(arquivo.link_arquivo):
-            try:
-                os.remove(arquivo.link_arquivo)
-                logger.info(f"File deleted from filesystem: {arquivo.link_arquivo}")
-            except Exception as e:
-                logger.error(
-                    f"Error deleting file {arquivo.link_arquivo}: {str(e)}",
-                    exc_info=True,
-                )
-                raise FileOperationException(
-                    f"Erro ao deletar arquivo do sistema de arquivos: {str(e)}",
-                    operation="delete",
-                )
-
-        # Delete from database
+        # O banco manda: o registro sai primeiro, e só depois o anexo deixa o
+        # volume. Apagar o arquivo antes deixaria o registro apontando para o
+        # nada se a transação não confirmasse.
         try:
             with transaction():
                 result = self.arquivo_repository.delete(arquivo_id)
@@ -602,6 +570,28 @@ class CasoService:
             )
             raise DatabaseException(
                 f"Erro ao deletar arquivo do banco de dados: {str(e)}"
+            )
+
+        self._remover_do_volume(
+            arquivo.link_arquivo, contexto=f"anexo {arquivo_id} excluído"
+        )
+
+    @staticmethod
+    def _remover_do_volume(ref: str | None, contexto: str) -> None:
+        """Limpeza **pós-commit**: falha aqui vira log de reconciliação.
+
+        O banco já confirmou. Levantar exceção agora simularia um rollback que
+        não existe — o registro sumiu de qualquer jeito. O que sobra é um
+        órfão no volume, e um órfão é problema de faxina, não de requisição.
+        """
+        if not ref:
+            return
+        try:
+            private_file_storage.remove(CASO_CATEGORIA, ref)
+        except Exception as e:
+            logger.error(
+                f"Reconciliação pendente: {contexto}, mas {CASO_CATEGORIA}/{ref} "
+                f"continua no volume ({e})"
             )
 
     def _caso_da_unidade_ativa(self, caso_id: int) -> bool:

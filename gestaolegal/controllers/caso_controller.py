@@ -21,6 +21,7 @@ from gestaolegal.models.lembrete_input import (
 )
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
 from gestaolegal.models.user import UserInfo
+from gestaolegal.services import private_file_storage
 from gestaolegal.services.caso_service import CasoService
 from gestaolegal.services.evento_service import EventoService
 from gestaolegal.services.historico_service import HistoricoService
@@ -451,9 +452,11 @@ def upload_arquivo_caso(caso_id: int):
 @authenticated
 def download_arquivo_caso(caso_id: int, arquivo_id: int):
     caso_service = CasoService()
-    filepath = caso_service.get_arquivo_for_download(arquivo_id, caso_id)
+    filepath, nome = caso_service.get_arquivo_for_download(arquivo_id, caso_id)
 
-    return send_file(filepath, as_attachment=True)
+    return private_file_storage.aplicar_headers_download(
+        send_file(filepath, as_attachment=True, download_name=nome)
+    )
 
 
 @caso_controller.route("/<int:caso_id>/arquivos/<int:arquivo_id>", methods=["PUT"])

@@ -142,3 +142,52 @@ Started: sáb. 05 set 2026 07:40:12 -03
     default do `Config`. Por isso o compose usa `${PRIVATE_FILES_ROOT:-...}` com o
     mesmo default — mudar um dos dois sem o outro monta o volume no lugar errado.
 ---
+
+## 2026-09-05 - f5-fluxo-arquivos-caso
+- Todo o fluxo de anexo de caso passou a usar `private_file_storage` (categoria
+  `casos`). `arquivosCaso.link_arquivo` guarda agora a **referência relativa**
+  (`<uuid4hex>_<nome>`), não mais o caminho absoluto.
+- `caso_service`: `_caso_files_dir()` e `_salvar_pdf()` sumiram; upload, replace,
+  delete e download chamam o módulo. Não sobrou `file.save`, `os.remove`,
+  `os.makedirs` nem `os.path.exists` no fluxo (o único `os.` restante é o
+  `os.SEEK_END` da checagem de tamanho em `_validar_pdf`).
+- `find_arquivo_by_id(arquivo_id, caso_id)` agora exige o caso e delega a
+  `validate_arquivo_for_caso` (unidade ativa + posse do anexo). O `caso_id` é
+  obrigatório de propósito: sem ele, id de anexo de qualquer unidade voltava.
+- Ciclo de vida: valida PDF -> grava o novo -> confirma a transação -> em falha,
+  remove o novo e mantém o antigo -> **após** o commit remove o anterior. A
+  limpeza pós-commit passa por `_remover_do_volume`, que loga reconciliação
+  pendente em vez de levantar (o banco já confirmou; rollback simulado seria
+  mentira). Em `delete_arquivo` a ordem inverteu: o registro sai primeiro, o
+  arquivo depois — e falha de remoção não devolve mais 500.
+- `get_arquivo_for_download` devolve `(caminho absoluto, nome original)`; o
+  caminho nunca entra na resposta da API. O controller usa
+  `send_file(..., download_name=nome)` e `aplicar_headers_download`.
+- `private_file_storage` ganhou três funções: `exists`, `nome_original` (tira o
+  prefixo de 32 hex; referência herdada da 2.0 volta inteira) e
+  `aplicar_headers_download` (escreve `Cache-Control: private, no-store` e só
+  põe `Content-Disposition` se ninguém tiver posto — o do `as_attachment`
+  carrega o nome do arquivo e não pode ser perdido).
+- Testes novos em `tests/api/test_caso_api.py`: download com cabeçalhos e nome
+  original, download anônimo (401), unidade errada (404 no download e no
+  delete), arquivo ausente no volume, delete que limpa o volume e o teste de
+  rollback (update do repositório explodindo: o novo não sobra no volume, o
+  antigo segue baixável com o conteúdo certo). Os asserts que faziam
+  `os.path.exists(link_arquivo)` passaram pelos helpers `anexo_existe` /
+  `caminho_do_anexo`.
+- `make test`: 375 passed.
+- Arquivos: gestaolegal/services/caso_service.py,
+  gestaolegal/services/private_file_storage.py,
+  gestaolegal/controllers/caso_controller.py, tests/api/test_caso_api.py.
+- **Learnings for future iterations:**
+  - Chame sempre `private_file_storage.save(...)` pelo módulo, nunca
+    `from ... import save`: o teste de rollback monkeypatcha o atributo do
+    módulo, e um `from-import` congelaria a função original.
+  - `send_file(as_attachment=True)` já grava `Cache-Control` (no-cache), então
+    `headers.setdefault` NÃO sobrescreve — daí `aplicar_headers_download`
+    atribuir direto e abrir exceção só para o `Content-Disposition`.
+  - O front (`casos/[id]/+page.svelte:476`) ainda faz `split('_').pop()` no
+    `link_arquivo`, o que com a nova referência mostra só o final do nome. É
+    exatamente o que a f9 conserta.
+  - O fluxo de anexo de **evento** (caso_controller:273-285 e 360-372) e o de
+    arquivos gerais continuam gravando caminho absoluto — f6 e f7.

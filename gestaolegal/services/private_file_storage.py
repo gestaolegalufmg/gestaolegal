@@ -109,6 +109,40 @@ def gerar_ref(filename: str | None) -> str:
     return prefixo + seguro
 
 
+def nome_original(ref: str | None) -> str:
+    """Nome que o usuário enviou, sem o prefixo de unicidade.
+
+    A referência é `<uuid4hex>_<nome>`; o download devolve o `<nome>`. Se a
+    referência não tiver o prefixo (registro herdado da 2.0), devolve ela
+    mesma.
+    """
+    if not ref:
+        return "arquivo"
+    nome = ref.rsplit("/", 1)[-1]
+    prefixo, separador, resto = nome.partition("_")
+    if separador and len(prefixo) == 32 and all(c in "0123456789abcdef" for c in prefixo):
+        return resto or nome
+    return nome
+
+
+def aplicar_headers_download(resposta):
+    """Marca a resposta como download privado, sem cache.
+
+    O `Content-Disposition` só é escrito se ninguém já tiver posto um:
+    `send_file(as_attachment=True)` põe, e o dele carrega o nome do arquivo.
+    """
+    for header, valor in DOWNLOAD_HEADERS.items():
+        if header == "Content-Disposition" and header in resposta.headers:
+            continue
+        resposta.headers[header] = valor
+    return resposta
+
+
+def exists(categoria: str, ref: str | None) -> bool:
+    """O anexo está de fato no volume? Referência inválida é erro, não `False`."""
+    return os.path.isfile(resolve(categoria, ref))
+
+
 def resolve(categoria: str, ref: str | None) -> str:
     """Caminho absoluto da referência, confinado à categoria.
 
