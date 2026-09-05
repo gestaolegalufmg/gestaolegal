@@ -1,4 +1,4 @@
-"""Migrador dos anexos legados para a raiz privada (#190), fase 1: inventário.
+"""Migrador dos anexos legados para a raiz privada (#190): inventário e aplicação.
 
 Uso:
     uv run python scripts/migrar_arquivos_privados.py inventario \
@@ -7,6 +7,11 @@ Uso:
         --origem /code/gestaolegal/static/arquivos=/mnt/legado/arquivos \
         --arquivos-legado /mnt/legado/arquivos \
         --manifesto /data/gestaolegal/migracao/manifesto.json
+
+    uv run python scripts/migrar_arquivos_privados.py aplicacao \
+        --manifesto /data/gestaolegal/migracao/manifesto.json \
+        --raiz-privada /data/gestaolegal/uploads \
+        --backup-conferido
 
 Lê o `.env` do diretório atual (raiz do checkout ou da worktree) e usa
 `Config.SQLALCHEMY_DATABASE_URI`, como `migrations/env.py`. `--database-url`
@@ -41,7 +46,32 @@ destinos distintos, para que excluir um não apague o anexo do outro.
 O manifesto é privado (nomes de arquivos de pessoas) e é gravado com modo 0600
 FORA da árvore do git; o script recusa gravá-lo dentro do repositório.
 
-As fases de aplicação e de verificação são das stories seguintes (f11, f12).
+Fase de aplicação: pressupõe a **escrita da API suspensa** e o **backup do
+banco e das origens já feito e conferido** — o script não faz backup nenhum e
+recusa rodar sem `--backup-conferido`, que é a afirmação de quem executa.
+
+A ordem de cada item é sempre a mesma, e é ela que torna a fase recuperável:
+
+    1. copia a origem para o destino ÚNICO do registro, dentro do volume;
+    2. confere tamanho e SHA-256 da cópia contra o manifesto;
+    3. só então atualiza a referência no banco, e só se o valor anterior ainda
+       for exatamente o que o manifesto registrou.
+
+Origem cujo tamanho ou SHA-256 divergiu do manifesto não é migrada: o
+arquivo mudou depois do inventário, e o certo é refazer o inventário, não
+copiar às cegas. Referência que já mudou no banco desde o inventário também é
+recusada — outra coisa mexeu ali.
+
+O progresso não mora em arquivo de progresso à parte: a retomada é validada
+contra o **estado real do banco**. Registro cuja coluna já contém o destino do
+manifesto conta como aplicado e é apenas conferido no disco. Por isso a fase é
+reexecutável e idempotente: rodar duas vezes não copia duas vezes nem produz
+efeito duplicado.
+
+Nenhuma origem é removida. A quarentena das origens públicas é decisão humana,
+fora deste script.
+
+A fase de verificação é da story seguinte (f12).
 """
 
 import argparse
@@ -50,11 +80,12 @@ import json
 import os
 import subprocess
 import sys
+import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, update
 from werkzeug.utils import secure_filename
 
 from gestaolegal.database.tables import arquivos, arquivos_caso, casos, eventos
@@ -76,6 +107,23 @@ EXTERNO = "externo"
 SEM_REFERENCIA = "sem_referencia"
 
 CLASSIFICACOES = (MIGRAVEL, JA_MIGRADO, AUSENTE, EXTERNO, SEM_REFERENCIA)
+
+APLICADO = "aplicado"
+JA_APLICADO = "ja_aplicado"
+IGNORADO = "ignorado"
+ERRO = "erro"
+
+RESULTADOS = (APLICADO, JA_APLICADO, IGNORADO, ERRO)
+
+TABELAS = {
+    "arquivosCaso": (arquivos_caso, "link_arquivo"),
+    "eventos": (eventos, "arquivo"),
+    "arquivos": (arquivos, "caminho"),
+}
+"""Tabela e coluna de anexo de cada origem do manifesto."""
+
+CATEGORIAS = ("casos", "eventos", "arquivos")
+"""Subdiretórios da raiz privada — os mesmos de `PRIVATE_FILE_CATEGORIES`."""
 
 
 class ErroDeUso(Exception):
@@ -406,6 +454,229 @@ def escrever_manifesto(caminho: str, itens: list[ItemInventario], mapa: dict[str
     return destino
 
 
+# --------------------------------------------------------------------------
+# Fase 2: aplicação
+# --------------------------------------------------------------------------
+
+
+class FalhaDeItem(Exception):
+    """O item não pôde ser migrado — contabilizado, sem abortar a fase."""
+
+
+def carregar_manifesto(caminho: str) -> dict:
+    """Lê o manifesto gerado pelo inventário e confere o formato mínimo."""
+    origem = _normalizar_dir(caminho)
+    try:
+        with open(origem, encoding="utf-8") as entrada:
+            conteudo = json.load(entrada)
+    except FileNotFoundError:
+        raise ErroDeUso(f"Manifesto não encontrado: {origem}") from None
+    except json.JSONDecodeError as e:
+        raise ErroDeUso(f"Manifesto ilegível ({origem}): {e}") from None
+    if not isinstance(conteudo, dict) or conteudo.get("versao") != 1:
+        raise ErroDeUso(f"Manifesto em versão desconhecida: {origem}")
+    if not isinstance(conteudo.get("itens"), list):
+        raise ErroDeUso(f"Manifesto sem lista de itens: {origem}")
+    return conteudo
+
+
+def caminho_destino(raiz: str, categoria: str, destino: str | None) -> str:
+    """Caminho absoluto do destino, confinado ao diretório da categoria.
+
+    Mesma regra do `private_file_storage.resolve`, escrita aqui porque o
+    script roda fora do app Flask (não há `current_app` para consultar).
+    """
+    if categoria not in CATEGORIAS:
+        raise FalhaDeItem(f"categoria desconhecida: {categoria!r}")
+    if not destino or not destino.strip():
+        raise FalhaDeItem("item do manifesto sem destino")
+    destino = destino.strip()
+    if os.path.isabs(destino) or "/" in destino or "\\" in destino or destino in (".", ".."):
+        raise FalhaDeItem(f"destino inválido no manifesto: {destino!r}")
+    base = os.path.realpath(os.path.join(raiz, categoria))
+    confinado = _confinar(base, os.path.join(base, destino))
+    if confinado is None:
+        raise FalhaDeItem(f"destino escapa da raiz privada: {destino!r}")
+    return confinado
+
+
+def _conferir_contra_manifesto(caminho: str, tamanho: int | None, sha: str | None, rotulo: str) -> None:
+    real_tamanho = os.path.getsize(caminho)
+    if tamanho is not None and real_tamanho != tamanho:
+        raise FalhaDeItem(
+            f"tamanho de {rotulo} divergiu do manifesto ({real_tamanho} != {tamanho})"
+        )
+    real_sha = sha256_de(caminho)
+    if sha is not None and real_sha != sha:
+        raise FalhaDeItem(f"SHA-256 de {rotulo} divergiu do manifesto")
+
+
+def copiar_verificado(origem: str, destino: str, tamanho: int | None, sha: str | None) -> bool:
+    """Copia origem -> destino conferindo tamanho e SHA-256. True se copiou.
+
+    Destino já presente e conferido não é recopiado (reexecução idempotente);
+    destino presente com conteúdo diferente é falha, nunca sobrescrita. A
+    cópia passa por um temporário no próprio diretório e é publicada com
+    `os.replace`, para que ninguém veja destino pela metade.
+    """
+    if os.path.exists(destino):
+        _conferir_contra_manifesto(destino, tamanho, sha, "destino já existente")
+        return False
+
+    if not os.path.isfile(origem):
+        raise FalhaDeItem(f"origem não encontrada: {origem}")
+    _conferir_contra_manifesto(origem, tamanho, sha, "origem")
+
+    diretorio = os.path.dirname(destino)
+    os.makedirs(diretorio, exist_ok=True)
+    temporario = os.path.join(diretorio, f".tmp_{uuid.uuid4().hex}")
+    try:
+        with open(origem, "rb") as entrada, open(temporario, "wb") as saida:
+            for bloco in iter(lambda: entrada.read(CHUNK), b""):
+                saida.write(bloco)
+            saida.flush()
+            os.fsync(saida.fileno())
+        os.chmod(temporario, 0o600)
+        _conferir_contra_manifesto(temporario, tamanho, sha, "cópia")
+        os.replace(temporario, destino)
+    except Exception:
+        _remover(temporario)
+        raise
+    return True
+
+
+def _remover(caminho: str) -> None:
+    try:
+        os.remove(caminho)
+    except OSError:
+        pass
+
+
+def _valor_atual(conn, tabela: str, registro_id: int) -> str | None:
+    if tabela not in TABELAS:
+        raise FalhaDeItem(f"tabela desconhecida no manifesto: {tabela!r}")
+    objeto, coluna = TABELAS[tabela]
+    linha = conn.execute(
+        select(objeto.c[coluna]).where(objeto.c.id == registro_id)
+    ).fetchone()
+    if linha is None:
+        raise FalhaDeItem("registro não existe mais no banco")
+    return linha[0]
+
+
+def _mesma_referencia(a: str | None, b: str | None) -> bool:
+    return (a or "").strip() == (b or "").strip()
+
+
+def atualizar_referencia(conn, tabela: str, registro_id: int, anterior: str | None, destino: str) -> None:
+    """Aponta a coluna para o destino, só se o valor anterior ainda bater.
+
+    O `WHERE` repete a condição do `SELECT`: entre a leitura e a escrita
+    ninguém pode ter mexido na coluna. `rowcount` zero é falha do item.
+    """
+    objeto, coluna = TABELAS[tabela]
+    condicao = (
+        objeto.c[coluna].is_(None)
+        if anterior is None or not anterior.strip()
+        else objeto.c[coluna] == anterior
+    )
+    resultado = conn.execute(
+        update(objeto)
+        .where(objeto.c.id == registro_id, condicao)
+        .values({coluna: destino})
+    )
+    if resultado.rowcount != 1:
+        raise FalhaDeItem("a referência mudou no banco durante a aplicação")
+
+
+def aplicar_item(engine, item: dict, raiz: str) -> str:
+    """Aplica um item do manifesto e devolve o resultado.
+
+    Copia primeiro, atualiza o banco depois: interromper entre as duas deixa
+    um arquivo a mais no volume e o banco intacto — a retomada recopia (ou
+    reconhece a cópia boa) e conclui. O inverso deixaria referência apontando
+    para o nada.
+    """
+    tabela = item.get("tabela")
+    registro_id = item.get("registro_id")
+    destino_ref = item.get("destino")
+    destino_abs = caminho_destino(raiz, item.get("categoria", ""), destino_ref)
+
+    with engine.begin() as conn:
+        atual = _valor_atual(conn, tabela, registro_id)
+
+    ja_aplicado = _mesma_referencia(atual, destino_ref)
+    if not ja_aplicado and not _mesma_referencia(atual, item.get("referencia_anterior")):
+        raise FalhaDeItem(
+            "a referência anterior não bate com o manifesto — refaça o inventário"
+        )
+
+    copiar_verificado(item.get("origem") or "", destino_abs, item.get("tamanho"), item.get("sha256"))
+    if ja_aplicado:
+        return JA_APLICADO
+
+    with engine.begin() as conn:
+        atualizar_referencia(conn, tabela, registro_id, item.get("referencia_anterior"), destino_ref)
+    return APLICADO
+
+
+def aplicar(engine, manifesto: dict, raiz: str) -> dict:
+    """Percorre o manifesto item a item. Nenhuma origem é removida."""
+    contagem = {resultado: 0 for resultado in RESULTADOS}
+    erros: list[str] = []
+    for item in manifesto["itens"]:
+        if item.get("classificacao") != MIGRAVEL:
+            contagem[IGNORADO] += 1
+            continue
+        rotulo = f"{item.get('tabela')}#{item.get('registro_id')}"
+        try:
+            contagem[aplicar_item(engine, item, raiz)] += 1
+        except FalhaDeItem as e:
+            contagem[ERRO] += 1
+            erros.append(f"{rotulo}: {e}")
+        except OSError as e:
+            contagem[ERRO] += 1
+            erros.append(f"{rotulo}: falha de filesystem: {e}")
+    return {"contagem": contagem, "erros": erros}
+
+
+def _raiz_privada(argumento: str | None) -> str:
+    if argumento:
+        raiz = _normalizar_dir(argumento)
+    else:
+        from gestaolegal.config import Config
+
+        raiz = _normalizar_dir(str(Config.PRIVATE_FILES_ROOT))
+    if not os.path.isdir(raiz):
+        raise ErroDeUso(f"Raiz privada não existe ou não é diretório: {raiz!r}")
+    return raiz
+
+
+def executar_aplicacao(args) -> int:
+    if not args.backup_conferido:
+        raise ErroDeUso(
+            "a aplicação escreve no banco: rode com --backup-conferido só depois de"
+            " suspender a escrita da API e conferir o backup do banco e das origens"
+        )
+    manifesto = carregar_manifesto(args.manifesto)
+    raiz = _raiz_privada(args.raiz_privada)
+
+    engine = create_engine(_database_url(args.database_url))
+    try:
+        relatorio = aplicar(engine, manifesto, raiz)
+    finally:
+        engine.dispose()
+
+    contagem = relatorio["contagem"]
+    print(f"aplicação: {len(manifesto['itens'])} item(ns) no manifesto")
+    for chave in RESULTADOS:
+        print(f"  {chave}: {contagem[chave]}")
+    for erro in relatorio["erros"]:
+        print(f"  ! {erro}", file=sys.stderr)
+    print("nenhuma origem foi removida — a quarentena é decisão humana")
+    return contagem[ERRO]
+
+
 def _database_url(argumento: str | None) -> str:
     if argumento:
         return argumento
@@ -441,6 +712,29 @@ def _montar_parser() -> argparse.ArgumentParser:
         help="Onde gravar o manifesto (fora do repositório).",
     )
     inventario.add_argument("--database-url", help="Substitui Config.SQLALCHEMY_DATABASE_URI.")
+
+    aplicacao = sub.add_parser(
+        "aplicacao",
+        help="Fase 2: copia para o volume e só então atualiza as referências.",
+    )
+    aplicacao.add_argument(
+        "--manifesto",
+        required=True,
+        metavar="ARQUIVO",
+        help="Manifesto gerado pela fase de inventário.",
+    )
+    aplicacao.add_argument(
+        "--raiz-privada",
+        metavar="DIR",
+        help="Raiz privada de destino. Padrão: Config.PRIVATE_FILES_ROOT.",
+    )
+    aplicacao.add_argument(
+        "--backup-conferido",
+        action="store_true",
+        help="Afirma que a escrita da API está suspensa e o backup do banco e das"
+        " origens foi feito e conferido. Sem isto o script não escreve nada.",
+    )
+    aplicacao.add_argument("--database-url", help="Substitui Config.SQLALCHEMY_DATABASE_URI.")
     return parser
 
 
@@ -476,6 +770,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.fase == "inventario":
             return executar_inventario(args)
+        if args.fase == "aplicacao":
+            return executar_aplicacao(args)
     except ErroDeUso as e:
         print(f"migrador: {e}", file=sys.stderr)
         return 2

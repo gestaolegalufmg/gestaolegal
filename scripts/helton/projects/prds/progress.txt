@@ -424,3 +424,50 @@ Started: sáb. 05 set 2026 07:40:12 -03
     existe em `eventos`. Não invente filtro onde não há coluna.
   - Rodar o migrador contra QA ou produção continua sendo decisão humana; o loop escreveu e
     testou o script, e o docstring diz isso em letras claras.
+
+## 2026-09-05 - f11-migrador-aplicacao
+- Fase `aplicacao` acrescentada ao `scripts/migrar_arquivos_privados.py` como subcomando
+  irmão do `inventario`. Ordem fixa por item: copia -> confere tamanho e SHA-256 contra o
+  manifesto -> só então atualiza a referência no banco. Copiar antes de escrever no banco
+  é deliberado: interromper no meio deixa um arquivo a mais no volume (inofensivo) em vez
+  de uma referência apontando para o nada.
+- `--backup-conferido` é obrigatório: sem ele o script sai com 2 sem tocar no banco. O
+  script não faz backup — a flag é a afirmação de quem executa de que a escrita da API
+  está suspensa e o backup do banco e das origens foi conferido.
+- Nada de arquivo de progresso: a retomada é validada contra o **estado real do banco**.
+  Se a coluna já contém o destino do manifesto, o item é `ja_aplicado` — o destino ainda é
+  conferido no disco (e recopiado se faltar), mas o banco não é tocado. Daí a
+  idempotência: rodar duas vezes não copia nem atualiza duas vezes.
+- Recusas contabilizadas como `erro`, uma por item, sem abortar a fase: origem com
+  tamanho ou SHA-256 diferente do manifesto (o arquivo mudou depois do inventário),
+  referência anterior que já não bate com o manifesto, registro apagado do banco, destino
+  já ocupado por conteúdo diferente (nunca sobrescreve) e destino que escapa da categoria.
+- `copiar_verificado` grava num `.tmp_<hex>` no próprio diretório, dá `fsync`, confere a
+  cópia contra o manifesto e publica com `os.replace`; qualquer falha remove o temporário.
+  `atualizar_referencia` repete a condição do `SELECT` no `WHERE` (`= anterior`, ou
+  `IS NULL` para o `arquivos` herdado da v2) e exige `rowcount == 1`.
+- Nenhuma origem é removida, e a saída diz isso em voz alta. O código de saída é a
+  contagem de erros.
+- `tests/api/test_migrar_arquivos_privados.py`: +16 casos (33 no arquivo). Cobrem caminho
+  feliz nas três origens, referência compartilhada com duas cópias independentes,
+  reexecução sem efeito duplicado (mtime do destino intacto), interrupção entre a cópia e
+  o banco com retomada, checksum e tamanho divergentes, referência mudada no banco,
+  registro apagado, destino ocupado, itens não migráveis ignorados, escape de destino,
+  manifesto ausente/versão desconhecida e a CLI (sem backup, com backup, raiz inexistente).
+- `make test`: 441 passed.
+- Arquivos: scripts/migrar_arquivos_privados.py,
+  tests/api/test_migrar_arquivos_privados.py.
+- **Learnings for future iterations:**
+  - O script roda FORA do app Flask, então `private_file_storage.resolve` não serve (ele
+    lê `current_app`). A regra de confinamento foi reescrita em `caminho_destino`; f12,
+    que precisa "resolver pelo private_file_storage", vai ter que abrir um
+    `app.app_context()` (via `create_app()`) ou reusar `caminho_destino`.
+  - Para montar manifesto em teste sem passar por disco: `migrador.inventariar` +
+    `asdict` no helper `_manifesto_de`. `escrever_manifesto` recusa gravar dentro do
+    repositório, mas `tmp_path` fica em `/tmp` e passa — os dois caminhos funcionam.
+  - Literal `bytes` em Python só aceita ASCII: `b"inventário"` é SyntaxError. Em teste de
+    conteúdo binário, escreva sem acento ou use `"...".encode()`.
+  - Para forjar checksum divergente sem mudar o tamanho: dois conteúdos do mesmo
+    comprimento (`b"conteudo original"` / `b"conteudo trocado."`). Assim o teste prova que
+    o SHA-256 é conferido, não só o tamanho.
+---

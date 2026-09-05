@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import sys
+from dataclasses import asdict
 from datetime import date, datetime
 from pathlib import Path
 
@@ -422,3 +423,388 @@ def test_destino_e_deterministico_e_respeita_o_limite_do_filesystem():
     assert longo.endswith(".pdf")
     prefixo = longo.split("_", 1)[0]
     assert len(prefixo) == 32 and all(c in "0123456789abcdef" for c in prefixo)
+
+
+# --------------------------------------------------------------------------
+# Aplicação
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture
+def raiz_privada(tmp_path: Path) -> Path:
+    """Raiz privada de destino, com as três categorias já criadas."""
+    raiz = tmp_path / "privado"
+    for categoria in migrador.CATEGORIAS:
+        (raiz / categoria).mkdir(parents=True)
+    return raiz
+
+
+def _manifesto_de(engine, mapa, arquivos_legado: str | None = None) -> dict:
+    """Inventaria o banco e devolve o manifesto em memória (mesmo formato do JSON)."""
+    with engine.connect() as conn:
+        itens = migrador.inventariar(conn, mapa, arquivos_legado)
+    return {
+        "versao": 1,
+        "gerado_em": "2026-09-05T00:00:00+00:00",
+        "origens": mapa,
+        "resumo": migrador.resumir(itens),
+        "itens": [asdict(item) for item in itens],
+    }
+
+
+def _item_de(manifesto: dict, tabela: str, registro_id: int) -> dict:
+    return next(
+        i
+        for i in manifesto["itens"]
+        if i["tabela"] == tabela and i["registro_id"] == registro_id
+    )
+
+
+def _coluna(engine, tabela, coluna: str, registro_id: int):
+    with engine.connect() as conn:
+        return conn.execute(
+            select(tabela.c[coluna]).where(tabela.c.id == registro_id)
+        ).scalar_one()
+
+
+def test_aplicacao_copia_verifica_e_so_entao_atualiza_a_referencia(
+    banco, origens, mapa, raiz_privada
+):
+    engine, _ = banco
+    origem = _plantar(origens["casos"], "procuracao.pdf", b"pdf de teste")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/procuracao.pdf")
+    manifesto = _manifesto_de(engine, mapa)
+    destino_ref = _item_de(manifesto, "arquivosCaso", 1)["destino"]
+
+    relatorio = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["erros"] == []
+    assert relatorio["contagem"][migrador.APLICADO] == 1
+    copiado = raiz_privada / "casos" / destino_ref
+    assert copiado.read_bytes() == b"pdf de teste"
+    assert _coluna(engine, arquivos_caso, "link_arquivo", 1) == destino_ref
+    assert os.path.isfile(origem), "a origem NÃO pode ser removida pela aplicação"
+
+
+def test_aplicacao_cobre_as_tres_origens_inclusive_o_arquivo_herdado_da_v2(
+    banco, origens, mapa, raiz_privada
+):
+    engine, _ = banco
+    _plantar(origens["casos"], "peticao.pdf", b"caso")
+    _plantar(origens["eventos"], "ata.docx", b"evento")
+    _plantar(origens["arquivos"], "estatuto.pdf", b"herdado da v2")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/peticao.pdf")
+        _anexo_evento(conn, 1, f"{PREFIXOS['eventos']}/ata.docx")
+        _arquivo_geral(conn, 1, None, "estatuto.pdf")
+    manifesto = _manifesto_de(engine, mapa, arquivos_legado=str(origens["arquivos"]))
+
+    relatorio = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.APLICADO] == 3
+    assert relatorio["erros"] == []
+    assert (
+        raiz_privada / "eventos" / _item_de(manifesto, "eventos", 1)["destino"]
+    ).read_bytes() == b"evento"
+    assert _coluna(engine, arquivos, "caminho", 1) == _item_de(manifesto, "arquivos", 1)[
+        "destino"
+    ]
+    assert sorted(p.name for p in (origens["arquivos"]).iterdir()) == ["estatuto.pdf"]
+
+
+def test_referencia_compartilhada_vira_duas_copias_independentes(
+    banco, origens, mapa, raiz_privada
+):
+    engine, _ = banco
+    _plantar(origens["casos"], "laudo.pdf", b"mesmo arquivo")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/laudo.pdf")
+        _anexo_caso(conn, 2, f"{PREFIXOS['casos']}/laudo.pdf")
+    manifesto = _manifesto_de(engine, mapa)
+
+    relatorio = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    primeiro = _coluna(engine, arquivos_caso, "link_arquivo", 1)
+    segundo = _coluna(engine, arquivos_caso, "link_arquivo", 2)
+    assert relatorio["contagem"][migrador.APLICADO] == 2
+    assert primeiro != segundo
+    assert (raiz_privada / "casos" / primeiro).read_bytes() == b"mesmo arquivo"
+    assert (raiz_privada / "casos" / segundo).read_bytes() == b"mesmo arquivo"
+
+
+def test_reexecucao_nao_produz_efeito_duplicado(banco, origens, mapa, raiz_privada):
+    engine, _ = banco
+    _plantar(origens["casos"], "procuracao.pdf", b"pdf de teste")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/procuracao.pdf")
+    manifesto = _manifesto_de(engine, mapa)
+    destino_ref = _item_de(manifesto, "arquivosCaso", 1)["destino"]
+
+    migrador.aplicar(engine, manifesto, str(raiz_privada))
+    copiado = raiz_privada / "casos" / destino_ref
+    antes = copiado.stat().st_mtime_ns
+
+    relatorio = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.JA_APLICADO] == 1
+    assert relatorio["contagem"][migrador.APLICADO] == 0
+    assert relatorio["contagem"][migrador.ERRO] == 0
+    assert copiado.stat().st_mtime_ns == antes, "o destino foi recopiado à toa"
+    assert list((raiz_privada / "casos").iterdir()) == [copiado]
+    assert _coluna(engine, arquivos_caso, "link_arquivo", 1) == destino_ref
+
+
+def test_interrupcao_entre_a_copia_e_o_banco_e_retomada_pelo_estado_real(
+    banco, origens, mapa, raiz_privada, monkeypatch
+):
+    engine, _ = banco
+    _plantar(origens["casos"], "procuracao.pdf", b"pdf de teste")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/procuracao.pdf")
+    manifesto = _manifesto_de(engine, mapa)
+    destino_ref = _item_de(manifesto, "arquivosCaso", 1)["destino"]
+
+    def morrer(*_args, **_kwargs):
+        raise migrador.FalhaDeItem("interrompido logo depois da cópia")
+
+    monkeypatch.setattr(migrador, "atualizar_referencia", morrer)
+    parcial = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    assert parcial["contagem"][migrador.ERRO] == 1
+    assert (raiz_privada / "casos" / destino_ref).is_file(), "a cópia vem antes do banco"
+    assert _coluna(engine, arquivos_caso, "link_arquivo", 1) == (
+        f"{PREFIXOS['casos']}/procuracao.pdf"
+    )
+
+    monkeypatch.undo()
+    retomada = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    assert retomada["contagem"][migrador.APLICADO] == 1
+    assert retomada["erros"] == []
+    assert _coluna(engine, arquivos_caso, "link_arquivo", 1) == destino_ref
+
+
+def test_origem_com_checksum_divergente_nao_e_migrada(banco, origens, mapa, raiz_privada):
+    engine, _ = banco
+    origem = _plantar(origens["casos"], "procuracao.pdf", b"conteudo original")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/procuracao.pdf")
+    manifesto = _manifesto_de(engine, mapa)
+    destino_ref = _item_de(manifesto, "arquivosCaso", 1)["destino"]
+    Path(origem).write_bytes(b"conteudo trocado.")  # mesmo tamanho, outro SHA-256
+
+    relatorio = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.ERRO] == 1
+    assert relatorio["contagem"][migrador.APLICADO] == 0
+    assert "SHA-256" in relatorio["erros"][0]
+    assert not (raiz_privada / "casos" / destino_ref).exists()
+    assert _coluna(engine, arquivos_caso, "link_arquivo", 1) == (
+        f"{PREFIXOS['casos']}/procuracao.pdf"
+    )
+    assert list((raiz_privada / "casos").iterdir()) == [], "nem temporário pode sobrar"
+
+
+def test_origem_com_tamanho_divergente_nao_e_migrada(banco, origens, mapa, raiz_privada):
+    engine, _ = banco
+    origem = _plantar(origens["casos"], "procuracao.pdf", b"conteudo original")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/procuracao.pdf")
+    manifesto = _manifesto_de(engine, mapa)
+    Path(origem).write_bytes(b"cresceu depois do inventario")
+
+    relatorio = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.ERRO] == 1
+    assert "tamanho" in relatorio["erros"][0]
+
+
+def test_referencia_que_mudou_no_banco_desde_o_inventario_e_recusada(
+    banco, origens, mapa, raiz_privada
+):
+    engine, _ = banco
+    _plantar(origens["casos"], "procuracao.pdf", b"pdf de teste")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/procuracao.pdf")
+    manifesto = _manifesto_de(engine, mapa)
+    destino_ref = _item_de(manifesto, "arquivosCaso", 1)["destino"]
+    with engine.begin() as conn:
+        conn.execute(
+            arquivos_caso.update()
+            .where(arquivos_caso.c.id == 1)
+            .values(link_arquivo="/outro/lugar/procuracao.pdf")
+        )
+
+    relatorio = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.ERRO] == 1
+    assert "não bate com o manifesto" in relatorio["erros"][0]
+    assert not (raiz_privada / "casos" / destino_ref).exists()
+    assert _coluna(engine, arquivos_caso, "link_arquivo", 1) == "/outro/lugar/procuracao.pdf"
+
+
+def test_destino_ja_ocupado_por_outro_conteudo_e_erro(banco, origens, mapa, raiz_privada):
+    engine, _ = banco
+    _plantar(origens["casos"], "procuracao.pdf", b"pdf de teste")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/procuracao.pdf")
+    manifesto = _manifesto_de(engine, mapa)
+    destino_ref = _item_de(manifesto, "arquivosCaso", 1)["destino"]
+    intruso = raiz_privada / "casos" / destino_ref
+    intruso.write_bytes(b"outra coisa qualquer")
+
+    relatorio = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.ERRO] == 1
+    assert intruso.read_bytes() == b"outra coisa qualquer", "destino não é sobrescrito"
+    assert _coluna(engine, arquivos_caso, "link_arquivo", 1) == (
+        f"{PREFIXOS['casos']}/procuracao.pdf"
+    )
+
+
+def test_registro_apagado_depois_do_inventario_vira_erro(banco, origens, mapa, raiz_privada):
+    engine, _ = banco
+    _plantar(origens["casos"], "procuracao.pdf", b"pdf de teste")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/procuracao.pdf")
+    manifesto = _manifesto_de(engine, mapa)
+    with engine.begin() as conn:
+        conn.execute(arquivos_caso.delete().where(arquivos_caso.c.id == 1))
+
+    relatorio = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.ERRO] == 1
+    assert "não existe mais" in relatorio["erros"][0]
+
+
+def test_itens_nao_migraveis_do_manifesto_sao_ignorados(banco, origens, mapa, raiz_privada):
+    engine, _ = banco
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, "abc_procuracao.pdf")  # já migrado
+        _anexo_caso(conn, 2, f"{PREFIXOS['casos']}/sumiu.pdf")  # ausente
+        _anexo_caso(conn, 3, "/etc/passwd")  # externo
+        _anexo_caso(conn, 4, None)  # sem referência
+    manifesto = _manifesto_de(engine, mapa)
+
+    relatorio = migrador.aplicar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.IGNORADO] == 4
+    assert relatorio["contagem"][migrador.APLICADO] == 0
+    assert relatorio["erros"] == []
+    assert _coluna(engine, arquivos_caso, "link_arquivo", 1) == "abc_procuracao.pdf"
+
+
+def test_destino_que_tenta_escapar_da_raiz_privada_e_recusado(raiz_privada):
+    with pytest.raises(migrador.FalhaDeItem):
+        migrador.caminho_destino(str(raiz_privada), "casos", "../fora.pdf")
+    with pytest.raises(migrador.FalhaDeItem):
+        migrador.caminho_destino(str(raiz_privada), "casos", "/etc/passwd")
+    with pytest.raises(migrador.FalhaDeItem):
+        migrador.caminho_destino(str(raiz_privada), "publico", "x.pdf")
+
+
+def test_manifesto_ausente_ou_em_versao_desconhecida_e_recusado(tmp_path: Path):
+    with pytest.raises(migrador.ErroDeUso):
+        migrador.carregar_manifesto(str(tmp_path / "nao-existe.json"))
+
+    outro = tmp_path / "outro.json"
+    outro.write_text(json.dumps({"versao": 99, "itens": []}), encoding="utf-8")
+    with pytest.raises(migrador.ErroDeUso):
+        migrador.carregar_manifesto(str(outro))
+
+
+def test_cli_recusa_aplicacao_sem_backup_conferido(banco, tmp_path, capsys):
+    _engine, url = banco
+    caminho = tmp_path / "manifesto.json"
+    caminho.write_text(json.dumps({"versao": 1, "itens": []}), encoding="utf-8")
+
+    codigo = migrador.main(
+        ["aplicacao", "--manifesto", str(caminho), "--database-url", url]
+    )
+
+    assert codigo == 2
+    assert "--backup-conferido" in capsys.readouterr().err
+
+
+def test_cli_aplica_e_devolve_a_contagem_de_erros(
+    banco, origens, mapa, raiz_privada, tmp_path, capsys
+):
+    engine, url = banco
+    _plantar(origens["casos"], "procuracao.pdf", b"pdf de teste")
+    _plantar(origens["eventos"], "ata.docx", b"evento")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/procuracao.pdf")
+        _anexo_evento(conn, 1, f"{PREFIXOS['eventos']}/ata.docx")
+    manifesto = _manifesto_de(engine, mapa)
+    caminho = tmp_path / "manifesto.json"
+    caminho.write_text(json.dumps(manifesto, ensure_ascii=False), encoding="utf-8")
+
+    codigo = migrador.main(
+        [
+            "aplicacao",
+            "--manifesto",
+            str(caminho),
+            "--raiz-privada",
+            str(raiz_privada),
+            "--database-url",
+            url,
+            "--backup-conferido",
+        ]
+    )
+
+    saida = capsys.readouterr().out
+    assert codigo == 0
+    assert "aplicado: 2" in saida
+    assert "nenhuma origem foi removida" in saida
+    assert _coluna(engine, arquivos_caso, "link_arquivo", 1) == _item_de(
+        manifesto, "arquivosCaso", 1
+    )["destino"]
+
+    # A origem que sumiu do disco entre o inventário e a aplicação vira erro,
+    # e o código de saída é a contagem de erros.
+    with engine.begin() as conn:
+        _anexo_caso(conn, 2, f"{PREFIXOS['casos']}/sumido.pdf")
+    _plantar(origens["casos"], "sumido.pdf", b"vai sumir")
+    manifesto = _manifesto_de(engine, mapa)
+    caminho.write_text(json.dumps(manifesto, ensure_ascii=False), encoding="utf-8")
+    os.remove(origens["casos"] / "sumido.pdf")
+
+    codigo = migrador.main(
+        [
+            "aplicacao",
+            "--manifesto",
+            str(caminho),
+            "--raiz-privada",
+            str(raiz_privada),
+            "--database-url",
+            url,
+            "--backup-conferido",
+        ]
+    )
+
+    capturado = capsys.readouterr()
+    assert codigo == 1
+    assert "origem não encontrada" in capturado.err
+
+
+def test_cli_recusa_raiz_privada_inexistente(banco, tmp_path, capsys):
+    _engine, url = banco
+    caminho = tmp_path / "manifesto.json"
+    caminho.write_text(json.dumps({"versao": 1, "itens": []}), encoding="utf-8")
+
+    codigo = migrador.main(
+        [
+            "aplicacao",
+            "--manifesto",
+            str(caminho),
+            "--raiz-privada",
+            str(tmp_path / "nao-existe"),
+            "--database-url",
+            url,
+            "--backup-conferido",
+        ]
+    )
+
+    assert codigo == 2
+    assert "Raiz privada não existe" in capsys.readouterr().err
