@@ -152,3 +152,16 @@ dumps/
 
 # Transcripts de sessão exportados (carregam credenciais e saídas de ambiente)
 backlog-triagem/conversa.md
+
+# Esteira Helton: os scripts do método vivem no kit privado (/opt/helton) e
+# entram aqui como symlinks. Só a papelada da empreitada é versionada —
+# obra.conf e scripts/helton/projects/ (planos, prds, progress).
+scripts/helton/helton.sh
+scripts/helton/CLAUDE.md
+scripts/helton/prompt.md
+scripts/helton/obra/montar-canteiro.sh
+scripts/helton/obra/desmontar-canteiro.sh
+scripts/helton/obra/arquivar-plano.sh
+.claude/skills/compatibilizar/
+.claude/skills/cronograma/
+.claude/skills/mobilizar-obras/
