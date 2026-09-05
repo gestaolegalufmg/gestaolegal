@@ -77,3 +77,37 @@ Started: sáb. 05 set 2026 07:40:12 -03
     repo para downgrade impossível é `pass` com comentário (ver 9b4a1c7e30df), mas
     aqui a redução é possível e só perigosa — daí o RuntimeError.
 ---
+
+## 2026-09-05 - f3-private-file-storage
+- Novo `gestaolegal/services/private_file_storage.py`: `save(categoria, file) -> ref`,
+  `resolve(categoria, ref) -> caminho`, `remove(categoria, ref)`, mais `gerar_ref`,
+  `categoria_dir` e `DOWNLOAD_HEADERS` (`Content-Disposition: attachment`,
+  `Cache-Control: private, no-store`).
+- A referência guardada no banco é relativa à categoria (`<uuid4hex>_<secure_filename>`);
+  o UUID substitui o timestamp de segundos de `caso_controller.py`, que colidia dentro
+  do mesmo segundo.
+- Gravação: temporário `.tmp_<hex>` dentro do próprio volume, destino reservado com
+  `O_EXCL` (nunca sobrescreve) e publicação por `os.replace`. Qualquer falha remove o
+  temporário.
+- Recusas (todas `PrivateFileError`, subclasse de `ValidationException` com
+  `field="arquivo"`): categoria fora de `PRIVATE_FILE_CATEGORIES`, referência vazia,
+  caminho absoluto, `..`, referência acima de 300 caracteres, symlink que escapa da
+  raiz. Toda leitura passa por `realpath` confinado à raiz/categoria.
+- `tests/api/test_private_file_storage.py` (novo, 19 casos). `make test`: 369 passed.
+- Nenhum fluxo foi ligado ao módulo ainda — isso é f5/f6/f7.
+- Arquivos: gestaolegal/services/private_file_storage.py (novo),
+  tests/api/test_private_file_storage.py (novo).
+- **Learnings for future iterations:**
+  - `REF_MAX` (300, o da coluna) NÃO é o limite do disco: um componente de nome no
+    filesystem para em `NAME_MAX` = 255 bytes (`OSError: [Errno 36] File name too
+    long`). O nome gerado respeita `min(REF_MAX, NAME_MAX)` e corta o nome original,
+    nunca a extensão. Teste de nome longo pega isso.
+  - `secure_filename` de nome só com acentos/espaços pode devolver string vazia; daí
+    o fallback `"arquivo"`.
+  - Para simular falha de gravação no teste:
+    `monkeypatch.setattr(FileStorage, "save", explode)` — o `save` do módulo escreve
+    num handle aberto por ele, então o mock precisa ser na classe, não na instância.
+  - O fixture `app` da suíte é de escopo sessão: para trocar a raiz por teste use
+    `monkeypatch.setitem(app.config, "PRIVATE_FILES_ROOT", str(tmp_path))` dentro de
+    um `app.app_context()` próprio.
+---

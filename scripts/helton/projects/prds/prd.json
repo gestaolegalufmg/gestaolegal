@@ -68,7 +68,7 @@
         "f1-config-raiz-privada"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
