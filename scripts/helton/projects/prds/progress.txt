@@ -51,3 +51,29 @@ Started: sáb. 05 set 2026 07:40:12 -03
     referência relativa é das stories f5/f6/f7, via `private_file_storage` (f3).
   - `make test` leva ~78s e roda 348 testes.
 ---
+
+## 2026-09-05 - f2-migration-eventos-arquivo
+- Nova migration `migrations/versions/c4d5e6f7a8b9_eventos_arquivo_300.py`, com
+  `down_revision = "b7c1d2e3f4a5"`: `eventos.arquivo` passa de String(100) para
+  String(300), para caber a referência relativa dentro da raiz privada (as colunas
+  irmãs `arquivosCaso.link_arquivo` e `arquivos.caminho` já eram String(300)).
+- O `downgrade()` conta `LENGTH(arquivo) > 100` antes de reduzir e levanta
+  `RuntimeError` com mensagem em português se houver algum — reduzir a coluna com
+  valores maiores truncaria as referências em silêncio.
+- A migration não move nem reescreve arquivo nenhum; é só o tipo da coluna.
+- `gestaolegal/database/tables.py` reflete String(300) em `eventos.arquivo`.
+- `uv run alembic -c migrations/alembic.ini heads` mostra `c4d5e6f7a8b9 (head)`,
+  head único. `make test`: 348 passed.
+- Arquivos: migrations/versions/c4d5e6f7a8b9_eventos_arquivo_300.py (novo),
+  gestaolegal/database/tables.py.
+- **Learnings for future iterations:**
+  - Os testes usam SQLite em memória criado do metadata do SQLAlchemy e NÃO rodam
+    Alembic: `make test` verde não diz nada sobre a migration. Quem confere o
+    encadeamento é `alembic ... heads` (e `docker compose up -d migrate` para aplicar).
+  - Por isso, mexer só na migration sem mexer em `tables.py` (ou vice-versa) passa
+    despercebido pelo portão de testes. Os dois andam sempre juntos.
+  - `alembic` não está no PATH direto: use `uv run alembic -c migrations/alembic.ini`.
+  - Migration que reduz largura de coluna deve checar os dados antes; o padrão do
+    repo para downgrade impossível é `pass` com comentário (ver 9b4a1c7e30df), mas
+    aqui a redução é possível e só perigosa — daí o RuntimeError.
+---
