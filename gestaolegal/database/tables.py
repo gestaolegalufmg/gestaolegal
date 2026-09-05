@@ -16,10 +16,11 @@ from sqlalchemy import (
 metadata = MetaData()
 
 # Unidade padrão (Belo Horizonte), a mesma que a migration atribui aos
-# registros herdados. O `default` é a ponte da Fase A: enquanto os services não
-# gravam a unidade ativa, todo INSERT nas tabelas raiz violaria o NOT NULL. Os
-# testes de isolamento por unidade denunciam quem depende dele — um registro
-# criado em Nova Lima que caísse no default apareceria na unidade errada.
+# registros herdados. Serve a quem precisa nomear a unidade inicial — o vínculo
+# do primeiro usuário e a migration —, NÃO como default de coluna: `coluna_unidade`
+# teve o `default=UNIDADE_PADRAO_ID` removido na Fase A, depois que os services
+# passaram a gravar a unidade ativa. Sem ele, INSERT sem unidade estoura o NOT NULL
+# na hora, em vez de gravar calado em Belo Horizonte um registro de Nova Lima.
 UNIDADE_PADRAO_ID = 1
 
 
@@ -30,7 +31,6 @@ def coluna_unidade() -> Column:
         ForeignKey("unidades.id"),
         nullable=False,
         index=True,
-        default=UNIDADE_PADRAO_ID,
     )
 
 enderecos = Table(

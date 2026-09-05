@@ -213,6 +213,7 @@ class TestConfirmacao:
                     id_usuario=id_admin,
                     confirmacao="aberto",
                     status=True,
+                    unidade_id=1,
                 )
             ).lastrowid
             # Marcação apagada pelo botão "Editar": a v2 continuava listando
@@ -222,6 +223,7 @@ class TestConfirmacao:
                     id_usuario=id_admin,
                     confirmacao="aberto",
                     status=False,
+                    unidade_id=1,
                 )
             )
             session.commit()
@@ -268,6 +270,7 @@ class TestConfirmacao:
                     id_usuario=id_admin,
                     confirmacao="aberto",
                     status=True,
+                    unidade_id=1,
                 )
             ).lastrowid
             session.commit()

@@ -340,7 +340,9 @@ class TestMarcacoes:
         with app.app_context():
             session = get_session()
             session.execute(
-                insert(dias_plantao).values(data=date.fromisoformat(dia), status=True)
+                insert(dias_plantao).values(
+                    data=date.fromisoformat(dia), status=True, unidade_id=1
+                )
             )
             session.commit()
 

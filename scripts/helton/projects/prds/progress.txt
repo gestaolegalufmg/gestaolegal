@@ -11,6 +11,8 @@ Started: sáb. 05 set 2026 08:33:32 -03
   quem levanta o 404 é o controller.
 - `make test` falha com `ModuleNotFoundError: flask` até rodar `uv sync --extra extra`
   (pytest vive no grupo/extra `extra`, o grupo `dev` está vazio). É o que o CI faz.
+- `unidade_id` NÃO tem mais default (removido em `coluna_unidade()`): todo INSERT numa
+  tabela raiz precisa passar `unidade_id` explicitamente, inclusive em fixture de teste.
 - Fixtures de unidade em `tests/api/conftest.py`: `auth_headers` (admin, X-Unidade-Id=1/BH)
   e `auth_headers_nl` (mesmo admin, X-Unidade-Id=2/Nova Lima). O admin pertence às duas
   unidades — é com esse par que se prova isolamento sem confundir com falta de permissão.
@@ -142,3 +144,30 @@ Started: sáb. 05 set 2026 08:33:32 -03
     (`somente_unidade_ativa`), não com o nome do parâmetro da API: o `buildParams` é
     quem faz a tradução para o contrato do back (`unidade=ativa`).
 ---
+
+## 2026-09-05 - f4-coluna-unidade-default
+- `default=UNIDADE_PADRAO_ID` **removido** de `coluna_unidade()`. A justificativa da
+  Fase 3 (services que ainda não gravavam a unidade) não vale mais: com o default fora,
+  a suíte quebrou em 3 pontos, **todos INSERT de fixture de teste**, nenhum caminho de
+  produção. Sem a rede, INSERT sem unidade estoura o NOT NULL na hora, em vez de gravar
+  calado em Belo Horizonte um registro que era de Nova Lima.
+- As três quebras (`dias_plantao` e `dias_marcados_plantao`) foram corrigidas passando
+  `unidade_id=1` explicitamente no insert do teste. Nenhuma asserção foi removida ou
+  afrouxada — só se acrescentou o dado que a fixture omitia.
+- Conferido que os caminhos que inserem fora do request também já gravam a unidade:
+  `PlantaoRepository.create_dia`/`create_marcacao` recebem `unidade_id` obrigatório e
+  `scripts/importar_unidade.py:471` grava `valores["unidade_id"]` para toda tabela com
+  `spec.unidade`. `UNIDADE_PADRAO_ID` continua existindo, mas agora só como nome da
+  unidade inicial (vínculo do primeiro usuário em `usuario_service.py:414` e a migration
+  `b7c1d2e3f4a5`) — o comentário acima da constante foi reescrito para dizer isso.
+- Nada a registrar em `docs/known_issues.md`: a decisão foi remover, não manter.
+- Arquivos: `gestaolegal/database/tables.py`, `tests/api/test_plantao_api.py`,
+  `tests/api/test_presenca_api.py`.
+- Suíte: 352 passed.
+- **Learnings for future iterations:**
+  - Não existe mais default de `unidade_id`. **Todo INSERT novo numa tabela raiz — em
+    código de produção, em fixture de teste ou em script — precisa passar `unidade_id`
+    explicitamente**, senão estoura NOT NULL. Em teste, a unidade de `auth_headers` é 1
+    (BH) e a de `auth_headers_nl` é 2 (Nova Lima).
+  - Fixture que insere direto na tabela (sem passar pelo service) é onde essa dívida se
+    esconde: o service já lia o `RequestContext`, o teste é que ia no default.
