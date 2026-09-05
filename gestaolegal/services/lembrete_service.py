@@ -10,9 +10,12 @@ from gestaolegal.models.lembrete_input import (
     LembreteUpdateInput,
 )
 from gestaolegal.services.notificacao_service import NotificacaoService
+from gestaolegal.models.caso import Caso
+from gestaolegal.repositories.caso_repository import CasoRepository
 from gestaolegal.repositories.lembrete_repository import LembreteRepository
 from gestaolegal.repositories.repository import GetParams, WhereClause
 from gestaolegal.repositories.user_repository import UserRepository
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +23,18 @@ logger = logging.getLogger(__name__)
 class LembreteService:
     repository: LembreteRepository
     user_repository: UserRepository
+    caso_repository: CasoRepository
 
     def __init__(self):
         self.repository = LembreteRepository()
         self.user_repository = UserRepository()
+        self.caso_repository = CasoRepository()
+
+    def _caso_da_unidade_ativa(self, caso_id: int) -> Caso | None:
+        """O lembrete pertence à unidade do caso, não à do header."""
+        return self.caso_repository.find_by_id(
+            caso_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
 
     def _to_list_item(self, lembrete) -> LembreteListItem:
         user_ids = [
@@ -43,6 +54,7 @@ class LembreteService:
             id=cast(int, lembrete.id),
             num_lembrete=lembrete.num_lembrete,
             id_caso=lembrete.id_caso,
+            unidade_id=lembrete.unidade_id,
             data_criacao=lembrete.data_criacao,
             data_lembrete=lembrete.data_lembrete,
             descricao=lembrete.descricao,
@@ -53,17 +65,31 @@ class LembreteService:
 
     def get_by_caso(self, caso_id: int) -> list[LembreteListItem]:
         logger.info(f"Fetching lembretes for caso {caso_id}")
-        lembretes = self.repository.get_by_caso(caso_id)
+        if not self._caso_da_unidade_ativa(caso_id):
+            logger.warning(f"Caso {caso_id} is not in the active unidade")
+            raise NotFoundException(resource="Caso", resource_id=caso_id)
+
+        lembretes = self.repository.get_by_caso(
+            caso_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         return [self._to_list_item(lembrete) for lembrete in lembretes]
 
     def find_by_id(self, id: int) -> LembreteListItem | None:
-        lembrete = self.repository.find_by_id(id)
+        lembrete = self.repository.find_by_id(
+            id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not lembrete:
             return None
         return self._to_list_item(lembrete)
 
     def validate_lembrete_for_caso(self, lembrete_id: int, caso_id: int):
-        lembrete = self.repository.find_by_id(lembrete_id)
+        if not self._caso_da_unidade_ativa(caso_id):
+            logger.warning(f"Caso {caso_id} is not in the active unidade")
+            return None
+
+        lembrete = self.repository.find_by_id(
+            lembrete_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not lembrete or lembrete.id_caso != caso_id:
             return None
         return lembrete
@@ -72,6 +98,11 @@ class LembreteService:
         self, caso_id: int, criador_id: int, data: LembreteCreateInput
     ) -> LembreteListItem:
         logger.info(f"Creating lembrete for caso {caso_id} by user {criador_id}")
+        caso = self._caso_da_unidade_ativa(caso_id)
+        if not caso:
+            logger.warning(f"Caso {caso_id} is not in the active unidade")
+            raise NotFoundException(resource="Caso", resource_id=caso_id)
+
         with transaction():
             num_lembrete = self.repository.count_by_caso(caso_id) + 1
             lembrete_id = self.repository.create(
@@ -84,6 +115,7 @@ class LembreteService:
                     "data_lembrete": data.data_lembrete,
                     "descricao": data.descricao,
                     "status": True,
+                    "unidade_id": caso.unidade_id,
                 }
             )
             NotificacaoService().lembrete_criado(
@@ -101,7 +133,9 @@ class LembreteService:
     def update(
         self, lembrete_id: int, data: LembreteUpdateInput
     ) -> LembreteListItem:
-        existing = self.repository.find_by_id(lembrete_id)
+        existing = self.repository.find_by_id(
+            lembrete_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not existing:
             raise NotFoundException(resource="Lembrete", resource_id=lembrete_id)
         with transaction():
@@ -113,7 +147,9 @@ class LembreteService:
         return updated
 
     def delete(self, lembrete_id: int) -> bool:
-        existing = self.repository.find_by_id(lembrete_id)
+        existing = self.repository.find_by_id(
+            lembrete_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not existing:
             raise NotFoundException(resource="Lembrete", resource_id=lembrete_id)
         with transaction():

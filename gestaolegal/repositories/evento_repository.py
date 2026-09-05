@@ -21,8 +21,10 @@ class EventoRepository(BaseRepository):
     def __init__(self):
         super().__init__()
 
-    def find_by_id(self, id: int) -> Evento | None:
+    def find_by_id(self, id: int, unidade_id: int | None = None) -> Evento | None:
         stmt = select(eventos).where(eventos.c.id == id)
+        if unidade_id is not None:
+            stmt = stmt.where(eventos.c.unidade_id == unidade_id)
         result = self.session.execute(stmt).one_or_none()
         return from_dict(Evento, dict(result._mapping)) if result else None
 
@@ -32,7 +34,11 @@ class EventoRepository(BaseRepository):
         return [from_dict(Evento, dict(row._mapping)) for row in results]
 
     def find_by_caso_id_paginated(
-        self, caso_id: int, page_params: PageParams, tipo: str | None = None
+        self,
+        caso_id: int,
+        page_params: PageParams,
+        tipo: str | None = None,
+        unidade_id: int | None = None,
     ) -> PaginatedResult[Evento]:
         """Eventos ativos do caso, opcionalmente filtrados por tipo.
 
@@ -41,6 +47,8 @@ class EventoRepository(BaseRepository):
         """
         stmt = select(eventos, func.count().over().label("total_count"))
         stmt = stmt.where(eventos.c.id_caso == caso_id, eventos.c.status.is_(True))
+        if unidade_id is not None:
+            stmt = stmt.where(eventos.c.unidade_id == unidade_id)
         if tipo:
             stmt = stmt.where(eventos.c.tipo == tipo)
         stmt = stmt.order_by(eventos.c.data_evento.desc())

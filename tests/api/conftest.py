@@ -109,14 +109,88 @@ def clean_tables(*table_names: str) -> None:
         session.close()
 
 
+UNIDADE_BH = 1
+UNIDADE_NL = 2
+
+
+def ensure_unidades() -> None:
+    """Garante as unidades 1 (Belo Horizonte) e 2 (Nova Lima).
+
+    Todo registro das tabelas raiz tem `unidade_id` NOT NULL, então as unidades
+    precisam existir antes de qualquer inserção de teste.
+    """
+    session = db_session_module.get_session()
+    try:
+        for unidade_id, nome, sigla in (
+            (UNIDADE_BH, "Belo Horizonte", "BH"),
+            (UNIDADE_NL, "Nova Lima", "NL"),
+        ):
+            existente = session.execute(
+                text("SELECT id FROM unidades WHERE id = :id"), {"id": unidade_id}
+            ).fetchone()
+            if existente:
+                continue
+            session.execute(
+                text("""
+                    INSERT INTO unidades (id, nome, sigla, ativa, criado)
+                    VALUES (:id, :nome, :sigla, 1, :criado)
+                """),
+                {
+                    "id": unidade_id,
+                    "nome": nome,
+                    "sigla": sigla,
+                    "criado": datetime.now(),
+                },
+            )
+        session.commit()
+    finally:
+        session.close()
+
+
+def vincular_unidades(usuario_id: int, unidade_ids: list[int]) -> None:
+    ensure_unidades()
+    session = db_session_module.get_session()
+    try:
+        for unidade_id in unidade_ids:
+            existente = session.execute(
+                text("""
+                    SELECT 1 FROM usuarios_unidades
+                    WHERE usuario_id = :usuario_id AND unidade_id = :unidade_id
+                """),
+                {"usuario_id": usuario_id, "unidade_id": unidade_id},
+            ).fetchone()
+            if existente:
+                continue
+            session.execute(
+                text("""
+                    INSERT INTO usuarios_unidades (usuario_id, unidade_id)
+                    VALUES (:usuario_id, :unidade_id)
+                """),
+                {"usuario_id": usuario_id, "unidade_id": unidade_id},
+            )
+        session.commit()
+    finally:
+        session.close()
+
+
+@pytest.fixture(scope="session")
+def unidades(app: Flask) -> None:
+    with app.app_context():
+        ensure_unidades()
+
+
 def ensure_admin_user_exists() -> None:
+    ensure_unidades()
     session = db_session_module.get_session()
     try:
         result = session.execute(
             text("SELECT id FROM usuarios WHERE email = :email"),
             {"email": TEST_ADMIN_EMAIL},
-        )
-        if result.fetchone():
+        ).fetchone()
+        if result:
+            # O admin pertence às duas unidades: é ele que exercita o
+            # isolamento nos testes (auth_headers x auth_headers_nl).
+            vincular_unidades(result[0], [UNIDADE_BH, UNIDADE_NL])
             return
 
         hashed_password = bcrypt.hashpw(
@@ -180,8 +254,17 @@ def ensure_admin_user_exists() -> None:
             },
         )
         session.commit()
+
+        criado = session.execute(
+            text("SELECT id FROM usuarios WHERE email = :email"),
+            {"email": TEST_ADMIN_EMAIL},
+        ).fetchone()
+        assert criado is not None
+        admin_id = criado[0]
     finally:
         session.close()
+
+    vincular_unidades(admin_id, [UNIDADE_BH, UNIDADE_NL])
 
 
 @pytest.fixture(scope="session")
@@ -198,8 +281,9 @@ def create_non_admin_user(app: Flask) -> None:
         result = session.execute(
             text("SELECT id FROM usuarios WHERE email = :email"),
             {"email": TEST_NON_ADMIN_EMAIL},
-        )
-        if result.fetchone():
+        ).fetchone()
+        if result:
+            vincular_unidades(result[0], [UNIDADE_BH])
             return
 
         hashed_password = bcrypt.hashpw(
@@ -264,6 +348,13 @@ def create_non_admin_user(app: Flask) -> None:
         )
         session.commit()
 
+        nao_admin = session.execute(
+            text("SELECT id FROM usuarios WHERE email = :email"),
+            {"email": TEST_NON_ADMIN_EMAIL},
+        ).fetchone()
+        assert nao_admin is not None
+        vincular_unidades(nao_admin[0], [UNIDADE_BH])
+
 
 @pytest.fixture
 def auth_headers(client: FlaskClient, create_admin_user: None) -> dict[str, str]:
@@ -281,7 +372,23 @@ def auth_headers(client: FlaskClient, create_admin_user: None) -> dict[str, str]
     assert "token" in data, f"Login response missing token: {data}"
 
     token = data["token"]
-    return {"Authorization": f"Bearer {token}"}
+    return {"Authorization": f"Bearer {token}", "X-Unidade-Id": str(UNIDADE_BH)}
+
+
+@pytest.fixture
+def auth_headers_nl(client: FlaskClient, create_admin_user: None) -> dict[str, str]:
+    """Admin autenticado com Nova Lima (unidade 2) como unidade ativa."""
+    login_response = client.post(
+        "/api/auth/login",
+        json={"email": TEST_ADMIN_EMAIL, "password": TEST_ADMIN_PASSWORD},
+    )
+
+    assert login_response.status_code == 200, (
+        f"Login failed with status {login_response.status_code}"
+    )
+
+    token = get_success_data(login_response)["token"]
+    return {"Authorization": f"Bearer {token}", "X-Unidade-Id": str(UNIDADE_NL)}
 
 
 @pytest.fixture
@@ -305,7 +412,7 @@ def non_admin_auth_headers(
     assert "token" in data, f"Login response missing token: {data}"
 
     token = data["token"]
-    return {"Authorization": f"Bearer {token}"}
+    return {"Authorization": f"Bearer {token}", "X-Unidade-Id": str(UNIDADE_BH)}
 
 
 def criar_usuario(
@@ -326,6 +433,7 @@ def criar_usuario(
             text("SELECT id FROM usuarios WHERE email = :email"), {"email": email}
         ).fetchone()
         if existente:
+            vincular_unidades(existente[0], [UNIDADE_BH])
             return existente[0]
 
         session.execute(
@@ -368,6 +476,7 @@ def criar_usuario(
             text("SELECT id FROM usuarios WHERE email = :email"), {"email": email}
         ).fetchone()
         assert criado is not None
+        vincular_unidades(criado[0], [UNIDADE_BH])
         return criado[0]
     finally:
         session.close()
@@ -377,7 +486,7 @@ def headers_para(client: FlaskClient, email: str, senha: str) -> dict[str, str]:
     response = client.post("/api/auth/login", json={"email": email, "password": senha})
     assert response.status_code == 200, f"Login de {email} falhou: {response.status_code}"
     token = get_success_data(response)["token"]
-    return {"Authorization": f"Bearer {token}"}
+    return {"Authorization": f"Bearer {token}", "X-Unidade-Id": str(UNIDADE_BH)}
 
 
 TEST_PROF_EMAIL = "prof@gl.com"
@@ -503,14 +612,15 @@ def sample_user_data() -> dict[str, Any]:
         "cidade": "Belo Horizonte",
         "estado": "MG",
         "complemento": None,
+        "unidade_ids": [1],
     }
 
 
 @pytest.fixture
 def clean_db() -> Generator[None, None, None]:
-    clean_tables("usuarios", "enderecos")
+    clean_tables("usuarios_unidades", "usuarios", "enderecos")
 
     yield
 
-    clean_tables("usuarios", "enderecos")
+    clean_tables("usuarios_unidades", "usuarios", "enderecos")
     ensure_admin_user_exists()

@@ -21,11 +21,13 @@
 		BOOLEAN_OPTIONS,
 		SCHOLARSHIP_TYPE_OPTIONS
 	} from '$lib/constants';
+	import MultipleSelect from '$lib/components/forms/multiple-select.svelte';
 	import { fetchCepData } from '$lib/utils/cep';
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/api-client';
 	import { goto } from '$app/navigation';
-	import type { User } from '$lib/types';
+	import { onMount } from 'svelte';
+	import type { Unidade, User } from '$lib/types';
 
 	let {
 		data,
@@ -39,6 +41,9 @@
 
 	const userForm = superForm(data, {
 		SPA: true,
+		// unidade_ids é array: sem dataType 'json' o superforms serializa o
+		// formulário em FormData e a lista chega achatada na validação.
+		dataType: 'json',
 		validators: zod4Client(userCreateFormSchema),
 		resetForm: false,
 		taintedMessage: 'Tem certeza que deseja sair? Você perderá qualquer alteração não salva.',
@@ -49,9 +54,14 @@
 					return;
 				}
 
+				const payload = {
+					...form.data,
+					unidade_ids: form.data.unidade_ids.map(Number)
+				};
+
 				const response = isCreateMode
-					? await api.post<User>('user', form.data)
-					: await api.put<User>(`user/${userId}`, form.data);
+					? await api.post<User>('user', payload)
+					: await api.put<User>(`user/${userId}`, payload);
 
 				toast.success(
 					isCreateMode ? 'Usuário criado com sucesso!' : 'Usuário atualizado com sucesso!'
@@ -70,6 +80,20 @@
 	const proxy = booleanProxy(userForm, 'bolsista');
 
 	const { form: formData, enhance } = userForm;
+
+	let unidades = $state<Unidade[]>([]);
+	const unidadeOptions = $derived(
+		unidades.map((unidade) => ({ value: String(unidade.id), label: unidade.nome }))
+	);
+
+	onMount(async () => {
+		try {
+			unidades = await api.get<Unidade[]>('unidades/');
+		} catch (error) {
+			console.error('Falha ao carregar unidades:', error);
+			toast.error(mensagemDeErro(error, 'Não foi possível carregar as unidades.'));
+		}
+	});
 
 	let isLoadingCep = $state(false);
 	let addressFieldsDisabled = $state(true);
@@ -146,6 +170,14 @@
 			bind:value={$formData.urole}
 			options={USER_ROLE_OPTIONS}
 			placeholder="Selecione a função"
+		/>
+		<MultipleSelect
+			label="Unidades"
+			name="unidade_ids"
+			form={userForm}
+			bind:value={$formData.unidade_ids}
+			options={unidadeOptions}
+			placeholder="Selecione as unidades"
 		/>
 	</FormSection>
 

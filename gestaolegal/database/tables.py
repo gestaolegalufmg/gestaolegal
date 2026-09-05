@@ -15,6 +15,24 @@ from sqlalchemy import (
 
 metadata = MetaData()
 
+# Unidade padrão (Belo Horizonte), a mesma que a migration atribui aos
+# registros herdados. O `default` é a ponte da Fase A: enquanto os services não
+# gravam a unidade ativa, todo INSERT nas tabelas raiz violaria o NOT NULL. Os
+# testes de isolamento por unidade denunciam quem depende dele — um registro
+# criado em Nova Lima que caísse no default apareceria na unidade errada.
+UNIDADE_PADRAO_ID = 1
+
+
+def coluna_unidade() -> Column:
+    return Column(
+        "unidade_id",
+        Integer,
+        ForeignKey("unidades.id"),
+        nullable=False,
+        index=True,
+        default=UNIDADE_PADRAO_ID,
+    )
+
 enderecos = Table(
     "enderecos",
     metadata,
@@ -93,6 +111,7 @@ atendidos = Table(
     Column("nascimento_repres_legal", Date, nullable=True),
     Column("pretende_constituir_pj", String(80), nullable=True),
     Column("status", Integer, nullable=False),
+    coluna_unidade(),
 )
 
 assistidos = Table(
@@ -136,6 +155,7 @@ orientacao_juridica = Table(
     Column("data_criacao", DateTime, nullable=True),
     Column("status", Integer, nullable=False),
     Column("id_usuario", Integer, ForeignKey("usuarios.id"), nullable=True),
+    coluna_unidade(),
 )
 
 atendido_xOrientacaoJuridica = Table(
@@ -172,6 +192,7 @@ casos = Table(
     Column("status", Boolean, nullable=False),
     Column("descricao", Text, nullable=True),
     Column("numero_ultimo_processo", Integer, nullable=True),
+    coluna_unidade(),
 )
 
 casos_atendidos = Table(
@@ -216,6 +237,7 @@ eventos = Table(
     Column("id_criado_por", Integer, ForeignKey("usuarios.id"), nullable=False),
     Column("id_usuario_responsavel", Integer, ForeignKey("usuarios.id"), nullable=True),
     Column("status", Boolean, nullable=False),
+    coluna_unidade(),
 )
 
 arquivos_caso = Table(
@@ -271,6 +293,7 @@ assistencias_judiciarias = Table(
     Column("telefone", String(18), nullable=False),
     Column("email", String(80), nullable=False, unique=True),
     Column("status", Integer, nullable=False),
+    coluna_unidade(),
 )
 
 assistenciasJudiciarias_xOrientacao_juridica = Table(
@@ -303,6 +326,7 @@ lembretes = Table(
     Column("data_lembrete", DateTime, nullable=False),
     Column("descricao", Text, nullable=False),
     Column("status", Boolean, nullable=False),
+    coluna_unidade(),
 )
 
 historicos = Table(
@@ -335,6 +359,7 @@ fila_atendimentos = Table(
     Column("status", Integer, nullable=False),
     Column("id_atendido", Integer, ForeignKey("atendidos.id"), nullable=True),
     Column("data_saida", DateTime, nullable=True),
+    coluna_unidade(),
 )
 
 # Tabelas do plantão. Criadas pela migration baseline ed1b0a0a61a6 e declaradas
@@ -347,6 +372,7 @@ dias_plantao = Table(
     Column("data", Date, nullable=True),
     # False = dia removido da configuração (soft delete)
     Column("status", Boolean, nullable=False, default=True),
+    coluna_unidade(),
 )
 
 plantao = Table(
@@ -355,6 +381,7 @@ plantao = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("data_abertura", DateTime, nullable=True),
     Column("data_fechamento", DateTime, nullable=True),
+    coluna_unidade(),
 )
 
 dias_marcados_plantao = Table(
@@ -367,6 +394,7 @@ dias_marcados_plantao = Table(
     # True = marcação ativa; False = apagada pelo usuário (soft delete)
     Column("status", Boolean, nullable=False, default=True),
     Column("id_usuario", Integer, ForeignKey("usuarios.id"), nullable=True),
+    coluna_unidade(),
 )
 
 registro_entrada = Table(
@@ -382,6 +410,25 @@ registro_entrada = Table(
     # aberto | confirmar | divergencia | ausencia
     Column("confirmacao", String(15), nullable=False, default="aberto"),
     Column("id_usuario", Integer, ForeignKey("usuarios.id"), nullable=True),
+    coluna_unidade(),
+)
+
+unidades = Table(
+    "unidades",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("nome", String(60), nullable=False, unique=True),
+    Column("sigla", String(10), nullable=False, unique=True),
+    # False = unidade desativada (some do seletor, mantém o histórico)
+    Column("ativa", Boolean, nullable=False, default=True),
+    Column("criado", DateTime, nullable=False),
+)
+
+usuarios_unidades = Table(
+    "usuarios_unidades",
+    metadata,
+    Column("usuario_id", Integer, ForeignKey("usuarios.id"), primary_key=True),
+    Column("unidade_id", Integer, ForeignKey("unidades.id"), primary_key=True),
 )
 
 password_reset_tokens = Table(

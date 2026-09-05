@@ -553,3 +553,81 @@ def test_list_eventos_exposes_creator_id(
     listagem = get_success_data(client.get(f"/api/caso/{caso_id}/eventos", headers=auth_headers))
     assert listagem["items"][0]["id_criado_por"] == 1
     assert listagem["items"][0]["descricao"] == "Evento reuniao"
+
+
+def test_evento_herda_a_unidade_do_caso(
+    client: FlaskClient,
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """O evento nasce na unidade do caso, não na unidade padrão."""
+    caso_id = _criar_caso(client, auth_headers_nl, sample_caso_data)
+    evento_id = _criar_evento(client, auth_headers_nl, caso_id)
+
+    detalhe = get_success_data(
+        client.get(f"/api/caso/{caso_id}/eventos/{evento_id}", headers=auth_headers_nl)
+    )
+    assert detalhe["unidade_id"] == 2
+
+
+def test_agenda_de_caso_de_outra_unidade_nao_aparece(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """Evento de caso da unidade 2 não aparece na agenda da unidade 1, ainda que
+    o usuário pertença às duas."""
+    caso_nl = _criar_caso(client, auth_headers_nl, sample_caso_data)
+    _criar_evento(client, auth_headers_nl, caso_nl)
+
+    assert (
+        client.get(f"/api/caso/{caso_nl}/eventos", headers=auth_headers_nl).status_code
+        == 200
+    )
+    assert (
+        client.get(f"/api/caso/{caso_nl}/eventos", headers=auth_headers).status_code
+        == 404
+    )
+
+
+def test_evento_de_outra_unidade_responde_404(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """Detalhe, edição, exclusão e download de evento de outra unidade dão 404."""
+    caso_nl = _criar_caso(client, auth_headers_nl, sample_caso_data)
+    evento_id = _criar_evento(client, auth_headers_nl, caso_nl)
+
+    rota = f"/api/caso/{caso_nl}/eventos/{evento_id}"
+    assert client.get(rota, headers=auth_headers).status_code == 404
+    assert (
+        client.put(
+            rota,
+            data={"descricao": "Tentativa de outra unidade"},
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        ).status_code
+        == 404
+    )
+    assert client.delete(rota, headers=auth_headers).status_code == 404
+    assert client.get(f"{rota}/download", headers=auth_headers).status_code == 404
+
+
+def test_criar_evento_em_caso_de_outra_unidade_responde_404(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_nl = _criar_caso(client, auth_headers_nl, sample_caso_data)
+
+    response = client.post(
+        f"/api/caso/{caso_nl}/eventos",
+        data={"tipo": "reuniao", "data_evento": "2024-05-10"},
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 404

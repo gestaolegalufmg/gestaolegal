@@ -33,9 +33,9 @@ legados ficam como estão.
   fora do git. Registros herdados da 2.0 não têm `caminho`; o service resolve
   para `ARQUIVOS_DIR/nome`.
 - Portas publicadas vêm de `APP_PORT`, `DB_PORT`, `WEB_PORT` e
-  `MAILPIT_UI_PORT` (padrões 5000, 3306, 5001, 8025). Scripts que apontam para
-  `localhost:5000` fixo, como `scripts/seed_local.py`, falam com o checkout
-  principal e não com a worktree.
+  `MAILPIT_UI_PORT` (padrões 5000, 3306, 5001, 8025). Script que aponte para
+  `localhost:5000` fixo fala com o checkout principal e não com a worktree;
+  `scripts/seed_local.py` lê `APP_PORT` do `.env` do diretório atual por isso.
 - Limitações já conhecidas e ainda abertas estão em `docs/known_issues.md`.
   Não são bugs a corrigir de passagem.
 

@@ -14,6 +14,7 @@ from gestaolegal.models.fila_atendimento_input import FilaAtendimentoCreateInput
 from gestaolegal.repositories.fila_atendimento_repository import (
     FilaAtendimentoRepository,
 )
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +51,11 @@ class FilaAtendimentoService:
         )
 
     def _proximo_numero(self, prioridade: int) -> int:
+        # As senhas são por unidade: cada local tem a sua sequência do dia.
         inicio, fim = self._intervalo_do_dia()
-        total = self.repository.count_by_prioridade_no_periodo(prioridade, inicio, fim)
+        total = self.repository.count_by_prioridade_no_periodo(
+            prioridade, inicio, fim, unidade_id=RequestContext.get_unidade_ativa()
+        )
         return total + 1
 
     def _formatar_senha(self, prioridade: int, numero: int) -> str:
@@ -71,7 +75,9 @@ class FilaAtendimentoService:
         """Retorna a fila do dia separada em ativos e concluídos (chamados/cancelados)."""
         hoje = _hoje_brasilia()
         inicio, fim = self._intervalo_do_dia(hoje)
-        rows = self.repository.list_no_periodo(inicio, fim)
+        rows = self.repository.list_no_periodo(
+            inicio, fim, unidade_id=RequestContext.get_unidade_ativa()
+        )
 
         itens = [ListFilaAtendimento(**row) for row in rows]
 
@@ -100,11 +106,15 @@ class FilaAtendimentoService:
         }
 
     def _item_por_id(self, fila_id: int) -> ListFilaAtendimento:
-        registro = self.repository.find_by_id(fila_id)
+        registro = self.repository.find_by_id(
+            fila_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not registro:
             raise NotFoundException(resource="FilaAtendimento", resource_id=fila_id)
         inicio, fim = self._intervalo_do_dia()
-        for row in self.repository.list_no_periodo(inicio, fim):
+        for row in self.repository.list_no_periodo(
+            inicio, fim, unidade_id=RequestContext.get_unidade_ativa()
+        ):
             if row["id"] == fila_id:
                 return ListFilaAtendimento(**row)
         # Registro de outro dia: monta a partir do próprio registro.
@@ -136,6 +146,7 @@ class FilaAtendimentoService:
             "status": FilaStatus.NA_FILA,
             "data_criacao": _agora_brasilia(),
             "data_saida": None,
+            "unidade_id": RequestContext.get_unidade_ativa(),
         }
 
         fila_id = self.repository.create(novo)
@@ -149,7 +160,9 @@ class FilaAtendimentoService:
         return self._concluir(fila_id, FilaStatus.CANCELADO)
 
     def _concluir(self, fila_id: int, novo_status: int) -> ListFilaAtendimento:
-        registro = self.repository.find_by_id(fila_id)
+        registro = self.repository.find_by_id(
+            fila_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not registro:
             raise NotFoundException(resource="FilaAtendimento", resource_id=fila_id)
         if registro.status != FilaStatus.NA_FILA:

@@ -16,6 +16,7 @@ class Lembrete:
     descricao: str
     status: bool
     num_lembrete: int | None = None
+    unidade_id: int | None = None
     id: int | None = None
 
 
@@ -24,6 +25,7 @@ class LembreteListItem:
     id: int
     num_lembrete: int | None
     id_caso: int
+    unidade_id: int | None
     data_criacao: datetime
     data_lembrete: datetime
     descricao: str

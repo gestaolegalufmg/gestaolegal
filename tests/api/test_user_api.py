@@ -176,6 +176,27 @@ def test_get_me_endpoint(client: FlaskClient, auth_headers: dict[str, str]) -> N
     assert "nome" in data
 
 
+def test_get_me_devolve_unidades(
+    client: FlaskClient, auth_headers: dict[str, str]
+) -> None:
+    response = client.get("/api/user/me", headers=auth_headers)
+
+    assert response.status_code == 200
+    data = get_success_data(response)
+    assert [u["sigla"] for u in data["unidades"]] == ["BH", "NL"]
+
+
+def test_get_me_unidades_apenas_das_vinculadas(
+    client: FlaskClient, non_admin_auth_headers: dict[str, str]
+) -> None:
+    """Usuário comum só enxerga a unidade a que está vinculado."""
+    response = client.get("/api/user/me", headers=non_admin_auth_headers)
+
+    assert response.status_code == 200
+    data = get_success_data(response)
+    assert [u["sigla"] for u in data["unidades"]] == ["BH"]
+
+
 def test_get_me_endpoint_non_admin(
     client: FlaskClient, non_admin_auth_headers: dict[str, str]
 ) -> None:
@@ -416,3 +437,163 @@ class TestUserOpcoes:
 
     def test_exige_autenticacao(self, client):
         assert client.get("/api/user/opcoes").status_code == 401
+
+
+class TestUsuarioUnidades:
+    """Vínculo usuário↔unidade no cadastro (story f4-usuario-vinculo)."""
+
+    def _payload(self, sample_user_data: dict[str, Any]) -> dict[str, Any]:
+        sample_user_data["id"] = random.randint(1, 1000000)
+        sample_user_data["email"] = f"unidade{sample_user_data['id']}@gl.com"
+        return sample_user_data
+
+    def test_create_sem_unidades_e_recusado(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        sample_user_data: dict[str, Any],
+    ) -> None:
+        payload = self._payload(sample_user_data)
+        payload.pop("unidade_ids")
+
+        response = client.post("/api/user/", json=payload, headers=auth_headers)
+
+        assert response.status_code == 400
+
+    def test_create_com_lista_vazia_e_recusado(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        sample_user_data: dict[str, Any],
+    ) -> None:
+        payload = self._payload(sample_user_data)
+        payload["unidade_ids"] = []
+
+        response = client.post("/api/user/", json=payload, headers=auth_headers)
+
+        assert response.status_code == 400
+
+    def test_create_com_unidade_inexistente_e_recusado(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        sample_user_data: dict[str, Any],
+    ) -> None:
+        payload = self._payload(sample_user_data)
+        payload["unidade_ids"] = [9999]
+
+        response = client.post("/api/user/", json=payload, headers=auth_headers)
+
+        assert response.status_code == 400
+
+    def test_create_vincula_e_get_devolve_unidades(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        sample_user_data: dict[str, Any],
+    ) -> None:
+        payload = self._payload(sample_user_data)
+        payload["unidade_ids"] = [1, 2]
+
+        created = _create_user(client, auth_headers, payload)
+        assert [u["sigla"] for u in created["unidades"]] == ["BH", "NL"]
+
+        response = client.get(f"/api/user/{created['id']}", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = get_success_data(response)
+        assert [u["sigla"] for u in data["unidades"]] == ["BH", "NL"]
+
+    def test_update_troca_o_vinculo(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        sample_user_data: dict[str, Any],
+    ) -> None:
+        payload = self._payload(sample_user_data)
+        payload["unidade_ids"] = [1]
+        created = _create_user(client, auth_headers, payload)
+
+        response = client.put(
+            f"/api/user/{created['id']}",
+            json={"unidade_ids": [2]},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = get_success_data(response)
+        assert [u["sigla"] for u in data["unidades"]] == ["NL"]
+
+    def test_update_sem_unidade_ids_preserva_o_vinculo(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        sample_user_data: dict[str, Any],
+    ) -> None:
+        """Update parcial (só o nome) não pode zerar as unidades."""
+        payload = self._payload(sample_user_data)
+        payload["unidade_ids"] = [1, 2]
+        created = _create_user(client, auth_headers, payload)
+
+        response = client.put(
+            f"/api/user/{created['id']}",
+            json={"nome": "Nome Trocado"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = get_success_data(response)
+        assert data["nome"] == "Nome Trocado"
+        assert [u["sigla"] for u in data["unidades"]] == ["BH", "NL"]
+
+    def test_update_com_lista_vazia_e_recusado(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        sample_user_data: dict[str, Any],
+    ) -> None:
+        payload = self._payload(sample_user_data)
+        created = _create_user(client, auth_headers, payload)
+
+        response = client.put(
+            f"/api/user/{created['id']}",
+            json={"unidade_ids": []},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        depois = get_success_data(
+            client.get(f"/api/user/{created['id']}", headers=auth_headers)
+        )
+        assert [u["sigla"] for u in depois["unidades"]] == ["BH"]
+
+    def test_admin_nao_remove_a_propria_ultima_unidade(
+        self, client: FlaskClient, auth_headers: dict[str, str]
+    ) -> None:
+        eu = get_success_data(client.get("/api/user/me", headers=auth_headers))
+
+        response = client.put(
+            f"/api/user/{eu['id']}",
+            json={"unidade_ids": []},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert "última unidade" in response.get_json()["error"]["message"]
+
+        depois = get_success_data(client.get("/api/user/me", headers=auth_headers))
+        assert [u["sigla"] for u in depois["unidades"]] == ["BH", "NL"]
+
+    def test_update_me_ignora_unidade_ids(
+        self, client: FlaskClient, non_admin_auth_headers: dict[str, str]
+    ) -> None:
+        """Usuário comum não se auto-vincula a outra unidade pelo próprio perfil."""
+        response = client.put(
+            "/api/user/me",
+            json={"unidade_ids": [1, 2]},
+            headers=non_admin_auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = get_success_data(response)
+        assert [u["sigla"] for u in data["unidades"]] == ["BH"]

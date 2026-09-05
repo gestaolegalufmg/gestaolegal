@@ -194,3 +194,73 @@ def test_chamar_inexistente_404(
 def test_fila_requer_autenticacao(client: FlaskClient) -> None:
     assert client.get("/api/fila_atendimento/").status_code == 401
     assert client.post("/api/fila_atendimento/").status_code == 401
+
+
+def test_fila_isolada_por_unidade(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_atendido_data: dict[str, Any],
+) -> None:
+    _reset(client)
+    bh = _criar_atendido(client, auth_headers, sample_atendido_data, "Cliente BH", "10")
+    nl = _criar_atendido(
+        client, auth_headers_nl, sample_atendido_data, "Cliente NL", "11"
+    )
+
+    fila_bh = get_success_data(
+        client.post(
+            "/api/fila_atendimento/",
+            json={"id_atendido": bh, "prioridade": 0},
+            headers=auth_headers,
+        )
+    )
+    fila_nl = get_success_data(
+        client.post(
+            "/api/fila_atendimento/",
+            json={"id_atendido": nl, "prioridade": 0},
+            headers=auth_headers_nl,
+        )
+    )
+
+    # A sequência de senhas é por unidade: as duas começam em N01.
+    assert fila_bh["senha"] == "N01"
+    assert fila_nl["senha"] == "N01"
+
+    vista_bh = get_success_data(client.get("/api/fila_atendimento/", headers=auth_headers))
+    assert [i["id"] for i in vista_bh["fila"]] == [fila_bh["id"]]
+
+    vista_nl = get_success_data(
+        client.get("/api/fila_atendimento/", headers=auth_headers_nl)
+    )
+    assert [i["id"] for i in vista_nl["fila"]] == [fila_nl["id"]]
+
+    # A prévia da próxima senha também é contada por unidade.
+    for headers in (auth_headers, auth_headers_nl):
+        previa = client.get(
+            "/api/fila_atendimento/preview?prioridade=0", headers=headers
+        )
+        assert get_success_data(previa)["senha"] == "N02"
+
+
+def test_item_da_fila_de_outra_unidade_responde_404(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_atendido_data: dict[str, Any],
+) -> None:
+    _reset(client)
+    bh = _criar_atendido(client, auth_headers, sample_atendido_data, "Cliente BH", "12")
+    item = get_success_data(
+        client.post(
+            "/api/fila_atendimento/",
+            json={"id_atendido": bh, "prioridade": 0},
+            headers=auth_headers,
+        )
+    )
+
+    for acao in ("chamar", "cancelar"):
+        response = client.post(
+            f"/api/fila_atendimento/{item['id']}/{acao}", headers=auth_headers_nl
+        )
+        assert response.status_code == 404, acao

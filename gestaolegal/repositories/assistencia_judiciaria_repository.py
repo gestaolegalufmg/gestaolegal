@@ -29,10 +29,14 @@ class AssistenciaJudiciariaRepository(BaseRepository):
     def __init__(self):
         super().__init__()
 
-    def find_by_id(self, id: int) -> AssistenciaJudiciaria | None:
+    def find_by_id(
+        self, id: int, unidade_id: int | None = None
+    ) -> AssistenciaJudiciaria | None:
         stmt = select(assistencias_judiciarias).where(
             assistencias_judiciarias.c.id == id
         )
+        if unidade_id is not None:
+            stmt = stmt.where(assistencias_judiciarias.c.unidade_id == unidade_id)
         result = self.session.execute(stmt).one_or_none()
         return (
             from_dict(AssistenciaJudiciaria, dict(result._mapping)) if result else None
@@ -122,7 +126,7 @@ class AssistenciaJudiciariaRepository(BaseRepository):
         ]
 
     def get_assistencias_by_orientacao(
-        self, id_orientacao: int
+        self, id_orientacao: int, unidade_id: int | None = None
     ) -> list[AssistenciaJudiciaria]:
         join_table = assistenciasJudiciarias_xOrientacao_juridica
         stmt = (
@@ -137,6 +141,8 @@ class AssistenciaJudiciariaRepository(BaseRepository):
             .where(join_table.c.id_orientacaoJuridica == id_orientacao)
             .order_by(assistencias_judiciarias.c.nome.asc())
         )
+        if unidade_id is not None:
+            stmt = stmt.where(assistencias_judiciarias.c.unidade_id == unidade_id)
         results = self.session.execute(stmt).all()
         return [
             from_dict(AssistenciaJudiciaria, dict(row._mapping)) for row in results

@@ -20,6 +20,7 @@ export { ARQUIVO_PAPEIS_EDITAM, ARQUIVO_PAPEIS_EXCLUEM } from './arquivo';
 export type { Atendido, ListAtendido } from './atendido';
 export type { Paginated, PaginationMeta } from './paginated';
 export type { Endereco } from './endereco';
+export type { Unidade } from './unidade';
 export type { Caso, ListCaso } from './caso';
 export type { Processo, ListProcesso, ProcessoCreateInput, ProcessoUpdateInput } from './processo';
 export type { SearchResultGroup, SearchResults, SearchResponse, SearchResultItem } from './search';

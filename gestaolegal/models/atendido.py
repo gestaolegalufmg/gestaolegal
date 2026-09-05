@@ -23,6 +23,7 @@ class Atendido:
     status: int
 
     id: int | None = None
+    unidade_id: int | None = None
     cnpj: str | None = None
     endereco_id: int | None = None
     telefone: str | None = None

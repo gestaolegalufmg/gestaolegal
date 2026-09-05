@@ -26,8 +26,12 @@ class OrientacaoJuridicaRepository(BaseRepository):
     def __init__(self):
         super().__init__()
 
-    def find_by_id(self, id: int) -> OrientacaoJuridica | None:
+    def find_by_id(
+        self, id: int, unidade_id: int | None = None
+    ) -> OrientacaoJuridica | None:
         stmt = select(orientacao_juridica).where(orientacao_juridica.c.id == id)
+        if unidade_id is not None:
+            stmt = stmt.where(orientacao_juridica.c.unidade_id == unidade_id)
         result = self.session.execute(stmt).one_or_none()
 
         orientacao = (
