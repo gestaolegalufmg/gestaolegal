@@ -16,8 +16,8 @@ class UnidadeService:
     def __init__(self):
         self.repository = UnidadeRepository()
 
-    def list_ativas(self) -> list[Unidade]:
-        return self.repository.list_ativas()
+    def listar(self, incluir_inativas: bool = False) -> list[Unidade]:
+        return self.repository.listar(incluir_inativas=incluir_inativas)
 
     def find_by_id(self, id: int) -> Unidade:
         unidade = self.repository.find_by_id(id)

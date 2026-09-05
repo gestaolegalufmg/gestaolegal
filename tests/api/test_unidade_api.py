@@ -139,3 +139,76 @@ def test_atualizar_como_nao_admin_responde_403(
     )
 
     assert response.status_code == 403
+
+
+def test_listar_com_incluir_inativas_traz_as_inativas_para_admin(
+    client: FlaskClient, auth_headers: dict[str, str], unidades: None
+):
+    client.post(
+        "/api/unidades/",
+        headers=auth_headers,
+        json={"nome": "Unidade Desativada Admin", "sigla": "UDA", "ativa": False},
+    )
+
+    siglas = [
+        u["sigla"]
+        for u in get_success_data(
+            client.get("/api/unidades/?incluir_inativas=1", headers=auth_headers)
+        )
+    ]
+
+    assert "UDA" in siglas
+    assert {"BH", "NL"} <= set(siglas)
+
+
+def test_listar_com_incluir_inativas_de_nao_admin_traz_so_ativas(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    non_admin_auth_headers: dict[str, str],
+    unidades: None,
+):
+    client.post(
+        "/api/unidades/",
+        headers=auth_headers,
+        json={"nome": "Unidade Desativada Comum", "sigla": "UDC", "ativa": False},
+    )
+
+    response = client.get(
+        "/api/unidades/?incluir_inativas=1", headers=non_admin_auth_headers
+    )
+
+    assert response.status_code == 200
+    siglas = [u["sigla"] for u in get_success_data(response)]
+    assert "UDC" not in siglas
+    assert {"BH", "NL"} <= set(siglas)
+
+
+def test_reativar_por_put_devolve_a_unidade_ao_seletor(
+    client: FlaskClient, auth_headers: dict[str, str], unidades: None
+):
+    criada = get_success_data(
+        client.post(
+            "/api/unidades/",
+            headers=auth_headers,
+            json={"nome": "Unidade Reativada", "sigla": "URE", "ativa": False},
+        )
+    )
+
+    def siglas_do_seletor() -> list[str]:
+        return [
+            u["sigla"]
+            for u in get_success_data(
+                client.get("/api/unidades/", headers=auth_headers)
+            )
+        ]
+
+    assert "URE" not in siglas_do_seletor()
+
+    assert (
+        client.put(
+            f"/api/unidades/{criada['id']}", headers=auth_headers, json={"ativa": True}
+        ).status_code
+        == 200
+    )
+
+    assert "URE" in siglas_do_seletor()

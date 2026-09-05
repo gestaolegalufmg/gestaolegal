@@ -22,8 +22,12 @@ class UnidadeRepository(BaseRepository):
         result = self.session.execute(stmt).one_or_none()
         return from_dict(Unidade, dict(result._mapping)) if result else None
 
-    def list_ativas(self) -> list[Unidade]:
-        stmt = select(unidades).where(unidades.c.ativa).order_by(unidades.c.nome)
+    def listar(self, incluir_inativas: bool = False) -> list[Unidade]:
+        """Unidades ordenadas por nome; só as ativas, salvo pedido explícito."""
+        stmt = select(unidades)
+        if not incluir_inativas:
+            stmt = stmt.where(unidades.c.ativa)
+        stmt = stmt.order_by(unidades.c.nome)
         results = self.session.execute(stmt).all()
         return [from_dict(Unidade, dict(row._mapping)) for row in results]
 
@@ -65,6 +69,18 @@ class UnidadeRepository(BaseRepository):
         )
         results = self.session.execute(stmt).all()
         return [from_dict(Unidade, dict(row._mapping)) for row in results]
+
+    def usuarios_da_unidade(self, unidade_id: int) -> list[int]:
+        """Ids dos usuários vinculados à unidade.
+
+        Sentido inverso de `unidades_do_usuario`; devolve só os ids porque quem
+        chama usa a lista como cláusula `in` na consulta de usuários — filtrar
+        depois da paginação faria o total mentir.
+        """
+        stmt = select(usuarios_unidades.c.usuario_id).where(
+            usuarios_unidades.c.unidade_id == unidade_id
+        )
+        return [row[0] for row in self.session.execute(stmt).all()]
 
     def vincular(self, usuario_id: int, unidade_ids: list[int]) -> None:
         """Substitui os vínculos do usuário pelos informados."""

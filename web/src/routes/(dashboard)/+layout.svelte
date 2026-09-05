@@ -6,6 +6,7 @@
 	import NotificacaoBell from '$lib/components/notificacao-bell.svelte';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import UnidadeSelector from '$lib/components/unidade-selector.svelte';
+	import { unidadesAtivas } from '$lib/stores/unidade';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { page } from '$app/state';
 	import Input from '$lib/components/ui/input/input.svelte';
@@ -67,7 +68,7 @@
 				/>
 			</div>
 			<div class="ml-auto flex items-center gap-3">
-				<UnidadeSelector unidades={user.unidades} />
+				<UnidadeSelector unidades={unidadesAtivas(user.unidades)} />
 				<NotificacaoBell />
 			</div>
 		</header>

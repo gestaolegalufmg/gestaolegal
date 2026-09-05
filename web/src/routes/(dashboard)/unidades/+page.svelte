@@ -14,6 +14,7 @@
 	import type { Unidade } from '$lib/types';
 	import type { PageProps } from './$types';
 	import Edit from '@lucide/svelte/icons/edit';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 
 	let { data }: PageProps = $props();
 	const unidades = $derived(data.unidades);
@@ -24,6 +25,7 @@
 	let sigla = $state('');
 	let ativa = $state(true);
 	let salvando = $state(false);
+	let reativando = $state<number | null>(null);
 
 	function abrirNova() {
 		emEdicao = null;
@@ -39,6 +41,24 @@
 		sigla = unidade.sigla;
 		ativa = unidade.ativa;
 		open = true;
+	}
+
+	async function reativar(unidade: Unidade) {
+		reativando = unidade.id;
+		try {
+			await api.put(`unidades/${unidade.id}`, {
+				nome: unidade.nome,
+				sigla: unidade.sigla,
+				ativa: true
+			});
+			toast.success(`Unidade ${unidade.sigla} reativada`);
+			// Recarrega o layout junto: é ele que devolve a unidade ao seletor.
+			await invalidateAll();
+		} catch (err) {
+			toast.error(mensagemDeErro(err, 'Erro ao reativar unidade'));
+		} finally {
+			reativando = null;
+		}
 	}
 
 	async function salvar() {
@@ -79,6 +99,7 @@
 			<h1 class="text-3xl font-bold tracking-tight">Unidades</h1>
 			<p class="mt-2 text-muted-foreground">
 				Locais de atendimento da DAJ. Cada usuário enxerga apenas os dados da unidade ativa.
+				Unidades desativadas continuam listadas aqui, e só aqui, para poderem ser reativadas.
 			</p>
 		</div>
 		<Button onclick={abrirNova}>Nova Unidade</Button>
@@ -92,12 +113,12 @@
 					<Table.Head class="w-[100px]">Sigla</Table.Head>
 					<Table.Head class="w-[110px]">Situação</Table.Head>
 					<Table.Head class="w-[170px]">Criada em</Table.Head>
-					<Table.Head class="w-[80px] text-right">Ações</Table.Head>
+					<Table.Head class="w-[120px] text-right">Ações</Table.Head>
 				</Table.Row>
 			</Table.Header>
 			<Table.Body>
 				{#each unidades as unidade (unidade.id)}
-					<Table.Row>
+					<Table.Row class={unidade.ativa ? undefined : 'text-muted-foreground'}>
 						<Table.Cell class="font-medium">{unidade.nome}</Table.Cell>
 						<Table.Cell class="font-mono">{unidade.sigla}</Table.Cell>
 						<Table.Cell>
@@ -107,6 +128,17 @@
 						</Table.Cell>
 						<Table.Cell>{formatDateTime(unidade.criado)}</Table.Cell>
 						<Table.Cell class="text-right">
+							{#if !unidade.ativa}
+								<Button
+									variant="ghost"
+									size="icon"
+									title="Reativar"
+									disabled={reativando === unidade.id}
+									onclick={() => reativar(unidade)}
+								>
+									<RotateCcw class="h-4 w-4" />
+								</Button>
+							{/if}
 							<Button
 								variant="ghost"
 								size="icon"
@@ -153,7 +185,8 @@
 			</label>
 			{#if emEdicao && !ativa}
 				<p class="text-sm text-muted-foreground">
-					Unidades inativas somem desta lista e do seletor de unidade.
+					Unidades inativas somem do seletor de unidade e de toda a navegação; continuam nesta
+					lista, marcadas como inativas, para poderem ser reativadas.
 				</p>
 			{/if}
 		</div>

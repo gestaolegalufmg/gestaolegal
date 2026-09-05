@@ -29,6 +29,11 @@ legados ficam como estão.
 - `Config` lê variáveis obrigatórias no import (`DB_USER`, `DB_HOST`,
   `JWT_SECRET_KEY`...). Sem `.env`, a API nem importa. Os testes preenchem via
   `tests/api/conftest.py`.
+- `coluna_unidade()` (`gestaolegal/database/tables.py`) não tem `default`. Todo INSERT
+  numa tabela com `unidade_id` precisa passar a unidade explicitamente — em service,
+  em script e em fixture de teste —, senão estoura o NOT NULL. O default existiu na
+  Fase A e foi removido para que o esquecimento apareça, em vez de gravar calado em
+  Belo Horizonte um registro de outra unidade.
 - Uploads vão para o volume privado `PRIVATE_FILES_ROOT` (padrão
   `/data/gestaolegal/uploads`), nas categorias `casos`, `eventos` e `arquivos`.
   A raiz é validada na subida do app: se estiver dentro de `app.static_folder`

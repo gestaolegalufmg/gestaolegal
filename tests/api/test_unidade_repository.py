@@ -37,7 +37,7 @@ def test_find_by_id_inexistente_devolve_none(repo: UnidadeRepository) -> None:
     assert repo.find_by_id(999999) is None
 
 
-def test_create_e_list_ativas_ignora_inativa(repo: UnidadeRepository) -> None:
+def test_create_e_listar_ignora_inativa(repo: UnidadeRepository) -> None:
     novo_id = repo.create(
         {
             "nome": "Unidade Teste Inativa",
@@ -47,13 +47,15 @@ def test_create_e_list_ativas_ignora_inativa(repo: UnidadeRepository) -> None:
         }
     )
 
-    siglas = [u.sigla for u in repo.list_ativas()]
+    siglas = [u.sigla for u in repo.listar()]
 
     assert "UTI" not in siglas
     assert {"BH", "NL"} <= set(siglas)
 
+    assert "UTI" in [u.sigla for u in repo.listar(incluir_inativas=True)]
+
     repo.update(novo_id, {"ativa": True})
-    assert "UTI" in [u.sigla for u in repo.list_ativas()]
+    assert "UTI" in [u.sigla for u in repo.listar()]
 
 
 def test_vincular_substitui_vinculos(repo: UnidadeRepository) -> None:
