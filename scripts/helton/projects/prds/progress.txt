@@ -58,3 +58,34 @@ Started: sáb. 05 set 2026 08:33:32 -03
     `RequestContext.get_current_user().urole`; `@authorized("admin")` não serve aqui
     porque barraria os não-admins da rota inteira.
 ---
+
+## 2026-09-05 - f2-unidades-reativar-front
+- A tela `/unidades` passou a pedir `unidades/?incluir_inativas=1` (é @admin no load,
+  então pode). Linha de unidade inativa fica esmaecida (`text-muted-foreground`), o Badge
+  "Inativa" já existia, e ganhou botão "Reativar" (ícone RotateCcw) que faz
+  `PUT unidades/{id}` com `ativa: true` seguido de `invalidateAll()`.
+- `sincronizarUnidades` ganhou o helper exportado `unidadesAtivas()`: `user/me` devolve
+  TODO vínculo do usuário, inclusive com unidade desativada, e a store aceitava uma
+  guardada inativa — mandaria `X-Unidade-Id` que o back recusa. Agora concilia só contra
+  as ativas. O mesmo helper filtra a lista passada ao `UnidadeSelector` no
+  `(dashboard)/+layout.svelte`, para o seletor não oferecer unidade desativada.
+- Arquivos: `web/src/routes/(dashboard)/unidades/+page.ts`,
+  `web/src/routes/(dashboard)/unidades/+page.svelte`,
+  `web/src/lib/stores/unidade.ts`, `web/src/routes/(dashboard)/+layout.svelte`.
+- Checks: `npm run check` — 21 erros e 50 avisos, todos pré-existentes e em arquivos que
+  esta story não toca (nenhum aponta para os quatro acima). `npm run lint` (prettier)
+  passa.
+- Verificação em navegador não feita: declarada fora de escopo pela própria story.
+- **Learnings for future iterations:**
+  - `npm run lint` é só `prettier --check .` sobre a árvore INTEIRA — arquivo alheio
+    desformatado reprova o gate. `web/src/routes/(dashboard)/arquivos/+page.svelte` estava
+    assim antes desta story; foi reformatado (só formatação, sem mudança de comportamento)
+    para destravar o check.
+  - `user/me` (`UnidadeRepository.unidades_do_usuario`) NÃO filtra por `ativa`. Quem
+    consome vínculo de usuário para navegação precisa filtrar no front —
+    `unidadesAtivas()` em `$lib/stores/unidade` é o lugar.
+  - A saída do wrapper do hook para `npm run lint` vem como
+    "ESLint output (JSON parse failed...)"; para ler o resultado de verdade, rode
+    `npx prettier --check .` redirecionando a saída e leia o exit code (pipe para `tail`
+    mascara o código).
+---

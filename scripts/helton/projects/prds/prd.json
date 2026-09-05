@@ -67,7 +67,7 @@
         "f2-unidades-incluir-inativas-api"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

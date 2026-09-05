@@ -53,7 +53,11 @@
 			<p class="mt-2 text-muted-foreground">Documentos e modelos compartilhados da organização.</p>
 		</div>
 		{#if podeEditar}
-			<Button variant="default" class="shrink-0 whitespace-nowrap" href="/arquivos/cadastrar-arquivo">
+			<Button
+				variant="default"
+				class="shrink-0 whitespace-nowrap"
+				href="/arquivos/cadastrar-arquivo"
+			>
 				Cadastrar Arquivo
 			</Button>
 		{/if}
@@ -79,7 +83,13 @@
 			columns={[
 				{ header: 'Título', key: 'titulo', class: 'w-[220px]' },
 				{ header: 'Descrição', key: 'descricao', type: 'preview', previewClass: 'max-w-[320px]' },
-				{ header: 'Arquivo', key: 'nome', class: 'w-[200px]', type: 'preview', previewClass: 'max-w-[200px]' },
+				{
+					header: 'Arquivo',
+					key: 'nome',
+					class: 'w-[200px]',
+					type: 'preview',
+					previewClass: 'max-w-[200px]'
+				},
 				{ header: 'Cadastrado por', key: 'criado_por', class: 'w-[160px]' },
 				{ header: 'Data', key: 'data_criacao', type: 'date', class: 'w-[110px]' }
 			]}
