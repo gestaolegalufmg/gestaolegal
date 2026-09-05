@@ -370,3 +370,57 @@ Started: sáb. 05 set 2026 07:40:12 -03
     `-F arquivo=@...`, `Authorization: Bearer` e o header `X-Unidade-Id` (obrigatório em
     toda rota de caso, senão vem VALIDATION_ERROR "Unidade ativa não informada").
 ---
+
+## 2026-09-05 - f10-migrador-inventario
+- Novo `scripts/migrar_arquivos_privados.py`, fase `inventario` (subcomando; f11 e f12
+  entram como fases irmãs). Molde do `scripts/seed_local.py`: docstring de uso,
+  `load_dotenv()`, config por env/CLI. A URL do banco vem de
+  `Config.SQLALCHEMY_DATABASE_URI` (importado dentro da função, não no topo — o script
+  precisa poder ser carregado sem `.env` completo), e `--database-url` a substitui.
+- O inventário NÃO escreve nada além do manifesto: só `SELECT` nas três colunas
+  (`arquivosCaso.link_arquivo`, `eventos.arquivo`, `arquivos.caminho`), registros ativos e
+  inativos (nenhum filtro por `status`).
+- Nada de varrer disco: cada referência absoluta é traduzida pelo mapa
+  `--origem PREFIXO=MOUNT` (prefixo mais longo ganha) e o resultado é confinado ao mount
+  por `realpath` — `..` na coluna e symlink que aponta para fora viram `externo`, não
+  leitura indevida. `arquivos` sem `caminho` (herdados da v2) são procurados em
+  `--arquivos-legado/<nome>`, com o `nome` recusado se tiver barra ou `..`.
+- Classificações: `migravel`, `ja_migrado` (referência já relativa), `ausente`, `externo`,
+  `sem_referencia`. Flags por item: `orfao` (outer join com `casos`; `arquivosCaso` sem
+  caso ou `id_caso` nulo), `compartilhado` (mesma origem em mais de um registro) e
+  `nome_repetido` (mesmo basename em origens distintas).
+- Destino por registro, `destino_para(tabela, id, nome)`: `<32 hex>_<nome>` com os 32 hex
+  vindos de `sha256("<tabela>:<id>")`. Mesmo formato que `private_file_storage.gerar_ref`
+  produz e que `nome_original` desmonta, mas determinístico — reexecutar o inventário dá o
+  mesmo destino, e referência compartilhada ganha destinos DIFERENTES (excluir um registro
+  não pode apagar o anexo do outro). O truncamento respeita `min(REF_MAX, NAME_MAX)` e
+  corta o nome, nunca a extensão.
+- Manifesto JSON com `versao`, `gerado_em`, `origens`, `resumo` e `itens` (origem,
+  tabela/id, coluna, categoria, referência anterior, destino, tamanho, SHA-256,
+  classificação, flags, motivos). Gravado com `0600` e recusado se cair dentro da raiz do
+  git (`git rev-parse --show-toplevel`) — é dado privado, não versionável.
+- `tests/api/test_migrar_arquivos_privados.py` (novo, 17 casos): caminho absoluto legado,
+  evento inativo, `arquivos` sem `caminho` (com e sem `--arquivos-legado`), `nome` que
+  tenta escapar, nomes iguais em origens diferentes, referência compartilhada com destinos
+  distintos, ausente, externo (`/etc/passwd` e `..`), já migrado, órfão, "não escreveu
+  nada" (mtime dos arquivos e valor da coluna intactos), manifesto no repositório recusado
+  (pela função e pela CLI), origens mal formadas e determinismo do destino.
+- `make test`: 425 passed.
+- Arquivos: scripts/migrar_arquivos_privados.py (novo),
+  tests/api/test_migrar_arquivos_privados.py (novo).
+- **Learnings for future iterations:**
+  - `scripts/` não é pacote importável (o `pyproject.toml` tem `py-modules = []`). O teste
+    carrega o script por caminho com `importlib.util.spec_from_file_location` e o registra
+    em `sys.modules` — f11 e f12 devem reusar esse bloco no topo do mesmo arquivo de teste.
+  - Teste de script que fala com banco não precisa do fixture `app`: um
+    `create_engine("sqlite:///<tmp_path>/x.db")` + `metadata.create_all` basta, e sai mais
+    rápido (0,2s para os 17 casos). SQLite não força FK, então dá para inserir
+    `arquivosCaso` órfão sem inventar usuário.
+  - `casos` exige `id_usuario_responsavel`, `data_criacao`, `id_criado_por`,
+    `situacao_deferimento`, `status` e `unidade_id`; `eventos` exige `tipo`, `data_evento`,
+    `data_criacao`, `id_criado_por`, `status` e `unidade_id`. Sem FK forçada, valores
+    sintéticos (1) servem.
+  - `arquivosCaso` NÃO tem coluna de status e `arquivos` também não: "registro inativo" só
+    existe em `eventos`. Não invente filtro onde não há coluna.
+  - Rodar o migrador contra QA ou produção continua sendo decisão humana; o loop escreveu e
+    testou o script, e o docstring diz isso em letras claras.

@@ -228,7 +228,7 @@
         "f7-fluxo-arquivos-gerais"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
