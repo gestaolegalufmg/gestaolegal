@@ -5,6 +5,7 @@ from gestaolegal.exceptions import DatabaseException, NotFoundException
 from gestaolegal.models.processo import Processo
 from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
 from gestaolegal.models.user import User
+from gestaolegal.repositories.caso_repository import CasoRepository
 from gestaolegal.repositories.processo_repository import ProcessoRepository
 from gestaolegal.repositories.repository import (
     ComplexWhereClause,
@@ -12,6 +13,7 @@ from gestaolegal.repositories.repository import (
     WhereClause,
 )
 from gestaolegal.repositories.user_repository import UserRepository
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +21,25 @@ logger = logging.getLogger(__name__)
 class ProcessoService:
     repository: ProcessoRepository
     user_repository: UserRepository
+    caso_repository: CasoRepository
 
     def __init__(self):
         self.repository = ProcessoRepository()
         self.user_repository = UserRepository()
+        self.caso_repository = CasoRepository()
+
+    def _caso_da_unidade_ativa(self, caso_id: int) -> bool:
+        """O processo segue a unidade do caso, não a do header.
+
+        Caso de outra unidade se comporta como caso inexistente: dizer que ele
+        existe mas não é seu já vazaria a existência do caso.
+        """
+        return (
+            self.caso_repository.find_by_id(
+                caso_id, unidade_id=RequestContext.get_unidade_ativa()
+            )
+            is not None
+        )
 
     def find_by_id(self, processo_id: int) -> Processo | None:
         logger.info(f"Finding processo by id: {processo_id}")
@@ -49,6 +66,10 @@ class ProcessoService:
         logger.info(
             f"Searching processos for caso {caso_id} with search: '{search}', show_inactive: {show_inactive}"
         )
+        if not self._caso_da_unidade_ativa(caso_id):
+            logger.warning(f"Caso {caso_id} is not in the active unidade")
+            raise NotFoundException(resource="Caso", resource_id=caso_id)
+
         clauses: list[WhereClause] = [
             WhereClause(column="id_caso", operator="==", value=caso_id)
         ]
@@ -87,6 +108,10 @@ class ProcessoService:
         self, processo_id: int, caso_id: int
     ) -> Processo | None:
         logger.info(f"Validating processo {processo_id} for caso {caso_id}")
+        if not self._caso_da_unidade_ativa(caso_id):
+            logger.warning(f"Caso {caso_id} is not in the active unidade")
+            return None
+
         processo = self.repository.find_by_id(processo_id)
 
         if not processo:
@@ -110,6 +135,10 @@ class ProcessoService:
         logger.info(
             f"Creating processo for caso {caso_id} with especie: {processo_input.especie}, created by: {criado_por_id}"
         )
+        if not self._caso_da_unidade_ativa(caso_id):
+            logger.warning(f"Caso {caso_id} is not in the active unidade")
+            raise NotFoundException(resource="Caso", resource_id=caso_id)
+
         processo_data = processo_input.model_dump()
         processo_data["id_caso"] = caso_id
         processo_data["id_criado_por"] = criado_por_id

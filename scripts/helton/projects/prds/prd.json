@@ -1,0 +1,142 @@
+{
+  "project": "gestaolegal",
+  "branchName": "helton/acertos-unidades",
+  "description": "As quatro pendências de código da Fase A de unidades: guarda de unidade nas rotas de processo, reativação de unidade pela interface, filtro opcional por unidade na listagem de usuários e reavaliação do default de coluna_unidade().",
+  "execution": "sandboxed",
+  "userStories": [
+    {
+      "id": "f1-processo-guarda-unidade",
+      "title": "Recusar caso de outra unidade nas seis rotas de processo",
+      "context": "As seis rotas de processo em gestaolegal/controllers/caso_controller.py:159-250 (GET/POST da coleção, GET/PUT/DELETE do item) chamam o ProcessoService direto, sem passar pelo CasoService, e por isso não filtram por unidade. gestaolegal/services/processo_service.py sequer importa RequestContext: validate_processo_for_caso (:86) só confere que o processo pertence ao caso, e create (:108) grava sem olhar o caso. Com o id de um caso de outra unidade dá para listar, ler, criar, editar e inativar processo.\n\nO padrão da casa é o método privado _caso_da_unidade_ativa, já presente em gestaolegal/services/caso_service.py:596 e gestaolegal/services/evento_service.py:36: busca o caso por CasoRepository.find_by_id(caso_id, unidade_id=RequestContext.get_unidade_ativa()) e devolve None/False quando o caso não é da unidade. Copie esse padrão para ProcessoService e aplique em search_by_caso, validate_processo_for_caso e create. Reuse CasoRepository.find_by_id; não escreva consulta nova.\n\nCaso que não é da unidade ativa se comporta como caso inexistente: NotFoundException, nunca 403 — dizer 'existe, mas não é sua' já vaza a existência do caso. As rotas do controller não mudam de assinatura; quem passa a recusar é o service.\n\nAtenção ao DELETE (caso_controller.py:236): é @authorized(\"admin\"), e admin tem todas as unidades. A guarda vale para ele igual, porque ele navega com uma unidade por vez (decisão 4 de docs/unidades.md). É justamente o teste do DELETE com admin que fecha o buraco: é o caso em que um filtro mal escrito passa despercebido.\n\nProva: em tests/api/test_processo_api.py, para cada uma das seis rotas, caso de outra unidade responde 404 e caso da unidade ativa segue funcionando.",
+      "files": [
+        "gestaolegal/services/processo_service.py",
+        "tests/api/test_processo_api.py"
+      ],
+      "acceptance": "As seis rotas de processo de um caso respondem 404 quando o caso_id é de outra unidade que não a do header X-Unidade-Id, inclusive o DELETE feito por admin, e continuam respondendo normalmente para caso da unidade ativa. tests/api/test_processo_api.py cobre as seis rotas nos dois cenários e a suíte inteira passa.",
+      "verify": "make test",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": [],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "f2-unidades-incluir-inativas-api",
+      "title": "Aceitar ?incluir_inativas=1 na listagem de unidades, só para admin",
+      "context": "gestaolegal/repositories/unidade_repository.py:26 (list_ativas) filtra unidades.c.ativa sem alternativa, e é a única leitura de lista que existe: UnidadeService.list_ativas (gestaolegal/services/unidade_service.py:20) e GET /api/unidades/ (gestaolegal/controllers/unidade_controller.py:14) só repassam. Resultado: desativar uma unidade pela tela /unidades faz ela sumir da própria tela que a desativou, e não há como reativá-la pela interface.\n\nO que fazer:\n- Renomear UnidadeRepository.list_ativas para listar(incluir_inativas: bool = False), mantendo a ordenação por nome. Sem o parâmetro, o comportamento é o de hoje. Ajustar quem chama (o service e tests/api/test_unidade_repository.py).\n- UnidadeService repassa o parâmetro.\n- unidade_controller.listar lê o parâmetro com StringBool, no mesmo padrão do show_inactive das outras listagens (ver gestaolegal/controllers/caso_controller.py:166), e SÓ aceita incluir_inativas=1 de admin. A rota é @authenticated(unidade=False) porque alimenta o seletor de unidade do cabeçalho de todo mundo, e o seletor não pode passar a oferecer unidade desativada. Usuário comum que peça inativas recebe a lista de ativas, sem erro — não é 403.\n\nDecisão já tomada em scripts/helton/projects/plans/acertos-unidades.md: reativar unidade é ?incluir_inativas=1 na listagem, não uma rota nova. O PUT de unidade já existente é quem volta a marcar ativa=true.\n\nProva: em tests/api/test_unidade_api.py — listagem sem parâmetro não traz inativa; admin com incluir_inativas=1 traz; não-admin com o parâmetro recebe só as ativas; reativar por PUT devolve a unidade ao seletor (isto é, à listagem sem parâmetro).",
+      "files": [
+        "gestaolegal/repositories/unidade_repository.py",
+        "gestaolegal/services/unidade_service.py",
+        "gestaolegal/controllers/unidade_controller.py",
+        "tests/api/test_unidade_api.py",
+        "tests/api/test_unidade_repository.py"
+      ],
+      "acceptance": "GET /api/unidades/ sem parâmetro devolve só as ativas, como hoje. GET /api/unidades/?incluir_inativas=1 feito por admin devolve também as inativas; feito por não-admin devolve só as ativas, com 200. Um PUT que marca ativa=true faz a unidade voltar à listagem sem parâmetro. Testes cobrem os quatro cenários e make test passa.",
+      "verify": "make test",
+      "effort_label": "low",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": [],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f2-unidades-reativar-front",
+      "title": "Mostrar e reativar unidade desativada na tela /unidades",
+      "context": "Depende de f2-unidades-incluir-inativas-api, que expõe GET /api/unidades/?incluir_inativas=1.\n\nweb/src/routes/(dashboard)/unidades/+page.ts hoje pede 'unidades/' sem parâmetro e o comentário no arquivo registra que a rota devolve só as ativas. A tela é @admin (o load já barra urole !== 'admin' com 403), então pode pedir com o parâmetro. Passar a pedir 'unidades/?incluir_inativas=1', marcar visualmente a unidade inativa em web/src/routes/(dashboard)/unidades/+page.svelte e oferecer o botão de reativar (PUT com ativa=true, seguido de invalidate('app:unidades') — o depends já está declarado no +page.ts).\n\nO seletor de unidade do cabeçalho continua pedindo SEM o parâmetro: ele não pode oferecer unidade desativada.\n\nConferir web/src/lib/stores/unidade.ts: sincronizarUnidades (:43) já mantém a guardada quando ela ainda está na lista e cai para a primeira senão. Confirme que a lista passada a ela é a de unidades ativas do usuário — se a unidade guardada no localStorage for desativada, a store precisa cair para a primeira ativa em vez de mandar um X-Unidade-Id que o back recusa. Se já cai, não mexa; se não cair, corrija.\n\nNão dá para conferir a tela em navegador aqui — isso é trabalho de humano, declarado fora de escopo no plano. Prove pelo svelte-check e pelo lint.",
+      "files": [
+        "web/src/routes/(dashboard)/unidades/+page.ts",
+        "web/src/routes/(dashboard)/unidades/+page.svelte",
+        "web/src/lib/stores/unidade.ts"
+      ],
+      "acceptance": "A tela /unidades lista também as unidades inativas, marcadas visualmente, com botão que as reativa e recarrega a lista. O seletor do cabeçalho segue pedindo a listagem sem incluir_inativas. Se a unidade guardada no localStorage não estiver entre as ativas do usuário, a store cai para a primeira ativa. npm run check e npm run lint passam.",
+      "verify": "cd web && npm run check && npm run lint",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": false,
+      "blocked_by_gate": false,
+      "depends_on": [
+        "f2-unidades-incluir-inativas-api"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f3-usuarios-filtro-unidade-api",
+      "title": "Aceitar ?unidade=ativa na listagem de usuários",
+      "context": "gestaolegal/services/usuario_service.py:69 (search) monta as cláusulas sobre a tabela usuarios e nunca toca em usuarios_unidades. GET /api/user (gestaolegal/controllers/user_controller.py:42-55) lê page, per_page, search, funcao e show_inactive.\n\nDecisão já tomada (não reabrir): o filtro é OPCIONAL e o padrão é TODOS. O admin continua vendo todo mundo quando não pede nada; só filtra quem pedir. Filtrar sempre esconderia de um admin de BH justamente quem ele precisa achar para vincular a uma unidade.\n\nO parâmetro é unidade, com dois valores: ausente (todos, como hoje) e 'ativa' (só quem tem vínculo com a unidade do header X-Unidade-Id). UsuarioService.search ganha o parâmetro e, quando pedido, restringe pelos ids vindos de usuarios_unidades. UnidadeRepository já tem o JOIN pronto no sentido unidades_do_usuario (unidade_repository.py:51); o método que falta é o inverso — usuários de uma unidade. Escreva-o em UnidadeRepository, devolvendo ids.\n\nO filtro entra NA CONSULTA, não em pós-processamento da página: senão a contagem da paginação mente. O WhereClause já suporta o operador 'in' com list[int] (gestaolegal/repositories/repository.py:134), então a cláusula entra junto das outras em SearchParams, antes do repository.search.\n\nO filtro por unidade continua morando no service, não no repositório de usuários (decisão de docs/unidades.md §5.1): o repositório ganha o método de leitura; quem decide é o service, lendo o RequestContext.\n\nProva: em tests/api/test_user_api.py — sem o parâmetro, o admin vê usuário das duas unidades; com unidade=ativa, só os da unidade do header, e o TOTAL da paginação acompanha (não só a página).",
+      "files": [
+        "gestaolegal/services/usuario_service.py",
+        "gestaolegal/controllers/user_controller.py",
+        "gestaolegal/repositories/unidade_repository.py",
+        "tests/api/test_user_api.py"
+      ],
+      "acceptance": "GET /api/user sem o parâmetro unidade devolve todos os usuários, como hoje. GET /api/user?unidade=ativa devolve só os usuários com vínculo na unidade do header X-Unidade-Id, e o campo total da paginação reflete o filtro. Testes cobrem os dois cenários, incluindo a asserção sobre o total, e make test passa.",
+      "verify": "make test",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": [],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f3-usuarios-filtro-unidade-front",
+      "title": "Oferecer o filtro por unidade na tela de usuários",
+      "context": "Depende de f3-usuarios-filtro-unidade-api, que expõe GET /api/user?unidade=ativa.\n\nweb/src/routes/(dashboard)/usuarios/+page.svelte já tem a barra de filtros com busca por nome, um Select de função (:61-75) e o checkbox show_inactive (:79). web/src/routes/(dashboard)/usuarios/+page.ts repassa url.searchParams inteiro para a API, então o parâmetro novo chega sozinho ao back — basta entrar no objeto filters e no setFilters, no mesmo caminho do show_inactive (:24-31).\n\nAcrescentar um controle 'Só da minha unidade' que, marcado, coloca unidade=ativa na query; desmarcado, omite o parâmetro. DESMARCADO POR PADRÃO: a decisão do plano é 'filtro opcional, padrão todos', e a tela não pode passar a filtrar sozinha sem o usuário pedir. Confira que o estado inicial vem da URL, como os outros filtros fazem.\n\nSe o contrato tipado precisar de ajuste, ele mora em web/src/lib/types e web/src/lib/api-client.ts.\n\nA conferência visual em navegador é trabalho de humano, fora de escopo. Prove pelo svelte-check e pelo lint.",
+      "files": [
+        "web/src/routes/(dashboard)/usuarios/+page.svelte"
+      ],
+      "acceptance": "A tela de usuários tem um controle 'Só da minha unidade', desmarcado por padrão, que ao ser marcado acrescenta unidade=ativa à query da listagem e ao ser desmarcado a remove. Sem interação do usuário a listagem segue trazendo todos. npm run check e npm run lint passam.",
+      "verify": "cd web && npm run check && npm run lint",
+      "effort_label": "low",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": false,
+      "blocked_by_gate": false,
+      "depends_on": [
+        "f3-usuarios-filtro-unidade-api"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f4-coluna-unidade-default",
+      "title": "Reavaliar o default=UNIDADE_PADRAO_ID de coluna_unidade()",
+      "context": "gestaolegal/database/tables.py:26-34: coluna_unidade() traz default=UNIDADE_PADRAO_ID. Esse default é client-side do SQLAlchemy, não DDL — mexer nele NÃO pede migration, e este canteiro não cria nenhuma. Ele entrou porque 149 testes quebravam enquanto os services ainda não gravavam a coluna (docs/unidades.md §5.1); essa justificativa provavelmente já não vale.\n\nEsta story é por último de propósito: as anteriores acrescentam testes que também precisam passar sem a rede de segurança.\n\nProcedimento: tirar o default e rodar make test. Cada quebra é uma PERGUNTA A RESPONDER, não um teste a consertar no automático:\n- quebrou um INSERT de fixture, de tests/api/conftest.py ou de seed? Corrigir o teste, passando a unidade explicitamente — é o teste que dependia da rede de segurança.\n- quebrou um caminho de PRODUÇÃO (service ou repositório inserindo sem unidade)? É bug real de isolamento entre unidades: consertar o código e escrever o teste que o denuncia.\n\nNunca afrouxe ou remova asserção para fazer a suíte passar — isso é gate no CLAUDE.md da raiz. Se um teste precisa mudar, é para passar a unidade, não para deixar de verificar.\n\nSe sobrar caminho legítimo sem unidade — algum INSERT cru que só migrations/ ou o create_admin faz —, MANTER o default e trocar o comentário por um que diga qual é esse caminho, em vez de repetir a justificativa da Fase 3 que já não vale. Decidir e registrar é o entregável; remover a todo custo não é. Registre a decisão no comentário do código e, se ela for manter o default, também em docs/known_issues.md.\n\nA remoção não ganha teste próprio: quem prova é a suíte inteira passando sem ele.",
+      "files": [
+        "gestaolegal/database/tables.py",
+        "tests/api/conftest.py",
+        "docs/known_issues.md"
+      ],
+      "acceptance": "coluna_unidade() está sem o default=UNIDADE_PADRAO_ID e make test passa inteiro; ou o default permanece e o comentário acima dele nomeia o caminho concreto que ainda insere sem unidade, com a decisão registrada em docs/known_issues.md. Em nenhum dos casos alguma asserção existente foi removida ou afrouxada, e todo bug de isolamento encontrado ganhou correção no código e teste que o denuncia.",
+      "verify": "make test",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": [
+        "f1-processo-guarda-unidade",
+        "f2-unidades-incluir-inativas-api",
+        "f3-usuarios-filtro-unidade-api"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

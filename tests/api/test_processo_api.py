@@ -251,3 +251,93 @@ def test_delete_processo(
 
     assert delete_response.status_code == 200
     assert_success_response(delete_response)
+
+
+def _criar_caso_com_processo(
+    client: FlaskClient,
+    headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> tuple[int, int]:
+    caso_response = client.post("/api/caso/", json=sample_caso_data, headers=headers)
+    assert caso_response.status_code == 201
+    caso_id = get_success_data(caso_response)["id"]
+
+    processo_response = client.post(
+        f"/api/caso/{caso_id}/processos",
+        json={"especie": "Ação de Nova Lima", "status": True},
+        headers=headers,
+    )
+    assert processo_response.status_code == 201
+    return caso_id, get_success_data(processo_response)["id"]
+
+
+def test_processos_de_caso_de_outra_unidade_respondem_404(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """As seis rotas de processo recusam caso que não é da unidade ativa.
+
+    O DELETE é @authorized("admin") e o admin tem as duas unidades: ele navega
+    com uma por vez, então a guarda vale para ele igual.
+    """
+    caso_nl, processo_id = _criar_caso_com_processo(
+        client, auth_headers_nl, sample_caso_data
+    )
+
+    colecao = f"/api/caso/{caso_nl}/processos"
+    item = f"{colecao}/{processo_id}"
+
+    assert client.get(colecao, headers=auth_headers).status_code == 404
+    assert (
+        client.post(
+            colecao,
+            json={"especie": "Tentativa de outra unidade", "status": True},
+            headers=auth_headers,
+        ).status_code
+        == 404
+    )
+    assert client.get(item, headers=auth_headers).status_code == 404
+    assert (
+        client.put(
+            item, json={"especie": "Tentativa de outra unidade"}, headers=auth_headers
+        ).status_code
+        == 404
+    )
+    assert client.delete(item, headers=auth_headers).status_code == 404
+
+
+def test_processos_da_unidade_ativa_seguem_funcionando(
+    client: FlaskClient,
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """O mesmo caso, pela unidade em que foi aberto, responde normalmente."""
+    caso_nl, processo_id = _criar_caso_com_processo(
+        client, auth_headers_nl, sample_caso_data
+    )
+
+    colecao = f"/api/caso/{caso_nl}/processos"
+    item = f"{colecao}/{processo_id}"
+
+    listagem = client.get(colecao, headers=auth_headers_nl)
+    assert listagem.status_code == 200
+    assert get_success_data(listagem)["total"] == 1
+
+    criacao = client.post(
+        colecao,
+        json={"especie": "Segunda ação", "status": True},
+        headers=auth_headers_nl,
+    )
+    assert criacao.status_code == 201
+
+    assert client.get(item, headers=auth_headers_nl).status_code == 200
+
+    edicao = client.put(
+        item, json={"especie": "Ação renomeada"}, headers=auth_headers_nl
+    )
+    assert edicao.status_code == 200
+    assert get_success_data(edicao)["especie"] == "Ação renomeada"
+
+    assert client.delete(item, headers=auth_headers_nl).status_code == 200
