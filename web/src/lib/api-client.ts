@@ -1,6 +1,7 @@
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/public';
 import { ApiException, type ApiResponse } from './types/api-response';
+import { unidadeAtivaId } from './stores/unidade';
 
 function getAuthToken(): string | null {
 	if (typeof document === 'undefined') return null;
@@ -46,6 +47,14 @@ export async function apiFetch(
 
 	if (token) {
 		headers.set('Authorization', `Bearer ${token}`);
+	}
+
+	// A API exige a unidade ativa em quase toda rota; as poucas que não exigem
+	// (auth/*, user/me, user/opcoes, unidades do seletor) ignoram o header.
+	const unidadeId = unidadeAtivaId();
+
+	if (unidadeId !== null) {
+		headers.set('X-Unidade-Id', String(unidadeId));
 	}
 
 	if (

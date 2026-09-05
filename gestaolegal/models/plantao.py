@@ -36,6 +36,7 @@ class Plantao:
     id: int | None = None
     data_abertura: datetime | None = None
     data_fechamento: datetime | None = None
+    unidade_id: int | None = None
 
 
 @dataclass
@@ -45,6 +46,7 @@ class DiaPlantao:
     data: date
     status: bool = True
     id: int | None = None
+    unidade_id: int | None = None
 
 
 @dataclass
@@ -56,3 +58,4 @@ class DiaMarcadoPlantao:
     confirmacao: str = Confirmacao.ABERTO
     status: bool = True
     id: int | None = None
+    unidade_id: int | None = None

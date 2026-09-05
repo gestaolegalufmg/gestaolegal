@@ -1,6 +1,8 @@
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Literal
+
+from gestaolegal.models.unidade import Unidade
 
 if TYPE_CHECKING:
     from gestaolegal.models.endereco import Endereco
@@ -45,6 +47,7 @@ class User:
     modificado: datetime | None = None
     chave_recuperacao: bool | None = None
     endereco: "Endereco | None" = None
+    unidades: list[Unidade] = field(default_factory=list)
 
     def to_info(self) -> "UserInfo":
         user_info_fields = fields(UserInfo)
@@ -94,3 +97,4 @@ class UserInfo:
     modificado: datetime | None = None
     chave_recuperacao: bool | None = None
     endereco: "Endereco | None" = None
+    unidades: list[Unidade] = field(default_factory=list)

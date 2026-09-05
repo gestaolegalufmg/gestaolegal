@@ -19,14 +19,14 @@ user_controller = Blueprint("user", __name__)
 
 
 @user_controller.route("/me", methods=["GET"])
-@authenticated
+@authenticated(unidade=False)
 def get_me():
     current_user = RequestContext.get_current_user()
     return success_response(data=asdict(current_user))
 
 
 @user_controller.route("/opcoes", methods=["GET"])
-@authenticated
+@authenticated(unidade=False)
 def opcoes():
     """Usuários ativos (id, nome, urole) para seletores.
 
@@ -102,6 +102,8 @@ def update_me():
     current_user = RequestContext.get_current_user()
     user_service = UsuarioService()
     json_data = cast(dict[str, Any], request.get_json(force=True))
+    # O próprio usuário não escolhe suas unidades: o vínculo é do admin.
+    json_data.pop("unidade_ids", None)
     user_input = UserUpdateInput.model_validate(json_data)
 
     user = user_service.update(

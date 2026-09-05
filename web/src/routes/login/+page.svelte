@@ -6,7 +6,8 @@
 	import { loginSchema, type LoginData } from '$lib/forms/schemas/login-schema';
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/api-client';
-	import { ApiException } from '$lib/types';
+	import { ApiException, type User } from '$lib/types';
+	import { sincronizarUnidades } from '$lib/stores/unidade';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import { superForm } from 'sveltekit-superforms';
@@ -28,7 +29,7 @@
 			erroLogin = null;
 
 			try {
-				const responseData = await api.post<{ token: string; user: any }>('auth/login', payload);
+				const responseData = await api.post<{ token: string; user: User }>('auth/login', payload);
 
 				if (responseData?.token && typeof document !== 'undefined') {
 					const maxAge = 60 * 60 * 8; // 8 hours
@@ -38,6 +39,10 @@
 							: '';
 					document.cookie = `auth_token=${responseData.token}; Path=/; Max-Age=${maxAge}; SameSite=Strict${secureFlag}`;
 				}
+
+				// Sem unidade ativa toda chamada seguinte volta 400; o login é o
+				// primeiro ponto em que a lista de unidades do usuário aparece.
+				sincronizarUnidades(responseData?.user?.unidades);
 
 				toast.success('Login realizado com sucesso!');
 

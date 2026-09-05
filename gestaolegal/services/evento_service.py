@@ -10,12 +10,15 @@ from gestaolegal.exceptions import (
     ForbiddenException,
     NotFoundException,
 )
+from gestaolegal.models.caso import Caso
 from gestaolegal.models.evento import Evento, ListEvento
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
 from gestaolegal.models.user import UserInfo
 from gestaolegal.services.notificacao_service import NotificacaoService
+from gestaolegal.repositories.caso_repository import CasoRepository
 from gestaolegal.repositories.evento_repository import EventoRepository
 from gestaolegal.repositories.user_repository import UserRepository
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +26,28 @@ logger = logging.getLogger(__name__)
 class EventoService:
     repository: EventoRepository
     user_repository: UserRepository
+    caso_repository: CasoRepository
 
     def __init__(self):
         self.repository = EventoRepository()
         self.user_repository = UserRepository()
+        self.caso_repository = CasoRepository()
+
+    def _caso_da_unidade_ativa(self, caso_id: int) -> Caso | None:
+        """O evento pertence à unidade do caso, não à do header.
+
+        Quem tem as duas unidades enxerga o caso de uma delas por vez; a agenda
+        e os eventos do caso seguem a unidade em que o caso foi aberto.
+        """
+        return self.caso_repository.find_by_id(
+            caso_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
 
     def find_by_id(self, id: int) -> Evento | None:
         logger.info(f"Finding evento by id: {id}")
-        evento = self.repository.find_by_id(id)
+        evento = self.repository.find_by_id(
+            id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if evento:
             user_map = self.__get_user_map([evento])
             evento.usuario_responsavel = (
@@ -50,7 +67,16 @@ class EventoService:
         self, caso_id: int, page_params: PageParams, tipo: str | None = None
     ) -> PaginatedResult[ListEvento]:
         logger.info(f"Finding eventos for caso id: {caso_id}, tipo: {tipo}")
-        result = self.repository.find_by_caso_id_paginated(caso_id, page_params, tipo)
+        if not self._caso_da_unidade_ativa(caso_id):
+            logger.warning(f"Caso {caso_id} is not in the active unidade")
+            raise NotFoundException(resource="Caso", resource_id=caso_id)
+
+        result = self.repository.find_by_caso_id_paginated(
+            caso_id,
+            page_params,
+            tipo,
+            unidade_id=RequestContext.get_unidade_ativa(),
+        )
 
         user_map = self.__get_user_map(result.items)
 
@@ -89,7 +115,13 @@ class EventoService:
 
     def validate_evento_for_caso(self, evento_id: int, caso_id: int) -> Evento | None:
         logger.info(f"Validating evento {evento_id} for caso {caso_id}")
-        evento = self.repository.find_by_id(evento_id)
+        if not self._caso_da_unidade_ativa(caso_id):
+            logger.warning(f"Caso {caso_id} is not in the active unidade")
+            return None
+
+        evento = self.repository.find_by_id(
+            evento_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
 
         if not evento:
             logger.warning(f"Evento not found with id: {evento_id}")
@@ -113,8 +145,14 @@ class EventoService:
         logger.info(
             f"Creating evento for caso {caso_id} with tipo: {evento_input.tipo}, created by: {criado_por_id}"
         )
+        caso = self._caso_da_unidade_ativa(caso_id)
+        if not caso:
+            logger.warning(f"Caso {caso_id} is not in the active unidade")
+            raise NotFoundException(resource="Caso", resource_id=caso_id)
+
         evento_data = evento_input.model_dump()
         evento_data["id_caso"] = caso_id
+        evento_data["unidade_id"] = caso.unidade_id
         evento_data["data_criacao"] = datetime.now()
         evento_data["id_criado_por"] = criado_por_id
         evento_data["num_evento"] = self.repository.count_by_caso_id(caso_id) + 1
@@ -138,7 +176,9 @@ class EventoService:
         evento_input: EventoUpdateInput,
     ) -> Evento | None:
         logger.info(f"Updating evento with id: {evento_id}")
-        existing = self.repository.find_by_id(evento_id)
+        existing = self.repository.find_by_id(
+            evento_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
         if not existing:
             logger.error(f"Update failed: evento not found with id: {evento_id}")
             raise NotFoundException(resource="Evento", resource_id=evento_id)
@@ -148,7 +188,9 @@ class EventoService:
         self.repository.update(evento_id, evento_data)
 
         logger.info(f"Evento updated successfully with id: {evento_id}")
-        return self.repository.find_by_id(evento_id)
+        return self.repository.find_by_id(
+            evento_id, unidade_id=RequestContext.get_unidade_ativa()
+        )
 
     def delete(self, evento_id: int, caso_id: int, user: UserInfo) -> None:
         """Exclui (soft delete) um evento e apaga o arquivo anexo.

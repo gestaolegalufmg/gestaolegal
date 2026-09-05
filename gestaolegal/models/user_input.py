@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from gestaolegal.models.base_model import BaseModel
 
 
@@ -35,6 +37,8 @@ class UserCreateInput(BaseModel):
     cidade: str
     estado: str
 
+    unidade_ids: list[int] = Field(min_length=1)
+
 
 class UserUpdateInput(BaseModel):
     email: str | None = None
@@ -69,3 +73,5 @@ class UserUpdateInput(BaseModel):
     cep: str | None = None
     cidade: str | None = None
     estado: str | None = None
+
+    unidade_ids: list[int] | None = None

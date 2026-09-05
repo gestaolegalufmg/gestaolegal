@@ -7,6 +7,7 @@ from gestaolegal.models.endereco import Endereco
 from gestaolegal.models.evento import Evento
 from gestaolegal.models.orientacao_juridica import OrientacaoJuridica
 from gestaolegal.models.processo import Processo
+from gestaolegal.models.unidade import Unidade
 from gestaolegal.models.user import User, UserInfo
 
 __all__ = [
@@ -21,4 +22,5 @@ __all__ = [
     "Caso",
     "Processo",
     "Evento",
+    "Unidade",
 ]

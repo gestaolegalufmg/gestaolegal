@@ -16,13 +16,22 @@ class LembreteRepository(BaseRepository):
     def __init__(self):
         super().__init__()
 
-    def find_by_id(self, id: int) -> Lembrete | None:
+    def find_by_id(self, id: int, unidade_id: int | None = None) -> Lembrete | None:
         stmt = select(lembretes).where(lembretes.c.id == id)
+        if unidade_id is not None:
+            stmt = stmt.where(lembretes.c.unidade_id == unidade_id)
         result = self.session.execute(stmt).one_or_none()
         return from_dict(Lembrete, dict(result._mapping)) if result else None
 
-    def get_by_caso(self, caso_id: int, include_inactive: bool = False) -> list[Lembrete]:
+    def get_by_caso(
+        self,
+        caso_id: int,
+        include_inactive: bool = False,
+        unidade_id: int | None = None,
+    ) -> list[Lembrete]:
         stmt = select(lembretes).where(lembretes.c.id_caso == caso_id)
+        if unidade_id is not None:
+            stmt = stmt.where(lembretes.c.unidade_id == unidade_id)
         if not include_inactive:
             stmt = stmt.where(lembretes.c.status == True)  # noqa: E712
         stmt = stmt.order_by(lembretes.c.data_criacao.desc())

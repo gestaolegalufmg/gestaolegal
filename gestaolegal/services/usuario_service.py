@@ -8,10 +8,12 @@ import bcrypt
 from dateutil import parser as date_parser
 
 from gestaolegal.common import PageParams, PaginatedResult
+from gestaolegal.database.tables import UNIDADE_PADRAO_ID
 from gestaolegal.exceptions import (
     DatabaseException,
     NotFoundException,
     UnauthorizedException,
+    ValidationException,
 )
 from gestaolegal.models.user import User, UserInfo
 from gestaolegal.models.user_input import UserCreateInput, UserUpdateInput
@@ -22,6 +24,7 @@ from gestaolegal.repositories.repository import (
     SearchParams,
     WhereClause,
 )
+from gestaolegal.repositories.unidade_repository import UnidadeRepository
 from gestaolegal.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -30,16 +33,19 @@ logger = logging.getLogger(__name__)
 class UsuarioService:
     repository: UserRepository
     endereco_repository: EnderecoRepository
+    unidade_repository: UnidadeRepository
 
     def __init__(self):
         self.repository = UserRepository()
         self.endereco_repository = EnderecoRepository()
+        self.unidade_repository = UnidadeRepository()
 
     def find_by_id(self, id: int) -> UserInfo | None:
         logger.info(f"Finding user by id: {id}")
         user = self.repository.find_by_id(id)
         if user:
             self.__load_endereco(user)
+            self.__load_unidades(user)
             logger.info(f"User found with id: {id}")
         else:
             logger.warning(f"User not found with id: {id}")
@@ -50,6 +56,7 @@ class UsuarioService:
         user = self.repository.find_by_email(email)
         if user:
             self.__load_endereco(user)
+            self.__load_unidades(user)
             logger.info(f"User found with email: {email}")
         else:
             logger.warning(f"User not found with email: {email}")
@@ -126,6 +133,7 @@ class UsuarioService:
             logger.warning(f"Authentication failed: user not found for email: {email}")
             return None
         self.__load_endereco(user)
+        self.__load_unidades(user)
         if self.check_password(user, senha):
             logger.info(f"Authentication successful for email: {email}")
             return user.to_info()
@@ -140,6 +148,9 @@ class UsuarioService:
             f"Creating user with email: {user_input.email}, role: {user_input.urole}, created by: {criado_por}"
         )
         user_data = user_input.model_dump()
+
+        unidade_ids = user_data.pop("unidade_ids")
+        self.__validar_unidades(unidade_ids)
 
         endereco_data = self.__extract_endereco_data(user_data)
         endereco_id = self.endereco_repository.create(endereco_data)
@@ -163,6 +174,7 @@ class UsuarioService:
         ).decode("utf-8")
 
         user_id = self.repository.create(user_data)
+        self.unidade_repository.vincular(user_id, unidade_ids)
         user = self.find_by_id(user_id)
         if not user:
             logger.error(f"Failed to create user with email: {user_input.email}")
@@ -186,6 +198,10 @@ class UsuarioService:
 
         user_data = user_input.model_dump(exclude_none=True)
 
+        unidade_ids: list[int] | None = user_data.pop("unidade_ids", None)
+        if unidade_ids is not None:
+            self.__validar_vinculo(user_id, unidade_ids, modificado_por)
+
         endereco_fields = [
             "logradouro",
             "numero",
@@ -206,6 +222,8 @@ class UsuarioService:
         user_data["modificado"] = datetime.now()
 
         self.repository.update(user_id, user_data)
+        if unidade_ids is not None:
+            self.unidade_repository.vincular(user_id, unidade_ids)
         logger.info(f"User updated successfully with id: {user_id}")
         return self.find_by_id(user_id)
 
@@ -253,6 +271,32 @@ class UsuarioService:
         logger.info(f"Password changed successfully for user id: {user_id}")
         return self.find_by_id(user_id)
 
+    def __validar_unidades(self, unidade_ids: list[int]) -> None:
+        """Recusa unidade inexistente antes do insert.
+
+        Sem a checagem a FK de `usuarios_unidades` estouraria como
+        IntegrityError (500) em vez de 400.
+        """
+        for unidade_id in unidade_ids:
+            if not self.unidade_repository.find_by_id(unidade_id):
+                raise ValidationException(
+                    f"Unidade {unidade_id} não encontrada", field="unidade_ids"
+                )
+
+    def __validar_vinculo(
+        self, user_id: int, unidade_ids: list[int], modificado_por: int | None
+    ) -> None:
+        if not unidade_ids:
+            if modificado_por == user_id:
+                raise ValidationException(
+                    "Você não pode remover sua última unidade", field="unidade_ids"
+                )
+            raise ValidationException(
+                "Usuário precisa estar vinculado a pelo menos uma unidade",
+                field="unidade_ids",
+            )
+        self.__validar_unidades(unidade_ids)
+
     def __extract_endereco_data(self, user_data: dict[str, Any]):
         return {
             "logradouro": user_data.pop("logradouro"),
@@ -289,6 +333,15 @@ class UsuarioService:
     def __load_endereco(self, user: User) -> None:
         if user.endereco_id:
             user.endereco = self.endereco_repository.find_by_id(user.endereco_id)
+
+    def __load_unidades(self, user: User) -> None:
+        """Carrega as unidades do usuário em uma única consulta.
+
+        `JWTAuth.get_user_from_token` recarrega o usuário a cada requisição;
+        `unidades_do_usuario` resolve o vínculo com JOIN para não virar N+1.
+        """
+        if user.id:
+            user.unidades = self.unidade_repository.unidades_do_usuario(user.id)
 
     def has_any_users(self) -> bool:
         count = self.repository.count(CountParams(where=None))
@@ -347,6 +400,12 @@ class UsuarioService:
         }
 
         user_id = self.repository.create(user_data)
+        if self.unidade_repository.find_by_id(UNIDADE_PADRAO_ID):
+            self.unidade_repository.vincular(user_id, [UNIDADE_PADRAO_ID])
+        else:
+            logger.warning(
+                "Unidade padrão inexistente: admin inicial ficou sem vínculo de unidade"
+            )
         user = self.find_by_id(user_id)
         if not user:
             logger.error(f"Failed to create admin user with email: {email}")

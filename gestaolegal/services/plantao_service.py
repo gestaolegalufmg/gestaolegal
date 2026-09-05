@@ -13,6 +13,7 @@ from gestaolegal.models.plantao_input import ConfiguracaoPlantaoInput, MarcarDia
 from gestaolegal.models.user import UserInfo
 from gestaolegal.services.notificacao_service import NotificacaoService
 from gestaolegal.repositories.plantao_repository import PlantaoRepository
+from gestaolegal.utils.request_context import RequestContext
 from gestaolegal.utils.tempo import agora_brasilia
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,9 @@ class PlantaoService:
     def __init__(self):
         self.repository = PlantaoRepository()
 
+    def _unidade(self) -> int:
+        return RequestContext.get_unidade_ativa()
+
     # --- janela de marcação ----------------------------------------------
 
     def _encerrar_se_expirado(self) -> None:
@@ -33,25 +37,29 @@ class PlantaoService:
         um passo idempotente chamado no início das operações de leitura e
         escrita. Diferente da v2, os dias são desativados (`status=False`) em vez
         de apagados fisicamente, preservando o histórico das marcações.
+
+        Só encerra o plantão da unidade ativa: encerrar o de outra unidade seria
+        efeito colateral silencioso de uma leitura feita aqui.
         """
-        registro = self.repository.get_plantao()
+        unidade_id = self._unidade()
+        registro = self.repository.get_plantao(unidade_id=unidade_id)
         if not registro or not registro.data_fechamento:
             return
         if registro.data_fechamento >= agora_brasilia():
             return
 
         logger.info(
-            f"Plantão encerrado em {registro.data_fechamento}; "
-            "desativando dias e marcações"
+            f"Plantão da unidade {unidade_id} encerrado em "
+            f"{registro.data_fechamento}; desativando dias e marcações"
         )
-        self.repository.desativar_todos_dias()
-        self.repository.desativar_todas_marcacoes()
+        self.repository.desativar_todos_dias(unidade_id)
+        self.repository.desativar_todas_marcacoes(unidade_id)
         self.repository.update_plantao(
             registro.id, {"data_abertura": None, "data_fechamento": None}
         )
 
     def _esta_aberto(self) -> bool:
-        registro = self.repository.get_plantao()
+        registro = self.repository.get_plantao(unidade_id=self._unidade())
         if not registro or not registro.data_abertura:
             return False
         if registro.data_fechamento and registro.data_fechamento < agora_brasilia():
@@ -99,13 +107,16 @@ class PlantaoService:
         """Tudo que a tela da escala precisa, em uma resposta só."""
         self._encerrar_se_expirado()
 
-        registro = self.repository.get_plantao()
+        unidade_id = self._unidade()
+        registro = self.repository.get_plantao(unidade_id=unidade_id)
         aberto = self._esta_aberto()
-        dias = [dia.data for dia in self.repository.list_dias()]
-        marcacoes = self.repository.list_marcacoes_ativas()
+        dias = [dia.data for dia in self.repository.list_dias(unidade_id=unidade_id)]
+        marcacoes = self.repository.list_marcacoes_ativas(unidade_id=unidade_id)
         vagas = self._vagas_por_dia(dias, marcacoes, user.urole)
 
-        meus_dias = self.repository.list_marcacoes_ativas_do_usuario(user.id)
+        meus_dias = self.repository.list_marcacoes_ativas_do_usuario(
+            user.id, unidade_id=unidade_id
+        )
 
         return {
             "plantao": {
@@ -159,13 +170,14 @@ class PlantaoService:
                 "O plantão não está aberto!", "PLANTAO_FECHADO"
             )
 
-        dias = [dia.data for dia in self.repository.list_dias()]
+        unidade_id = self._unidade()
+        dias = [dia.data for dia in self.repository.list_dias(unidade_id=unidade_id)]
         if dados.data not in dias:
             raise ValidationException(
                 "Data selecionada não foi aberta para plantão.", field="data"
             )
 
-        marcacoes = self.repository.list_marcacoes_ativas()
+        marcacoes = self.repository.list_marcacoes_ativas(unidade_id=unidade_id)
         vagas = self._vagas_por_dia(dias, marcacoes, user.urole)
         restantes = vagas[dados.data]
         if restantes is not None and restantes <= 0:
@@ -174,7 +186,9 @@ class PlantaoService:
                 "SEM_VAGAS",
             )
 
-        meus_dias = self.repository.list_marcacoes_ativas_do_usuario(user.id)
+        meus_dias = self.repository.list_marcacoes_ativas_do_usuario(
+            user.id, unidade_id=unidade_id
+        )
         if len(meus_dias) >= self._limite_marcacoes(user.urole):
             raise BusinessLogicException(
                 "Você atingiu o limite de plantões cadastrados.", "LIMITE_PLANTOES"
@@ -185,25 +199,34 @@ class PlantaoService:
                 "Você já marcou plantão neste dia!", "DIA_JA_MARCADO"
             )
 
-        self.repository.create_marcacao(dados.data, user.id)
-        logger.info(f"Usuário {user.id} marcou plantão em {dados.data}")
+        self.repository.create_marcacao(dados.data, user.id, unidade_id)
+        logger.info(
+            f"Usuário {user.id} marcou plantão em {dados.data} "
+            f"na unidade {unidade_id}"
+        )
         return self.get_pagina(user)
 
     def limpar_marcacoes(self, user: UserInfo) -> dict[str, Any]:
         """Apaga todas as marcações ativas da pessoa (botão "Editar")."""
         self._encerrar_se_expirado()
-        total = self.repository.desativar_marcacoes_do_usuario(user.id)
+        total = self.repository.desativar_marcacoes_do_usuario(
+            user.id, self._unidade()
+        )
         logger.info(f"Usuário {user.id} apagou {total} marcações de plantão")
         return self.get_pagina(user)
 
     # --- configuração (admin) ---------------------------------------------
 
     def get_configuracao(self) -> dict[str, Any]:
-        registro = self.repository.get_plantao()
+        unidade_id = self._unidade()
+        registro = self.repository.get_plantao(unidade_id=unidade_id)
         return {
             "data_abertura": registro.data_abertura if registro else None,
             "data_fechamento": registro.data_fechamento if registro else None,
-            "dias": [dia.data.isoformat() for dia in self.repository.list_dias()],
+            "dias": [
+                dia.data.isoformat()
+                for dia in self.repository.list_dias(unidade_id=unidade_id)
+            ],
         }
 
     def salvar_configuracao(
@@ -216,16 +239,19 @@ class PlantaoService:
         Quando a data de abertura é definida ou alterada, avisa orientadores e
         estagiários (notificação geral), como na v2.
         """
-        atuais = {dia.data: dia for dia in self.repository.list_dias()}
+        unidade_id = self._unidade()
+        atuais = {
+            dia.data: dia for dia in self.repository.list_dias(unidade_id=unidade_id)
+        }
         desejados = set(dados.dias)
 
         for data in desejados - set(atuais):
-            existente = self.repository.find_dia_por_data(data)
+            existente = self.repository.find_dia_por_data(data, unidade_id=unidade_id)
             if existente:
                 # Dia que já foi aberto antes e estava desativado: reativa.
                 self.repository.set_status_dia(existente.id, True)
             else:
-                self.repository.create_dia(data)
+                self.repository.create_dia(data, unidade_id)
 
         for data, dia in atuais.items():
             if data not in desejados:
@@ -235,18 +261,19 @@ class PlantaoService:
             "data_abertura": dados.data_abertura,
             "data_fechamento": dados.data_fechamento,
         }
-        registro = self.repository.get_plantao()
+        registro = self.repository.get_plantao(unidade_id=unidade_id)
         abertura_anterior = registro.data_abertura if registro else None
         if registro:
             self.repository.update_plantao(registro.id, janela)
         else:
-            self.repository.create_plantao(janela)
+            self.repository.create_plantao({**janela, "unidade_id": unidade_id})
 
         if executor_id is not None and dados.data_abertura != abertura_anterior:
             NotificacaoService().plantao_aberto(executor_id, _periodo(dados))
 
         logger.info(
-            f"Configuração do plantão salva: {len(desejados)} dias, "
+            f"Configuração do plantão da unidade {unidade_id} salva: "
+            f"{len(desejados)} dias, "
             f"janela {dados.data_abertura} → {dados.data_fechamento}"
         )
         return self.get_configuracao()

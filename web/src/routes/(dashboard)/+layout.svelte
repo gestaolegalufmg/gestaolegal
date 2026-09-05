@@ -5,6 +5,7 @@
 	import GlobalSearchDialog from '$lib/components/global-search-dialog.svelte';
 	import NotificacaoBell from '$lib/components/notificacao-bell.svelte';
 	import { Separator } from '$lib/components/ui/separator/index.js';
+	import UnidadeSelector from '$lib/components/unidade-selector.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { page } from '$app/state';
 	import Input from '$lib/components/ui/input/input.svelte';
@@ -14,7 +15,9 @@
 
 	const isOnRoot = $derived(page.url.pathname === '/');
 
-	let user = data.me;
+	// Derivado, e não cópia: depois do invalidateAll() da troca de unidade o
+	// `data` vem recarregado, e o cabeçalho precisa acompanhar.
+	const user = $derived(data.me);
 	let searchDialogOpen = $state(false);
 	let headerSearchValue = $state('');
 
@@ -63,7 +66,8 @@
 					oninput={handleHeaderSearchInput}
 				/>
 			</div>
-			<div class="ml-auto">
+			<div class="ml-auto flex items-center gap-3">
+				<UnidadeSelector unidades={user.unidades} />
 				<NotificacaoBell />
 			</div>
 		</header>
