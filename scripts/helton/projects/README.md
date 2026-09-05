@@ -43,7 +43,8 @@ perde ao contar a história rápido:
    `scripts/helton/projects/specs/<tema>.md` e faça o plano"*. O humano julga o resultado — arquivos
    certos? premissas explícitas? o que está faltando? — e o plano aprovado é
    salvo aqui. **Commit e push**: a guarda do `montar-canteiro.sh` procura o
-   plano em `origin/develop`, não no seu diretório.
+   plano na base configurada em `obra.conf` (`BASE_BRANCH`, aqui
+   `origin/master`), não no seu diretório.
 3. `/compatibilizar` cruza os planos entre si e grava `scripts/helton/projects/plans/manifest.json`.
 4. `./scripts/helton/obra/montar-canteiro.sh <nome>` provisiona o canteiro —
    ou `--todos`, que monta em série todos os planos que o manifesto liberou
@@ -58,7 +59,7 @@ perde ao contar a história rápido:
    cap real.
 7. `./scripts/helton/obra/desmontar-canteiro.sh <nome>` imprime o índice de revisão e
    desmonta, preservando a branch para o merge.
-8. Merge à mão em `develop`, e então
+8. Merge à mão na base (`master`), e então
    `./scripts/helton/obra/arquivar-plano.sh <nome>`, que move o plano para
    `plans/implemented/`.
 
@@ -68,10 +69,10 @@ Plano entregue que fica em `scripts/helton/projects/plans/` volta a ser montado.
 branch `helton/<nome>` é apagada e a worktree já foi no desmonte — de modo que
 **nenhuma** das três guardas do `montar-canteiro.sh --todos` dispara (canteiro
 montado? não; branch existe? não; status no manifesto? ainda `parallel`). O
-plano ganha canteiro novo e o loop refaz do zero o que já está no develop.
+plano ganha canteiro novo e o loop refaz do zero o que já está na base.
 
 O `arquivar-plano.sh` recusa arquivar enquanto a branch existir e não estiver
-contida em `origin/develop`: arquivar antes do merge marcaria como
+contida na base: arquivar antes do merge marcaria como
 entregue um trabalho que ainda pode mudar, ou ser abandonado. Para plano
 descartado de propósito, `--force`.
 
