@@ -1,7 +1,7 @@
 import pytest
 
 from gestaolegal.database.session import get_session, transaction
-from gestaolegal.database.tables import orientacao_juridica
+from gestaolegal.database.tables import UNIDADE_PADRAO_ID, orientacao_juridica
 
 
 class TestTransactionContextManager:
@@ -13,6 +13,7 @@ class TestTransactionContextManager:
                     descricao="Test orientacao",
                     status=1,
                     id_usuario=1,
+                    unidade_id=UNIDADE_PADRAO_ID,
                 )
             )
             session.flush()
@@ -49,6 +50,7 @@ class TestTransactionContextManager:
                         descricao="Test orientacao before error",
                         status=1,
                         id_usuario=1,
+                        unidade_id=UNIDADE_PADRAO_ID,
                     )
                 )
                 raise ValueError("Simulated error")
@@ -81,6 +83,7 @@ class TestTransactionContextManager:
                         descricao="First orientacao",
                         status=1,
                         id_usuario=1,
+                        unidade_id=UNIDADE_PADRAO_ID,
                     )
                 )
 
@@ -90,6 +93,7 @@ class TestTransactionContextManager:
                         descricao="Second orientacao",
                         status=1,
                         id_usuario=1,
+                        unidade_id=UNIDADE_PADRAO_ID,
                     )
                 )
 
