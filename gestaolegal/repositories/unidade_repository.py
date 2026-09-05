@@ -22,8 +22,12 @@ class UnidadeRepository(BaseRepository):
         result = self.session.execute(stmt).one_or_none()
         return from_dict(Unidade, dict(result._mapping)) if result else None
 
-    def list_ativas(self) -> list[Unidade]:
-        stmt = select(unidades).where(unidades.c.ativa).order_by(unidades.c.nome)
+    def listar(self, incluir_inativas: bool = False) -> list[Unidade]:
+        """Unidades ordenadas por nome; só as ativas, salvo pedido explícito."""
+        stmt = select(unidades)
+        if not incluir_inativas:
+            stmt = stmt.where(unidades.c.ativa)
+        stmt = stmt.order_by(unidades.c.nome)
         results = self.session.execute(stmt).all()
         return [from_dict(Unidade, dict(row._mapping)) for row in results]
 

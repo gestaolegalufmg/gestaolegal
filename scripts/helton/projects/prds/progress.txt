@@ -33,3 +33,28 @@ Started: sáb. 05 set 2026 08:33:32 -03
   - `search_by_caso` levanta a exceção em vez de devolver página vazia porque página vazia
     é indistinguível de "caso sem processos" — o 404 é o que fecha o vazamento.
 ---
+
+## 2026-09-05 - f2-unidades-incluir-inativas-api
+- `UnidadeRepository.list_ativas()` virou `listar(incluir_inativas: bool = False)`,
+  mantendo a ordenação por nome e o comportamento anterior sem o parâmetro.
+  `UnidadeService.listar` repassa; `GET /api/unidades/` lê `incluir_inativas` e só
+  honra o pedido quando `urole == "admin"`. Não-admin recebe as ativas com 200 (não 403):
+  a rota alimenta o seletor do cabeçalho de todo mundo.
+- Arquivos: `gestaolegal/repositories/unidade_repository.py`,
+  `gestaolegal/services/unidade_service.py`,
+  `gestaolegal/controllers/unidade_controller.py`,
+  `tests/api/test_unidade_api.py`, `tests/api/test_unidade_repository.py`.
+- Três testes de API novos (admin vê inativa, não-admin não vê, PUT ativa=true devolve
+  a unidade à listagem sem parâmetro) e o teste de repositório renomeado passou a cobrir
+  também `listar(incluir_inativas=True)`.
+- Suíte: 348 passed.
+- **Learnings for future iterations:**
+  - `StringBool` (gestaolegal/utils/StringBool.py) só considera verdadeiro a string
+    literal `"true"` — `"1"` vira False. O contrato desta rota é `incluir_inativas=1`,
+    então o controller normaliza `"1"` para `"true"` antes de converter. Quem for mandar
+    um booleano novo do front por outra rota manda `"true"`/`"false"`, que é o padrão
+    do `show_inactive` em todo o web/.
+  - Autorização por papel dentro de rota `@authenticated` se lê com
+    `RequestContext.get_current_user().urole`; `@authorized("admin")` não serve aqui
+    porque barraria os não-admins da rota inteira.
+---
