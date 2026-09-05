@@ -23,12 +23,16 @@
 		initialFilters: {
 			search: page.url.searchParams.get('search') ?? '',
 			show_inactive: page.url.searchParams.get('show_inactive') === 'true',
-			funcao: page.url.searchParams.get('funcao') ?? 'all'
+			funcao: page.url.searchParams.get('funcao') ?? 'all',
+			// Filtro opcional: o padrão é trazer todos os usuários, inclusive os sem
+			// vínculo com a unidade ativa — é assim que o admin acha quem vincular.
+			somente_unidade_ativa: page.url.searchParams.get('unidade') === 'ativa'
 		},
 		buildParams: (f) => ({
 			search: f.search,
 			show_inactive: f.show_inactive ? 'true' : 'false',
-			funcao: f.funcao
+			funcao: f.funcao,
+			unidade: f.somente_unidade_ativa ? 'ativa' : ''
 		})
 	});
 
@@ -74,13 +78,22 @@
 								</Select.Content>
 							</Select.Root>
 						</div>
-						<label class="flex cursor-pointer items-center gap-2">
-							<Checkbox
-								bind:checked={filters.show_inactive}
-								onCheckedChange={() => applyFilters()}
-							/>
-							<span class="text-sm">Incluir inativos</span>
-						</label>
+						<div class="flex items-center gap-4">
+							<label class="flex cursor-pointer items-center gap-2">
+								<Checkbox
+									bind:checked={filters.somente_unidade_ativa}
+									onCheckedChange={() => applyFilters()}
+								/>
+								<span class="text-sm">Só da minha unidade</span>
+							</label>
+							<label class="flex cursor-pointer items-center gap-2">
+								<Checkbox
+									bind:checked={filters.show_inactive}
+									onCheckedChange={() => applyFilters()}
+								/>
+								<span class="text-sm">Incluir inativos</span>
+							</label>
+						</div>
 					</div>
 				</div>
 

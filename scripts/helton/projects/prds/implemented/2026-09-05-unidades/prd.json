@@ -21,7 +21,7 @@
       "blocked_by_gate": false,
       "depends_on": [],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -44,7 +44,7 @@
       "blocked_by_gate": false,
       "depends_on": [],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -63,11 +63,9 @@
       "gate_reason": null,
       "review_required": false,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f2-unidades-incluir-inativas-api"
-      ],
+      "depends_on": ["f2-unidades-incluir-inativas-api"],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -89,7 +87,7 @@
       "blocked_by_gate": false,
       "depends_on": [],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -106,11 +104,9 @@
       "gate_reason": null,
       "review_required": false,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f3-usuarios-filtro-unidade-api"
-      ],
+      "depends_on": ["f3-usuarios-filtro-unidade-api"],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {

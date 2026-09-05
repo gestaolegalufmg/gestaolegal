@@ -117,3 +117,28 @@ Started: sáb. 05 set 2026 08:33:32 -03
     presença/ausência de e-mails próprios e sobre comparação entre totais, nunca sobre
     contagem absoluta.
 ---
+
+## 2026-09-05 - f3-usuarios-filtro-unidade-front
+- A tela `/usuarios` ganhou o controle "Só da minha unidade", ao lado de "Incluir
+  inativos". Marcado, acrescenta `unidade=ativa` à query da listagem; desmarcado,
+  omite o parâmetro. **Desmarcado por padrão** — o estado inicial vem da URL
+  (`page.url.searchParams.get('unidade') === 'ativa'`), como os demais filtros.
+- `UserSearchFilters` (`web/src/lib/forms/schemas/user-schema.ts`) ganhou o campo
+  `somente_unidade_ativa: boolean`. O `+page.ts` não mudou: ele já repassa o
+  `url.searchParams` inteiro para a API.
+- Arquivos: `web/src/routes/(dashboard)/usuarios/+page.svelte`,
+  `web/src/lib/forms/schemas/user-schema.ts`.
+- Checks: `npx prettier --check .` passa (exit 0). `npm run check` — 21 erros e 50
+  avisos, exatamente o baseline da story anterior, todos em arquivos que esta story
+  não toca (nenhum aponta para `usuarios/+page.svelte` ou `user-schema.ts`).
+- Verificação em navegador não feita: declarada fora de escopo pela própria story.
+- **Learnings for future iterations:**
+  - `usePaginatedFilters` (`$lib/utils/createPaginatedList.svelte.ts`) **descarta**
+    do querystring toda chave cujo valor seja `''`, `undefined` ou `null`. É por isso
+    que um filtro "opcional com padrão ausente" se escreve como
+    `unidade: f.flag ? 'ativa' : ''` no `buildParams` — não é preciso montar o objeto
+    condicionalmente.
+  - Booleano de front vira estado no `filters` com nome próprio
+    (`somente_unidade_ativa`), não com o nome do parâmetro da API: o `buildParams` é
+    quem faz a tradução para o contrato do back (`unidade=ativa`).
+---

@@ -171,4 +171,5 @@ export type UserSearchFilters = {
 	search: string;
 	show_inactive: boolean;
 	funcao: string;
+	somente_unidade_ativa: boolean;
 };
