@@ -70,6 +70,18 @@ class UnidadeRepository(BaseRepository):
         results = self.session.execute(stmt).all()
         return [from_dict(Unidade, dict(row._mapping)) for row in results]
 
+    def usuarios_da_unidade(self, unidade_id: int) -> list[int]:
+        """Ids dos usuários vinculados à unidade.
+
+        Sentido inverso de `unidades_do_usuario`; devolve só os ids porque quem
+        chama usa a lista como cláusula `in` na consulta de usuários — filtrar
+        depois da paginação faria o total mentir.
+        """
+        stmt = select(usuarios_unidades.c.usuario_id).where(
+            usuarios_unidades.c.unidade_id == unidade_id
+        )
+        return [row[0] for row in self.session.execute(stmt).all()]
+
     def vincular(self, usuario_id: int, unidade_ids: list[int]) -> None:
         """Substitui os vínculos do usuário pelos informados."""
         stmt = sql_delete(usuarios_unidades).where(

@@ -46,6 +46,9 @@ def get():
     show_inactive = request.args.get(
         "show_inactive", default=StringBool("false"), type=StringBool
     )
+    # Filtro por unidade é opcional e o padrão é todos: um admin de BH precisa
+    # achar quem ainda não tem vínculo para poder vinculá-lo.
+    unidade = request.args.get("unidade", default=None, type=str)
 
     user_service = UsuarioService()
     result = user_service.search(
@@ -53,6 +56,7 @@ def get():
         search=search,
         show_inactive=show_inactive.value,
         role=funcao,
+        unidade=unidade,
     )
 
     return success_response(data=result.to_dict())

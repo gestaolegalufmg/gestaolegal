@@ -597,3 +597,103 @@ class TestUsuarioUnidades:
         assert response.status_code == 200
         data = get_success_data(response)
         assert [u["sigla"] for u in data["unidades"]] == ["BH"]
+
+
+class TestUsuarioFiltroPorUnidade:
+    """`?unidade=ativa` na listagem (story f3-usuarios-filtro-unidade-api)."""
+
+    def _criar(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        sample_user_data: dict[str, Any],
+        unidade_ids: list[int],
+        sufixo: str,
+    ) -> dict[str, Any]:
+        payload = dict(sample_user_data)
+        payload["id"] = random.randint(1, 1000000)
+        payload["email"] = f"filtro{sufixo}{payload['id']}@gl.com"
+        payload["unidade_ids"] = unidade_ids
+        return _create_user(client, auth_headers, payload)
+
+    def _emails(self, response) -> list[str]:
+        data = get_success_data(response)
+        return [u["email"] for u in data["items"]]
+
+    def test_sem_parametro_traz_das_duas_unidades(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        sample_user_data: dict[str, Any],
+    ) -> None:
+        so_bh = self._criar(client, auth_headers, sample_user_data, [1], "bh")
+        so_nl = self._criar(client, auth_headers, sample_user_data, [2], "nl")
+
+        response = client.get("/api/user/?per_page=1000", headers=auth_headers)
+
+        assert response.status_code == 200
+        emails = self._emails(response)
+        assert so_bh["email"] in emails
+        assert so_nl["email"] in emails
+
+    def test_unidade_ativa_traz_so_os_da_unidade_do_header(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        sample_user_data: dict[str, Any],
+    ) -> None:
+        so_bh = self._criar(client, auth_headers, sample_user_data, [1], "bh")
+        so_nl = self._criar(client, auth_headers, sample_user_data, [2], "nl")
+
+        response = client.get(
+            "/api/user/?per_page=1000&unidade=ativa", headers=auth_headers
+        )
+
+        assert response.status_code == 200
+        emails = self._emails(response)
+        assert so_bh["email"] in emails
+        assert so_nl["email"] not in emails
+
+    def test_unidade_ativa_acompanha_o_header_da_outra_unidade(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        auth_headers_nl: dict[str, str],
+        sample_user_data: dict[str, Any],
+    ) -> None:
+        so_bh = self._criar(client, auth_headers, sample_user_data, [1], "bh")
+        so_nl = self._criar(client, auth_headers, sample_user_data, [2], "nl")
+
+        response = client.get(
+            "/api/user/?per_page=1000&unidade=ativa", headers=auth_headers_nl
+        )
+
+        assert response.status_code == 200
+        emails = self._emails(response)
+        assert so_nl["email"] in emails
+        assert so_bh["email"] not in emails
+
+    def test_total_da_paginacao_reflete_o_filtro(
+        self,
+        client: FlaskClient,
+        auth_headers: dict[str, str],
+        sample_user_data: dict[str, Any],
+    ) -> None:
+        """O filtro entra na consulta: o total tem de cair, não só a página."""
+        self._criar(client, auth_headers, sample_user_data, [1], "bh")
+        self._criar(client, auth_headers, sample_user_data, [2], "nl")
+
+        todos = get_success_data(
+            client.get("/api/user/?per_page=1000", headers=auth_headers)
+        )
+        filtrados = get_success_data(
+            client.get("/api/user/?per_page=1000&unidade=ativa", headers=auth_headers)
+        )
+        primeira_pagina = get_success_data(
+            client.get("/api/user/?per_page=1&unidade=ativa", headers=auth_headers)
+        )
+
+        assert filtrados["total"] < todos["total"]
+        assert filtrados["total"] == len(filtrados["items"])
+        assert primeira_pagina["total"] == filtrados["total"]
+        assert len(primeira_pagina["items"]) == 1

@@ -26,6 +26,7 @@ from gestaolegal.repositories.repository import (
 )
 from gestaolegal.repositories.unidade_repository import UnidadeRepository
 from gestaolegal.repositories.user_repository import UserRepository
+from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +73,21 @@ class UsuarioService:
         search: str = "",
         role: str = "all",
         show_inactive: bool = False,
+        unidade: str | None = None,
     ) -> PaginatedResult[UserInfo]:
         logger.info(
-            f"Handling search request with params: page_params={page_params}, search='{search}', role='{role}', show_inactive={show_inactive}"
+            f"Handling search request with params: page_params={page_params}, search='{search}', role='{role}', show_inactive={show_inactive}, unidade={unidade}"
         )
         clauses: list[WhereClause] = []
+
+        if unidade == "ativa":
+            # Filtro OPCIONAL: sem o parâmetro o admin segue vendo todo mundo.
+            # A cláusula entra na consulta (e não em pós-processamento da
+            # página) para o total da paginação acompanhar o filtro.
+            usuario_ids = self.unidade_repository.usuarios_da_unidade(
+                RequestContext.get_unidade_ativa()
+            )
+            clauses.append(WhereClause(column="id", operator="in", value=usuario_ids))
 
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=True))

@@ -89,3 +89,31 @@ Started: sáb. 05 set 2026 08:33:32 -03
     `npx prettier --check .` redirecionando a saída e leia o exit code (pipe para `tail`
     mascara o código).
 ---
+
+## 2026-09-05 - f3-usuarios-filtro-unidade-api
+- `GET /api/user/` aceita `?unidade=ativa`: restringe aos usuários com vínculo na unidade
+  do header `X-Unidade-Id`. Sem o parâmetro, nada muda (padrão TODOS, decisão do plano).
+- `UnidadeRepository.usuarios_da_unidade(unidade_id)` — sentido inverso de
+  `unidades_do_usuario`, devolve só os ids. `UsuarioService.search` ganhou o parâmetro
+  `unidade: str | None` e monta `WhereClause(column="id", operator="in", ...)` junto das
+  demais cláusulas, antes do `repository.search`.
+- Arquivos: `gestaolegal/repositories/unidade_repository.py`,
+  `gestaolegal/services/usuario_service.py`, `gestaolegal/controllers/user_controller.py`,
+  `tests/api/test_user_api.py`.
+- Quatro testes novos (`TestUsuarioFiltroPorUnidade`): sem parâmetro traz das duas
+  unidades; com `unidade=ativa` só a do header; o mesmo pelo header de Nova Lima; e o
+  `total` da paginação cai junto (comparado com `per_page=1`, para provar que o filtro
+  está na consulta e não em pós-processamento da página).
+- Suíte: 352 passed.
+- **Learnings for future iterations:**
+  - O filtro por unidade fica no **service**, que lê o `RequestContext`; o repositório de
+    unidade só empresta a leitura do vínculo (docs/unidades.md §5.1). `UsuarioService` já
+    tinha `self.unidade_repository`, não precisou de dependência nova.
+  - Filtro que mexe em paginação tem de virar cláusula `where`: `WhereClause` já suporta
+    `operator="in"` com `list[int]` (`repositories/repository.py:134`). Filtrar depois do
+    `search` faria o `total` mentir — o teste com `per_page=1` é o que denuncia isso.
+  - Testes de listagem nesta suíte compartilham banco de sessão com todos os outros
+    (usuários criados por outros testes aparecem na lista). Asserção estável é sobre
+    presença/ausência de e-mails próprios e sobre comparação entre totais, nunca sobre
+    contagem absoluta.
+---
