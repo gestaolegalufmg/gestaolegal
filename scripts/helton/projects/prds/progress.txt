@@ -818,3 +818,6 @@ Started: sex. 04 set 2026 18:29:56 -03
   - Fechar pendência do documento exige conferir, não lembrar: a dos relatórios só pôde
     ser marcada porque a `f3-relatorio-busca` listou as cinco consultas nominalmente.
 ---
+## Empreitada: acertos-unidades (helton/acertos-unidades) — canteiro montado em 2026-09-05
+Log da anterior (helton/unidades): origin/master:scripts/helton/projects/prds/progress.txt
+---
