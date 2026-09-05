@@ -149,3 +149,6 @@ mysql_data
 docker-compose.override.yml
 # Dumps de banco (dados pessoais; nunca versionar)
 dumps/
+
+# Transcripts de sessão exportados (carregam credenciais e saídas de ambiente)
+backlog-triagem/conversa.md
