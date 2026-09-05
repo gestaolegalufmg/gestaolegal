@@ -1,4 +1,4 @@
-"""Fase de inventário do migrador de anexos legados (#190).
+"""Fases do migrador de anexos legados (#190): inventário, aplicação e verificação.
 
 O script vive em `scripts/`, que não é pacote instalado: ele é carregado por
 caminho, como faria quem o executa pela linha de comando.
@@ -808,3 +808,203 @@ def test_cli_recusa_raiz_privada_inexistente(banco, tmp_path, capsys):
 
     assert codigo == 2
     assert "Raiz privada não existe" in capsys.readouterr().err
+
+
+# --------------------------------------------------------------------------
+# Verificação
+# --------------------------------------------------------------------------
+
+
+def _migrado(banco, origens, mapa, raiz_privada) -> dict:
+    """Cenário já aplicado: três anexos migrados, e o manifesto que os descreve."""
+    engine, _ = banco
+    _plantar(origens["casos"], "peticao.pdf", b"caso")
+    _plantar(origens["eventos"], "ata.docx", b"evento")
+    _plantar(origens["arquivos"], "estatuto.pdf", b"herdado da v2")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/peticao.pdf")
+        _anexo_evento(conn, 1, f"{PREFIXOS['eventos']}/ata.docx")
+        _arquivo_geral(conn, 1, None, "estatuto.pdf")
+    manifesto = _manifesto_de(engine, mapa, arquivos_legado=str(origens["arquivos"]))
+    relatorio = migrador.aplicar(engine, manifesto, str(raiz_privada))
+    assert relatorio["erros"] == []
+    return manifesto
+
+
+def test_verificacao_de_base_integra_nao_acusa_erro(banco, origens, mapa, raiz_privada):
+    engine, _ = banco
+    manifesto = _migrado(banco, origens, mapa, raiz_privada)
+
+    relatorio = migrador.verificar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["erros"] == []
+    assert relatorio["contagem"][migrador.MIGRADO] == 3
+    assert relatorio["contagem"][migrador.AUSENTE] == 0
+    assert relatorio["contagem"][migrador.DIVERGENTE] == 0
+    # As origens continuam de pé: a quarentena é decisão humana.
+    assert relatorio["quarentena"] == 3
+
+
+def test_verificacao_acusa_referencia_final_ausente_no_volume(
+    banco, origens, mapa, raiz_privada
+):
+    engine, _ = banco
+    manifesto = _migrado(banco, origens, mapa, raiz_privada)
+    os.remove(raiz_privada / "casos" / _item_de(manifesto, "arquivosCaso", 1)["destino"])
+
+    relatorio = migrador.verificar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.AUSENTE] == 1
+    assert relatorio["contagem"][migrador.MIGRADO] == 2
+    assert "arquivosCaso#1" in relatorio["erros"][0]
+    assert "não está na raiz privada" in relatorio["erros"][0]
+
+
+def test_verificacao_acusa_conteudo_divergente_do_manifesto(
+    banco, origens, mapa, raiz_privada
+):
+    engine, _ = banco
+    manifesto = _migrado(banco, origens, mapa, raiz_privada)
+    copiado = raiz_privada / "eventos" / _item_de(manifesto, "eventos", 1)["destino"]
+    copiado.write_bytes(b"event0")  # mesmo tamanho de b"evento", outro SHA-256
+
+    relatorio = migrador.verificar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.DIVERGENTE] == 1
+    assert relatorio["contagem"][migrador.MIGRADO] == 2
+    assert "eventos#1" in relatorio["erros"][0]
+    assert "SHA-256" in relatorio["erros"][0]
+
+
+def test_verificacao_acusa_referencia_que_ficou_no_formato_legado(
+    banco, origens, mapa, raiz_privada
+):
+    engine, _ = banco
+    _plantar(origens["casos"], "peticao.pdf", b"caso")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, f"{PREFIXOS['casos']}/peticao.pdf")
+    manifesto = _manifesto_de(engine, mapa)  # aplicação nunca rodou
+
+    relatorio = migrador.verificar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.AUSENTE] == 1
+    assert "formato legado" in relatorio["erros"][0]
+
+
+def test_verificacao_nao_cobra_o_que_e_excecao_por_desenho(banco, mapa, raiz_privada):
+    engine, _ = banco
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, "/etc/passwd")  # externo
+        _anexo_caso(conn, 2, None)  # sem referência
+        _anexo_caso(conn, 3, f"{PREFIXOS['casos']}/some.pdf")  # some do banco depois
+    manifesto = _manifesto_de(engine, mapa)
+    with engine.begin() as conn:
+        conn.execute(arquivos_caso.delete().where(arquivos_caso.c.id == 3))
+
+    relatorio = migrador.verificar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.EXCECAO] == 3
+    assert relatorio["erros"] == []
+
+
+def test_verificacao_aceita_anexo_que_ja_era_relativo_antes_do_inventario(
+    banco, origens, mapa, raiz_privada
+):
+    engine, _ = banco
+    (raiz_privada / "casos" / "abc_procuracao.pdf").write_bytes(b"gravado pela API nova")
+    with engine.begin() as conn:
+        _anexo_caso(conn, 1, "abc_procuracao.pdf")
+    manifesto = _manifesto_de(engine, mapa)
+    assert _item_de(manifesto, "arquivosCaso", 1)["classificacao"] == migrador.JA_MIGRADO
+
+    relatorio = migrador.verificar(engine, manifesto, str(raiz_privada))
+
+    assert relatorio["contagem"][migrador.MIGRADO] == 1
+    assert relatorio["erros"] == []
+
+
+def test_verificacao_nao_escreve_nada(banco, origens, mapa, raiz_privada):
+    engine, _ = banco
+    manifesto = _migrado(banco, origens, mapa, raiz_privada)
+    antes = {
+        p: (p.stat().st_mtime_ns, p.read_bytes())
+        for p in (raiz_privada / "casos").iterdir()
+    }
+    referencias = {
+        t: _coluna(engine, tabela, coluna, 1)
+        for t, (tabela, coluna) in {
+            "caso": (arquivos_caso, "link_arquivo"),
+            "evento": (eventos, "arquivo"),
+            "arquivo": (arquivos, "caminho"),
+        }.items()
+    }
+
+    migrador.verificar(engine, manifesto, str(raiz_privada))
+
+    assert {
+        p: (p.stat().st_mtime_ns, p.read_bytes())
+        for p in (raiz_privada / "casos").iterdir()
+    } == antes
+    assert _coluna(engine, arquivos_caso, "link_arquivo", 1) == referencias["caso"]
+    assert _coluna(engine, eventos, "arquivo", 1) == referencias["evento"]
+    assert _coluna(engine, arquivos, "caminho", 1) == referencias["arquivo"]
+
+
+def test_cli_verificacao_resume_e_sai_com_a_contagem_de_erros(
+    banco, origens, mapa, raiz_privada, tmp_path, capsys
+):
+    engine, url = banco
+    manifesto = _migrado(banco, origens, mapa, raiz_privada)
+    caminho = tmp_path / "manifesto.json"
+    caminho.write_text(json.dumps(manifesto, ensure_ascii=False), encoding="utf-8")
+
+    argumentos = [
+        "verificacao",
+        "--manifesto",
+        str(caminho),
+        "--raiz-privada",
+        str(raiz_privada),
+        "--database-url",
+        url,
+    ]
+    codigo = migrador.main(argumentos)
+
+    saida = capsys.readouterr().out
+    assert codigo == 0
+    assert "migrado: 3" in saida
+    assert "ausente: 0" in saida
+    assert "divergente: 0" in saida
+    assert "excecao: 0" in saida
+    assert "quarentena (origens ainda no lugar antigo): 3" in saida
+
+    # Uma referência ausente e uma divergente: saída não zero, ambas no resumo.
+    os.remove(raiz_privada / "casos" / _item_de(manifesto, "arquivosCaso", 1)["destino"])
+    (raiz_privada / "eventos" / _item_de(manifesto, "eventos", 1)["destino"]).write_bytes(
+        b"event0"
+    )
+
+    codigo = migrador.main(argumentos)
+
+    capturado = capsys.readouterr()
+    assert codigo == 2
+    assert "ausente: 1" in capturado.out
+    assert "divergente: 1" in capturado.out
+    assert "arquivosCaso#1" in capturado.err
+    assert "eventos#1" in capturado.err
+
+
+def test_cli_verificacao_recusa_manifesto_ausente(banco, raiz_privada, tmp_path, capsys):
+    _engine, url = banco
+    codigo = migrador.main(
+        [
+            "verificacao",
+            "--manifesto",
+            str(tmp_path / "nao-existe.json"),
+            "--raiz-privada",
+            str(raiz_privada),
+            "--database-url",
+            url,
+        ]
+    )
+    assert codigo == 2
+    assert "Manifesto não encontrado" in capsys.readouterr().err

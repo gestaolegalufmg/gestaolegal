@@ -1,4 +1,20 @@
-"""Migrador dos anexos legados para a raiz privada (#190): inventário e aplicação.
+"""Migrador dos anexos legados para a raiz privada (#190): três fases.
+
+O procedimento inteiro, na ordem, é:
+
+    1. `inventario`  — levanta e classifica as referências; grava o manifesto.
+       Não escreve mais nada, nem no banco nem no volume.
+    2. `aplicacao`   — copia cada origem para o destino do manifesto, confere
+       tamanho e SHA-256 e só então atualiza a referência no banco. É
+       reexecutável: a retomada é validada contra o estado real do banco.
+    3. `verificacao` — relê as referências FINAIS do banco e confere que cada
+       uma resolve dentro da raiz privada e tem o conteúdo do manifesto. Não
+       escreve nada; sai com a contagem de erros.
+
+**Rodar qualquer fase contra o banco de QA ou de produção é decisão humana.**
+Nenhuma delas é acionada pela esteira automatizada: ela só escreve e testa o
+script. A aplicação ainda exige `--backup-conferido`, que é a afirmação de
+quem executa.
 
 Uso:
     uv run python scripts/migrar_arquivos_privados.py inventario \
@@ -13,15 +29,15 @@ Uso:
         --raiz-privada /data/gestaolegal/uploads \
         --backup-conferido
 
+    uv run python scripts/migrar_arquivos_privados.py verificacao \
+        --manifesto /data/gestaolegal/migracao/manifesto.json \
+        --raiz-privada /data/gestaolegal/uploads
+
 Lê o `.env` do diretório atual (raiz do checkout ou da worktree) e usa
 `Config.SQLALCHEMY_DATABASE_URI`, como `migrations/env.py`. `--database-url`
 substitui essa URL (é o que os testes usam).
 
-**Rodar isto contra o banco de QA ou de produção é decisão humana.** O script
-existe para ser lido e conferido antes de qualquer execução com dados reais; a
-esteira automatizada só o escreve e o testa.
-
-Fase de inventário (esta): NÃO ESCREVE NADA além do manifesto. Percorre as três
+Fase de inventário: NÃO ESCREVE NADA além do manifesto. Percorre as três
 colunas de anexo — `arquivosCaso.link_arquivo`, `eventos.arquivo` e
 `arquivos.caminho` —, registros ativos e inativos, traduz cada referência
 legada pelo mapa `prefixo antigo=mount de leitura` e classifica o que achou. Os
@@ -71,7 +87,25 @@ efeito duplicado.
 Nenhuma origem é removida. A quarentena das origens públicas é decisão humana,
 fora deste script.
 
-A fase de verificação é da story seguinte (f12).
+Fase de verificação: NÃO ESCREVE NADA. Para cada item do manifesto ela relê a
+coluna do banco — a referência FINAL, não a do manifesto — e confere que ela
+resolve dentro da raiz privada pela mesma regra do `private_file_storage`, que
+o arquivo está lá e que tamanho e SHA-256 continuam sendo os do manifesto.
+
+O resumo separa quatro grupos:
+
+    migrado     referência final resolve, existe no volume e o conteúdo bate
+    ausente     erro: a referência não resolve, sumiu do volume ou continua
+                no formato legado (a aplicação não chegou nela)
+    divergente  erro: o arquivo está lá, mas o conteúdo mudou desde o manifesto
+    excecao     nada a conferir por desenho — externo, sem anexo, ou registro
+                que não existe mais no banco
+
+E conta à parte a **quarentena**: as origens públicas que continuam de pé no
+lugar antigo. Nenhuma fase as remove; a quarentena é decisão humana.
+
+O código de saída é a contagem de erros (ausentes + divergentes), como em
+`scripts/seed_local.py`.
 """
 
 import argparse
@@ -114,6 +148,13 @@ IGNORADO = "ignorado"
 ERRO = "erro"
 
 RESULTADOS = (APLICADO, JA_APLICADO, IGNORADO, ERRO)
+
+MIGRADO = "migrado"
+DIVERGENTE = "divergente"
+EXCECAO = "excecao"
+
+VERIFICACOES = (MIGRADO, AUSENTE, DIVERGENTE, EXCECAO)
+"""Grupos do resumo da verificação. `AUSENTE` e `DIVERGENTE` são os erros."""
 
 TABELAS = {
     "arquivosCaso": (arquivos_caso, "link_arquivo"),
@@ -677,6 +718,94 @@ def executar_aplicacao(args) -> int:
     return contagem[ERRO]
 
 
+# --------------------------------------------------------------------------
+# Fase 3: verificação
+# --------------------------------------------------------------------------
+
+
+def verificar_item(conn, item: dict, raiz: str) -> tuple[str, str | None]:
+    """Confere a referência FINAL de um item. Devolve `(grupo, motivo)`.
+
+    A referência conferida é a que está no banco AGORA, não a do manifesto: é
+    ela que o app vai resolver. O manifesto entra só como padrão de conteúdo,
+    quando a referência final é o destino que ele previu.
+    """
+    if item.get("classificacao") in (EXTERNO, SEM_REFERENCIA):
+        return EXCECAO, "sem anexo migrável no inventário"
+
+    try:
+        atual = _valor_atual(conn, item.get("tabela"), item.get("registro_id"))
+    except FalhaDeItem as e:
+        return EXCECAO, str(e)
+
+    if not (atual or "").strip():
+        return EXCECAO, "registro sem anexo"
+    atual = atual.strip()
+
+    if not _e_referencia_relativa(atual):
+        return AUSENTE, "referência ainda no formato legado — não foi migrada"
+
+    try:
+        caminho = caminho_destino(raiz, item.get("categoria", ""), atual)
+    except FalhaDeItem as e:
+        return AUSENTE, str(e)
+
+    if not os.path.isfile(caminho):
+        return AUSENTE, f"arquivo não está na raiz privada: {item.get('categoria')}/{atual}"
+
+    if _mesma_referencia(atual, item.get("destino")):
+        try:
+            _conferir_contra_manifesto(
+                caminho, item.get("tamanho"), item.get("sha256"), "referência final"
+            )
+        except FalhaDeItem as e:
+            return DIVERGENTE, str(e)
+
+    return MIGRADO, None
+
+
+def verificar(engine, manifesto: dict, raiz: str) -> dict:
+    """Percorre o manifesto conferindo o estado final. Não escreve nada."""
+    contagem = {grupo: 0 for grupo in VERIFICACOES}
+    erros: list[str] = []
+    quarentena = 0
+    with engine.connect() as conn:
+        for item in manifesto["itens"]:
+            rotulo = f"{item.get('tabela')}#{item.get('registro_id')}"
+            try:
+                grupo, motivo = verificar_item(conn, item, raiz)
+            except OSError as e:
+                grupo, motivo = AUSENTE, f"falha de filesystem: {e}"
+            contagem[grupo] += 1
+            if grupo in (AUSENTE, DIVERGENTE):
+                erros.append(f"{rotulo}: {motivo}")
+            origem = item.get("origem")
+            if origem and os.path.isfile(origem):
+                quarentena += 1
+    return {"contagem": contagem, "erros": erros, "quarentena": quarentena}
+
+
+def executar_verificacao(args) -> int:
+    manifesto = carregar_manifesto(args.manifesto)
+    raiz = _raiz_privada(args.raiz_privada)
+
+    engine = create_engine(_database_url(args.database_url))
+    try:
+        relatorio = verificar(engine, manifesto, raiz)
+    finally:
+        engine.dispose()
+
+    contagem = relatorio["contagem"]
+    print(f"verificação: {len(manifesto['itens'])} item(ns) no manifesto")
+    for chave in VERIFICACOES:
+        print(f"  {chave}: {contagem[chave]}")
+    print(f"  quarentena (origens ainda no lugar antigo): {relatorio['quarentena']}")
+    for erro in relatorio["erros"]:
+        print(f"  ! {erro}", file=sys.stderr)
+    print("nenhuma origem foi removida — a quarentena é decisão humana")
+    return contagem[AUSENTE] + contagem[DIVERGENTE]
+
+
 def _database_url(argumento: str | None) -> str:
     if argumento:
         return argumento
@@ -735,6 +864,23 @@ def _montar_parser() -> argparse.ArgumentParser:
         " origens foi feito e conferido. Sem isto o script não escreve nada.",
     )
     aplicacao.add_argument("--database-url", help="Substitui Config.SQLALCHEMY_DATABASE_URI.")
+
+    verificacao = sub.add_parser(
+        "verificacao",
+        help="Fase 3: confere as referências finais e resume. Não escreve nada.",
+    )
+    verificacao.add_argument(
+        "--manifesto",
+        required=True,
+        metavar="ARQUIVO",
+        help="Manifesto gerado pela fase de inventário.",
+    )
+    verificacao.add_argument(
+        "--raiz-privada",
+        metavar="DIR",
+        help="Raiz privada a conferir. Padrão: Config.PRIVATE_FILES_ROOT.",
+    )
+    verificacao.add_argument("--database-url", help="Substitui Config.SQLALCHEMY_DATABASE_URI.")
     return parser
 
 
@@ -772,6 +918,8 @@ def main(argv: list[str] | None = None) -> int:
             return executar_inventario(args)
         if args.fase == "aplicacao":
             return executar_aplicacao(args)
+        if args.fase == "verificacao":
+            return executar_verificacao(args)
     except ErroDeUso as e:
         print(f"migrador: {e}", file=sys.stderr)
         return 2

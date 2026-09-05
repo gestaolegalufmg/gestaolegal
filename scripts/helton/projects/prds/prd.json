@@ -272,7 +272,7 @@
         "f11-migrador-aplicacao"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]

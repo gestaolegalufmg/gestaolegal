@@ -471,3 +471,31 @@ Started: sáb. 05 set 2026 07:40:12 -03
     comprimento (`b"conteudo original"` / `b"conteudo trocado."`). Assim o teste prova que
     o SHA-256 é conferido, não só o tamanho.
 ---
+## 2026-09-05 - f12-migrador-verificacao
+- Terceira fase do `scripts/migrar_arquivos_privados.py`: subcomando `verificacao`,
+  que NÃO escreve nada. Para cada item do manifesto ele relê a coluna do banco (a
+  referência **final**, não a do manifesto), confere que ela é relativa, que resolve
+  dentro da raiz privada pela mesma regra do `private_file_storage` (`caminho_destino`)
+  e que tamanho e SHA-256 continuam sendo os do manifesto.
+- Quatro grupos no resumo: `migrado`, `ausente` (não resolve, sumiu do volume ou ficou
+  no formato legado), `divergente` (está lá, mudou de conteúdo) e `excecao` (externo,
+  sem anexo, ou registro que não existe mais). Erros = ausentes + divergentes, e é
+  essa soma que vira o código de saída, como em `scripts/seed_local.py`.
+- A quarentena é contada à parte: quantas origens continuam de pé no lugar antigo.
+  Nenhuma fase remove origem; a quarentena segue sendo decisão humana.
+- Docstring do módulo reescrito: as três fases em ordem no topo, com a frase de que
+  rodar qualquer uma contra QA ou produção é decisão humana logo em seguida (antes ela
+  estava enterrada no meio, e falava só do inventário).
+- Arquivos: `scripts/migrar_arquivos_privados.py`, `tests/api/test_migrar_arquivos_privados.py`.
+- `make test`: 450 passed.
+- **Learnings for future iterations:**
+  - A verificação só cobra checksum quando a referência final é exatamente o `destino`
+    do manifesto. Anexo que já era relativo antes do inventário (`ja_migrado`) não tem
+    tamanho nem SHA-256 registrados — para ele basta existir no volume. Cobrar checksum
+    ali daria falso erro em toda base que já tem uploads da API nova.
+  - Registro apagado entre a aplicação e a verificação é `excecao`, não erro: não sobrou
+    referência quebrada para o app resolver. O erro é a referência que existe e não abre.
+  - Teste de divergência de conteúdo tem que trocar o byte SEM mudar o tamanho
+    (`b"evento"` -> `b"event0"`), senão a falha para no teste de tamanho e a asserção de
+    SHA-256 nunca chega a ser exercitada.
+---
