@@ -4,6 +4,7 @@ from flask import Blueprint, request, send_file
 
 from gestaolegal.common import PageParams
 from gestaolegal.services.arquivo_service import ArquivoService
+from gestaolegal.services.private_file_storage import aplicar_headers_download
 from gestaolegal.utils.api_decorators import authenticated, authorized
 from gestaolegal.utils.api_response import success_response
 from gestaolegal.utils.request_context import RequestContext
@@ -72,4 +73,6 @@ def excluir(id: int):
 @authenticated
 def download(id: int):
     caminho, nome = ArquivoService().get_for_download(id)
-    return send_file(caminho, as_attachment=True, download_name=nome)
+    return aplicar_headers_download(
+        send_file(caminho, as_attachment=True, download_name=nome)
+    )

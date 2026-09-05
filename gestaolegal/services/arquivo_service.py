@@ -5,26 +5,22 @@ from typing import Any, cast
 
 from flask import current_app
 from werkzeug.datastructures import FileStorage
-from werkzeug.utils import secure_filename
 
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.database.session import transaction
 from gestaolegal.exceptions import NotFoundException, ValidationException
 from gestaolegal.models.arquivo import Arquivo
 from gestaolegal.repositories.arquivo_repository import ArquivoRepository
+from gestaolegal.services import private_file_storage
 
 logger = logging.getLogger(__name__)
 
 ARQUIVOS_CATEGORIA = "arquivos"
 
 
-def _arquivos_dir() -> str:
-    """Resolvida a cada chamada: a raiz vem da config do app, não do import."""
-    return os.path.join(current_app.config["PRIVATE_FILES_ROOT"], ARQUIVOS_CATEGORIA)
-
-
 def _max_arquivo_bytes() -> int:
     return int(current_app.config["MAX_CONTENT_LENGTH"])
+
 
 TITULO_MAX = 150
 DESCRICAO_MAX = 8000
@@ -33,9 +29,10 @@ DESCRICAO_MAX = 8000
 class ArquivoService:
     """Arquivos gerais da organização (módulo "Arquivos" da v2).
 
-    Qualquer tipo de arquivo é aceito, até 10 MB. O arquivo fica em
-    raiz privada (categoria "arquivos") com prefixo de data/hora para evitar colisão de nomes; o
-    nome original é guardado em `nome` para o download.
+    Qualquer tipo de arquivo é aceito, até 10 MB. O arquivo mora na raiz
+    privada (categoria "arquivos") e `caminho` guarda a **referência relativa**
+    à categoria, nunca um caminho absoluto; o nome original fica em `nome`,
+    para o download.
     """
 
     repository: ArquivoRepository
@@ -58,7 +55,7 @@ class ArquivoService:
         titulo, descricao = self._validar_campos(titulo, descricao)
         self._validar_arquivo(file)
 
-        caminho = self._salvar(file)
+        ref = private_file_storage.save(ARQUIVOS_CATEGORIA, file)
         try:
             with transaction():
                 arquivo_id = self.repository.create(
@@ -66,13 +63,13 @@ class ArquivoService:
                         "titulo": titulo,
                         "descricao": descricao,
                         "nome": cast(str, file.filename),
-                        "caminho": caminho,
+                        "caminho": ref,
                         "data_criacao": datetime.now(),
                         "id_criado_por": criado_por,
                     }
                 )
         except Exception:
-            self._remover_do_disco(caminho)
+            private_file_storage.remove(ARQUIVOS_CATEGORIA, ref)
             raise
         logger.info(f"Arquivo {arquivo_id} criado por usuário {criado_por}")
         return self.find_by_id(arquivo_id)
@@ -93,23 +90,23 @@ class ArquivoService:
         titulo, descricao = self._validar_campos(titulo, descricao)
         data: dict[str, Any] = {"titulo": titulo, "descricao": descricao}
 
-        novo_caminho: str | None = None
+        nova_ref: str | None = None
         if file is not None and file.filename:
             self._validar_arquivo(file)
-            novo_caminho = self._salvar(file)
+            nova_ref = private_file_storage.save(ARQUIVOS_CATEGORIA, file)
             data["nome"] = file.filename
-            data["caminho"] = novo_caminho
+            data["caminho"] = nova_ref
 
         try:
             with transaction():
                 self.repository.update(id, data)
         except Exception:
-            if novo_caminho:
-                self._remover_do_disco(novo_caminho)
+            if nova_ref:
+                private_file_storage.remove(ARQUIVOS_CATEGORIA, nova_ref)
             raise
 
-        if novo_caminho and self._caminho_de(atual) != novo_caminho:
-            self._remover_do_disco(self._caminho_de(atual))
+        if nova_ref and atual.caminho and atual.caminho != nova_ref:
+            self._remover_do_volume(atual.caminho, contexto=f"arquivo {id} substituído")
         logger.info(f"Arquivo {id} atualizado")
         return self.find_by_id(id)
 
@@ -117,22 +114,37 @@ class ArquivoService:
         arquivo = self.find_by_id(id)
         with transaction():
             self.repository.delete(id)
-        self._remover_do_disco(self._caminho_de(arquivo))
+        self._remover_do_volume(arquivo.caminho, contexto=f"arquivo {id} excluído")
         logger.info(f"Arquivo {id} excluído")
 
     def get_for_download(self, id: int) -> tuple[str, str]:
-        """Caminho no disco e nome original para o download."""
+        """Caminho absoluto no volume e nome original para o download."""
         arquivo = self.find_by_id(id)
-        caminho = self._caminho_de(arquivo)
-        if not os.path.exists(caminho):
-            logger.error(f"Arquivo {id} não encontrado no disco: {caminho}")
+        if not arquivo.caminho:
+            logger.error(f"Arquivo {id} sem referência de anexo (registro herdado da 2.0)")
+            raise NotFoundException(resource="Arquivo no disco", resource_id=id)
+        caminho = private_file_storage.resolve(ARQUIVOS_CATEGORIA, arquivo.caminho)
+        if not os.path.isfile(caminho):
+            logger.error(f"Arquivo {id} não encontrado no volume: {arquivo.caminho}")
             raise NotFoundException(resource="Arquivo no disco", resource_id=id)
         return caminho, arquivo.nome
 
     @staticmethod
-    def _caminho_de(arquivo: Arquivo) -> str:
-        """Registros da v2 não têm `caminho`: o arquivo ficava na raiz/nome."""
-        return arquivo.caminho or os.path.join(_arquivos_dir(), arquivo.nome)
+    def _remover_do_volume(ref: str | None, contexto: str) -> None:
+        """Limpeza **pós-commit**: falha aqui vira log de reconciliação.
+
+        O banco já confirmou; levantar agora simularia um rollback que não
+        existe. O que sobra é um órfão no volume — problema de faxina.
+        """
+        if not ref:
+            return
+        try:
+            private_file_storage.remove(ARQUIVOS_CATEGORIA, ref)
+        except Exception as e:
+            logger.error(
+                f"Reconciliação pendente: {contexto}, mas {ARQUIVOS_CATEGORIA}/{ref} "
+                f"continua no volume ({e})"
+            )
 
     # ------------------------------------------------------------------ util
 
@@ -169,21 +181,3 @@ class ArquivoService:
                 field="arquivo",
             )
 
-    @staticmethod
-    def _salvar(file: FileStorage) -> str:
-        filename = secure_filename(cast(str, file.filename)) or "arquivo"
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        arquivos_dir = _arquivos_dir()
-        os.makedirs(arquivos_dir, exist_ok=True)
-        caminho = os.path.join(arquivos_dir, f"{timestamp}_{filename}")
-        file.save(caminho)
-        logger.info(f"Arquivo gravado em {caminho}")
-        return caminho
-
-    @staticmethod
-    def _remover_do_disco(caminho: str | None) -> None:
-        if caminho and os.path.exists(caminho):
-            try:
-                os.remove(caminho)
-            except OSError as e:
-                logger.warning(f"Não foi possível remover {caminho}: {e}")

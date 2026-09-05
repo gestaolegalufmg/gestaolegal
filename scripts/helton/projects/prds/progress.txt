@@ -256,3 +256,41 @@ Started: sáb. 05 set 2026 07:40:12 -03
     só descobre o tipo recusado no submit. Acrescentar `accept` exigiria mexer no
     componente compartilhado — ficou de fora desta story de propósito.
 ---
+
+## 2026-09-05 - f7-fluxo-arquivos-gerais
+- `arquivo_service` passou a usar `private_file_storage` (categoria `arquivos`):
+  `arquivos.caminho` guarda a **referência relativa**, não mais o caminho absoluto.
+- `_caminho_de` sumiu — era `arquivo.caminho or os.path.join(ARQUIVOS_DIR, arquivo.nome)`,
+  que concatenava a coluna Text `nome` (sem `secure_filename`) num caminho de filesystem.
+  Sem fallback: registro herdado da 2.0 sem `caminho` agora responde 404 tratado
+  ("Arquivo no disco"), com log; quem conserta esses registros é o migrador (f10-f12).
+- `_salvar` e `_remover_do_disco` também sumiram. Sobraram no módulo dois usos de `os`:
+  `os.path.isfile` no download e `os.SEEK_END` na checagem de tamanho.
+- Ciclo de vida igual ao de f5/f6: valida -> grava o novo -> confirma o banco -> em falha
+  remove o novo e mantém o antigo -> após o commit remove o anterior, por
+  `_remover_do_volume` (loga reconciliação pendente em vez de levantar). Em `delete` o
+  registro sai primeiro, o arquivo depois.
+- O controller de download agora passa por `aplicar_headers_download`
+  (`Cache-Control: private, no-store`), como os outros dois fluxos.
+- 4 testes novos em `tests/api/test_arquivo_api.py`: cabeçalho de download privado,
+  arquivo ausente do volume (404), registro sem `caminho` com um arquivo de mesmo nome
+  plantado na raiz (404, e não leitura do arquivo plantado), falha de banco no create sem
+  órfão no volume. Os asserts de `os.path.exists(data["caminho"])` passaram pelos helpers
+  `arquivo_existe`/`caminho_do_arquivo`, e o create agora também afirma que a resposta não
+  expõe a raiz privada.
+- Comentário de `gestaolegal/models/arquivo.py` atualizado: `caminho` nulo não é mais
+  "arquivo em ARQUIVOS_DIR/nome".
+- `make test`: 390 passed.
+- Arquivos: gestaolegal/services/arquivo_service.py,
+  gestaolegal/controllers/arquivo_controller.py, gestaolegal/models/arquivo.py,
+  tests/api/test_arquivo_api.py.
+- **Learnings for future iterations:**
+  - Os três fluxos de anexo agora só falam com o filesystem por `private_file_storage`.
+    `grep -n "os\." <service>` é a checagem barata de que nenhum resquício ficou.
+  - Teste de "não monta caminho pelo nome" precisa **plantar** o arquivo com o nome
+    original na categoria: sem o arquivo plantado, o 404 passaria mesmo com o fallback
+    vivo, e o teste não provaria nada.
+  - Para forçar falha de banco na API inteira, `monkeypatch.setattr(ArquivoRepository,
+    "create", explode)` devolve 500 pelo handler global — serve para provar ausência de
+    órfão sem chamar o service direto.
+---
