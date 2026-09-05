@@ -1,13 +1,32 @@
+import os
 from io import BytesIO
 from typing import Any
 
+import pytest
+from flask import Flask
 from flask.testing import FlaskClient
 
+from gestaolegal.services import private_file_storage
 from tests.api.conftest import (
     assert_success_response,
     clean_tables,
     get_success_data,
 )
+
+
+def caminho_do_anexo(app: Flask, ref: str) -> str:
+    """Caminho real do anexo de caso a partir da referência guardada no banco.
+
+    O banco guarda só a referência relativa à categoria; quem sabe traduzir
+    para disco é o `private_file_storage`, e ele precisa do contexto do app.
+    """
+    with app.app_context():
+        return private_file_storage.resolve("casos", ref)
+
+
+def anexo_existe(app: Flask, ref: str) -> bool:
+    with app.app_context():
+        return private_file_storage.exists("casos", ref)
 
 
 def test_create_caso_success(
@@ -713,6 +732,7 @@ def test_update_evento_wrong_caso_returns_error(
 
 
 def test_upload_arquivo_to_caso(
+    app: Flask,
     client: FlaskClient,
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
@@ -741,7 +761,15 @@ def test_upload_arquivo_to_caso(
     data_response = get_success_data(response)
     assert data_response is not None
     assert "id" in data_response
-    assert "link_arquivo" in data_response
+    ref = data_response["link_arquivo"]
+
+    # A resposta traz a referência relativa, nunca a raiz privada.
+    assert not os.path.isabs(ref)
+    assert "/" not in ref
+    raiz = app.config["PRIVATE_FILES_ROOT"]
+    assert raiz not in response.get_data(as_text=True)
+    assert ref.endswith("test_documento.pdf")
+    assert anexo_existe(app, ref)
 
 
 def test_get_arquivos_by_caso(
@@ -1167,12 +1195,11 @@ def test_get_evento_not_found(
 
 
 def test_replace_arquivo_caso(
+    app: Flask,
     client: FlaskClient,
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    import os
-
     caso_id = get_success_data(
         client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
     )["id"]
@@ -1184,8 +1211,8 @@ def test_replace_arquivo_caso(
         content_type="multipart/form-data",
     )
     arquivo = get_success_data(upload)
-    caminho_antigo = arquivo["link_arquivo"]
-    assert os.path.exists(caminho_antigo)
+    ref_antiga = arquivo["link_arquivo"]
+    assert anexo_existe(app, ref_antiga)
 
     response = client.put(
         f"/api/caso/{caso_id}/arquivos/{arquivo['id']}",
@@ -1196,25 +1223,24 @@ def test_replace_arquivo_caso(
     assert response.status_code == 200
     atualizado = get_success_data(response)
     assert atualizado["id"] == arquivo["id"]
-    assert atualizado["link_arquivo"] != caminho_antigo
+    assert atualizado["link_arquivo"] != ref_antiga
     assert atualizado["link_arquivo"].endswith("corrigido.pdf")
-    assert os.path.exists(atualizado["link_arquivo"])
-    assert not os.path.exists(caminho_antigo)
+    assert anexo_existe(app, atualizado["link_arquivo"])
+    assert not anexo_existe(app, ref_antiga)
 
     # O caso continua com um único anexo.
     lista = get_success_data(client.get(f"/api/caso/{caso_id}/arquivos", headers=auth_headers))
     assert len(lista["arquivos"]) == 1
 
-    os.remove(atualizado["link_arquivo"])
+    os.remove(caminho_do_anexo(app, atualizado["link_arquivo"]))
 
 
 def test_replace_arquivo_caso_rejects_non_pdf(
+    app: Flask,
     client: FlaskClient,
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    import os
-
     caso_id = get_success_data(
         client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
     )["id"]
@@ -1234,8 +1260,229 @@ def test_replace_arquivo_caso_rejects_non_pdf(
         content_type="multipart/form-data",
     )
     assert response.status_code == 400
-    assert os.path.exists(arquivo["link_arquivo"])
-    os.remove(arquivo["link_arquivo"])
+    assert anexo_existe(app, arquivo["link_arquivo"])
+    os.remove(caminho_do_anexo(app, arquivo["link_arquivo"]))
+
+
+def test_replace_arquivo_caso_rollback_mantem_o_anterior(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Transação que não confirma: o anexo antigo fica, o novo não sobra.
+
+    O novo arquivo chega a ser gravado antes do update; se o banco recusar, ele
+    não pode continuar no volume — ninguém o referencia — e o antigo tem que
+    seguir baixável.
+    """
+    from gestaolegal.repositories.arquivo_caso_repository import ArquivoCasoRepository
+    from gestaolegal.services import private_file_storage as pfs
+
+    caso_id = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+    arquivo = get_success_data(
+        client.post(
+            f"/api/caso/{caso_id}/arquivos",
+            data={"arquivo": (BytesIO(b"versao 1"), "original.pdf")},
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        )
+    )
+    ref_antiga = arquivo["link_arquivo"]
+
+    gravadas: list[str] = []
+    save_real = pfs.save
+
+    def save_espiao(categoria: str, file: Any) -> str:
+        ref = save_real(categoria, file)
+        gravadas.append(ref)
+        return ref
+
+    monkeypatch.setattr(pfs, "save", save_espiao)
+
+    def update_explode(self: Any, *args: Any, **kwargs: Any) -> None:
+        raise RuntimeError("banco fora do ar")
+
+    monkeypatch.setattr(ArquivoCasoRepository, "update", update_explode)
+
+    response = client.put(
+        f"/api/caso/{caso_id}/arquivos/{arquivo['id']}",
+        data={"arquivo": (BytesIO(b"versao 2"), "corrigido.pdf")},
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code >= 400
+
+    assert len(gravadas) == 1
+    assert not anexo_existe(app, gravadas[0])
+
+    monkeypatch.undo()
+    atual = get_success_data(
+        client.get(f"/api/caso/{caso_id}/arquivos", headers=auth_headers)
+    )["arquivos"]
+    assert [a["link_arquivo"] for a in atual] == [ref_antiga]
+    assert anexo_existe(app, ref_antiga)
+
+    download = client.get(
+        f"/api/caso/{caso_id}/arquivos/{arquivo['id']}/download", headers=auth_headers
+    )
+    assert download.status_code == 200
+    assert download.data == b"versao 1"
+
+    os.remove(caminho_do_anexo(app, ref_antiga))
+
+
+def test_download_arquivo_caso(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+    arquivo = get_success_data(
+        client.post(
+            f"/api/caso/{caso_id}/arquivos",
+            data={"arquivo": (BytesIO(b"conteudo do pdf"), "peticao inicial.pdf")},
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        )
+    )
+
+    response = client.get(
+        f"/api/caso/{caso_id}/arquivos/{arquivo['id']}/download", headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    assert response.data == b"conteudo do pdf"
+    assert "attachment" in response.headers["Content-Disposition"]
+    # O nome oferecido é o original, sem o prefixo de unicidade.
+    assert "peticao_inicial.pdf" in response.headers["Content-Disposition"]
+    assert app.config["PRIVATE_FILES_ROOT"] not in response.headers[
+        "Content-Disposition"
+    ]
+    assert response.headers["Cache-Control"] == "private, no-store"
+
+    os.remove(caminho_do_anexo(app, arquivo["link_arquivo"]))
+
+
+def test_download_arquivo_caso_requires_auth(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+    arquivo = get_success_data(
+        client.post(
+            f"/api/caso/{caso_id}/arquivos",
+            data={"arquivo": (BytesIO(b"sigiloso"), "sigiloso.pdf")},
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        )
+    )
+
+    response = client.get(f"/api/caso/{caso_id}/arquivos/{arquivo['id']}/download")
+
+    assert response.status_code == 401
+
+    os.remove(caminho_do_anexo(app, arquivo["link_arquivo"]))
+
+
+def test_download_arquivo_caso_de_outra_unidade_recusado(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """O caso é de Belo Horizonte; quem está em Nova Lima não alcança o anexo."""
+    caso_id = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+    arquivo = get_success_data(
+        client.post(
+            f"/api/caso/{caso_id}/arquivos",
+            data={"arquivo": (BytesIO(b"de bh"), "bh.pdf")},
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        )
+    )
+
+    download = client.get(
+        f"/api/caso/{caso_id}/arquivos/{arquivo['id']}/download",
+        headers=auth_headers_nl,
+    )
+    assert download.status_code == 404
+
+    exclusao = client.delete(
+        f"/api/caso/{caso_id}/arquivos/{arquivo['id']}", headers=auth_headers_nl
+    )
+    assert exclusao.status_code == 404
+
+    # O anexo continua intacto para quem é da unidade certa.
+    assert anexo_existe(app, arquivo["link_arquivo"])
+    os.remove(caminho_do_anexo(app, arquivo["link_arquivo"]))
+
+
+def test_download_arquivo_caso_ausente_no_volume(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """Registro no banco sem arquivo no volume: recusa clara, não stack trace."""
+    caso_id = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+    arquivo = get_success_data(
+        client.post(
+            f"/api/caso/{caso_id}/arquivos",
+            data={"arquivo": (BytesIO(b"some depois"), "sumido.pdf")},
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        )
+    )
+
+    os.remove(caminho_do_anexo(app, arquivo["link_arquivo"]))
+
+    response = client.get(
+        f"/api/caso/{caso_id}/arquivos/{arquivo['id']}/download", headers=auth_headers
+    )
+    assert response.status_code >= 400
+
+
+def test_delete_arquivo_caso_remove_do_volume(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = get_success_data(
+        client.post("/api/caso/", json=sample_caso_data, headers=auth_headers)
+    )["id"]
+    arquivo = get_success_data(
+        client.post(
+            f"/api/caso/{caso_id}/arquivos",
+            data={"arquivo": (BytesIO(b"para apagar"), "apagar.pdf")},
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        )
+    )
+    assert anexo_existe(app, arquivo["link_arquivo"])
+
+    response = client.delete(
+        f"/api/caso/{caso_id}/arquivos/{arquivo['id']}", headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    assert not anexo_existe(app, arquivo["link_arquivo"])
 
 
 def test_replace_arquivo_caso_not_found(

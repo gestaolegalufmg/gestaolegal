@@ -26,8 +26,8 @@
       "blocked_by_gate": false,
       "depends_on": [],
       "priority": 1,
-      "passes": true,
-      "notes": "Config expõe PRIVATE_FILES_ROOT + PRIVATE_FILE_CATEGORIES; validação da raiz em validate_private_files_root (gestaolegal/__init__.py), coberta por tests/api/test_private_files_root.py. pytest só existe no extra 'extra': rodar `uv sync --extra extra` antes do make test."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "f2-migration-eventos-arquivo",
@@ -46,7 +46,7 @@
       "blocked_by_gate": false,
       "depends_on": [],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -64,11 +64,9 @@
       "gate_reason": null,
       "review_required": false,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f1-config-raiz-privada"
-      ],
+      "depends_on": ["f1-config-raiz-privada"],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -87,12 +85,10 @@
       "gate_reason": null,
       "review_required": true,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f1-config-raiz-privada"
-      ],
+      "depends_on": ["f1-config-raiz-privada"],
       "priority": 4,
-      "passes": true,
-      "notes": "Volume nomeado private_uploads montado em PRIVATE_FILES_ROOT no serviço api; QA passou a montar /opt/gestaolegal/uploads em /data/gestaolegal/uploads no lugar do bind de static/arquivos; .dockerignore exclui os três diretórios de upload e dumps/. Verificado: arquivo gravado no volume sobreviveu a --force-recreate da api, e a imagem não traz static/casos|eventos|arquivos nem dumps/."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "f5-fluxo-arquivos-caso",
@@ -110,11 +106,9 @@
       "gate_reason": null,
       "review_required": true,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f3-private-file-storage"
-      ],
+      "depends_on": ["f3-private-file-storage"],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -133,12 +127,9 @@
       "gate_reason": null,
       "review_required": true,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f3-private-file-storage",
-        "f2-migration-eventos-arquivo"
-      ],
+      "depends_on": ["f3-private-file-storage", "f2-migration-eventos-arquivo"],
       "priority": 6,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -156,11 +147,9 @@
       "gate_reason": null,
       "review_required": true,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f3-private-file-storage"
-      ],
+      "depends_on": ["f3-private-file-storage"],
       "priority": 7,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -179,12 +168,10 @@
       "gate_reason": null,
       "review_required": true,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f1-config-raiz-privada"
-      ],
+      "depends_on": ["f1-config-raiz-privada"],
       "priority": 8,
-      "passes": true,
-      "notes": "before_request register_static_block em gestaolegal/__init__.py devolve 404 para /static/{casos,eventos,arquivos} e descendentes, normalizando '//', '.', '..' e '%2e%2e' (request.path e RAW_URI). web/nginx.conf ganhou `location ~ ^/static/(casos|eventos|arquivos)(/|$) { return 404; }` antes da regex de assets. tests/api/test_static_block.py planta arquivos reais nas três pastas e um asset em imgs_daj."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "f9-front-nome-arquivo",
@@ -200,12 +187,10 @@
       "gate_reason": null,
       "review_required": false,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f5-fluxo-arquivos-caso"
-      ],
+      "depends_on": ["f5-fluxo-arquivos-caso"],
       "priority": 9,
-      "passes": true,
-      "notes": "Helper nomeOriginalArquivo em web/src/lib/utils/arquivos.ts, espelhando nome_original do private_file_storage.py; usado na listagem e no nome sugerido do download. Verificação no navegador não feita: browser-use exige Chrome aberto na sessão do usuário."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "f10-migrador-inventario",
@@ -222,13 +207,9 @@
       "gate_reason": null,
       "review_required": true,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f5-fluxo-arquivos-caso",
-        "f6-fluxo-anexo-evento",
-        "f7-fluxo-arquivos-gerais"
-      ],
+      "depends_on": ["f5-fluxo-arquivos-caso", "f6-fluxo-anexo-evento", "f7-fluxo-arquivos-gerais"],
       "priority": 10,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -246,11 +227,9 @@
       "gate_reason": null,
       "review_required": true,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f10-migrador-inventario"
-      ],
+      "depends_on": ["f10-migrador-inventario"],
       "priority": 11,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -268,11 +247,9 @@
       "gate_reason": null,
       "review_required": true,
       "blocked_by_gate": false,
-      "depends_on": [
-        "f11-migrador-aplicacao"
-      ],
+      "depends_on": ["f11-migrador-aplicacao"],
       "priority": 12,
-      "passes": true,
+      "passes": false,
       "notes": ""
     }
   ]

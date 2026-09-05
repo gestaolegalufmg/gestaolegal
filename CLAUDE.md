@@ -29,9 +29,11 @@ legados ficam como estão.
 - `Config` lê variáveis obrigatórias no import (`DB_USER`, `DB_HOST`,
   `JWT_SECRET_KEY`...). Sem `.env`, a API nem importa. Os testes preenchem via
   `tests/api/conftest.py`.
-- Uploads vão para `gestaolegal/static/casos` e `gestaolegal/static/arquivos`,
-  fora do git. Registros herdados da 2.0 não têm `caminho`; o service resolve
-  para `ARQUIVOS_DIR/nome`.
+- Uploads vão para o volume privado `PRIVATE_FILES_ROOT` (padrão
+  `/data/gestaolegal/uploads`), nas categorias `casos`, `eventos` e `arquivos`.
+  A raiz é validada na subida do app: se estiver dentro de `app.static_folder`
+  (ou contendo ela), a API não sobe. Registros herdados da 2.0 não têm
+  `caminho`; o service resolve para a raiz da categoria + `nome`.
 - Portas publicadas vêm de `APP_PORT`, `DB_PORT`, `WEB_PORT` e
   `MAILPIT_UI_PORT` (padrões 5000, 3306, 5001, 8025). Script que aponte para
   `localhost:5000` fixo fala com o checkout principal e não com a worktree;

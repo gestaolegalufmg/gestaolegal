@@ -1,820 +1,501 @@
 # Helton Progress Log
-Started: sex. 04 set 2026 18:29:56 -03
+Started: sáb. 05 set 2026 07:40:12 -03
 ---
 
 ## Codebase Patterns
-- Ambiente: `uv sync --all-groups` antes do primeiro `make test` — o pytest está no
-  grupo `extra` do pyproject e `uv sync` puro não o instala (o erro aparece como
-  `ModuleNotFoundError: No module named 'flask'`, que confunde).
-- CI e `make test` só rodam pytest; não há ruff nem basedpyright no portão.
-- `tests/api/conftest.py` insere usuários com SQL cru (`text(...)`); todo o resto dos
-  testes cria dados pela API, então coluna NOT NULL nova quebra os services, não só o
-  conftest.
-- `gestaolegal/database/tables.py`: toda tabela raiz ganha `coluna_unidade()`, helper
-  que devolve `unidade_id` NOT NULL indexada com `default=UNIDADE_PADRAO_ID` (1).
-- Fixtures de header já mandam `X-Unidade-Id`: `auth_headers` (unidade 1),
-  `auth_headers_nl` (admin na unidade 2), `non_admin_auth_headers`,
-  `prof_auth_headers`, `estagiario_auth_headers` e `headers_para` (unidade 1).
-  O admin pertence às duas unidades; os demais usuários, só à 1.
-- **Guarda do pai**: entidade filha (processo, arquivo, histórico) não tem `unidade_id`;
-  o isolamento vem de checar o pai antes — ver `CasoService._caso_da_unidade_ativa`.
-- **Filha com coluna própria** (evento, lembrete): a unidade vem do **caso**, não do
-  header — `evento_data["unidade_id"] = caso.unidade_id`. Ainda assim se resolve o caso
-  pela unidade ativa antes de criar/listar, senão a filha vira porta de entrada.
-- **Escrita em massa sem WHERE de entidade** (`desativar_todos_*`, limpezas de status)
-  recebe `unidade_id` **obrigatório**, não opcional: default nesses métodos faz uma
-  leitura de uma unidade apagar dado de outra. Só as **leituras** usam
-  `unidade_id: int | None = None`.
-- **Imagem do `migrate` carrega código copiado**: mexeu em `migrations/versions/`,
-  rode `docker compose build migrate` antes de `alembic heads`/`upgrade`, senão o
-  container ainda roda a árvore antiga.
-- **Coluna NOT NULL em tabela com dados** entra em três tempos: `add_column`
-  nullable, `UPDATE SET <valor>`, `alter_column nullable=False`.
-- **Portão do front está vermelho no master**: `npm run check` (21 erros) e `npm run lint`
-  (`arquivos/+page.svelte`) já falham sem nenhuma mudança. Compare com o baseline
-  revertendo suas mudanças; não persiga zero.
-- **Unidade ativa no front**: store `web/src/lib/stores/unidade.ts` (localStorage
-  `unidade_ativa`); `apiFetch` manda `X-Unidade-Id` a partir dela. Quem descobre a lista
-  de unidades (login, `+layout.ts` do dashboard) chama `sincronizarUnidades`.
-- **Campo array em formulário**: o `superForm` precisa de `dataType: 'json'` assim que
-  algum campo do schema é array; sem isso o superforms serializa em FormData e a lista
-  chega achatada. O componente de múltipla escolha é
-  `$lib/components/forms/multiple-select.svelte`, e ele trabalha com `string[]` —
-  ids numéricos entram como `String(id)` e voltam com `.map(Number)` antes do POST.
-- **Armadilha do default**: NÃO adicione `unidade_id: int | None = None` a um dataclass
-  de `gestaolegal/models/` sem que o service passe a preencher o valor. Os repositories
-  montam o insert a partir do `to_dict` do modelo, e um `None` explícito anula o
-  `default` da coluna e volta a violar o NOT NULL. Campo no modelo e gravação no service
-  andam na mesma story.
+- `uv sync` sozinho NÃO instala o pytest: ele está em `[project.optional-dependencies].extra`.
+  Sem `uv sync --extra extra`, `make test` cai no `/usr/bin/pytest` do sistema e falha com
+  `ModuleNotFoundError: No module named 'flask'` — não é código quebrado, é ambiente.
+- `create_app()` sem `config_object` chama `configure_app`, que é onde a validação de subida
+  roda. O fixture `app` de `tests/api/conftest.py` usa esse caminho (escopo de sessão), então
+  toda validação nova em `configure_app` vale para a suíte inteira.
+- Caminho de upload NUNCA em constante de módulo: resolver em runtime via
+  `current_app.config["PRIVATE_FILES_ROOT"]`. Constante capturada no import impede
+  monkeypatch por teste e congela a config.
+- Para trocar a raiz de anexos num teste: `monkeypatch.setitem(app.config, "PRIVATE_FILES_ROOT", str(tmp_path))`.
+- `Config` lê env no corpo da classe (import-time). Teste que precise variar um valor de
+  `Config` deve usar `monkeypatch.setattr(Config, ...)`, não mexer em `os.environ`.
+- Saída de `make test` vem truncada pelo filtro do rtk. Para ler o resultado completo:
+  `bash -c 'make test > /tmp/t.log 2>&1'` e depois `tail /tmp/t.log`.
+- O caminho da raiz privada aparece em dois lugares que precisam concordar:
+  o default de `Config.PRIVATE_FILES_ROOT` e o `${PRIVATE_FILES_ROOT:-...}` do
+  `docker-compose.yml`. Mudou um, mude o outro.
+- Anexo privado é sempre categoria + referência relativa: o banco nunca guarda caminho
+  absoluto, e a coluna de arquivo não é campo de input do cliente (o service é quem
+  escreve a referência, a partir do `FileStorage`).
+- Ciclo de vida de anexo nos três fluxos: validar -> gravar novo -> confirmar banco ->
+  em falha, remover o novo e manter o antigo -> após a confirmação, remover o anterior.
+  Falha na limpeza pós-commit vira log de reconciliação, nunca exceção.
+- Service de anexo levanta `NotFoundException`/`FileOperationException` e devolve
+  `(caminho absoluto, nome original)`; devolver `(None, mensagem)` para o controller
+  decidir é o padrão antigo, em extinção.
+- Referência de anexo no banco é `<uuid4hex>_<nome>`, **sem** o prefixo de categoria; quem
+  compõe `casos/`, `eventos/` ou `arquivos/` é o service, na hora de resolver o caminho.
+- O nome exibido ao usuário sai de `nome_original` (Python, `private_file_storage.py`) ou de
+  `nomeOriginalArquivo` (front, `web/src/lib/utils/arquivos.ts`). São a mesma regra escrita
+  duas vezes: mudou uma, mude a outra.
+- `npm run lint` é `prettier --check .` sobre a árvore inteira, não sobre o diff — arquivo
+  desformatado por outra branch derruba o gate desta.
+- `npm run check` já vem vermelho na base (21 erros, 50 warnings). Compare a lista com a de
+  antes e garanta só que nenhum erro novo cita os arquivos que você tocou.
 
+## 2026-09-05 - f1-config-raiz-privada
+- Trocado `STATIC_ROOT_DIR`/`UPLOADS`/`ARQUIVOS_DIR` por `PRIVATE_FILES_ROOT`
+  (env, padrão `/data/gestaolegal/uploads`) mais `PRIVATE_FILE_CATEGORIES`
+  (`casos`, `eventos`, `arquivos`) em `gestaolegal/config.py`.
+- `validate_private_files_root(app)` novo em `gestaolegal/__init__.py`, chamado por
+  `configure_app`: recusa raiz vazia, raiz que se sobrepõe a `app.static_folder`
+  (nas duas direções), raiz que não pôde ser criada e raiz não gravável; normaliza
+  a config para o realpath.
+- `MAX_ARQUIVO_BYTES` hardcoded sumiu de `caso_service.py`; o limite passa a vir de
+  `current_app.config["MAX_CONTENT_LENGTH"]` (fonte única) nos dois services, com a
+  mensagem em MB derivada do próprio limite (continua "10 MB").
+- Nenhum módulo captura mais caminho de upload no import: `caso_service._caso_files_dir()`,
+  `arquivo_service._arquivos_dir()` e o `EVENTO_FILES_DIR` do `caso_controller` resolvem
+  por `current_app.config`. O import de `Config` saiu dos três arquivos.
+- `tests/api/conftest.py` passa a definir `PRIVATE_FILES_ROOT` num tmpdir próprio,
+  separado de `app.static_folder`; `tests/api/test_arquivo_api.py` troca o
+  `monkeypatch.setattr(arquivo_service, "ARQUIVOS_DIR", ...)` por
+  `monkeypatch.setitem(app.config, "PRIVATE_FILES_ROOT", ...)`.
+- `.env.example` documenta `PRIVATE_FILES_ROOT`; o bullet de uploads do `CLAUDE.md` raiz
+  foi corrigido (apontava para `gestaolegal/static/casos`).
+- Arquivos: gestaolegal/config.py, gestaolegal/__init__.py,
+  gestaolegal/services/caso_service.py, gestaolegal/services/arquivo_service.py,
+  gestaolegal/controllers/caso_controller.py, tests/api/conftest.py,
+  tests/api/test_arquivo_api.py, tests/api/test_private_files_root.py (novo),
+  .env.example, CLAUDE.md.
+- **Learnings for future iterations:**
+  - O teste de raiz não gravável é pulado sob root (`os.geteuid() == 0`): `os.access(W_OK)`
+    sempre devolve verdadeiro para root e o teste daria falso negativo no CI em container.
+  - `test_caso_api.py::test_upload_arquivo_too_large_returns_portuguese_message` espera 413,
+    que vem do `MAX_CONTENT_LENGTH` do próprio Flask, ANTES do service. A checagem de
+    tamanho no service só é alcançada por chamada direta — não confunda os dois caminhos.
+  - Os fluxos ainda gravam com `file.save` e caminho ABSOLUTO no banco. A troca por
+    referência relativa é das stories f5/f6/f7, via `private_file_storage` (f3).
+  - `make test` leva ~78s e roda 348 testes.
 ---
 
-## 2026-09-04 - f1-schema-conftest
-- Criadas as tabelas `unidades` (id, nome unique, sigla unique, ativa, criado) e
-  `usuarios_unidades` (PK composta usuario_id + unidade_id) no metadata.
-- Adicionada `unidade_id` NOT NULL indexada com FK para `unidades.id` nas onze tabelas
-  raiz: atendidos, orientacao_juridica, casos, eventos, assistencias_judiciarias,
-  lembretes, fila_atendimentos, dias_plantao, plantao, dias_marcados_plantao,
-  registro_entrada. Não foi adicionada em arquivos, notificacao, documentos_roteiro nem
-  assistidos, conforme as decisões 1 e 3 do plano.
-- Conftest: `ensure_unidades()` cria as unidades 1 (Belo Horizonte/BH) e 2 (Nova
-  Lima/NL); `vincular_unidades()` popula `usuarios_unidades`; fixture `unidades`;
-  fixture `auth_headers_nl`; todas as fixtures de header passam `X-Unidade-Id`;
-  `clean_db` limpa `usuarios_unidades` antes de `usuarios`.
-- Arquivos: `gestaolegal/database/tables.py`, `tests/api/conftest.py`.
-- `make test`: 262 passed (mesmo total do baseline).
+## 2026-09-05 - f2-migration-eventos-arquivo
+- Nova migration `migrations/versions/c4d5e6f7a8b9_eventos_arquivo_300.py`, com
+  `down_revision = "b7c1d2e3f4a5"`: `eventos.arquivo` passa de String(100) para
+  String(300), para caber a referência relativa dentro da raiz privada (as colunas
+  irmãs `arquivosCaso.link_arquivo` e `arquivos.caminho` já eram String(300)).
+- O `downgrade()` conta `LENGTH(arquivo) > 100` antes de reduzir e levanta
+  `RuntimeError` com mensagem em português se houver algum — reduzir a coluna com
+  valores maiores truncaria as referências em silêncio.
+- A migration não move nem reescreve arquivo nenhum; é só o tipo da coluna.
+- `gestaolegal/database/tables.py` reflete String(300) em `eventos.arquivo`.
+- `uv run alembic -c migrations/alembic.ini heads` mostra `c4d5e6f7a8b9 (head)`,
+  head único. `make test`: 348 passed.
+- Arquivos: migrations/versions/c4d5e6f7a8b9_eventos_arquivo_300.py (novo),
+  gestaolegal/database/tables.py.
 - **Learnings for future iterations:**
-  - Sem o `default=UNIDADE_PADRAO_ID` na coluna, 149 dos 262 testes quebram em
-    `IntegrityError: NOT NULL constraint failed`, porque nenhum service grava a unidade
-    ainda. O default é ponte, não desenho final: quando a F3 terminar (todos os services
-    gravando explicitamente), vale reavaliar se ele sai — a story `f1-migration` é o
-    ponto natural, com o modelo já fechado. Ele não esconde erro das stories F3: um
-    registro criado com `auth_headers_nl` que caísse no default apareceria na unidade 1
-    e o teste de isolamento falharia.
-  - `unidades` está declarada perto do fim de `tables.py`, depois das tabelas que a
-    referenciam. Funciona porque a FK é resolvida por string e o `create_all` ordena por
-    dependência.
-  - O admin de teste foi vinculado às unidades 1 e 2 de propósito: é ele quem exercita o
-    isolamento (`auth_headers` x `auth_headers_nl`) sem precisar de um segundo usuário.
-  - `ensure_admin_user_exists` e `criar_usuario` têm retorno antecipado quando o usuário
-    já existe; o vínculo de unidade precisa acontecer nos dois caminhos, senão a
-    segunda chamada deixa o usuário sem unidade.
+  - Os testes usam SQLite em memória criado do metadata do SQLAlchemy e NÃO rodam
+    Alembic: `make test` verde não diz nada sobre a migration. Quem confere o
+    encadeamento é `alembic ... heads` (e `docker compose up -d migrate` para aplicar).
+  - Por isso, mexer só na migration sem mexer em `tables.py` (ou vice-versa) passa
+    despercebido pelo portão de testes. Os dois andam sempre juntos.
+  - `alembic` não está no PATH direto: use `uv run alembic -c migrations/alembic.ini`.
+  - Migration que reduz largura de coluna deve checar os dados antes; o padrão do
+    repo para downgrade impossível é `pass` com comentário (ver 9b4a1c7e30df), mas
+    aqui a redução é possível e só perigosa — daí o RuntimeError.
 ---
 
-## 2026-09-04 - f2-request-context-unidade
-- `RequestContext` ganhou `_unidade_ativa: ContextVar[int | None]`, com
-  `set_unidade_ativa`, `get_unidade_ativa` (RuntimeError quando ausente, no mesmo molde
-  de `get_current_user`) e `clear()` zerando usuário e unidade.
-- Criado `tests/api/test_request_context.py` com 3 casos: ausência levanta RuntimeError,
-  set/get devolve o valor, clear zera os dois.
-- Arquivos: `gestaolegal/utils/request_context.py`, `tests/api/test_request_context.py`.
-- `make test`: 265 passed (262 do baseline + 3 novos).
+## 2026-09-05 - f3-private-file-storage
+- Novo `gestaolegal/services/private_file_storage.py`: `save(categoria, file) -> ref`,
+  `resolve(categoria, ref) -> caminho`, `remove(categoria, ref)`, mais `gerar_ref`,
+  `categoria_dir` e `DOWNLOAD_HEADERS` (`Content-Disposition: attachment`,
+  `Cache-Control: private, no-store`).
+- A referência guardada no banco é relativa à categoria (`<uuid4hex>_<secure_filename>`);
+  o UUID substitui o timestamp de segundos de `caso_controller.py`, que colidia dentro
+  do mesmo segundo.
+- Gravação: temporário `.tmp_<hex>` dentro do próprio volume, destino reservado com
+  `O_EXCL` (nunca sobrescreve) e publicação por `os.replace`. Qualquer falha remove o
+  temporário.
+- Recusas (todas `PrivateFileError`, subclasse de `ValidationException` com
+  `field="arquivo"`): categoria fora de `PRIVATE_FILE_CATEGORIES`, referência vazia,
+  caminho absoluto, `..`, referência acima de 300 caracteres, symlink que escapa da
+  raiz. Toda leitura passa por `realpath` confinado à raiz/categoria.
+- `tests/api/test_private_file_storage.py` (novo, 19 casos). `make test`: 369 passed.
+- Nenhum fluxo foi ligado ao módulo ainda — isso é f5/f6/f7.
+- Arquivos: gestaolegal/services/private_file_storage.py (novo),
+  tests/api/test_private_file_storage.py (novo).
 - **Learnings for future iterations:**
-  - `RequestContext.clear()` é chamado em `gestaolegal/handlers.py:11` (teardown de
-    request). Qualquer ContextVar novo do contexto precisa entrar lá também, senão
-    vaza de uma requisição para a seguinte no mesmo worker.
-  - Para testar coisas do contexto sem subir a app, dá para montar um `UserInfo` com
-    `UserInfo(**{c.name: None for c in fields(UserInfo)})` — a dataclass não valida
-    tipos e são ~35 campos obrigatórios que não interessam ao teste.
+  - `REF_MAX` (300, o da coluna) NÃO é o limite do disco: um componente de nome no
+    filesystem para em `NAME_MAX` = 255 bytes (`OSError: [Errno 36] File name too
+    long`). O nome gerado respeita `min(REF_MAX, NAME_MAX)` e corta o nome original,
+    nunca a extensão. Teste de nome longo pega isso.
+  - `secure_filename` de nome só com acentos/espaços pode devolver string vazia; daí
+    o fallback `"arquivo"`.
+  - Para simular falha de gravação no teste:
+    `monkeypatch.setattr(FileStorage, "save", explode)` — o `save` do módulo escreve
+    num handle aberto por ele, então o mock precisa ser na classe, não na instância.
+  - O fixture `app` da suíte é de escopo sessão: para trocar a raiz por teste use
+    `monkeypatch.setitem(app.config, "PRIVATE_FILES_ROOT", str(tmp_path))` dentro de
+    um `app.app_context()` próprio.
 ---
 
-## 2026-09-04 - f2-modelo-repo-unidade
-- Criado `gestaolegal/models/unidade.py` com a dataclass `Unidade` (nome, sigla, ativa,
-  criado, id opcional), exportada em `gestaolegal/models/__init__.py`.
-- Criado `gestaolegal/repositories/unidade_repository.py` (`UnidadeRepository`,
-  herdando de `BaseRepository`) com `find_by_id`, `list_ativas` (só ativas, ordenadas
-  por nome), `create`, `update`, `unidades_do_usuario` (JOIN único em
-  `usuarios_unidades`), `vincular` (apaga e reinsere) e `usuario_pertence`.
-- Criado `tests/api/test_unidade_repository.py` com 6 casos cobrindo os sete métodos.
-- Arquivos: `gestaolegal/models/unidade.py`,
-  `gestaolegal/repositories/unidade_repository.py`,
-  `gestaolegal/models/__init__.py`, `tests/api/test_unidade_repository.py`.
-- `make test`: 271 passed (265 do baseline + 6 novos).
+## 2026-09-05 - f4-volume-compose
+- `docker-compose.yml`: serviço `api` ganhou `volumes:` com o volume nomeado
+  `private_uploads` montado em `${PRIVATE_FILES_ROOT:-/data/gestaolegal/uploads}`
+  (a interpolação repete o default do `Config`, para o compose e a aplicação não
+  divergirem se o `.env` definir a variável). Volume declarado no bloco `volumes:`.
+- `docker-compose.qa.yml`: o bind `/opt/gestaolegal/arquivos:/code/gestaolegal/static/arquivos`
+  saiu; no lugar, `/opt/gestaolegal/uploads:/data/gestaolegal/uploads`. Mantido bind
+  (e não volume nomeado) porque toda a stack de QA persiste em `/opt/gestaolegal/*`
+  e o migrador dos legados (f10–f12) vai precisar enxergar os dois diretórios no host.
+- `.dockerignore`: excluídos `gestaolegal/static/casos`, `.../eventos`, `.../arquivos`
+  e `dumps` — o `Dockerfile` faz `COPY . /code` e levava os anexos para a imagem.
+- Verificação: `docker compose config` e `docker compose -f docker-compose.qa.yml config`
+  ok; `make test` 348 passed; `docker compose build api && up -d`; arquivo gravado em
+  `/data/gestaolegal/uploads/casos` sobreviveu a `up -d --force-recreate api`; dentro
+  do container os três diretórios de static e `dumps/` não existem.
 - **Learnings for future iterations:**
-  - `BaseRepository.__init__` chama `get_session()`, que fora de request context
-    devolve uma sessão **nova** a cada chamada. Em teste de repositório, instancie o
-    repo uma vez dentro de `app.app_context()` e use `repo.session` — duas instâncias
-    são duas sessões e uma não enxerga o que a outra ainda não comitou.
-  - Teste de repositório não precisa de FK válida: o SQLite dos testes não impõe
-    `PRAGMA foreign_keys`, então `usuarios_unidades` aceita `usuario_id` fictício.
-    Evita depender das fixtures de usuário e do `clean_db`.
-  - `unidades_do_usuario` ordena por `nome`; quem depender da ordem em asserção deve
-    lembrar que Belo Horizonte vem antes de Nova Lima.
+  - `make test` neste ambiente tem a saída truncada pelo filtro do rtk. Para ver o
+    resultado inteiro, redirecione para arquivo com `bash -c '... > /tmp/t.log 2>&1'`
+    e leia o log — `rtk proxy` com redirecionamento não funciona (interpreta o `>`).
+  - `docker compose exec -T <serviço>` funciona nesta worktree; o projeto é o
+    `COMPOSE_PROJECT_NAME` do `.env`, não use `docker exec` com nome fixo.
+  - O `.env` desta worktree NÃO define `PRIVATE_FILES_ROOT`; quem dá o valor é o
+    default do `Config`. Por isso o compose usa `${PRIVATE_FILES_ROOT:-...}` com o
+    mesmo default — mudar um dos dois sem o outro monta o volume no lugar errado.
 ---
 
-## 2026-09-04 - f2-userinfo-unidades
-- `User` e `UserInfo` (gestaolegal/models/user.py) ganharam
-  `unidades: list[Unidade] = field(default_factory=list)`. Como `to_info` copia campo a
-  campo pelos nomes de `UserInfo`, o campo precisou existir nos dois dataclasses.
-- `UsuarioService` ganhou `unidade_repository: UnidadeRepository` e o privado
-  `__load_unidades`, chamado em `find_by_id`, `find_by_email` e `authenticate` — os três
-  caminhos que produzem um `UserInfo` de usuário identificado. É uma consulta com JOIN
-  (`unidades_do_usuario`), não N.
-- `POST /api/auth/login` e `GET /api/user/me` passam a devolver `user.unidades` sem
-  mudança nos controllers: ambos serializam com `asdict` e `Unidade` é dataclass.
-- Testes: `test_login_devolve_unidades_do_usuario` (admin nas duas unidades) e, em
-  test_user_api.py, `test_get_me_devolve_unidades` e
-  `test_get_me_unidades_apenas_das_vinculadas` (usuário comum só vê BH).
-- Arquivos: `gestaolegal/models/user.py`, `gestaolegal/services/usuario_service.py`,
-  `tests/api/test_auth_api.py`, `tests/api/test_user_api.py`.
-- `make test`: 274 passed (271 do baseline + 3 novos).
+## 2026-09-05 - f5-fluxo-arquivos-caso
+- Todo o fluxo de anexo de caso passou a usar `private_file_storage` (categoria
+  `casos`). `arquivosCaso.link_arquivo` guarda agora a **referência relativa**
+  (`<uuid4hex>_<nome>`), não mais o caminho absoluto.
+- `caso_service`: `_caso_files_dir()` e `_salvar_pdf()` sumiram; upload, replace,
+  delete e download chamam o módulo. Não sobrou `file.save`, `os.remove`,
+  `os.makedirs` nem `os.path.exists` no fluxo (o único `os.` restante é o
+  `os.SEEK_END` da checagem de tamanho em `_validar_pdf`).
+- `find_arquivo_by_id(arquivo_id, caso_id)` agora exige o caso e delega a
+  `validate_arquivo_for_caso` (unidade ativa + posse do anexo). O `caso_id` é
+  obrigatório de propósito: sem ele, id de anexo de qualquer unidade voltava.
+- Ciclo de vida: valida PDF -> grava o novo -> confirma a transação -> em falha,
+  remove o novo e mantém o antigo -> **após** o commit remove o anterior. A
+  limpeza pós-commit passa por `_remover_do_volume`, que loga reconciliação
+  pendente em vez de levantar (o banco já confirmou; rollback simulado seria
+  mentira). Em `delete_arquivo` a ordem inverteu: o registro sai primeiro, o
+  arquivo depois — e falha de remoção não devolve mais 500.
+- `get_arquivo_for_download` devolve `(caminho absoluto, nome original)`; o
+  caminho nunca entra na resposta da API. O controller usa
+  `send_file(..., download_name=nome)` e `aplicar_headers_download`.
+- `private_file_storage` ganhou três funções: `exists`, `nome_original` (tira o
+  prefixo de 32 hex; referência herdada da 2.0 volta inteira) e
+  `aplicar_headers_download` (escreve `Cache-Control: private, no-store` e só
+  põe `Content-Disposition` se ninguém tiver posto — o do `as_attachment`
+  carrega o nome do arquivo e não pode ser perdido).
+- Testes novos em `tests/api/test_caso_api.py`: download com cabeçalhos e nome
+  original, download anônimo (401), unidade errada (404 no download e no
+  delete), arquivo ausente no volume, delete que limpa o volume e o teste de
+  rollback (update do repositório explodindo: o novo não sobra no volume, o
+  antigo segue baixável com o conteúdo certo). Os asserts que faziam
+  `os.path.exists(link_arquivo)` passaram pelos helpers `anexo_existe` /
+  `caminho_do_anexo`.
+- `make test`: 375 passed.
+- Arquivos: gestaolegal/services/caso_service.py,
+  gestaolegal/services/private_file_storage.py,
+  gestaolegal/controllers/caso_controller.py, tests/api/test_caso_api.py.
 - **Learnings for future iterations:**
-  - O contrato do front mudou: `user` agora tem `unidades`. Quem for fazer a
-    `f5-tipos-store-header` precisa refletir isso em `web/src/lib/types`.
-  - `UsuarioService.search` continua devolvendo `unidades: []` — ele usa `to_info()`
-    direto no resultado paginado, sem passar por `find_by_id`. Se a listagem de usuários
-    precisar das unidades (story `f4-usuario-vinculo`), o caminho é uma consulta em lote
-    por ids, não `__load_unidades` num laço.
-  - `setup_admin` cria o admin inicial sem vínculo de unidade: `create_admin` não grava
-    em `usuarios_unidades`, então o primeiro admin nasce com `unidades: []`. O conftest
-    dos testes é quem vincula. Vale lembrar disso na `f4-usuario-vinculo` e no seed.
-  - `models/user.py` agora importa `models/unidade.py` em tempo de import (não sob
-    `TYPE_CHECKING`, porque `field(default_factory=list)` não precisa do tipo mas o
-    dataclass resolve a anotação). `unidade.py` não importa nada do projeto — manter
-    assim evita ciclo.
+  - Chame sempre `private_file_storage.save(...)` pelo módulo, nunca
+    `from ... import save`: o teste de rollback monkeypatcha o atributo do
+    módulo, e um `from-import` congelaria a função original.
+  - `send_file(as_attachment=True)` já grava `Cache-Control` (no-cache), então
+    `headers.setdefault` NÃO sobrescreve — daí `aplicar_headers_download`
+    atribuir direto e abrir exceção só para o `Content-Disposition`.
+  - O front (`casos/[id]/+page.svelte:476`) ainda faz `split('_').pop()` no
+    `link_arquivo`, o que com a nova referência mostra só o final do nome. É
+    exatamente o que a f9 conserta.
+  - O fluxo de anexo de **evento** (caso_controller:273-285 e 360-372) e o de
+    arquivos gerais continuam gravando caminho absoluto — f6 e f7.
+
+## 2026-09-05 - f6-fluxo-anexo-evento
+- O bloco de gravação duplicado em `caso_controller.py` (POST e PUT de evento) sumiu.
+  O controller só entrega o `FileStorage` (helper `_anexo_do_form()`); quem grava é o
+  `EventoService`, **depois** de validar caso, unidade e o próprio arquivo — antes, o
+  arquivo ia para o disco e só então o acesso era negado, deixando órfão.
+- `eventos.arquivo` passa a guardar a **referência relativa** (categoria `eventos`),
+  não mais o caminho absoluto.
+- `EventoService.create/update` ganharam o parâmetro `arquivo: FileStorage | None`.
+  Ciclo de vida igual ao da f5: validar -> gravar novo -> confirmar banco -> em falha,
+  remover o novo e manter o antigo -> após a confirmação, remover o anterior (o PUT
+  vazava o anexo substituído). Limpeza pós-commit por `_remover_do_volume`, que loga
+  reconciliação em vez de levantar.
+- `delete` inverteu a ordem: o registro perde a referência primeiro (`status=False`,
+  `arquivo=None`), o arquivo sai do volume depois.
+- `_validar_anexo` novo: tipo (`EXTENSOES_ANEXO_EVENTO`) e tamanho
+  (`MAX_CONTENT_LENGTH`), nenhum dos dois existia. A lista é mais larga que a de anexo
+  de caso (só PDF) de propósito — o anexo de evento nunca teve restrição, nem na API
+  nem no `input type="file"`, e apertar para PDF derrubaria a foto de documento e o
+  .docx que já se anexa hoje.
+- `get_evento_file_for_download` deixou de devolver `(None, mensagem)`: agora levanta
+  `NotFoundException`/`FileOperationException` como o `caso_service` e devolve
+  `(caminho absoluto, nome original)`. Recusa evento com `status` falso. O controller
+  usa `send_file(..., download_name=nome)` + `aplicar_headers_download`.
+- `arquivo` saiu de `EventoCreateInput`/`EventoUpdateInput`: não é campo de entrada.
+  Enquanto era, o cliente podia escrever um caminho arbitrário na coluna.
+- 11 testes novos em `tests/api/test_evento_api.py`: referência relativa (a resposta
+  não expõe a raiz), download com nome original e cabeçalhos, download anônimo (401),
+  evento excluído não baixável, PUT que apaga o anexo anterior, tipo recusado (400),
+  tamanho recusado (413 pela API e `ValidationException` no service), caso de outra
+  unidade sem órfão, falha de banco sem órfão, anexo ausente do volume.
+- `make test`: 386 passed.
+- Arquivos: gestaolegal/services/evento_service.py,
+  gestaolegal/controllers/caso_controller.py, gestaolegal/models/evento_input.py,
+  tests/api/test_evento_api.py.
+- **Learnings for future iterations:**
+  - Teste de "não deixou órfão" que compara `os.listdir` da categoria antes/depois é
+    confiável mesmo com o fixture `app` de escopo sessão (a raiz é a mesma a suíte
+    inteira): a comparação é relativa, não absoluta.
+  - Mutação vale a pena antes de dar a story por fechada: apagar a limpeza do `except`
+    e a remoção do anexo anterior derrubou exatamente 2 testes. Teste que não quebra
+    quando o código quebra não é teste.
+  - `EventoService` não tinha `transaction()` no `create`/`update` do próprio evento
+    (só na notificação); o `repository.update`/`create` confirma sozinho. Por isso a
+    limpeza do anexo anterior vem depois da chamada do repositório, não depois de um
+    `with transaction()`.
+  - Front (pendência para quem pegar a f9): `evento.arquivo.split('/').pop()` em
+    `casos/[id]/eventos/[eventoId]/+page.svelte:129` e `.../editar/+page.svelte:129,237`
+    agora mostra `<uuid32>_nome.pdf`. A f9 conserta o equivalente do anexo de caso;
+    vale estender ao evento (`private_file_storage.nome_original` é a regra: cortar o
+    prefixo de 32 hex).
+  - O `input type="file"` do `evento-dialog.svelte` não tem `accept`, e o
+    `SimpleInput` nem repassa a prop. Com a validação de tipo agora na API, o usuário
+    só descobre o tipo recusado no submit. Acrescentar `accept` exigiria mexer no
+    componente compartilhado — ficou de fora desta story de propósito.
 ---
 
-## 2026-09-04 - f2-decorator-unidade
-- `@authenticated` passou a aceitar as duas formas de uso: `@authenticated` (exige o
-  header `X-Unidade-Id`) e `@authenticated(unidade=False)` para as rotas que existem
-  antes de haver unidade ativa. Nenhuma das ~87 chamadas sem parênteses precisou mudar.
-- Novo helper `_resolver_unidade_ativa(user)`: header ausente ou não numérico levanta
-  `ValidationException` (400, "Unidade ativa não informada"); unidade fora de
-  `user.unidades` levanta `ForbiddenException` (403); caso válido chama
-  `RequestContext.set_unidade_ativa`.
-- Isentas do header: `GET /api/user/me` e `GET /api/user/opcoes` (as rotas de
-  `/api/auth/*` nunca usaram `@authenticated`). A listagem de unidades do seletor será
-  isentada quando nascer, na `f4-unidade-controller`.
-- Novo `tests/api/test_unidade_auth.py` com 8 casos: sem header 400, header não numérico
-  400, unidade não pertencente 403, unidade válida 200, unidade válida chega ao
-  `RequestContext`, `user/me` sem header devolve 200 com as duas unidades,
-  `user/opcoes` sem header 200, login sem header 200.
-- Arquivos: `gestaolegal/utils/api_decorators.py`,
-  `gestaolegal/controllers/user_controller.py`, `tests/api/test_unidade_auth.py`.
-- `make test`: 282 passed (274 do baseline + 8 novos).
+## 2026-09-05 - f7-fluxo-arquivos-gerais
+- `arquivo_service` passou a usar `private_file_storage` (categoria `arquivos`):
+  `arquivos.caminho` guarda a **referência relativa**, não mais o caminho absoluto.
+- `_caminho_de` sumiu — era `arquivo.caminho or os.path.join(ARQUIVOS_DIR, arquivo.nome)`,
+  que concatenava a coluna Text `nome` (sem `secure_filename`) num caminho de filesystem.
+  Sem fallback: registro herdado da 2.0 sem `caminho` agora responde 404 tratado
+  ("Arquivo no disco"), com log; quem conserta esses registros é o migrador (f10-f12).
+- `_salvar` e `_remover_do_disco` também sumiram. Sobraram no módulo dois usos de `os`:
+  `os.path.isfile` no download e `os.SEEK_END` na checagem de tamanho.
+- Ciclo de vida igual ao de f5/f6: valida -> grava o novo -> confirma o banco -> em falha
+  remove o novo e mantém o antigo -> após o commit remove o anterior, por
+  `_remover_do_volume` (loga reconciliação pendente em vez de levantar). Em `delete` o
+  registro sai primeiro, o arquivo depois.
+- O controller de download agora passa por `aplicar_headers_download`
+  (`Cache-Control: private, no-store`), como os outros dois fluxos.
+- 4 testes novos em `tests/api/test_arquivo_api.py`: cabeçalho de download privado,
+  arquivo ausente do volume (404), registro sem `caminho` com um arquivo de mesmo nome
+  plantado na raiz (404, e não leitura do arquivo plantado), falha de banco no create sem
+  órfão no volume. Os asserts de `os.path.exists(data["caminho"])` passaram pelos helpers
+  `arquivo_existe`/`caminho_do_arquivo`, e o create agora também afirma que a resposta não
+  expõe a raiz privada.
+- Comentário de `gestaolegal/models/arquivo.py` atualizado: `caminho` nulo não é mais
+  "arquivo em ARQUIVOS_DIR/nome".
+- `make test`: 390 passed.
+- Arquivos: gestaolegal/services/arquivo_service.py,
+  gestaolegal/controllers/arquivo_controller.py, gestaolegal/models/arquivo.py,
+  tests/api/test_arquivo_api.py.
 - **Learnings for future iterations:**
-  - `@authorized(...)` empilha `@authenticated` internamente, então **toda rota com
-    `@authorized` já exige unidade** — inclusive as de administração de usuário. Se
-    alguma precisar de isenção, é `authorized` que ganha o parâmetro, não a rota.
-  - Erros de decorator devem ser exceções do domínio, não `make_response` cru: o
-    `error_handlers.py` transforma `ValidationException`/`ForbiddenException` no JSON
-    `{"success": false, "error": {"message", "code"}}` que o front espera. Os 401 de
-    token continuam sendo string crua — é dívida antiga, não copie o padrão.
-  - Em teste, a mensagem de erro está em `response.get_json()["error"]["message"]`,
-    não em `["message"]`.
-  - `JWTAuth.get_user_from_token` chama `UsuarioService.find_by_id`, que já carrega
-    `unidades` — a validação do header não custa consulta extra.
-  - O prefixo do blueprint de atendido é `/api/atendido` (singular), definido em
-    `gestaolegal/controllers/__init__.py`.
+  - Os três fluxos de anexo agora só falam com o filesystem por `private_file_storage`.
+    `grep -n "os\." <service>` é a checagem barata de que nenhum resquício ficou.
+  - Teste de "não monta caminho pelo nome" precisa **plantar** o arquivo com o nome
+    original na categoria: sem o arquivo plantado, o 404 passaria mesmo com o fallback
+    vivo, e o teste não provaria nada.
+  - Para forçar falha de banco na API inteira, `monkeypatch.setattr(ArquivoRepository,
+    "create", explode)` devolve 500 pelo handler global — serve para provar ausência de
+    órfão sem chamar o service direto.
 ---
 
-## 2026-09-04 - f3-atendido
-- `AtendidoService` passou a filtrar tudo pela unidade ativa
-  (`RequestContext.get_unidade_ativa()`): `search` ganhou uma `WhereClause` de
-  `unidade_id` (que também cobre a busca global do `search_controller`) e `create` grava
-  `unidade_id` no insert.
-- `AtendidoRepository.find_by_id` ganhou o parâmetro opcional `unidade_id`; o service o
-  usa em `find_by_id`, `update`, `create_assistido`, `update_assistido` e `soft_delete`,
-  então atendido de outra unidade responde 404 em todos esses caminhos (antes,
-  `soft_delete` nem checava existência).
-- Dataclass `Atendido` ganhou `unidade_id: int | None = None`, exposto no `asdict` das
-  respostas.
-- Testes novos em `tests/api/test_atendido_api.py` (4): listagem isolada por unidade,
-  busca por id de outra unidade dá 404, criação grava a unidade ativa (NL) e
-  `tornar-assistido` de outra unidade dá 404.
-- Arquivos: `gestaolegal/services/atendido_service.py`,
-  `gestaolegal/repositories/atendido_repository.py`, `gestaolegal/models/atendido.py`,
-  `tests/api/test_atendido_api.py`.
-- `make test`: 286 passed (282 do baseline + 4 novos).
+## 2026-09-05 - f8-bloqueio-caminho-estatico
+- `register_static_block(app)` novo em `gestaolegal/__init__.py`, chamado no fim de
+  `create_app`: `before_request` que devolve 404 para `/static/casos`, `/static/eventos`,
+  `/static/arquivos` e descendentes, em qualquer método.
+- A comparação é feita sobre segmentos normalizados (`_partes_normalizadas`), que descartam
+  `''` (o `//`) e `.` e resolvem `..` — e sobre quatro formas do caminho: `request.path`,
+  seu `unquote` (pega `%2e%2e` já decodificado ou não) e o `RAW_URI`/`REQUEST_URI` do
+  environ com e sem decodificação. Over-block só é possível dentro de `/static`.
+- `static/imgs_daj` (e o resto de `static/`) continua servido — o teste prova isso com um
+  asset sintético.
+- `web/nginx.conf`: `location ~ ^/static/(casos|eventos|arquivos)(/|$) { return 404; }`,
+  colocado ANTES da regex `\.(png|jpg|...)$`. Regex no nginx ganha por ordem de declaração,
+  então a posição importa; sem ela, `/static/casos/foto.png` cairia na regex de assets.
+- `tests/api/test_static_block.py` (novo, 18 casos): planta `vazado.txt` DE FATO nas três
+  pastas dentro de `app.static_folder`, confere 404 em GET e HEAD, no diretório com e sem
+  barra final, nas formas normalizadas, e que o corpo não vaza o conteúdo; o fixture limpa
+  arquivos e diretórios que criou.
+- Verificado na stack do canteiro (WEB_PORT=5421, APP_PORT=5420): `nginx -t` ok e 404 pelo
+  nginx e pela API direta nos três prefixos.
+- `make test`: 408 passed.
+- Arquivos: gestaolegal/__init__.py, web/nginx.conf, tests/api/test_static_block.py.
 - **Learnings for future iterations:**
-  - O filtro por unidade mora no **service**, não no controller nem no repositório: o
-    repositório só ganha um `unidade_id: int | None = None` opcional, para continuar
-    servindo aos outros services (`caso_service` e `orientacao_juridica_service` usam
-    `AtendidoRepository` e ainda não filtram — cada um filtra na sua story).
-  - Assistido não tem `unidade_id` próprio: o isolamento vem de sempre resolver o
-    atendido pela unidade antes de tocar no assistido.
-  - Adicionar `unidade_id` ao dataclass foi seguro **porque** o insert de atendido é
-    montado a partir do input pydantic, não do `to_dict` do modelo. Antes de repetir
-    isso em outra entidade, confira de onde o repositório tira os `values` (ver a
-    "Armadilha do default" nos Codebase Patterns).
-  - `clean_tables("atendidos")` no começo do teste é o que permite asserção de igualdade
-    exata na listagem (`ids == [id]`); sem isso os testes vizinhos deixam resíduo.
+  - No nginx, `location /` com `try_files ... /index.html` transforma o que não existe em
+    200 do SPA. Um 404 nesses caminhos é, por si só, a prova de que a regra pegou.
+  - Fixture que cria diretório dentro de `app.static_folder` precisa remover só o que criou:
+    `imgs_daj` e `arquivos` já existem no repo, e apagá-los sujaria a worktree.
 ---
 
-## 2026-09-04 - f3-caso
-- `CasoService` passou a filtrar tudo pela unidade ativa: `search` ganhou a `WhereClause`
-  de `unidade_id` (cobre também a busca global do `search_controller` e a listagem por
-  atendido do `atendido_controller`) e `create` grava `unidade_id` no insert.
-- `CasoRepository.find_by_id` ganhou o parâmetro opcional `unidade_id`; o service o usa em
-  `find_by_id`, `update`, `soft_delete`, `deferir`, `indeferir` e `upload_arquivo` — caso de
-  outra unidade responde 404 em todos eles (antes, `soft_delete` nem checava existência).
-- Novo helper privado `_caso_da_unidade_ativa(caso_id)`, usado por
-  `find_arquivos_by_caso_id` (404) e `validate_arquivo_for_caso` (que devolve `None`, e o
-  chamador levanta 404): os anexos herdam o isolamento do caso.
-- `link_atendidos` continua **sem** filtro por unidade, de propósito (decisão 3 do plano):
-  atendido de uma unidade pode ser cliente de caso de outra.
-- Dataclass `Caso` ganhou `unidade_id: int | None = None`, exposto no `asdict`.
-- Testes novos em `tests/api/test_caso_api.py` (5): listagem isolada por unidade; caso de
-  outra unidade dá 404 em GET/PUT/DELETE; criação grava a unidade ativa (NL); atendido de
-  BH vinculado a caso de NL aparece em `clientes` mas não na listagem de atendidos de NL;
-  arquivos de caso de outra unidade dão 404 em listagem e upload.
-- Arquivos: `gestaolegal/services/caso_service.py`,
-  `gestaolegal/repositories/caso_repository.py`, `gestaolegal/models/caso.py`,
-  `tests/api/test_caso_api.py`.
-- `make test`: 291 passed (286 do baseline + 5 novos).
+## 2026-09-05 - f9-front-nome-arquivo
+- Novo `web/src/lib/utils/arquivos.ts` com `nomeOriginalArquivo(ref)`: tira só o prefixo
+  gerado (`<32 hex>_`) e devolve o resto do nome inteiro, underscores inclusive. Referência
+  sem esse prefixo (registro herdado da 2.0) volta como está; `null`/vazio viram "arquivo".
+  Espelha `nome_original` de `gestaolegal/services/private_file_storage.py`.
+- `web/src/routes/(dashboard)/casos/[id]/+page.svelte`: a listagem trocou
+  `split('/').pop()?.split('_').pop()` (que cortava tudo antes do último underscore,
+  mutilando "contrato_2024_assinado.pdf" em "assinado.pdf") pelo helper. O `a.download` do
+  `handleDownload` passou a usar o mesmo helper, para o nome baixado bater com o
+  `Content-Disposition` que a API monta a partir de `nome_original`.
+- `web/src/routes/(dashboard)/arquivos/+page.svelte` entrou no commit só por prettier:
+  já estava fora de formato desde antes desta empreitada (ede7809) e derrubava
+  `npm run lint`. Diff puramente de formatação, nenhuma linha de lógica.
+- Verificação: `npm run lint` passa (0). `npm run check` continua com os mesmos 21 erros e
+  50 warnings preexistentes (api-client `Error.captureStackTrace`, adaptadores do superForm,
+  campos `*_repres_legal` de Atendido) — nenhum nos arquivos desta story. `make test`: 408 passed.
+- Verificação manual no navegador NÃO foi feita: o plugin browser-use exige um Chrome já
+  aberto na sessão do usuário ("chrome-not-running") e não é o agente que o abre. A lógica
+  foi conferida por tabela de casos em node, incluindo os dois formatos que o banco deste
+  canteiro tem hoje. Para o humano conferir na tela: caso 2 da unidade 1 tem um arquivo
+  novo (`144d5ae2...._contrato_2024_assinado.pdf`, subido pela API para esta verificação) e
+  o caso 1 tem dois registros herdados com caminho absoluto da 2.0.
+- Arquivos: web/src/lib/utils/arquivos.ts (novo),
+  web/src/routes/(dashboard)/casos/[id]/+page.svelte,
+  web/src/routes/(dashboard)/arquivos/+page.svelte (só formatação).
 - **Learnings for future iterations:**
-  - `clean_tables("casos_atendidos", "casos")` — a ordem importa: a tabela de vínculo sai
-    antes da tabela raiz. Para o teste do vínculo entre unidades, some `"atendidos"` no fim.
-  - **Processo, evento, histórico e lembrete não ganharam filtro nesta story.** Processo e
-    histórico são filhos do caso e não têm `unidade_id` próprio; hoje a rota
-    `/api/caso/<id>/processos` chama `ProcessoService.search_by_caso` sem passar pelo
-    `CasoService`, então ainda não checa a unidade do caso pai. Quem pegar
-    `f3-evento-lembrete` deve considerar aplicar o mesmo `_caso_da_unidade_ativa` às rotas
-    aninhadas de caso.
-  - O padrão "guarda do pai" (`_caso_da_unidade_ativa`) é mais barato que espalhar
-    `unidade_id` pelas tabelas filhas, e é o que mantém `f1-schema-conftest` de pé (só as
-    onze tabelas raiz têm a coluna).
-
-## 2026-09-04 - f3-orientacao-assistencia
-- `OrientacaoJuridicaService` passou a filtrar pela unidade ativa: `search` ganhou a
-  `WhereClause` de `unidade_id` (cobre a busca global do `search_controller` e a
-  listagem de orientações por atendido do `atendido_controller`) e `create` grava
-  `unidade_id` no insert. `find_by_id`, `update` e `delete` resolvem a orientação com
-  `find_by_id(id, unidade_id=...)` — orientação de outra unidade dá 404.
-- `AssistenciaJudiciariaService` idem: `search` filtra, `create` grava, e `find_by_id`,
-  `update`, `delete`, `encaminhar` e `desvincular` só encontram assistência da unidade
-  ativa. `encaminhar` também exige que a **orientação** seja da unidade ativa (senão
-  a tabela de ligação viraria a porta de entrada entre unidades).
-- `get_by_orientacao` (rota `GET /api/assistencia_judiciaria?orientacao_id=`) passa
-  `unidade_id` ao repositório: a tabela de ligação
-  `assistenciasJudiciarias_xOrientacao_juridica` não tem `unidade_id`, então o filtro
-  vem da assistência do lado de lá do JOIN.
-- Repositórios: `OrientacaoJuridicaRepository.find_by_id` e
-  `AssistenciaJudiciariaRepository.find_by_id` ganharam `unidade_id: int | None = None`;
-  `get_assistencias_by_orientacao` também.
-- Dataclasses `OrientacaoJuridica` e `AssistenciaJudiciaria` ganharam
-  `unidade_id: int | None = None`.
-- Testes: 3 novos em `tests/api/test_orientacao_api.py` (listagem isolada, 404 em
-  GET/PUT/DELETE de outra unidade, create grava a unidade ativa) e o novo
-  `tests/api/test_assistencia_judiciaria_api.py` com 5 (listagem isolada, 404 em
-  GET/PUT/DELETE, create grava a unidade ativa, encaminhar orientação de outra unidade
-  dá 404, assistências por orientação respeitam a unidade).
-- Arquivos: `gestaolegal/services/orientacao_juridica_service.py`,
-  `gestaolegal/services/assistencia_judiciaria_service.py`,
-  `gestaolegal/repositories/orientacao_juridica_repository.py`,
-  `gestaolegal/repositories/assistencia_judiciaria_repository.py`,
-  `gestaolegal/models/orientacao_juridica.py`,
-  `gestaolegal/models/assistencia_judiciaria.py`,
-  `tests/api/test_orientacao_api.py`, `tests/api/test_assistencia_judiciaria_api.py`.
-- `make test`: 299 passed (291 do baseline + 8 novos).
-- **Learnings for future iterations:**
-  - **Tabela de ligação entre duas raízes** (aqui, assistência x orientação) é o ponto
-    cego do modelo: ela não tem `unidade_id`, e sem checar as **duas** pontas o vínculo
-    vira caminho para ler dado de outra unidade. Regra: quem cria vínculo valida os dois
-    lados pela unidade ativa; quem lê vínculo filtra pela entidade do outro lado do JOIN.
-  - `AssistenciaJudiciariaDetail` e `OrientacaoJuridicaDetail` **não** expõem
-    `unidade_id` (são dataclasses de apresentação montadas campo a campo). Só o POST de
-    orientação devolve `unidade_id`, porque `create` retorna a dataclass raiz. Para
-    assistência, a asserção de gravação é indireta: aparece na listagem da unidade que
-    criou e some na da outra.
-  - `assistencias_judiciarias.email` é `unique`: teste que cria duas assistências
-    precisa de e-mails distintos, senão quebra com IntegrityError em vez do que testa.
-  - Ordem do `clean_tables` aqui:
-    `("assistenciasJudiciarias_xOrientacao_juridica", "assistencias_judiciarias")` e
-    `("atendido_xOrientacaoJuridica", "orientacao_juridica")` — ligação antes da raiz.
+  - A referência gravada pelo `private_file_storage` **não** leva o prefixo de categoria:
+    o banco guarda `<uuid4hex>_<nome>`, e é o service que compõe `casos/` na hora de
+    resolver. O `split('/').pop()` do front continua inofensivo, mas não conte com a barra.
+  - `npm run lint` é `prettier --check .` sobre a árvore inteira, não sobre o diff: qualquer
+    arquivo desformatado por outra branch derruba o gate desta. Rode
+    `npx prettier --write <arquivos>` antes de concluir.
+  - `npm run check` já vem vermelho na base (21 erros). Não tente zerar: compare a lista com
+    a de antes e garanta só que nenhum erro novo cita os arquivos que você tocou.
+  - Para exercitar a UI de arquivos sem navegador: `POST /api/caso/<id>/arquivos` com
+    `-F arquivo=@...`, `Authorization: Bearer` e o header `X-Unidade-Id` (obrigatório em
+    toda rota de caso, senão vem VALIDATION_ERROR "Unidade ativa não informada").
 ---
 
-## 2026-09-04 - f3-evento-lembrete
-- `EventoService` e `LembreteService` ganharam `caso_repository` e o helper
-  `_caso_da_unidade_ativa(caso_id)`, que resolve o caso pela unidade ativa e devolve o
-  próprio caso (diferente do `CasoService`, que devolve booleano — aqui o `create`
-  precisa do `unidade_id` do caso).
-- `create` de evento e de lembrete grava `unidade_id = caso.unidade_id` (a unidade do
-  caso, não a do header) e responde 404 quando o caso não é da unidade ativa.
-- Listagens (`find_by_caso_id`, `get_by_caso`) levantam `NotFoundException(Caso)` quando
-  o caso é de outra unidade e ainda filtram os registros por `unidade_id` no SQL.
-- `find_by_id`, `validate_*_for_caso`, `update` e `delete` resolvem evento/lembrete com
-  `find_by_id(id, unidade_id=...)`: detalhe, edição, exclusão e download de evento de
-  outra unidade dão 404.
-- Repositórios: `EventoRepository.find_by_id` e `find_by_caso_id_paginated`,
-  `LembreteRepository.find_by_id` e `get_by_caso` ganharam `unidade_id: int | None = None`.
-- Dataclasses `Evento` e `Lembrete` ganharam `unidade_id: int | None = None`;
-  `LembreteListItem` expõe `unidade_id` (é o que o POST devolve).
-- Testes: 4 novos em `tests/api/test_evento_api.py` (herda a unidade do caso, agenda de
-  caso de outra unidade dá 404, 404 em GET/PUT/DELETE/download, criar evento em caso de
-  outra unidade dá 404) e o novo `tests/api/test_lembrete_api.py` com 5 (criar/listar,
-  herda a unidade do caso, listagem de outra unidade dá 404, 404 em GET/PUT/DELETE,
-  criar em caso de outra unidade dá 404).
-- Arquivos: `gestaolegal/services/evento_service.py`,
-  `gestaolegal/services/lembrete_service.py`,
-  `gestaolegal/repositories/evento_repository.py`,
-  `gestaolegal/repositories/lembrete_repository.py`, `gestaolegal/models/evento.py`,
-  `gestaolegal/models/lembrete.py`, `tests/api/test_evento_api.py`,
-  `tests/api/test_lembrete_api.py`.
-- `make test`: 308 passed (299 do baseline + 9 novos).
+## 2026-09-05 - f10-migrador-inventario
+- Novo `scripts/migrar_arquivos_privados.py`, fase `inventario` (subcomando; f11 e f12
+  entram como fases irmãs). Molde do `scripts/seed_local.py`: docstring de uso,
+  `load_dotenv()`, config por env/CLI. A URL do banco vem de
+  `Config.SQLALCHEMY_DATABASE_URI` (importado dentro da função, não no topo — o script
+  precisa poder ser carregado sem `.env` completo), e `--database-url` a substitui.
+- O inventário NÃO escreve nada além do manifesto: só `SELECT` nas três colunas
+  (`arquivosCaso.link_arquivo`, `eventos.arquivo`, `arquivos.caminho`), registros ativos e
+  inativos (nenhum filtro por `status`).
+- Nada de varrer disco: cada referência absoluta é traduzida pelo mapa
+  `--origem PREFIXO=MOUNT` (prefixo mais longo ganha) e o resultado é confinado ao mount
+  por `realpath` — `..` na coluna e symlink que aponta para fora viram `externo`, não
+  leitura indevida. `arquivos` sem `caminho` (herdados da v2) são procurados em
+  `--arquivos-legado/<nome>`, com o `nome` recusado se tiver barra ou `..`.
+- Classificações: `migravel`, `ja_migrado` (referência já relativa), `ausente`, `externo`,
+  `sem_referencia`. Flags por item: `orfao` (outer join com `casos`; `arquivosCaso` sem
+  caso ou `id_caso` nulo), `compartilhado` (mesma origem em mais de um registro) e
+  `nome_repetido` (mesmo basename em origens distintas).
+- Destino por registro, `destino_para(tabela, id, nome)`: `<32 hex>_<nome>` com os 32 hex
+  vindos de `sha256("<tabela>:<id>")`. Mesmo formato que `private_file_storage.gerar_ref`
+  produz e que `nome_original` desmonta, mas determinístico — reexecutar o inventário dá o
+  mesmo destino, e referência compartilhada ganha destinos DIFERENTES (excluir um registro
+  não pode apagar o anexo do outro). O truncamento respeita `min(REF_MAX, NAME_MAX)` e
+  corta o nome, nunca a extensão.
+- Manifesto JSON com `versao`, `gerado_em`, `origens`, `resumo` e `itens` (origem,
+  tabela/id, coluna, categoria, referência anterior, destino, tamanho, SHA-256,
+  classificação, flags, motivos). Gravado com `0600` e recusado se cair dentro da raiz do
+  git (`git rev-parse --show-toplevel`) — é dado privado, não versionável.
+- `tests/api/test_migrar_arquivos_privados.py` (novo, 17 casos): caminho absoluto legado,
+  evento inativo, `arquivos` sem `caminho` (com e sem `--arquivos-legado`), `nome` que
+  tenta escapar, nomes iguais em origens diferentes, referência compartilhada com destinos
+  distintos, ausente, externo (`/etc/passwd` e `..`), já migrado, órfão, "não escreveu
+  nada" (mtime dos arquivos e valor da coluna intactos), manifesto no repositório recusado
+  (pela função e pela CLI), origens mal formadas e determinismo do destino.
+- `make test`: 425 passed.
+- Arquivos: scripts/migrar_arquivos_privados.py (novo),
+  tests/api/test_migrar_arquivos_privados.py (novo).
 - **Learnings for future iterations:**
-  - O 404 da listagem é a forma de "não aparece na agenda": não existe endpoint de
-    agenda global hoje (`grep -rn "agenda"` em `gestaolegal/` não acha nada), a agenda é
-    a rota aninhada `/api/caso/<id>/eventos`. Se `f3-relatorio-busca` criar uma agenda
-    que cruze casos, ela deve filtrar por `eventos.unidade_id` diretamente.
-  - Guardar o pai **e** filtrar a coluna própria é redundante de propósito: registro
-    herdado da 2.0 pode ter caído no `default` da coluna com a unidade errada, e aí o
-    filtro segura; caso movido de unidade no futuro, a guarda do pai segura.
-  - `LembreteListItem` é montado campo a campo; campo novo no dataclass exige mexer em
-    `_to_list_item`, senão quebra com TypeError de argumento faltando.
-  - `/api/caso/<id>/processos` continua sem checar a unidade do caso pai (herdado da
-    f3-caso). Segue como pendência para quem mexer em processo.
+  - `scripts/` não é pacote importável (o `pyproject.toml` tem `py-modules = []`). O teste
+    carrega o script por caminho com `importlib.util.spec_from_file_location` e o registra
+    em `sys.modules` — f11 e f12 devem reusar esse bloco no topo do mesmo arquivo de teste.
+  - Teste de script que fala com banco não precisa do fixture `app`: um
+    `create_engine("sqlite:///<tmp_path>/x.db")` + `metadata.create_all` basta, e sai mais
+    rápido (0,2s para os 17 casos). SQLite não força FK, então dá para inserir
+    `arquivosCaso` órfão sem inventar usuário.
+  - `casos` exige `id_usuario_responsavel`, `data_criacao`, `id_criado_por`,
+    `situacao_deferimento`, `status` e `unidade_id`; `eventos` exige `tipo`, `data_evento`,
+    `data_criacao`, `id_criado_por`, `status` e `unidade_id`. Sem FK forçada, valores
+    sintéticos (1) servem.
+  - `arquivosCaso` NÃO tem coluna de status e `arquivos` também não: "registro inativo" só
+    existe em `eventos`. Não invente filtro onde não há coluna.
+  - Rodar o migrador contra QA ou produção continua sendo decisão humana; o loop escreveu e
+    testou o script, e o docstring diz isso em letras claras.
+
+## 2026-09-05 - f11-migrador-aplicacao
+- Fase `aplicacao` acrescentada ao `scripts/migrar_arquivos_privados.py` como subcomando
+  irmão do `inventario`. Ordem fixa por item: copia -> confere tamanho e SHA-256 contra o
+  manifesto -> só então atualiza a referência no banco. Copiar antes de escrever no banco
+  é deliberado: interromper no meio deixa um arquivo a mais no volume (inofensivo) em vez
+  de uma referência apontando para o nada.
+- `--backup-conferido` é obrigatório: sem ele o script sai com 2 sem tocar no banco. O
+  script não faz backup — a flag é a afirmação de quem executa de que a escrita da API
+  está suspensa e o backup do banco e das origens foi conferido.
+- Nada de arquivo de progresso: a retomada é validada contra o **estado real do banco**.
+  Se a coluna já contém o destino do manifesto, o item é `ja_aplicado` — o destino ainda é
+  conferido no disco (e recopiado se faltar), mas o banco não é tocado. Daí a
+  idempotência: rodar duas vezes não copia nem atualiza duas vezes.
+- Recusas contabilizadas como `erro`, uma por item, sem abortar a fase: origem com
+  tamanho ou SHA-256 diferente do manifesto (o arquivo mudou depois do inventário),
+  referência anterior que já não bate com o manifesto, registro apagado do banco, destino
+  já ocupado por conteúdo diferente (nunca sobrescreve) e destino que escapa da categoria.
+- `copiar_verificado` grava num `.tmp_<hex>` no próprio diretório, dá `fsync`, confere a
+  cópia contra o manifesto e publica com `os.replace`; qualquer falha remove o temporário.
+  `atualizar_referencia` repete a condição do `SELECT` no `WHERE` (`= anterior`, ou
+  `IS NULL` para o `arquivos` herdado da v2) e exige `rowcount == 1`.
+- Nenhuma origem é removida, e a saída diz isso em voz alta. O código de saída é a
+  contagem de erros.
+- `tests/api/test_migrar_arquivos_privados.py`: +16 casos (33 no arquivo). Cobrem caminho
+  feliz nas três origens, referência compartilhada com duas cópias independentes,
+  reexecução sem efeito duplicado (mtime do destino intacto), interrupção entre a cópia e
+  o banco com retomada, checksum e tamanho divergentes, referência mudada no banco,
+  registro apagado, destino ocupado, itens não migráveis ignorados, escape de destino,
+  manifesto ausente/versão desconhecida e a CLI (sem backup, com backup, raiz inexistente).
+- `make test`: 441 passed.
+- Arquivos: scripts/migrar_arquivos_privados.py,
+  tests/api/test_migrar_arquivos_privados.py.
+- **Learnings for future iterations:**
+  - O script roda FORA do app Flask, então `private_file_storage.resolve` não serve (ele
+    lê `current_app`). A regra de confinamento foi reescrita em `caminho_destino`; f12,
+    que precisa "resolver pelo private_file_storage", vai ter que abrir um
+    `app.app_context()` (via `create_app()`) ou reusar `caminho_destino`.
+  - Para montar manifesto em teste sem passar por disco: `migrador.inventariar` +
+    `asdict` no helper `_manifesto_de`. `escrever_manifesto` recusa gravar dentro do
+    repositório, mas `tmp_path` fica em `/tmp` e passa — os dois caminhos funcionam.
+  - Literal `bytes` em Python só aceita ASCII: `b"inventário"` é SyntaxError. Em teste de
+    conteúdo binário, escreva sem acento ou use `"...".encode()`.
+  - Para forjar checksum divergente sem mudar o tamanho: dois conteúdos do mesmo
+    comprimento (`b"conteudo original"` / `b"conteudo trocado."`). Assim o teste prova que
+    o SHA-256 é conferido, não só o tamanho.
 ---
-
-## 2026-09-04 - f3-plantao-fila-presenca
-- `FilaAtendimentoService`: senha, contagem, listagem do dia e conclusão (chamar/cancelar)
-  passaram a usar `RequestContext.get_unidade_ativa()`; `criar` grava `unidade_id`. A
-  sequência de senhas é por unidade — cada local começa em N01/P01/S01 no dia.
-- `PlantaoService`: o plantão deixou de ser singleton global e virou **singleton por
-  unidade**. `get_plantao`, `list_dias`, `find_dia_por_data`, `list_marcacoes_ativas`,
-  `list_marcacoes_ativas_do_usuario` e `list_marcacoes_para_confirmacao` filtram por
-  `unidade_id`; `create_plantao`, `create_dia` e `create_marcacao` gravam. O helper
-  `_unidade()` concentra a leitura do contexto.
-- `_encerrar_se_expirado` desativa dias e marcações **só da unidade ativa**
-  (`desativar_todos_dias` e `desativar_todas_marcacoes` passaram a exigir `unidade_id`):
-  ler a escala de BH não pode encerrar o plantão de Nova Lima.
-  `desativar_marcacoes_do_usuario` (botão "Editar") idem.
-- `PresencaService`: o relógio de ponto é por unidade — `find_aberto_do_usuario` filtra,
-  então quem atende nas duas pode ter um registro em curso em cada uma, e a saída em uma
-  não fecha o da outra. `create` grava `unidade_id`; `listar_para_confirmacao` e
-  `confirmar_em_lote` (presenças e plantões) só enxergam a unidade ativa — item de outra
-  unidade dá 404.
-- Dataclasses `FilaAtendimento`, `Plantao`, `DiaPlantao`, `DiaMarcadoPlantao` e
-  `RegistroEntrada` ganharam `unidade_id: int | None = None`. Nenhum insert desses
-  repositórios é montado a partir do `to_dict` do modelo (todos passam valores
-  explícitos), então a "armadilha do default" não se aplica aqui.
-- Testes: 2 novos em `test_fila_atendimento_api.py` (fila e sequência de senhas isoladas,
-  chamar/cancelar item de outra unidade dá 404), 4 em `test_plantao_api.py`
-  (configuração/escala isoladas, marcar dia aberto em outra unidade é recusado,
-  encerramento não encerra o plantão da outra unidade, limpar marcações não apaga as da
-  outra) e 4 em `test_presenca_api.py` (ponto aberto isolado, conferência isolada, 404 ao
-  confirmar presença e ao confirmar plantão de outra unidade).
-- Arquivos: `gestaolegal/services/fila_atendimento_service.py`,
-  `gestaolegal/services/plantao_service.py`, `gestaolegal/services/presenca_service.py`,
-  `gestaolegal/repositories/fila_atendimento_repository.py`,
-  `gestaolegal/repositories/plantao_repository.py`,
-  `gestaolegal/repositories/presenca_repository.py`,
-  `gestaolegal/models/fila_atendimento.py`, `gestaolegal/models/plantao.py`,
-  `gestaolegal/models/presenca.py`, `tests/api/test_fila_atendimento_api.py`,
-  `tests/api/test_plantao_api.py`, `tests/api/test_presenca_api.py`.
-- `make test`: 318 passed (308 do baseline + 10 novos). Story só de API, sem tela nova:
-  não houve verificação de browser.
+## 2026-09-05 - f12-migrador-verificacao
+- Terceira fase do `scripts/migrar_arquivos_privados.py`: subcomando `verificacao`,
+  que NÃO escreve nada. Para cada item do manifesto ele relê a coluna do banco (a
+  referência **final**, não a do manifesto), confere que ela é relativa, que resolve
+  dentro da raiz privada pela mesma regra do `private_file_storage` (`caminho_destino`)
+  e que tamanho e SHA-256 continuam sendo os do manifesto.
+- Quatro grupos no resumo: `migrado`, `ausente` (não resolve, sumiu do volume ou ficou
+  no formato legado), `divergente` (está lá, mudou de conteúdo) e `excecao` (externo,
+  sem anexo, ou registro que não existe mais). Erros = ausentes + divergentes, e é
+  essa soma que vira o código de saída, como em `scripts/seed_local.py`.
+- A quarentena é contada à parte: quantas origens continuam de pé no lugar antigo.
+  Nenhuma fase remove origem; a quarentena segue sendo decisão humana.
+- Docstring do módulo reescrito: as três fases em ordem no topo, com a frase de que
+  rodar qualquer uma contra QA ou produção é decisão humana logo em seguida (antes ela
+  estava enterrada no meio, e falava só do inventário).
+- Arquivos: `scripts/migrar_arquivos_privados.py`, `tests/api/test_migrar_arquivos_privados.py`.
+- `make test`: 450 passed.
 - **Learnings for future iterations:**
-  - **Escrita destrutiva em massa é o risco desta área.** `desativar_todos_dias` e
-    `desativar_todas_marcacoes` rodam sem `WHERE` de entidade; sem `unidade_id` elas
-    limpariam a escala das outras unidades a cada leitura da página de plantão. Por isso
-    esses dois métodos ganharam `unidade_id` **obrigatório**, e não opcional como nas
-    leituras: parâmetro com default é convite a esquecer justamente onde não pode.
-  - Marcar dia de plantão aberto em outra unidade cai em `ValidationException` ("Data
-    selecionada não foi aberta para plantão") → **400**, não 404 nem o 422 dos
-    `BusinessLogicException`. O isolamento aqui vem de graça: o dia nem entra na lista de
-    dias abertos da unidade.
-  - `tests/api/test_plantao_api.py::test_plantao_fechado_bloqueia_marcacao_mas_nao_admin`
-    insere `dias_plantao` com SQL cru sem `unidade_id` e continua verde porque a coluna
-    tem `default=UNIDADE_PADRAO_ID`. Se `f1-migration` retirar esse default, todo insert
-    cru nos testes precisa passar a unidade — `_inserir_registro` de
-    `test_presenca_api.py` já ganhou o parâmetro `unidade_id=1`.
-  - O admin de teste está nas duas unidades, o que torna barato testar "a mesma pessoa
-    em dois lugares": ponto aberto, marcações e limite de plantões são todos por unidade,
-    e o teste é só trocar `auth_headers` por `auth_headers_nl`.
----
-
-## 2026-09-04 - f3-relatorio-busca
-- `RelatorioService` ganhou o helper `_unidade()` (`RequestContext.get_unidade_ativa()`) e
-  passa `unidade_id` para as cinco consultas: `casos_cadastrados_por_area`,
-  `casos_por_status`, `orientacoes_por_area`, `presencas_no_periodo` e
-  `plantoes_no_periodo`.
-- `RelatorioRepository`: as cinco consultas ganharam `unidade_id: int | None = None`
-  (são leituras) e filtram por `casos.c.unidade_id`, `orientacao_juridica.c.unidade_id`,
-  `registro_entrada.c.unidade_id` e `dias_marcados_plantao.c.unidade_id`.
-- Busca global (`search_controller.global_search`): **nenhuma alteração de código**. Ela
-  delega a `AtendidoService.search`, `CasoService.search` e
-  `OrientacaoJuridicaService.search`, que já filtram desde as stories f3-atendido,
-  f3-caso e f3-orientacao-assistencia. O que faltava era prova, e ela virou
-  `tests/api/test_search_api.py`.
-- `notificacao_service.py` e `arquivo_service.py` seguem sem filtro, conforme a decisão 1
-  do plano. Não foram tocados.
-- Testes: 3 novos em `tests/api/test_relatorio_api.py` (classe `TestRelatorioPorUnidade`:
-  casos-cadastrados e casos-por-status contam só a unidade ativa, casos-por-orientacao
-  idem, horários ignoram presença e plantão de outra unidade) e o novo
-  `tests/api/test_search_api.py` com 4 (atendido, caso e orientação de outra unidade não
-  aparecem na busca; busca curta devolve a estrutura vazia).
-- Os helpers `_inserir_presenca` e `_inserir_plantao` de `test_relatorio_api.py` ganharam
-  `unidade_id: int = 1` — são inserts crus, e sem o parâmetro só dava para testar a
-  unidade padrão.
-- Arquivos: `gestaolegal/services/relatorio_service.py`,
-  `gestaolegal/repositories/relatorio_repository.py`, `tests/api/test_relatorio_api.py`,
-  `tests/api/test_search_api.py`.
-- `make test`: 325 passed (318 do baseline + 7 novos). Story só de API, sem tela nova:
-  não houve verificação de browser.
-- **Learnings for future iterations:**
-  - **Relatório é agregação: o vazamento não aparece como registro estranho, aparece como
-    número errado.** Um `count()` sem `unidade_id` soma as duas unidades e o teste que só
-    olha "a lista não tem item da outra unidade" não pega. Por isso os testes daqui
-    comparam **totais** entre `auth_headers` e `auth_headers_nl`, não conteúdo de linha.
-  - **Controller que só orquestra services não precisa de filtro próprio — precisa de
-    teste.** `global_search` não ganhou uma linha de código nesta story; ganhou um arquivo
-    de teste. Quando o isolamento é herdado, ele é invisível no diff e some numa
-    refatoração sem que nada acuse. Vale a mesma regra para qualquer endpoint futuro que
-    componha vários services.
-  - `usuarios` **não** é filtrado na busca global, e isso está certo por enquanto: a
-    tabela não tem `unidade_id` (o vínculo é `usuarios_unidades`, story
-    `f4-usuario-vinculo`). Quem fizer a f4 deve decidir se `UsuarioService.search` passa a
-    filtrar pelo vínculo — e, se passar, o teste de busca global precisa de um caso novo.
-  - Os relatórios de caso/orientação usam `data_criacao`, preenchida com o `now` do
-    create. Teste que cria pela API precisa de um período largo (aqui,
-    `2020-01-01`..`2099-12-31`), senão passa a depender do relógio do CI.
-  - `tests/api/test_relatorio_api.py` limpa as tabelas num `_reset` autouse; ao passar a
-    criar casos e orientações pela API, `TABELAS` teve de crescer com
-    `casos_atendidos`, `casos`, `atendido_xOrientacaoJuridica` e `orientacao_juridica`
-    (ligação antes da raiz, como no resto da suíte).
----
-
-## 2026-09-04 - f4-unidade-controller
-- Novo blueprint `/api/unidades` em `gestaolegal/controllers/unidade_controller.py`:
-  - `GET /` com `@authenticated(unidade=False)` — dispensa o `X-Unidade-Id` porque é
-    esta rota que alimenta o seletor do front, que roda antes de haver unidade ativa.
-    Devolve só as unidades ativas.
-  - `POST /` e `PUT /<id>` com `@authorized("admin")`.
-- Criados `gestaolegal/services/unidade_service.py` (list_ativas, find_by_id, criar,
-  atualizar) e `gestaolegal/models/unidade_input.py` (`UnidadeCreateInput`,
-  `UnidadeUpdateInput`). A story listava só o controller, mas todo controller aqui
-  delega a um service; a alternativa seria SQL no controller.
-- `UnidadeRepository.existe_com_nome_ou_sigla(nome, sigla, ignorar_id=None)`: `nome` e
-  `sigla` são UNIQUE no schema, então sem a checagem prévia a colisão viraria
-  `IntegrityError` (500) em vez de 400.
-- Sigla normalizada para maiúscula e nome/sigla com `strip()`, no create e no update.
-- Registrado em `gestaolegal/controllers/__init__.py` (`/api/unidades`).
-- Novo `tests/api/test_unidade_api.py` com 10 casos: GET sem header, GET sem token
-  (401), inativa fora da listagem e voltando com PUT, create como admin (201), nome
-  repetido (400), create/update como não admin (403), update de admin, update de id
-  inexistente (404).
-- Arquivos: `gestaolegal/controllers/unidade_controller.py`,
-  `gestaolegal/controllers/__init__.py`, `gestaolegal/services/unidade_service.py`,
-  `gestaolegal/models/unidade_input.py`,
-  `gestaolegal/repositories/unidade_repository.py`, `tests/api/test_unidade_api.py`.
-- `make test`: 334 passed (324 do baseline + 10 novos).
-- **Learnings for future iterations:**
-  - `@authorized(...)` já embute `@authenticated` **com** exigência de unidade. Rota de
-    admin que precise dispensar o header não dá para escrever com `@authorized`; teria
-    de ser `@authenticated(unidade=False)` + checagem de urole na mão. Para
-    `/api/unidades` isso não é problema: só o GET dispensa.
-  - As linhas de `unidades` **não** são limpas entre testes — `clean_db` varre só
-    `usuarios_unidades`, `usuarios` e `enderecos`, e `ensure_unidades()` é idempotente
-    por id. Teste que cria unidade precisa de nome e sigla próprios, senão colide com o
-    de outro teste que rodou antes.
-  - O blueprint registra `GET /` com barra final; a URL do front é `/api/unidades/`.
-    Sem a barra o Flask responde 308, que o `apiFetch` pode não seguir — o mesmo
-    cuidado dos demais controllers.
----
-
-## 2026-09-04 - f4-usuario-vinculo
-- `UserCreateInput` ganhou `unidade_ids: list[int] = Field(min_length=1)` — obrigatório e
-  com pelo menos uma unidade; ausência ou lista vazia caem no handler de `ValidationError`
-  do pydantic e viram **400**. `UserUpdateInput` ganhou `unidade_ids: list[int] | None =
-  None`: ausente significa "não mexe no vínculo", e a lista vazia é recusada pelo service
-  (não pelo pydantic), para que a mensagem possa distinguir os dois casos.
-- `UsuarioService.create` retira `unidade_ids` do `user_data` antes do insert (a coluna não
-  existe em `usuarios`), valida as unidades e chama `UnidadeRepository.vincular` logo após
-  o `repository.create`, antes do `find_by_id` — assim a resposta do POST já traz
-  `unidades`.
-- `UsuarioService.update` idem: valida antes de gravar e vincula depois do
-  `repository.update`. Sem `unidade_ids` no payload, o vínculo fica intacto.
-- Privados novos: `__validar_unidades` (unidade inexistente → 400 em vez do
-  `IntegrityError` da FK, que seria 500) e `__validar_vinculo` (lista vazia; mensagem
-  "Você não pode remover sua última unidade" quando `modificado_por == user_id`, genérica
-  para os demais).
-- `create_admin` (setup inicial) passou a vincular o admin à `UNIDADE_PADRAO_ID` **se ela
-  existir**; se não existir, só loga aviso. Sem isso o primeiro admin nasceria sem unidade
-  nenhuma e o `X-Unidade-Id` recusaria todas as rotas — sistema inutilizável logo após o
-  setup.
-- `PUT /api/user/me` descarta `unidade_ids` do JSON antes de validar: o perfil próprio usa
-  o mesmo `UserUpdateInput` das rotas de admin, e sem o descarte qualquer usuário se
-  auto-vincularia a qualquer unidade (escalada de privilégio).
-- `sample_user_data` (conftest) ganhou `"unidade_ids": [1]`.
-- Testes: classe `TestUsuarioUnidades` em `tests/api/test_user_api.py`, 9 casos — create
-  sem o campo / com lista vazia / com unidade inexistente (400), create vinculando duas
-  unidades e `GET /user/<id>` devolvendo-as, update trocando o vínculo, update parcial
-  preservando o vínculo, update com lista vazia recusado (e vínculo intacto depois), admin
-  removendo a própria última unidade recusado, `PUT /me` ignorando `unidade_ids`.
-- Arquivos: `gestaolegal/models/user_input.py`,
-  `gestaolegal/services/usuario_service.py`,
-  `gestaolegal/controllers/user_controller.py`, `tests/api/conftest.py`,
-  `tests/api/test_user_api.py`.
-- `make test`: 343 passed (334 do baseline + 9 novos). Story só de API: não houve
-  verificação de browser.
-- **Learnings for future iterations:**
-  - **O front quebra até a `f5-form-usuario`.** `web/src` não manda `unidade_ids`, e o
-    campo agora é obrigatório no create: cadastrar usuário pela tela responde 400 até que
-    a f5 acrescente o seletor. É consequência esperada da ordem do cronograma, não
-    regressão.
-  - **Campo de input que não é coluna precisa de `pop` no service.** Os repositories
-    montam o insert com as chaves do dict; `unidade_ids` sobrando em `user_data` viraria
-    erro de coluna inexistente. Mesma armadilha dos campos de endereço, que já saem por
-    `__extract_endereco_data`.
-  - **Rota `/me` compartilha o input model com a rota de admin.** Todo campo novo que só o
-    admin pode decidir (vínculo, `urole`, `status`) precisa ser descartado explicitamente
-    em `update_me`, senão vira escalada de privilégio silenciosa.
-  - `model_dump(exclude_none=True)` no update faz `None` sumir mas **preserva `[]`** — é
-    o que permite distinguir "não mexe no vínculo" de "apaga o vínculo". Vale para
-    qualquer campo de lista opcional.
-  - `UsuarioService.search` continua **sem** filtrar por unidade (pendência apontada na
-    f3-relatorio-busca): a listagem de usuários do admin mostra todo mundo. Com o vínculo
-    agora existindo, é decisão de produto se a f5 ou uma story futura filtra por
-    `usuarios_unidades`.
----
-
-## 2026-09-04 - f1-migration
-- Criada `migrations/versions/b7c1d2e3f4a5_unidades.py`, com
-  `down_revision = "99b46509b0e1"` (único head anterior).
-- `upgrade()` em três passos: (1) `create_table unidades` + `bulk_insert` de
-  (1, Belo Horizonte, BH) e (2, Nova Lima, NL), ambas ativas; (2)
-  `create_table usuarios_unidades` (PK composta, duas FKs) + `INSERT ... SELECT
-  id, 1 FROM usuarios`, colocando todo usuário herdado em BH; (3) para cada uma
-  das onze tabelas raiz, `add_column unidade_id` nullable, `UPDATE SET
-  unidade_id = 1`, `alter_column nullable=False`, índice `ix_<tabela>_unidade_id`
-  e FK `fk_<tabela>_unidade`. `downgrade()` desfaz na ordem inversa.
-- Arquivos: `migrations/versions/b7c1d2e3f4a5_unidades.py`.
-- Verificação: `alembic heads` → `b7c1d2e3f4a5 (head)`, único;
-  `docker compose run --rm migrate` aplica; `downgrade -1` seguido de
-  `upgrade head` roda de ponta a ponta; `uv run pytest tests/api/ -q` →
-  343 passed.
-- **Learnings for future iterations:**
-  - **A imagem do `migrate` carrega o código copiado, não o bind da worktree.**
-    Migration nova só aparece depois de `docker compose build migrate`; sem isso
-    `alembic heads` mostra o head antigo e dá a impressão falsa de que o arquivo
-    não foi lido.
-  - `alembic check` é o jeito barato de conferir "schema resultante bate com
-    `tables.py`" sem gerar arquivo. Ele **falha** neste projeto por drift
-    pré-existente da 2.0 (`arquivosEvento`, `assistidos_pessoa_juridica`,
-    `casos.numero_ultimo_processo` BIGINT vs Integer, nulabilidade em
-    `fila_atendimentos`, FKs sem nome). O critério útil é ler a lista e conferir
-    que **nada** ali menciona a sua mudança — foi o caso: nenhuma divergência
-    cita `unidade_id`, `unidades` nem `usuarios_unidades`.
-  - Coluna NOT NULL em tabela com dados entra sempre em três tempos (nullable →
-    UPDATE → `alter_column nullable=False`). `add_column` NOT NULL direto quebra
-    no MySQL assim que a tabela tem linha.
-  - O `default=UNIDADE_PADRAO_ID` de `coluna_unidade()` foi **mantido**. A F3
-    terminou e todos os services gravam a unidade explicitamente, mas o default
-    ainda é a rede de segurança de qualquer insert direto (conftest, seed) e sua
-    remoção não faz parte desta story.
-
-## 2026-09-04 - f5-tipos-store-header
-- Criado `web/src/lib/types/unidade.ts` (tipo `Unidade`), `User` ganhou `unidades:
-  Unidade[]` e o tipo foi exportado no `index.ts`.
-- Criada a store `web/src/lib/stores/unidade.ts`: `unidadeAtiva` (writable com o id),
-  `definirUnidadeAtiva`, `unidadeAtivaId()` (leitura fora de componente) e
-  `sincronizarUnidades(unidades)`, que mantém a guardada quando ela ainda está na lista
-  do usuário e cai para a primeira quando não está. Persistência em localStorage sob a
-  chave `unidade_ativa`.
-- `apiFetch` (`web/src/lib/api-client.ts`) manda `X-Unidade-Id` sempre que há valor.
-- `sincronizarUnidades` é chamada no `+page.svelte` do login (logo após gravar o cookie,
-  com `user.unidades` da resposta) e no `+layout.ts` do grupo `(dashboard)` (com
-  `me.unidades`). O `any` do tipo de resposta do login virou `User`.
-- Arquivos: `web/src/lib/types/unidade.ts`, `web/src/lib/types/user.ts`,
-  `web/src/lib/types/index.ts`, `web/src/lib/stores/unidade.ts`,
-  `web/src/lib/api-client.ts`, `web/src/routes/login/+page.svelte`,
-  `web/src/routes/(dashboard)/+layout.ts`.
-- Verificação: `npm run check` → 21 errors / 51 warnings, **exatamente o mesmo baseline
-  de HEAD** (conferido revertendo as mudanças e rodando de novo); nenhum erro novo.
-  `npm run lint` acusa só `src/routes/(dashboard)/arquivos/+page.svelte`, quebra que já
-  vem do master (commit `ede7809`) e não foi tocada aqui; `prettier --check` nos sete
-  arquivos desta story passa. `uv run pytest tests/api/ -q` → 343 passed.
-- Verificação de browser **não** foi possível: o plugin browser-use morre em
-  `permission-blocked` (exige o consentimento manual descrito em `docs/manual_dev.md`).
-  Em lugar dela, contra a stack desta worktree (`APP_PORT=5250`), com admin criado por
-  `POST /api/auth/setup-admin`: `GET /api/caso/` sem header → 400, com `X-Unidade-Id: 1`
-  → 200, com `X-Unidade-Id: 2` → 403; `GET /api/user/me` traz `unidades` preenchido.
-  **Falta conferir na tela** (login → dashboard) quando houver consentimento.
-- **Learnings for future iterations:**
-  - **`npm run check` e `npm run lint` já estão vermelhos no master** (21 erros de
-    svelte-check, 1 arquivo fora do prettier). O critério útil é comparar com o baseline
-    revertendo as próprias mudanças, não esperar zero.
-  - **O front é SPA**: `web/src/routes/+layout.ts` tem `ssr = false`. Store com
-    `localStorage` no módulo funciona sem cerimônia, mas o guard `browser` fica porque
-    `svelte-check` roda o módulo no build.
-  - **Corrida de load**: o `+layout.ts` do `(dashboard)` e os `+page.ts` filhos rodam em
-    paralelo; só os que fazem `await parent()` veem a unidade já sincronizada. Na prática
-    o login grava a unidade antes de qualquer navegação, então a lacuna é só no primeiro
-    acesso com cookie válido e localStorage vazio. Se aparecer 400 esporádico numa tela,
-    é isto.
-  - **`setup-admin` já vincula o admin à unidade 1** (o create passa pelo caminho novo da
-    f4). Dá para levantar uma stack vazia e ter usuário utilizável sem seed.
-  - Banco desta worktree começa vazio (`f6-seed` ainda não rodou); as unidades 1 e 2 vêm
-    da migration.
----
-
-## 2026-09-04 - f5-seletor-cabecalho
-- Criado `web/src/lib/components/unidade-selector.svelte`: com mais de uma unidade
-  mostra `Select` (trigger com a sigla, itens com o nome); com uma só, mostra a sigla
-  como texto (`title` com o nome); com nenhuma, não renderiza nada.
-- Trocar de unidade chama `definirUnidadeAtiva(id)` e depois `await invalidateAll()`,
-  senão as listagens carregadas na unidade anterior ficam na tela.
-- `web/src/routes/(dashboard)/+layout.svelte`: o seletor entrou no `ml-auto`, antes do
-  `NotificacaoBell` (a div virou `flex items-center gap-3`). `let user = data.me` virou
-  `const user = $derived(data.me)` — cópia não reagia ao `invalidateAll()`, e some um
-  warning de `state_referenced_locally`.
-- Verificação: `npm run check` → 21 errors / 50 warnings (baseline é 21/51; o warning a
-  menos é o do `user` derivado). `prettier --check .` acusa só
-  `src/routes/(dashboard)/arquivos/+page.svelte`, quebra herdada do master.
-  `uv run pytest tests/api/ -q` → 343 passed.
-- Verificação de browser **de novo não foi possível**: `browser_exec` morre em
-  `permission-blocked` (consentimento manual de `docs/manual_dev.md`). Em substituição,
-  `docker compose up -d --build web` e o bundle servido contém o seletor
-  (`grep 'Unidade ativa'` acha em `_app/immutable/nodes/2.*.js`). **Falta conferir na
-  tela** com um usuário de duas unidades (o admin serve) e um de uma só.
-- **Learnings for future iterations:**
-  - **`npm run lint` engole a saída**: o script é `prettier --check .`, mas quando roda
-    pelo npm a lista de arquivos some e sobra `ESLint output (JSON parse failed...)`.
-    Rode `npx prettier --check . > /tmp/x 2>&1` e leia o arquivo — foi assim que apareceu
-    que o componente novo estava fora de formato.
-  - `Select.Root` do shadcn trabalha com `value: string`; id numérico entra como
-    `String(id)` e volta por `Number(valor)` no `onValueChange`.
-  - Em runes mode, `let x = data.y` no `+layout.svelte` é **cópia congelada**: depois de
-    `invalidateAll()` continua o valor antigo. Use `$derived`.
-
-## 2026-09-04 - f5-form-usuario
-- `user-schema.ts`: campo `unidade_ids: z.array(z.string()).min(1, 'Selecione ao menos uma
-  unidade')` no `baseUserFormSchema` (vale para criar e editar). String[] porque é o que o
-  `MultipleSelect` do projeto aceita.
-- `user-form.svelte`: `MultipleSelect` "Unidades" na seção "Dados de Acesso ao Sistema",
-  alimentado por `api.get<Unidade[]>('unidades/')` no `onMount` (`unidades` em `$state`,
-  `unidadeOptions` em `$derived` mapeando `{value: String(id), label: nome}`). O
-  `superForm` ganhou `dataType: 'json'`, e o `onUpdate` monta `payload = {...form.data,
-  unidade_ids: form.data.unidade_ids.map(Number)}` antes do POST/PUT.
-- `usuarios/[id]/editar/+page.ts`: helper `unidadeIdsDoUsuario(user)` converte
-  `user.unidades` em `string[]` e alimenta o `superValidate` nos dois caminhos (`eu` e
-  `user/<id>`) — `flattenObject` preserva arrays, mas o nome do campo é outro.
-- `usuarios/[id]/+page.svelte`: "Unidades" entrou em `registrationData`, com os nomes
-  juntados por vírgula (`null` quando vazio, para o InfoCard mostrar "N/A").
-- Arquivos: `web/src/lib/forms/schemas/user-schema.ts`,
-  `web/src/lib/forms/user-form.svelte`,
-  `web/src/routes/(dashboard)/usuarios/[id]/editar/+page.ts`,
-  `web/src/routes/(dashboard)/usuarios/[id]/+page.svelte`.
-- Verificação: `npm run check` → 21 errors / 50 warnings, **idêntico ao baseline medido
-  antes das mudanças**; nenhum erro novo nos arquivos tocados (o erro em
-  `usuarios/[id]/editar/+page.svelte` sobre `onUpdate` é herdado). `npx prettier --check .`
-  acusa só `arquivos/+page.svelte`, quebra do master. `uv run pytest tests/api/ -q` →
-  343 passed.
-- Verificação de browser **não** foi possível: o binário `browser-use` não existe nesta
-  máquina (`comando não encontrado`) — nem chega ao `permission-blocked` das iterações
-  anteriores. Em substituição, `docker compose up -d --build web` e o bundle servido
-  contém o campo (`grep 'Selecione as unidades'` acha em
-  `_app/immutable/chunks/BKVCIogj.js`); e o payload exato do formulário foi exercitado
-  contra a API desta worktree (`APP_PORT=5250`): `POST /api/user` sem `unidade_ids` → 400
-  `VALIDATION_ERROR` em `unidade_ids`; com `[1, 2]` → 201 e a resposta traz `unidades`
-  preenchido, que é o que o detalhe exibe. **Falta conferir na tela**.
-- **Learnings for future iterations:**
-  - **`dataType: 'json'` é obrigatório no `superForm` assim que um campo é array.** Sem
-    ele o superforms serializa em FormData e a lista chega achatada na validação. O
-    `assistencia-judiciaria-form.svelte` já fazia isso; o `user-form.svelte` não fazia
-    porque não tinha array.
-  - **A API de usuário exige os campos opcionais explicitamente** (`oab`, `telefone`,
-    `obs`... com `null`), não aceita omissão. Quem for montar payload à mão para testar
-    tem que mandar o objeto inteiro; o formulário passa porque o `superValidate` preenche
-    todos os defaults do schema.
-  - **`POST /api/auth/login` devolve `data.token`, não `data.access_token`.** Perde-se
-    tempo achando que o login falhou quando o campo lido é o errado.
-  - `POST /api/auth/setup-admin` exige `setup_token` (o `ADMIN_SETUP_TOKEN` do `.env`) e
-    só funciona com a tabela `usuarios` vazia.
-  - `GET /api/unidades/` é `@authenticated(unidade=False)` de propósito: qualquer usuário
-    logado lista, sem `X-Unidade-Id`. Serve tanto ao seletor do cabeçalho quanto a este
-    formulário. **Note a barra final** — sem ela o Flask redireciona.
-  - **A listagem de usuários (`UsuarioService.search`) continua sem filtro por unidade.**
-    O admin vê todo mundo; o formulário agora mostra o vínculo, mas a lista não o usa.
----
-
-## 2026-09-04 - f5-tela-unidades
-- Nova rota `web/src/routes/(dashboard)/unidades/`:
-  - `+page.ts`: guarda de papel (`me.urole !== 'admin'` → `error(403, ...)`, no molde de
-    `relatorios/+page.ts`), `depends('app:unidades')` e `api.get<Unidade[]>('unidades/')`.
-  - `+page.svelte`: tabela (Nome, Sigla, Situação como `Badge`, Criada em, ação Editar) e
-    um único `Dialog` que serve para criar e editar — `emEdicao: Unidade | null` decide o
-    título e se o submit é `POST unidades/` ou `PUT unidades/<id>`. Campos: nome, sigla e
-    checkbox "Unidade ativa". Depois de salvar, `invalidateAll()` (recarrega o
-    `+layout.ts` do dashboard, que é quem ressincroniza o seletor de unidade).
-- `app-sidebar.svelte`: item "Unidades" (`/unidades`, ícone `building-2`,
-  `roles: ['admin']`), entre Notificações e Relatórios. Não-admin não vê o item e, se
-  digitar a URL, cai no 403 do `+page.ts`.
-- Verificação: `npm run check` → 21 errors / 50 warnings, **idêntico ao baseline** das
-  iterações anteriores, e nenhum diagnóstico nos arquivos desta story;
-  `npx prettier --check .` acusa só `arquivos/+page.svelte` (quebra herdada do master);
-  `uv run pytest tests/api/ -q` → 343 passed.
-- Verificação de browser **não** foi possível: o binário `browser-use` não existe nesta
-  máquina. Em substituição: `docker compose up -d --build web` e o bundle servido contém
-  a tela (`grep 'Nova Unidade'` acha em `_app/immutable/nodes/39.*.js`); e os payloads
-  exatos do diálogo foram exercitados contra a API desta worktree (`APP_PORT=5250`) com
-  admin: `POST /api/unidades/ {"nome":"Contagem","sigla":"CTG","ativa":true}` → 201;
-  `PUT /api/unidades/3 {"nome":"Contagem Centro","sigla":"CTC","ativa":false}` → 200. A
-  unidade 3 foi apagada do banco do canteiro depois do teste. **Falta conferir na tela.**
-- **Learnings for future iterations:**
-  - **`GET /api/unidades/` só devolve as ativas** (`UnidadeRepository.list_ativas`). Logo,
-    desativar pela tela faz a unidade sumir da lista e **não há como reativá-la pela
-    interface** — para reativar hoje só via banco. O diálogo avisa isso quando se
-    desmarca "Unidade ativa" na edição. Se a Fase B precisar de reativação, o caminho é
-    um parâmetro tipo `?incluir_inativas=1` no controller (backend, fora do escopo desta
-    story).
-  - **`POST /api/auth/login` e `/api/auth/setup-admin` esperam `password`, não `senha`**
-    (o campo `senha` devolve `VALIDATION_ERROR: Email e senha são obrigatórios`, o que
-    engana). Admin desta worktree: `admin@teste.local` / `Admin123!`.
-  - `criado` é timestamp real: a convenção de `lib/utils/date.ts` (e das telas de arquivo
-    e notificação) é `formatDateTime`, não `formatDateOnly` — este último é só para datas
-    de calendário escolhidas pelo usuário.
-  - **Cuidado ao grepar a saída do `npm run check` por "unidades"**: o caminho da worktree
-    (`/opt/gestaolegal-unidades`) casa com tudo. Filtre por `dashboard\)/unidades`.
----
-
-## 2026-09-04 - f6-seed
-- `scripts/seed_local.py` passou a ser multiunidade: lê `GET /api/unidades`, vincula o
-  admin e os três usuários de exemplo (Olívia, Eduardo, Carla) a **todas** as unidades
-  ativas e semeia 2 atendidos + 4 casos (+5 eventos e 2 PDFs no primeiro caso) em cada
-  uma delas. O header `X-Unidade-Id` deixou de ser global (`SEED_UNIDADE_ID`, removida)
-  e virou parâmetro `unidade=` de `call()`, escolhido chamada a chamada.
-- A URL já vinha de `APP_PORT` do `.env` do diretório atual — nada a mudar ali; o que
-  estava errado era a armadilha do `CLAUDE.md` que ainda afirmava `localhost:5000` fixo
-  no seed. Corrigida.
-- Arquivos: `scripts/seed_local.py`, `CLAUDE.md`.
-- Verificação: `make test` (343 passed) e o seed rodado **duas vezes** contra esta
-  worktree (`APP_PORT=5250`). Segunda execução devolveu exatamente os mesmos ids;
-  banco ficou com 2 atendidos e 4 casos por unidade, 10 eventos, 4 arquivos, e
-  `usuarios_unidades` com os 4 usuários nas unidades 1 e 2.
-- **SEED_CMD**: `scripts/helton/obra/obra.conf` é gate (não editado). Ele já traz
-  `SEED_CMD=(uv run python scripts/seed_local.py)`, que continua correto — o script
-  agora semeia as duas unidades sozinho, sem variável extra. Se o admin do canteiro
-  não for o padrão, o comando precisa de `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD`
-  antes dele (nesta worktree: `admin@teste.local` / `Admin123!`).
-- **Learnings for future iterations:**
-  - O admin criado por `auth/setup-admin` nasce vinculado **só à unidade padrão**
-    (`UNIDADE_PADRAO_ID`); quem quiser semear/testar a unidade 2 precisa dar o vínculo
-    antes, por `PUT /api/user/<id>` com `unidade_ids`. O token não guarda as unidades
-    (`JWTAuth.get_user_from_token` recarrega o usuário do banco), então **não** é
-    preciso relogar depois de mudar o vínculo.
-  - `GET /api/unidades` é `@authenticated(unidade=False)`: dá para descobrir as
-    unidades antes de ter uma ativa. `PUT /api/user/<id>` é `@authorized("admin")` e
-    **exige** o header — mande uma unidade que o admin já tenha.
-  - A busca de atendido é por **nome** e já vem filtrada pela unidade ativa; o CPF só
-    confirma o registro. Não há unicidade de CPF no banco, então CPF repetido entre
-    unidades passaria batido — o seed gera CPF por unidade (`cpf_seed`).
-  - Tabela de arquivos de caso no MySQL chama-se `arquivosCaso` (camelCase legado),
-    não `arquivos_casos`.
----
-
-## 2026-09-04 - f6-doc
-- `docs/unidades.md`: Fase A marcada como **entregue em 04/09/2026** no título da §5, com
-  nota dizendo que os passos 1–8 foram implementados na branch `helton/unidades`
-  (migration `b7c1d2e3f4a5_unidades`, API, front, 343 testes) e que o passo 9 (QA e
-  produção) segue aberto por causa da revisão `060d870f00e1`.
-- Nova §5.1 "Divergências em relação ao planejado", com o que mudou de rota ao longo das
-  19 stories anteriores: ordem invertida (migration por último, schema primeiro em
-  `tables.py`); `default=UNIDADE_PADRAO_ID` em `coluna_unidade()`, que não estava no
-  plano; filtro no **service** e não no repositório (com a exceção obrigatória das
-  escritas em massa); header ausente devolvendo 400 e não 403; as três rotas isentas do
-  header; evento/lembrete com coluna própria **e** guarda do pai; a tabela de ligação
-  assistência x orientação como ponto cego do §4; plantão, fila e ponto virando
-  singleton/sequência **por unidade**; `unidade_ids` obrigatório no POST de usuário e
-  descartado em `PUT /me`; e a tela `/unidades`, não prevista no plano.
-- Sub-bloco "O que ficou adiado": verificação em navegador das telas da Fase 5,
-  `UsuarioService.search` sem filtro por unidade, `/api/caso/<id>/processos` sem guarda do
-  pai, reativação de unidade pela interface e `notificacao`/`arquivos` sem filtro.
-- §6 Pendências: a pendência dos relatórios foi **fechada** (as cinco consultas de
-  `RelatorioRepository` filtram pela unidade ativa; não existe relatório consolidado) e
-  entraram cinco pendências novas, uma por item adiado, mais a reavaliação do
-  `default=UNIDADE_PADRAO_ID`. A pendência da revisão `060d870f00e1` fica como estava.
-- `docs/known_issues.md` **não** foi tocado, conforme o contexto da story.
-- Arquivos: `docs/unidades.md`.
-- Verificação: `uv run pytest tests/api/ -q` → 343 passed. Story só de documentação: sem
-  mudança de código e sem verificação de browser.
-- **Learnings for future iterations:**
-  - O `progress.txt` é a única fonte das divergências: nenhuma delas está no diff de um
-    commit só, e várias (o `default` da coluna, o 400 x 403, a guarda dupla de
-    evento/lembrete) só aparecem lendo os "Learnings" de três ou quatro stories juntos.
-    Story de documentação no fim do cronograma vale o custo — mas ela depende de as
-    anteriores terem registrado o **porquê**, não só o que mudou.
-  - Fechar pendência do documento exige conferir, não lembrar: a dos relatórios só pôde
-    ser marcada porque a `f3-relatorio-busca` listou as cinco consultas nominalmente.
+  - A verificação só cobra checksum quando a referência final é exatamente o `destino`
+    do manifesto. Anexo que já era relativo antes do inventário (`ja_migrado`) não tem
+    tamanho nem SHA-256 registrados — para ele basta existir no volume. Cobrar checksum
+    ali daria falso erro em toda base que já tem uploads da API nova.
+  - Registro apagado entre a aplicação e a verificação é `excecao`, não erro: não sobrou
+    referência quebrada para o app resolver. O erro é a referência que existe e não abre.
+  - Teste de divergência de conteúdo tem que trocar o byte SEM mudar o tamanho
+    (`b"evento"` -> `b"event0"`), senão a falha para no teste de tamanho e a asserção de
+    SHA-256 nunca chega a ser exercitada.
 ---

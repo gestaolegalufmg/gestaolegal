@@ -6,16 +6,27 @@ from io import BytesIO
 import pytest
 from flask.testing import FlaskClient
 
-from gestaolegal.services import arquivo_service
 from tests.api.conftest import clean_tables, get_success_data
 
 
 @pytest.fixture(autouse=True)
 def arquivos_dir(tmp_path, monkeypatch, app):
-    monkeypatch.setattr(arquivo_service, "ARQUIVOS_DIR", str(tmp_path))
+    """Aponta a raiz privada para um tmpdir; o service resolve a categoria."""
+    monkeypatch.setitem(app.config, "PRIVATE_FILES_ROOT", str(tmp_path))
+    destino = tmp_path / "arquivos"
+    destino.mkdir()
     with app.app_context():
         clean_tables("arquivos")
-    return tmp_path
+    return destino
+
+
+def caminho_do_arquivo(arquivos_dir, ref: str) -> str:
+    """`arquivos.caminho` é referência relativa à categoria, não caminho absoluto."""
+    return os.path.join(str(arquivos_dir), ref)
+
+
+def arquivo_existe(arquivos_dir, ref: str) -> bool:
+    return os.path.isfile(caminho_do_arquivo(arquivos_dir, ref))
 
 
 def _criar(client: FlaskClient, headers: dict[str, str], titulo="Regimento", nome="regimento.docx", conteudo=b"conteudo", descricao="Descrição do regimento"):
@@ -32,7 +43,9 @@ class TestCriar:
         assert data["nome"] == "regimento.docx"
         assert data["descricao"] == "Descrição do regimento"
         assert data["id_criado_por"] is not None
-        assert os.path.exists(data["caminho"])
+        assert not os.path.isabs(data["caminho"])
+        assert str(arquivos_dir) not in data["caminho"]
+        assert arquivo_existe(arquivos_dir, data["caminho"])
         assert len(os.listdir(arquivos_dir)) == 1
 
     def test_professor_cria(self, client, prof_auth_headers):
@@ -117,7 +130,7 @@ class TestEditar:
         data = get_success_data(response)
         assert data["nome"] == "regimento_v2.pdf"
         assert data["caminho"] != criado["caminho"]
-        assert not os.path.exists(criado["caminho"])
+        assert not arquivo_existe(arquivos_dir, criado["caminho"])
         assert len(os.listdir(arquivos_dir)) == 1
 
     def test_colab_externo_edita(self, client, auth_headers, app):
@@ -161,3 +174,45 @@ class TestDownload:
     def test_download_sem_login(self, client, auth_headers):
         criado = get_success_data(_criar(client, auth_headers))
         assert client.get(f"/api/arquivo/{criado['id']}/download").status_code == 401
+
+    def test_download_marca_resposta_como_privada(self, client, auth_headers):
+        criado = get_success_data(_criar(client, auth_headers))
+        response = client.get(f"/api/arquivo/{criado['id']}/download", headers=auth_headers)
+        assert response.headers["Cache-Control"] == "private, no-store"
+
+    def test_download_de_arquivo_ausente_do_volume(self, client, auth_headers, arquivos_dir):
+        criado = get_success_data(_criar(client, auth_headers))
+        os.remove(caminho_do_arquivo(arquivos_dir, criado["caminho"]))
+        assert client.get(f"/api/arquivo/{criado['id']}/download", headers=auth_headers).status_code == 404
+
+    def test_registro_sem_caminho_nao_monta_caminho_pelo_nome(
+        self, client, auth_headers, arquivos_dir, app
+    ):
+        """Herdado da 2.0: sem `caminho`, é 404 tratado — nunca raiz + `nome`."""
+        criado = get_success_data(_criar(client, auth_headers))
+        ref = criado["caminho"]
+        os.rename(
+            caminho_do_arquivo(arquivos_dir, ref),
+            caminho_do_arquivo(arquivos_dir, criado["nome"]),
+        )
+        with app.app_context():
+            from gestaolegal.database.session import transaction
+            from gestaolegal.repositories.arquivo_repository import ArquivoRepository
+
+            with transaction():
+                ArquivoRepository().update(criado["id"], {"caminho": None})
+
+        response = client.get(f"/api/arquivo/{criado['id']}/download", headers=auth_headers)
+        assert response.status_code == 404
+
+
+class TestVolume:
+    def test_falha_de_banco_nao_deixa_orfao(self, client, auth_headers, arquivos_dir, monkeypatch):
+        from gestaolegal.repositories.arquivo_repository import ArquivoRepository
+
+        def explode(*args, **kwargs):
+            raise RuntimeError("banco fora do ar")
+
+        monkeypatch.setattr(ArquivoRepository, "create", explode)
+        assert _criar(client, auth_headers).status_code == 500
+        assert os.listdir(arquivos_dir) == []

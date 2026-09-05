@@ -1,8 +1,16 @@
+import os
 from io import BytesIO
 from typing import Any
 
+import pytest
+from flask import Flask
 from flask.testing import FlaskClient
+from werkzeug.datastructures import FileStorage
 
+from gestaolegal.exceptions import ValidationException
+from gestaolegal.repositories.evento_repository import EventoRepository
+from gestaolegal.services import private_file_storage
+from gestaolegal.services.evento_service import EventoService
 from tests.api.conftest import get_success_data
 
 
@@ -631,3 +639,291 @@ def test_criar_evento_em_caso_de_outra_unidade_responde_404(
         content_type="multipart/form-data",
     )
     assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Anexo do evento na raiz privada (#190)
+# ---------------------------------------------------------------------------
+
+
+def _anexo_do_evento(app: Flask, ref: str) -> bool:
+    """O anexo está no volume? O banco guarda só a referência relativa."""
+    with app.app_context():
+        return private_file_storage.exists("eventos", ref)
+
+
+def _eventos_no_volume(app: Flask) -> list[str]:
+    with app.app_context():
+        return sorted(os.listdir(private_file_storage.categoria_dir("eventos")))
+
+
+def _criar_evento_com_anexo(
+    client: FlaskClient,
+    headers: dict[str, str],
+    caso_id: int,
+    conteudo: bytes = b"conteudo do anexo",
+    nome: str = "peticao inicial.pdf",
+) -> dict[str, Any]:
+    response = client.post(
+        f"/api/caso/{caso_id}/eventos",
+        data={
+            "tipo": "Juntada",
+            "data_evento": "2024-05-10",
+            "status": "true",
+            "arquivo": (BytesIO(conteudo), nome),
+        },
+        headers=headers,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 201
+    return get_success_data(response)
+
+
+def test_anexo_de_evento_guarda_referencia_relativa(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """A resposta traz a referência, nunca a raiz absoluta do volume."""
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    evento = _criar_evento_com_anexo(client, auth_headers, caso_id)
+
+    ref = evento["arquivo"]
+    assert not os.path.isabs(ref)
+    assert "/" not in ref
+    assert str(app.config["PRIVATE_FILES_ROOT"]) not in ref
+    assert ref.endswith("_peticao_inicial.pdf")
+    assert _anexo_do_evento(app, ref)
+
+
+def test_download_de_evento_devolve_nome_original_e_headers(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    evento = _criar_evento_com_anexo(client, auth_headers, caso_id, b"miolo do pdf")
+
+    response = client.get(
+        f"/api/caso/{caso_id}/eventos/{evento['id']}/download", headers=auth_headers
+    )
+
+    assert response.status_code == 200
+    assert response.data == b"miolo do pdf"
+    assert "peticao_inicial.pdf" in response.headers["Content-Disposition"]
+    assert response.headers["Cache-Control"] == "private, no-store"
+
+
+def test_download_de_evento_exige_autenticacao(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    evento = _criar_evento_com_anexo(client, auth_headers, caso_id)
+
+    assert (
+        client.get(f"/api/caso/{caso_id}/eventos/{evento['id']}/download").status_code
+        == 401
+    )
+
+
+def test_evento_excluido_nao_e_baixavel(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """O soft delete tira o anexo do volume e o download responde 404."""
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    evento = _criar_evento_com_anexo(client, auth_headers, caso_id)
+    ref = evento["arquivo"]
+
+    assert (
+        client.delete(
+            f"/api/caso/{caso_id}/eventos/{evento['id']}", headers=auth_headers
+        ).status_code
+        == 200
+    )
+
+    assert not _anexo_do_evento(app, ref)
+    assert (
+        client.get(
+            f"/api/caso/{caso_id}/eventos/{evento['id']}/download", headers=auth_headers
+        ).status_code
+        == 404
+    )
+
+
+def test_put_remove_o_anexo_substituido(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    evento = _criar_evento_com_anexo(client, auth_headers, caso_id, b"antigo")
+    ref_antiga = evento["arquivo"]
+
+    response = client.put(
+        f"/api/caso/{caso_id}/eventos/{evento['id']}",
+        data={"arquivo": (BytesIO(b"novo"), "substituto.pdf")},
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+    ref_nova = get_success_data(response)["arquivo"]
+
+    assert ref_nova != ref_antiga
+    assert not _anexo_do_evento(app, ref_antiga)
+    assert _anexo_do_evento(app, ref_nova)
+
+    download = client.get(
+        f"/api/caso/{caso_id}/eventos/{evento['id']}/download", headers=auth_headers
+    )
+    assert download.data == b"novo"
+
+
+def test_upload_de_tipo_nao_permitido_e_recusado(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    antes = _eventos_no_volume(app)
+
+    response = client.post(
+        f"/api/caso/{caso_id}/eventos",
+        data={
+            "tipo": "Juntada",
+            "data_evento": "2024-05-10",
+            "arquivo": (BytesIO(b"MZ"), "malicioso.exe"),
+        },
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 400
+    assert "Tipo de arquivo não permitido" in response.json["error"]["message"]
+    assert _eventos_no_volume(app) == antes
+
+
+def test_upload_de_evento_maior_que_o_limite_e_recusado(
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    grande = BytesIO(b"0" * (10 * 1024 * 1024 + 1024))
+
+    response = client.post(
+        f"/api/caso/{caso_id}/eventos",
+        data={
+            "tipo": "Juntada",
+            "data_evento": "2024-05-10",
+            "arquivo": (grande, "grande.pdf"),
+        },
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 413
+    assert (
+        response.json["error"]["message"]
+        == "O arquivo excede o tamanho máximo de 10 MB"
+    )
+
+
+def test_validacao_de_tamanho_do_anexo_no_service(app: Flask) -> None:
+    """O limite do service, alcançável só por chamada direta.
+
+    Pela API o `MAX_CONTENT_LENGTH` do próprio Flask barra antes, com 413;
+    quem chama o service (o migrador, por exemplo) passa por aqui.
+    """
+    with app.app_context():
+        limite = app.config["MAX_CONTENT_LENGTH"]
+        arquivo = FileStorage(
+            stream=BytesIO(b"0" * (limite + 1)), filename="grande.pdf"
+        )
+        with pytest.raises(ValidationException) as excinfo:
+            EventoService._validar_anexo(arquivo)
+    assert "excede o tamanho máximo" in str(excinfo.value)
+
+
+def test_upload_em_caso_de_outra_unidade_nao_deixa_orfao(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    auth_headers_nl: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    """Acesso negado antes de gravar: nada sobra no volume."""
+    caso_nl = _criar_caso(client, auth_headers_nl, sample_caso_data)
+    antes = _eventos_no_volume(app)
+
+    response = client.post(
+        f"/api/caso/{caso_nl}/eventos",
+        data={
+            "tipo": "Juntada",
+            "data_evento": "2024-05-10",
+            "arquivo": (BytesIO(b"conteudo"), "documento.pdf"),
+        },
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 404
+    assert _eventos_no_volume(app) == antes
+
+
+def test_falha_ao_criar_evento_nao_deixa_anexo_no_volume(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """O registro não nasceu: o anexo recém-gravado não pode ficar."""
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    antes = _eventos_no_volume(app)
+
+    def explode(*args: Any, **kwargs: Any) -> int:
+        raise RuntimeError("banco fora do ar")
+
+    monkeypatch.setattr(EventoRepository, "create", explode)
+
+    response = client.post(
+        f"/api/caso/{caso_id}/eventos",
+        data={
+            "tipo": "Juntada",
+            "data_evento": "2024-05-10",
+            "arquivo": (BytesIO(b"conteudo"), "documento.pdf"),
+        },
+        headers=auth_headers,
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code >= 400
+    assert _eventos_no_volume(app) == antes
+
+
+def test_download_com_anexo_ausente_do_volume(
+    app: Flask,
+    client: FlaskClient,
+    auth_headers: dict[str, str],
+    sample_caso_data: dict[str, Any],
+) -> None:
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    evento = _criar_evento_com_anexo(client, auth_headers, caso_id)
+
+    with app.app_context():
+        os.remove(private_file_storage.resolve("eventos", evento["arquivo"]))
+
+    response = client.get(
+        f"/api/caso/{caso_id}/eventos/{evento['id']}/download", headers=auth_headers
+    )
+    assert response.status_code >= 400
+    assert "não encontrado no servidor" in response.json["error"]["message"]

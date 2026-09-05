@@ -1,19 +1,26 @@
 import logging
 import os
 from datetime import datetime
-from typing import cast
+from typing import Final, cast
+
+from flask import current_app
+from werkzeug.datastructures import FileStorage
 
 from gestaolegal.common import PageParams, PaginatedResult
 from gestaolegal.database.session import transaction
 from gestaolegal.exceptions import (
     DatabaseException,
+    FileOperationException,
     ForbiddenException,
+    GestaoLegalException,
     NotFoundException,
+    ValidationException,
 )
 from gestaolegal.models.caso import Caso
 from gestaolegal.models.evento import Evento, ListEvento
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
 from gestaolegal.models.user import UserInfo
+from gestaolegal.services import private_file_storage
 from gestaolegal.services.notificacao_service import NotificacaoService
 from gestaolegal.repositories.caso_repository import CasoRepository
 from gestaolegal.repositories.evento_repository import EventoRepository
@@ -21,6 +28,25 @@ from gestaolegal.repositories.user_repository import UserRepository
 from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
+
+EVENTO_CATEGORIA = "eventos"
+
+EXTENSOES_ANEXO_EVENTO: Final[frozenset[str]] = frozenset(
+    {".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".odt", ".rtf", ".txt"}
+)
+"""Extensões aceitas como anexo de evento.
+
+Mais larga que a de anexo de caso (só PDF) de propósito: o anexo de evento
+nunca teve restrição nenhuma — nem na API, nem no `input type="file"` do
+`evento-dialog.svelte` —, e apertar para PDF aqui derrubaria a foto de
+documento e o .docx que já se anexa hoje. O que a lista barra é o que não tem
+por que virar anexo de um prazo ou de uma audiência: executável, script,
+arquivo sem extensão.
+"""
+
+
+def _max_arquivo_bytes() -> int:
+    return int(current_app.config["MAX_CONTENT_LENGTH"])
 
 
 class EventoService:
@@ -140,8 +166,18 @@ class EventoService:
         return evento
 
     def create(
-        self, caso_id: int, evento_input: EventoCreateInput, criado_por_id: int
+        self,
+        caso_id: int,
+        evento_input: EventoCreateInput,
+        criado_por_id: int,
+        arquivo: FileStorage | None = None,
     ) -> Evento:
+        """Cria o evento e, se houver anexo, grava-o na raiz privada.
+
+        O caso, a unidade e o próprio arquivo são validados **antes** de
+        qualquer gravação: o controller gravava primeiro e só depois descobria
+        que o acesso era negado, deixando órfão no volume.
+        """
         logger.info(
             f"Creating evento for caso {caso_id} with tipo: {evento_input.tipo}, created by: {criado_por_id}"
         )
@@ -150,6 +186,8 @@ class EventoService:
             logger.warning(f"Caso {caso_id} is not in the active unidade")
             raise NotFoundException(resource="Caso", resource_id=caso_id)
 
+        self._validar_anexo(arquivo)
+
         evento_data = evento_input.model_dump()
         evento_data["id_caso"] = caso_id
         evento_data["unidade_id"] = caso.unidade_id
@@ -157,12 +195,29 @@ class EventoService:
         evento_data["id_criado_por"] = criado_por_id
         evento_data["num_evento"] = self.repository.count_by_caso_id(caso_id) + 1
 
-        evento_id = self.repository.create(evento_data)
+        ref = None
+        try:
+            if arquivo:
+                ref = private_file_storage.save(EVENTO_CATEGORIA, arquivo)
+            evento_data["arquivo"] = ref
 
-        created_evento = self.find_by_id(evento_id)
-        if not created_evento:
-            logger.error("Failed to create evento")
-            raise DatabaseException("Falha ao criar evento")
+            evento_id = self.repository.create(evento_data)
+
+            created_evento = self.find_by_id(evento_id)
+            if not created_evento:
+                logger.error("Failed to create evento")
+                raise DatabaseException("Falha ao criar evento")
+        except Exception as e:
+            # O evento não existe: o anexo recém-gravado não é referenciado
+            # por ninguém e não pode ficar no volume.
+            if ref:
+                private_file_storage.remove(EVENTO_CATEGORIA, ref)
+            if isinstance(e, GestaoLegalException):
+                raise
+            logger.error(f"Error creating evento for caso {caso_id}: {e}", exc_info=True)
+            raise FileOperationException(
+                f"Erro ao anexar o arquivo do evento: {e}", operation="upload"
+            )
 
         with transaction():
             NotificacaoService().evento_criado(created_evento, criado_por_id)
@@ -174,7 +229,13 @@ class EventoService:
         self,
         evento_id: int,
         evento_input: EventoUpdateInput,
+        arquivo: FileStorage | None = None,
     ) -> Evento | None:
+        """Atualiza o evento e, se vier anexo novo, substitui o anterior.
+
+        O anexo substituído sai do volume **depois** de o banco confirmar a
+        nova referência: até esta story ele simplesmente vazava.
+        """
         logger.info(f"Updating evento with id: {evento_id}")
         existing = self.repository.find_by_id(
             evento_id, unidade_id=RequestContext.get_unidade_ativa()
@@ -183,9 +244,33 @@ class EventoService:
             logger.error(f"Update failed: evento not found with id: {evento_id}")
             raise NotFoundException(resource="Evento", resource_id=evento_id)
 
+        self._validar_anexo(arquivo)
+
         evento_data = evento_input.model_dump(exclude_none=True)
 
-        self.repository.update(evento_id, evento_data)
+        nova_ref = None
+        try:
+            if arquivo:
+                nova_ref = private_file_storage.save(EVENTO_CATEGORIA, arquivo)
+                evento_data["arquivo"] = nova_ref
+
+            self.repository.update(evento_id, evento_data)
+        except Exception as e:
+            # Nada confirmado: some com o novo e o anexo anterior segue de pé.
+            if nova_ref:
+                private_file_storage.remove(EVENTO_CATEGORIA, nova_ref)
+            if isinstance(e, GestaoLegalException):
+                raise
+            logger.error(f"Error updating evento {evento_id}: {e}", exc_info=True)
+            raise FileOperationException(
+                f"Erro ao anexar o arquivo do evento: {e}", operation="upload"
+            )
+
+        anterior = existing.arquivo
+        if nova_ref and anterior and anterior != nova_ref:
+            self._remover_do_volume(
+                anterior, contexto=f"anexo do evento {evento_id} substituído"
+            )
 
         logger.info(f"Evento updated successfully with id: {evento_id}")
         return self.repository.find_by_id(
@@ -210,35 +295,96 @@ class EventoService:
                 "Apenas o administrador ou quem criou o evento pode excluí-lo"
             )
 
-        if evento.arquivo and os.path.exists(evento.arquivo):
-            try:
-                os.remove(evento.arquivo)
-                logger.info(f"Evento file removed: {evento.arquivo}")
-            except OSError as exc:
-                logger.error(f"Error removing evento file {evento.arquivo}: {exc}")
-
+        # O banco manda: o registro perde a referência primeiro, e só depois o
+        # anexo deixa o volume. Apagar antes deixaria o evento apontando para
+        # o nada se a atualização falhasse.
+        anexo = evento.arquivo
         self.repository.update(evento_id, {"status": False, "arquivo": None})
+
+        self._remover_do_volume(anexo, contexto=f"evento {evento_id} excluído")
         logger.info(f"Evento {evento_id} deleted successfully")
 
     def get_evento_file_for_download(
         self, evento_id: int, caso_id: int
-    ) -> tuple[str | None, str]:
+    ) -> tuple[str, str]:
+        """Devolve `(caminho absoluto no volume privado, nome original)`.
+
+        O caminho nunca sai daqui para o banco nem para a resposta da API —
+        quem o recebe é o `send_file`. Evento excluído (status falso) não é
+        baixável: o `delete` já limpa a referência, mas registro herdado da
+        2.0 pode ter as duas coisas.
+        """
         logger.info(f"Getting evento {evento_id} file for download from caso {caso_id}")
 
         evento = self.validate_evento_for_caso(evento_id, caso_id)
-        if not evento:
-            return None, "Evento não encontrado ou não pertence ao caso"
+        if not evento or not evento.status:
+            raise NotFoundException(resource="Evento", resource_id=evento_id)
 
         if not evento.arquivo:
             logger.warning(f"Evento {evento_id} has no file")
-            return None, "Evento não possui arquivo"
+            raise FileOperationException(
+                "Evento não possui arquivo", operation="download"
+            )
 
-        if not os.path.exists(evento.arquivo):
-            logger.error(f"File not found in filesystem: {evento.arquivo}")
-            return None, "Arquivo não encontrado no servidor"
+        if not private_file_storage.exists(EVENTO_CATEGORIA, evento.arquivo):
+            logger.error(f"Anexo ausente no volume privado: {evento.arquivo}")
+            raise FileOperationException(
+                "Arquivo não encontrado no servidor", operation="download"
+            )
 
         logger.info(f"Evento {evento_id} file ready for download: {evento.arquivo}")
-        return evento.arquivo, "OK"
+        return (
+            private_file_storage.resolve(EVENTO_CATEGORIA, evento.arquivo),
+            private_file_storage.nome_original(evento.arquivo),
+        )
+
+    @staticmethod
+    def _validar_anexo(file: FileStorage | None) -> None:
+        """Tipo e tamanho do anexo de evento — nenhum dos dois era checado."""
+        if file is None:
+            return
+
+        if not file.filename:
+            logger.warning("Invalid file provided for evento upload")
+            raise ValidationException("Arquivo inválido", field="arquivo")
+
+        extensao = os.path.splitext(file.filename)[1].lower()
+        if extensao not in EXTENSOES_ANEXO_EVENTO:
+            logger.warning(f"Rejected evento upload of type {extensao!r}")
+            permitidas = ", ".join(sorted(EXTENSOES_ANEXO_EVENTO))
+            raise ValidationException(
+                f"Tipo de arquivo não permitido. Aceitos: {permitidas}",
+                field="arquivo",
+            )
+
+        file.stream.seek(0, os.SEEK_END)
+        size = file.stream.tell()
+        file.stream.seek(0)
+        limite = _max_arquivo_bytes()
+        if size > limite:
+            logger.warning(f"Rejected oversized upload ({size} bytes): {file.filename}")
+            raise ValidationException(
+                f"O arquivo excede o tamanho máximo de {limite // (1024 * 1024)} MB",
+                field="arquivo",
+            )
+
+    @staticmethod
+    def _remover_do_volume(ref: str | None, contexto: str) -> None:
+        """Limpeza **pós-commit**: falha aqui vira log de reconciliação.
+
+        O banco já confirmou. Levantar exceção agora simularia um rollback que
+        não existe — o que sobra é um órfão no volume, e órfão é problema de
+        faxina, não de requisição.
+        """
+        if not ref:
+            return
+        try:
+            private_file_storage.remove(EVENTO_CATEGORIA, ref)
+        except Exception as e:
+            logger.error(
+                f"Reconciliação pendente: {contexto}, mas {EVENTO_CATEGORIA}/{ref} "
+                f"continua no volume ({e})"
+            )
 
     def __get_user_map(self, eventos: list[Evento]) -> dict[int, UserInfo]:
         user_ids: set[int] = set()
