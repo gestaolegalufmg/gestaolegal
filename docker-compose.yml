@@ -38,6 +38,11 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    volumes:
+      # Anexos ficam fora da imagem e fora de static/: sem este volume eles
+      # vivem no filesystem do container e somem quando ele é recriado.
+      # O caminho tem de bater com PRIVATE_FILES_ROOT (ver .env.example).
+      - private_uploads:${PRIVATE_FILES_ROOT:-/data/gestaolegal/uploads}
     depends_on:
       db:
         condition: service_healthy
@@ -115,4 +120,8 @@ volumes:
   mysql_data:
     driver: local
   mail_dkim:
+    driver: local
+  # Anexos dos casos, eventos e arquivos gerais (#190). Volume nomeado porque
+  # `docker compose down` sem `-v` tem de preservar os arquivos enviados.
+  private_uploads:
     driver: local

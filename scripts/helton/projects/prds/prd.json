@@ -91,8 +91,8 @@
         "f1-config-raiz-privada"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Volume nomeado private_uploads montado em PRIVATE_FILES_ROOT no serviço api; QA passou a montar /opt/gestaolegal/uploads em /data/gestaolegal/uploads no lugar do bind de static/arquivos; .dockerignore exclui os três diretórios de upload e dumps/. Verificado: arquivo gravado no volume sobreviveu a --force-recreate da api, e a imagem não traz static/casos|eventos|arquivos nem dumps/."
     },
     {
       "id": "f5-fluxo-arquivos-caso",

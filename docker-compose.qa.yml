@@ -39,7 +39,12 @@ services:
       qa_mailpit:
         condition: service_started
     volumes:
-      - /opt/gestaolegal/arquivos:/code/gestaolegal/static/arquivos
+      # Anexos fora de static/ (#190): a API grava em PRIVATE_FILES_ROOT, que
+      # o .env do servidor tem de apontar para /data/gestaolegal/uploads.
+      # O antigo bind de /opt/gestaolegal/arquivos sobre
+      # /code/gestaolegal/static/arquivos saiu junto com o diretório público;
+      # os arquivos legados que ainda estão lá são movidos pelo migrador.
+      - /opt/gestaolegal/uploads:/data/gestaolegal/uploads
 
   # Aplica as migrações do Alembic antes de a API subir, usando a mesma imagem
   # dela. Sem este serviço as migrações ficavam acumulando: em 03/09/2026 o

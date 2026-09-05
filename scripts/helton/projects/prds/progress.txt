@@ -15,6 +15,11 @@ Started: sáb. 05 set 2026 07:40:12 -03
 - Para trocar a raiz de anexos num teste: `monkeypatch.setitem(app.config, "PRIVATE_FILES_ROOT", str(tmp_path))`.
 - `Config` lê env no corpo da classe (import-time). Teste que precise variar um valor de
   `Config` deve usar `monkeypatch.setattr(Config, ...)`, não mexer em `os.environ`.
+- Saída de `make test` vem truncada pelo filtro do rtk. Para ler o resultado completo:
+  `bash -c 'make test > /tmp/t.log 2>&1'` e depois `tail /tmp/t.log`.
+- O caminho da raiz privada aparece em dois lugares que precisam concordar:
+  o default de `Config.PRIVATE_FILES_ROOT` e o `${PRIVATE_FILES_ROOT:-...}` do
+  `docker-compose.yml`. Mudou um, mude o outro.
 
 ## 2026-09-05 - f1-config-raiz-privada
 - Trocado `STATIC_ROOT_DIR`/`UPLOADS`/`ARQUIVOS_DIR` por `PRIVATE_FILES_ROOT`
@@ -110,4 +115,30 @@ Started: sáb. 05 set 2026 07:40:12 -03
   - O fixture `app` da suíte é de escopo sessão: para trocar a raiz por teste use
     `monkeypatch.setitem(app.config, "PRIVATE_FILES_ROOT", str(tmp_path))` dentro de
     um `app.app_context()` próprio.
+---
+
+## 2026-09-05 - f4-volume-compose
+- `docker-compose.yml`: serviço `api` ganhou `volumes:` com o volume nomeado
+  `private_uploads` montado em `${PRIVATE_FILES_ROOT:-/data/gestaolegal/uploads}`
+  (a interpolação repete o default do `Config`, para o compose e a aplicação não
+  divergirem se o `.env` definir a variável). Volume declarado no bloco `volumes:`.
+- `docker-compose.qa.yml`: o bind `/opt/gestaolegal/arquivos:/code/gestaolegal/static/arquivos`
+  saiu; no lugar, `/opt/gestaolegal/uploads:/data/gestaolegal/uploads`. Mantido bind
+  (e não volume nomeado) porque toda a stack de QA persiste em `/opt/gestaolegal/*`
+  e o migrador dos legados (f10–f12) vai precisar enxergar os dois diretórios no host.
+- `.dockerignore`: excluídos `gestaolegal/static/casos`, `.../eventos`, `.../arquivos`
+  e `dumps` — o `Dockerfile` faz `COPY . /code` e levava os anexos para a imagem.
+- Verificação: `docker compose config` e `docker compose -f docker-compose.qa.yml config`
+  ok; `make test` 348 passed; `docker compose build api && up -d`; arquivo gravado em
+  `/data/gestaolegal/uploads/casos` sobreviveu a `up -d --force-recreate api`; dentro
+  do container os três diretórios de static e `dumps/` não existem.
+- **Learnings for future iterations:**
+  - `make test` neste ambiente tem a saída truncada pelo filtro do rtk. Para ver o
+    resultado inteiro, redirecione para arquivo com `bash -c '... > /tmp/t.log 2>&1'`
+    e leia o log — `rtk proxy` com redirecionamento não funciona (interpreta o `>`).
+  - `docker compose exec -T <serviço>` funciona nesta worktree; o projeto é o
+    `COMPOSE_PROJECT_NAME` do `.env`, não use `docker exec` com nome fixo.
+  - O `.env` desta worktree NÃO define `PRIVATE_FILES_ROOT`; quem dá o valor é o
+    default do `Config`. Por isso o compose usa `${PRIVATE_FILES_ROOT:-...}` com o
+    mesmo default — mudar um dos dois sem o outro monta o volume no lugar errado.
 ---

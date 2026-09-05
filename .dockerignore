@@ -36,3 +36,12 @@ tests
 # Build artifacts
 build
 dist
+
+# Uploads (#190): o Dockerfile faz COPY . /code e levaria os anexos enviados
+# para dentro da imagem. Em runtime eles vivem no volume PRIVATE_FILES_ROOT.
+gestaolegal/static/casos
+gestaolegal/static/eventos
+gestaolegal/static/arquivos
+
+# Dumps de banco: pesados e com dados reais, não entram na imagem.
+dumps
