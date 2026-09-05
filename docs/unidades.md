@@ -293,6 +293,68 @@ manda o header a partir dela; trocar de unidade dispara `invalidateAll()`.
    unidades.
 5. Ensaio completo em QA com o dump atual. Virada em produção com dump novo.
 
+O passo 2 está entregue: `scripts/importar_unidade.py`, com 14 testes em
+`tests/scripts/test_importar_unidade.py` (dois bancos SQLite montados a partir
+de `tables.py`, exercitando o mesmo caminho de reflection que rodará contra o
+MySQL). Os passos 1, 3, 4 e 5 continuam abertos — e os que tocam dado real são
+gate humano.
+
+#### 5.3 O script de importação (`scripts/importar_unidade.py`)
+
+**Como se usa.** `--origem` e `--destino` são URLs SQLAlchemy; `--sigla NL`
+resolve a unidade no destino. **Sem `--executar` o script roda a importação
+inteira e dá rollback**: as contagens e os avisos do relatório são os da
+importação de verdade, mas nada é gravado. Com `--executar`, a mesma transação
+é confirmada — tudo ou nada, não existe importação pela metade.
+
+**Pressuposto.** Origem e destino no mesmo degrau do Alembic (passo 1 da Fase
+B). Com o schema igual dos dois lados, a importação é só remapeamento de id, e
+o script não precisa conhecer o schema da 2.0.
+
+**Salvaguardas antes de escrever.** O script recusa a importação se a origem
+tiver tabela que o `PLANO` não cobre — tabela nova importada pela metade ou
+esquecida é justamente o erro que ninguém percebe até o dado sumir. Também
+recusa se uma coluna NOT NULL do destino não existir na origem, e lista de uma
+vez todas as colisões de coluna `UNIQUE` entre as duas bases
+(`assistencias_judiciarias.email`, `processos.numero`,
+`password_reset_tokens.token_hash`), em vez de descobrir uma por execução.
+
+**Decisões que o plano não tinha.**
+
+- **`usuarios.criadopor` e `modificadopor`** são id de usuário sem FK
+  declarada, e são autorreferência: o mapa só fica completo depois da tabela
+  inteira. Viraram uma passada de `UPDATE` no fim. Criador que não veio na
+  importação mantém o id antigo — apontar para alguém de BH seria pior.
+- **`notificacao.id_caso` e `id_referencia`** também não têm FK. `id_caso` é
+  remapeado sempre; `id_referencia` só quando `tipo` diz de que entidade ele é.
+  Registro herdado da 2.0 tem `tipo` nulo: aí o id é **zerado**, para não virar
+  referência a outro registro pelo id coincidente.
+- **`arquivos` (biblioteca compartilhada) é importada por padrão.** São arquivos
+  que não existem em BH; sem eles Nova Lima perde a biblioteca. `--sem-arquivos-gerais`
+  pula. Confirmar na virada.
+- **`documentos_roteiro` não é importada**: conteúdo institucional compartilhado
+  (§4.5), e importar duplicaria as linhas por área do direito.
+- **Assistido de atendido deduplicado não é inserido.** O atendido reaproveitado
+  pelo CPF já tem o seu assistido no destino, e um segundo violaria a relação
+  um-para-um. O mesmo vale para `assistidos_pessoa_juridica`.
+- **Colisão de `assistencias_judiciarias.email`** não tem resposta óbvia: as
+  assistências são por unidade (decisão 2), mas a coluna é `UNIQUE` no banco
+  inteiro. O script aborta e oferece `--reusar-assistencia-por-email`, que
+  aponta a de NL para a de BH. **Decidir antes da virada.**
+- **Colisão de `processos.numero`**: `--zerar-numero-processo-colidido` grava
+  `NULL` (a coluna é nullable). Também é decisão a tomar olhando os números.
+- **FK órfã** (comum em base legada): se a coluna aceita nulo, grava nulo e
+  avisa; se é NOT NULL, a linha é descartada e contada no relatório.
+- **`assistidos_pessoa_juridica` e `arquivosEvento`** existem no banco mas não
+  em `tables.py` (ver `docs/known_issues.md`). Estão no plano como opcionais:
+  se a tabela existir nos dois lados, são importadas; se não, o script informa.
+
+**Prefixo dos arquivos físicos.** `--prefixo-arquivo` (padrão `NL_`) é aplicado
+a `eventos.arquivo`, `arquivosCaso.link_arquivo`, `arquivosEvento.link_arquivo`
+e `arquivos.nome`/`caminho`, preservando o diretório. É só a metade em banco do
+passo 3: **copiar os arquivos com o mesmo prefixo continua sendo trabalho
+manual**, e sem isso os registros apontam para arquivo inexistente.
+
 ### Fase C: dump de BH
 
 A base de BH será a própria base da 3.0 após a Fase A, então não há importação de
@@ -363,6 +425,13 @@ garantir que a base não andou nesse meio-tempo.
       ativa ou se algum precisa consolidar as duas. **Todos filtram pela unidade
       ativa** (as cinco consultas de `RelatorioRepository`). Não há relatório
       consolidado das duas unidades; se for preciso, é story nova.
+- [ ] Decidir o tratamento das colisões de `UNIQUE` na importação de NL:
+      `assistencias_judiciarias.email` e `processos.numero` (ver §5.3). Só dá
+      para decidir olhando os valores que colidem, o que exige o ensaio da
+      Fase B em QA.
+- [ ] Rodar `make test` também sobre `tests/scripts/` (hoje só `tests/api/`; o
+      CI já roda `tests/` inteiro, então os testes do importador valem no
+      portão do CI mas não no comando local).
 - [ ] Conferir em navegador as telas da Fase 5 (seletor no cabeçalho, unidades no
       formulário de usuário, tela `/unidades`) — ver "O que ficou adiado" em §5.1.
 - [ ] Decidir se a listagem de usuários do admin passa a filtrar por
