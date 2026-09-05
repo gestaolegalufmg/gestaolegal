@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { mensagemDeErro } from '$lib/utils/erros';
+	import { nomeOriginalArquivo } from '$lib/utils/arquivos';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import ConfirmAction from '$lib/components/confirm-action.svelte';
@@ -290,7 +291,7 @@
 			const url = window.URL.createObjectURL(blob);
 			const a = document.createElement('a');
 			a.href = url;
-			a.download = arquivo.link_arquivo.split('/').pop() || 'arquivo';
+			a.download = nomeOriginalArquivo(arquivo.link_arquivo);
 			document.body.appendChild(a);
 			a.click();
 			window.URL.revokeObjectURL(url);
@@ -472,9 +473,7 @@
 							<div class="flex items-center justify-between rounded-lg bg-muted/50 p-3">
 								<div class="flex items-center gap-2">
 									<FileText class="h-5 w-5" />
-									<span class="text-sm"
-										>{arquivo.link_arquivo.split('/').pop()?.split('_').pop()}</span
-									>
+									<span class="text-sm">{nomeOriginalArquivo(arquivo.link_arquivo)}</span>
 								</div>
 								<div class="flex gap-1">
 									<Button

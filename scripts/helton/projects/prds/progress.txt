@@ -29,6 +29,15 @@ Started: sáb. 05 set 2026 07:40:12 -03
 - Service de anexo levanta `NotFoundException`/`FileOperationException` e devolve
   `(caminho absoluto, nome original)`; devolver `(None, mensagem)` para o controller
   decidir é o padrão antigo, em extinção.
+- Referência de anexo no banco é `<uuid4hex>_<nome>`, **sem** o prefixo de categoria; quem
+  compõe `casos/`, `eventos/` ou `arquivos/` é o service, na hora de resolver o caminho.
+- O nome exibido ao usuário sai de `nome_original` (Python, `private_file_storage.py`) ou de
+  `nomeOriginalArquivo` (front, `web/src/lib/utils/arquivos.ts`). São a mesma regra escrita
+  duas vezes: mudou uma, mude a outra.
+- `npm run lint` é `prettier --check .` sobre a árvore inteira, não sobre o diff — arquivo
+  desformatado por outra branch derruba o gate desta.
+- `npm run check` já vem vermelho na base (21 erros, 50 warnings). Compare a lista com a de
+  antes e garanta só que nenhum erro novo cita os arquivos que você tocou.
 
 ## 2026-09-05 - f1-config-raiz-privada
 - Trocado `STATIC_ROOT_DIR`/`UPLOADS`/`ARQUIVOS_DIR` por `PRIVATE_FILES_ROOT`
@@ -321,4 +330,43 @@ Started: sáb. 05 set 2026 07:40:12 -03
     200 do SPA. Um 404 nesses caminhos é, por si só, a prova de que a regra pegou.
   - Fixture que cria diretório dentro de `app.static_folder` precisa remover só o que criou:
     `imgs_daj` e `arquivos` já existem no repo, e apagá-los sujaria a worktree.
+---
+
+## 2026-09-05 - f9-front-nome-arquivo
+- Novo `web/src/lib/utils/arquivos.ts` com `nomeOriginalArquivo(ref)`: tira só o prefixo
+  gerado (`<32 hex>_`) e devolve o resto do nome inteiro, underscores inclusive. Referência
+  sem esse prefixo (registro herdado da 2.0) volta como está; `null`/vazio viram "arquivo".
+  Espelha `nome_original` de `gestaolegal/services/private_file_storage.py`.
+- `web/src/routes/(dashboard)/casos/[id]/+page.svelte`: a listagem trocou
+  `split('/').pop()?.split('_').pop()` (que cortava tudo antes do último underscore,
+  mutilando "contrato_2024_assinado.pdf" em "assinado.pdf") pelo helper. O `a.download` do
+  `handleDownload` passou a usar o mesmo helper, para o nome baixado bater com o
+  `Content-Disposition` que a API monta a partir de `nome_original`.
+- `web/src/routes/(dashboard)/arquivos/+page.svelte` entrou no commit só por prettier:
+  já estava fora de formato desde antes desta empreitada (ede7809) e derrubava
+  `npm run lint`. Diff puramente de formatação, nenhuma linha de lógica.
+- Verificação: `npm run lint` passa (0). `npm run check` continua com os mesmos 21 erros e
+  50 warnings preexistentes (api-client `Error.captureStackTrace`, adaptadores do superForm,
+  campos `*_repres_legal` de Atendido) — nenhum nos arquivos desta story. `make test`: 408 passed.
+- Verificação manual no navegador NÃO foi feita: o plugin browser-use exige um Chrome já
+  aberto na sessão do usuário ("chrome-not-running") e não é o agente que o abre. A lógica
+  foi conferida por tabela de casos em node, incluindo os dois formatos que o banco deste
+  canteiro tem hoje. Para o humano conferir na tela: caso 2 da unidade 1 tem um arquivo
+  novo (`144d5ae2...._contrato_2024_assinado.pdf`, subido pela API para esta verificação) e
+  o caso 1 tem dois registros herdados com caminho absoluto da 2.0.
+- Arquivos: web/src/lib/utils/arquivos.ts (novo),
+  web/src/routes/(dashboard)/casos/[id]/+page.svelte,
+  web/src/routes/(dashboard)/arquivos/+page.svelte (só formatação).
+- **Learnings for future iterations:**
+  - A referência gravada pelo `private_file_storage` **não** leva o prefixo de categoria:
+    o banco guarda `<uuid4hex>_<nome>`, e é o service que compõe `casos/` na hora de
+    resolver. O `split('/').pop()` do front continua inofensivo, mas não conte com a barra.
+  - `npm run lint` é `prettier --check .` sobre a árvore inteira, não sobre o diff: qualquer
+    arquivo desformatado por outra branch derruba o gate desta. Rode
+    `npx prettier --write <arquivos>` antes de concluir.
+  - `npm run check` já vem vermelho na base (21 erros). Não tente zerar: compare a lista com
+    a de antes e garanta só que nenhum erro novo cita os arquivos que você tocou.
+  - Para exercitar a UI de arquivos sem navegador: `POST /api/caso/<id>/arquivos` com
+    `-F arquivo=@...`, `Authorization: Bearer` e o header `X-Unidade-Id` (obrigatório em
+    toda rota de caso, senão vem VALIDATION_ERROR "Unidade ativa não informada").
 ---

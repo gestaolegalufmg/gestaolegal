@@ -204,8 +204,8 @@
         "f5-fluxo-arquivos-caso"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Helper nomeOriginalArquivo em web/src/lib/utils/arquivos.ts, espelhando nome_original do private_file_storage.py; usado na listagem e no nome sugerido do download. Verificação no navegador não feita: browser-use exige Chrome aberto na sessão do usuário."
     },
     {
       "id": "f10-migrador-inventario",
