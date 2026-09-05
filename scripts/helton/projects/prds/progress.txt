@@ -294,3 +294,31 @@ Started: sáb. 05 set 2026 07:40:12 -03
     "create", explode)` devolve 500 pelo handler global — serve para provar ausência de
     órfão sem chamar o service direto.
 ---
+
+## 2026-09-05 - f8-bloqueio-caminho-estatico
+- `register_static_block(app)` novo em `gestaolegal/__init__.py`, chamado no fim de
+  `create_app`: `before_request` que devolve 404 para `/static/casos`, `/static/eventos`,
+  `/static/arquivos` e descendentes, em qualquer método.
+- A comparação é feita sobre segmentos normalizados (`_partes_normalizadas`), que descartam
+  `''` (o `//`) e `.` e resolvem `..` — e sobre quatro formas do caminho: `request.path`,
+  seu `unquote` (pega `%2e%2e` já decodificado ou não) e o `RAW_URI`/`REQUEST_URI` do
+  environ com e sem decodificação. Over-block só é possível dentro de `/static`.
+- `static/imgs_daj` (e o resto de `static/`) continua servido — o teste prova isso com um
+  asset sintético.
+- `web/nginx.conf`: `location ~ ^/static/(casos|eventos|arquivos)(/|$) { return 404; }`,
+  colocado ANTES da regex `\.(png|jpg|...)$`. Regex no nginx ganha por ordem de declaração,
+  então a posição importa; sem ela, `/static/casos/foto.png` cairia na regex de assets.
+- `tests/api/test_static_block.py` (novo, 18 casos): planta `vazado.txt` DE FATO nas três
+  pastas dentro de `app.static_folder`, confere 404 em GET e HEAD, no diretório com e sem
+  barra final, nas formas normalizadas, e que o corpo não vaza o conteúdo; o fixture limpa
+  arquivos e diretórios que criou.
+- Verificado na stack do canteiro (WEB_PORT=5421, APP_PORT=5420): `nginx -t` ok e 404 pelo
+  nginx e pela API direta nos três prefixos.
+- `make test`: 408 passed.
+- Arquivos: gestaolegal/__init__.py, web/nginx.conf, tests/api/test_static_block.py.
+- **Learnings for future iterations:**
+  - No nginx, `location /` com `try_files ... /index.html` transforma o que não existe em
+    200 do SPA. Um 404 nesses caminhos é, por si só, a prova de que a regra pegou.
+  - Fixture que cria diretório dentro de `app.static_folder` precisa remover só o que criou:
+    `imgs_daj` e `arquivos` já existem no repo, e apagá-los sujaria a worktree.
+---

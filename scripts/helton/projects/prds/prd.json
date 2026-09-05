@@ -183,8 +183,8 @@
         "f1-config-raiz-privada"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "before_request register_static_block em gestaolegal/__init__.py devolve 404 para /static/{casos,eventos,arquivos} e descendentes, normalizando '//', '.', '..' e '%2e%2e' (request.path e RAW_URI). web/nginx.conf ganhou `location ~ ^/static/(casos|eventos|arquivos)(/|$) { return 404; }` antes da regex de assets. tests/api/test_static_block.py planta arquivos reais nas três pastas e um asset em imgs_daj."
     },
     {
       "id": "f9-front-nome-arquivo",
