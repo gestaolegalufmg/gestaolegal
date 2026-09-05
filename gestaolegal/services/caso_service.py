@@ -3,11 +3,11 @@ import os
 from datetime import datetime
 from typing import cast
 
+from flask import current_app
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from gestaolegal.common import PageParams, PaginatedResult
-from gestaolegal.config import Config
 from gestaolegal.database.session import transaction
 from gestaolegal.exceptions import (
     DatabaseException,
@@ -38,8 +38,16 @@ from gestaolegal.utils.request_context import RequestContext
 
 logger = logging.getLogger(__name__)
 
-CASO_FILES_DIR = Config.UPLOADS
-MAX_ARQUIVO_BYTES = 10 * 1024 * 1024  # 10 MB
+CASO_CATEGORIA = "casos"
+
+
+def _caso_files_dir() -> str:
+    """Resolvida a cada chamada: a raiz vem da config do app, não do import."""
+    return os.path.join(current_app.config["PRIVATE_FILES_ROOT"], CASO_CATEGORIA)
+
+
+def _max_arquivo_bytes() -> int:
+    return int(current_app.config["MAX_CONTENT_LENGTH"])
 
 
 class CasoService:
@@ -481,18 +489,21 @@ class CasoService:
         file.stream.seek(0, os.SEEK_END)
         size = file.stream.tell()
         file.stream.seek(0)
-        if size > MAX_ARQUIVO_BYTES:
+        limite = _max_arquivo_bytes()
+        if size > limite:
             logger.warning(f"Rejected oversized upload ({size} bytes): {file.filename}")
             raise ValidationException(
-                "O arquivo excede o tamanho máximo de 10 MB", field="arquivo"
+                f"O arquivo excede o tamanho máximo de {limite // (1024 * 1024)} MB",
+                field="arquivo",
             )
 
     @staticmethod
     def _salvar_pdf(file: FileStorage) -> str:
         filename = secure_filename(cast(str, file.filename))
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        os.makedirs(CASO_FILES_DIR, exist_ok=True)
-        filepath = os.path.join(CASO_FILES_DIR, f"{timestamp}_{filename}")
+        caso_files_dir = _caso_files_dir()
+        os.makedirs(caso_files_dir, exist_ok=True)
+        filepath = os.path.join(caso_files_dir, f"{timestamp}_{filename}")
         file.save(filepath)
         logger.info(f"File saved to filesystem: {filepath}")
         return filepath

@@ -3,11 +3,11 @@ import os
 from datetime import datetime
 from typing import Any, cast
 
+from flask import current_app
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from gestaolegal.common import PageParams, PaginatedResult
-from gestaolegal.config import Config
 from gestaolegal.database.session import transaction
 from gestaolegal.exceptions import NotFoundException, ValidationException
 from gestaolegal.models.arquivo import Arquivo
@@ -15,8 +15,17 @@ from gestaolegal.repositories.arquivo_repository import ArquivoRepository
 
 logger = logging.getLogger(__name__)
 
-ARQUIVOS_DIR = Config.ARQUIVOS_DIR
-MAX_ARQUIVO_BYTES = Config.MAX_CONTENT_LENGTH
+ARQUIVOS_CATEGORIA = "arquivos"
+
+
+def _arquivos_dir() -> str:
+    """Resolvida a cada chamada: a raiz vem da config do app, não do import."""
+    return os.path.join(current_app.config["PRIVATE_FILES_ROOT"], ARQUIVOS_CATEGORIA)
+
+
+def _max_arquivo_bytes() -> int:
+    return int(current_app.config["MAX_CONTENT_LENGTH"])
+
 TITULO_MAX = 150
 DESCRICAO_MAX = 8000
 
@@ -25,7 +34,7 @@ class ArquivoService:
     """Arquivos gerais da organização (módulo "Arquivos" da v2).
 
     Qualquer tipo de arquivo é aceito, até 10 MB. O arquivo fica em
-    `ARQUIVOS_DIR` com prefixo de data/hora para evitar colisão de nomes; o
+    raiz privada (categoria "arquivos") com prefixo de data/hora para evitar colisão de nomes; o
     nome original é guardado em `nome` para o download.
     """
 
@@ -122,8 +131,8 @@ class ArquivoService:
 
     @staticmethod
     def _caminho_de(arquivo: Arquivo) -> str:
-        """Registros da v2 não têm `caminho`: o arquivo ficava em ARQUIVOS_DIR/nome."""
-        return arquivo.caminho or os.path.join(ARQUIVOS_DIR, arquivo.nome)
+        """Registros da v2 não têm `caminho`: o arquivo ficava na raiz/nome."""
+        return arquivo.caminho or os.path.join(_arquivos_dir(), arquivo.nome)
 
     # ------------------------------------------------------------------ util
 
@@ -153,17 +162,20 @@ class ArquivoService:
         file.stream.seek(0)
         if size == 0:
             raise ValidationException("O arquivo está vazio", field="arquivo")
-        if size > MAX_ARQUIVO_BYTES:
+        limite = _max_arquivo_bytes()
+        if size > limite:
             raise ValidationException(
-                "O arquivo excede o tamanho máximo de 10 MB", field="arquivo"
+                f"O arquivo excede o tamanho máximo de {limite // (1024 * 1024)} MB",
+                field="arquivo",
             )
 
     @staticmethod
     def _salvar(file: FileStorage) -> str:
         filename = secure_filename(cast(str, file.filename)) or "arquivo"
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        os.makedirs(ARQUIVOS_DIR, exist_ok=True)
-        caminho = os.path.join(ARQUIVOS_DIR, f"{timestamp}_{filename}")
+        arquivos_dir = _arquivos_dir()
+        os.makedirs(arquivos_dir, exist_ok=True)
+        caminho = os.path.join(arquivos_dir, f"{timestamp}_{filename}")
         file.save(caminho)
         logger.info(f"Arquivo gravado em {caminho}")
         return caminho

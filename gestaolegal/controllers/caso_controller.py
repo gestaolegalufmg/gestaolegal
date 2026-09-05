@@ -4,11 +4,10 @@ from datetime import datetime
 from typing import Any, cast
 
 from dateutil import parser
-from flask import Blueprint, request, send_file
+from flask import Blueprint, current_app, request, send_file
 from werkzeug.utils import secure_filename
 
 from gestaolegal.common import PageParams
-from gestaolegal.config import Config
 from gestaolegal.exceptions import (
     FileOperationException,
     NotFoundException,
@@ -257,7 +256,7 @@ def delete_processo(caso_id: int, processo_id: int):
 def create_evento(caso_id: int):
     current_user: UserInfo = RequestContext.get_current_user()
     evento_service = EventoService()
-    EVENTO_FILES_DIR = os.path.join(Config.STATIC_ROOT_DIR, "eventos")
+    EVENTO_FILES_DIR = os.path.join(current_app.config["PRIVATE_FILES_ROOT"], "eventos")
 
     form_data: dict[str, Any] = {
         "tipo": request.form.get("tipo"),
@@ -333,7 +332,7 @@ def get_evento(caso_id: int, evento_id: int):
 @authenticated
 def update_evento(caso_id: int, evento_id: int):
     evento_service = EventoService()
-    EVENTO_FILES_DIR = os.path.join(Config.STATIC_ROOT_DIR, "eventos")
+    EVENTO_FILES_DIR = os.path.join(current_app.config["PRIVATE_FILES_ROOT"], "eventos")
 
     existing_evento = evento_service.validate_evento_for_caso(evento_id, caso_id)
     if not existing_evento:

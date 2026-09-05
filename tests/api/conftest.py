@@ -1,8 +1,9 @@
 import os
 import tempfile
 
-# Use a temporary directory for file uploads in tests
-TEST_UPLOAD_DIR = tempfile.mkdtemp()
+# Raiz privada dos anexos nos testes: tmpdir próprio, FORA de app.static_folder
+# (a subida valida essa separação — ver gestaolegal/__init__.py).
+TEST_PRIVATE_FILES_ROOT = tempfile.mkdtemp(prefix="gl-private-uploads-")
 
 os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["ADMIN_EMAIL"] = "admin@test.com"
@@ -12,7 +13,7 @@ os.environ["DB_HOST"] = "localhost"
 os.environ["DB_NAME"] = "test_db"
 os.environ["DB_USER"] = "test_user"
 os.environ["DB_PASSWORD"] = "test_password"
-os.environ["STATIC_ROOT_DIR"] = TEST_UPLOAD_DIR
+os.environ["PRIVATE_FILES_ROOT"] = TEST_PRIVATE_FILES_ROOT
 
 from collections.abc import Generator
 from datetime import datetime

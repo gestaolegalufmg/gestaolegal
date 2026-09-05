@@ -1,0 +1,256 @@
+{
+  "project": "gestaolegal",
+  "branchName": "helton/anexos-volume-privado",
+  "description": "Move os anexos dos três fluxos para um volume privado fora de static, com referência relativa no banco, bloqueio do caminho estático e o migrador dos anexos legados (#190).",
+  "execution": "sandboxed",
+  "userStories": [
+    {
+      "id": "f1-config-raiz-privada",
+      "title": "Trocar STATIC_ROOT_DIR/UPLOADS/ARQUIVOS_DIR por PRIVATE_FILES_ROOT e validar a raiz na subida",
+      "context": "Hoje gestaolegal/config.py:115-121 define STATIC_ROOT_DIR (padrão /gestaolegal/gestaolegal/static/), UPLOADS e ARQUIVOS_DIR, todos dentro da pasta servida pelo Flask. Substituir pelo par PRIVATE_FILES_ROOT (env, padrão /data/gestaolegal/uploads) mais as categorias fixas 'casos', 'eventos' e 'arquivos'. MAX_CONTENT_LENGTH (config.py:122) passa a ser a fonte única de tamanho: remover MAX_ARQUIVO_BYTES hardcoded em gestaolegal/services/caso_service.py:42. Em configure_app (gestaolegal/__init__.py:38) validar na subida que o realpath da raiz NÃO está dentro de app.static_folder e que é gravável, falhando explicitamente. Atenção: caso_service.py:41 (CASO_FILES_DIR), arquivo_service.py:18 (ARQUIVOS_DIR) e caso_controller.py (EVENTO_FILES_DIR) capturam essas constantes no import; nesta story eles devem passar a resolver o caminho em runtime via current_app.config, sem quebrar make test. tests/api/conftest.py:5,15 define STATIC_ROOT_DIR num tmpdir; passa a definir PRIVATE_FILES_ROOT num tmpdir SEPARADO de app.static_folder. Documentar PRIVATE_FILES_ROOT em .env.example (hoje nem STATIC_ROOT_DIR está lá).",
+      "files": [
+        "gestaolegal/config.py",
+        "gestaolegal/__init__.py",
+        "gestaolegal/services/caso_service.py",
+        "gestaolegal/services/arquivo_service.py",
+        "gestaolegal/controllers/caso_controller.py",
+        "tests/api/conftest.py",
+        ".env.example"
+      ],
+      "acceptance": "Config não expõe mais STATIC_ROOT_DIR, UPLOADS nem ARQUIVOS_DIR; PRIVATE_FILES_ROOT existe com padrão /data/gestaolegal/uploads e categorias casos/eventos/arquivos. A subida falha com erro explícito se a raiz estiver dentro de app.static_folder ou não for gravável, e há teste cobrindo os dois casos. MAX_ARQUIVO_BYTES sumiu de caso_service.py. Nenhum módulo captura caminho de upload no import. make test passa.",
+      "verify": "make test",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": false,
+      "blocked_by_gate": false,
+      "depends_on": [],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f2-migration-eventos-arquivo",
+      "title": "Ampliar eventos.arquivo de String(100) para String(300)",
+      "context": "gestaolegal/database/tables.py:234 declara eventos.arquivo como String(100), curto demais para a referência relativa (arquivosCaso.link_arquivo e arquivos.caminho já são String(300), tables.py:247 e :259). Criar migration em migrations/versions/ com down_revision = 'b7c1d2e3f4a5' (head atual, migrations/versions/b7c1d2e3f4a5_unidades.py — confirmado head único). O downgrade confere o comprimento dos valores existentes e recusa a redução se houver algum acima de 100 caracteres. A migration NÃO move nem reescreve arquivos. Atualizar também a coluna em tables.py. Rodar com `alembic -c migrations/alembic.ini`.",
+      "files": [
+        "migrations/versions/",
+        "gestaolegal/database/tables.py"
+      ],
+      "acceptance": "Existe uma migration com down_revision 'b7c1d2e3f4a5' que altera eventos.arquivo para String(300); `alembic -c migrations/alembic.ini heads` continua mostrando um único head; o downgrade aborta com mensagem clara se houver valor acima de 100 caracteres. tables.py reflete String(300). make test passa.",
+      "verify": "make test && alembic -c migrations/alembic.ini heads",
+      "effort_label": "low",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": [],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f3-private-file-storage",
+      "title": "Criar gestaolegal/services/private_file_storage.py com save/resolve/remove",
+      "context": "Módulo novo, único ponto de contato com o filesystem de anexos. A raiz vem de current_app.config em cada chamada — nunca constante capturada no import. API: save(categoria, file) -> ref, resolve(categoria, ref) -> path, remove(categoria, ref). Nome gerado '<uuid4>_<secure_filename>' com extensão preservada e referência limitada a 300 caracteres (o UUID substitui o timestamp de segundos usado hoje em caso_controller.py:277-279, que colide dentro do mesmo segundo). Recusa: categoria desconhecida, caminho absoluto, '..', symlink que escapa, referência vazia; realpath confinado à raiz/categoria em toda leitura. Escrita em temporário dentro do volume + os.replace para publicar, criação exclusiva (O_EXCL, nunca sobrescrever), temporário removido em falha. Expor também os cabeçalhos de download exigidos: Content-Disposition: attachment e Cache-Control: private, no-store.",
+      "files": [
+        "gestaolegal/services/private_file_storage.py",
+        "tests/api/test_private_file_storage.py"
+      ],
+      "acceptance": "tests/api/test_private_file_storage.py cobre gravação/leitura/remoção, nome repetido, nome longo, caracteres especiais, categoria errada, caminho absoluto, '..', symlink de escape e falha de gravação (temporário não sobra). Nenhuma escrita fora da raiz privada é possível. make test passa.",
+      "verify": "make test",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": false,
+      "blocked_by_gate": false,
+      "depends_on": ["f1-config-raiz-privada"],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f4-volume-compose",
+      "title": "Declarar o volume private_uploads na stack e excluir uploads do build",
+      "context": "docker-compose.yml:114-118 só declara mysql_data e mail_dkim: hoje os anexos vivem dentro do container e somem ao recriá-lo. Acrescentar volume nomeado private_uploads montado em /data/gestaolegal/uploads no serviço api. Em docker-compose.qa.yml, remover o bind /opt/gestaolegal/arquivos:/code/gestaolegal/static/arquivos (o diretório público que a #190 elimina) e montar o volume privado no lugar. Em .dockerignore, acrescentar gestaolegal/static/casos, gestaolegal/static/eventos, gestaolegal/static/arquivos e dumps/ — hoje o Dockerfile faz COPY . /code e leva os uploads para dentro da imagem.",
+      "files": [
+        "docker-compose.yml",
+        "docker-compose.qa.yml",
+        ".dockerignore"
+      ],
+      "acceptance": "docker compose config mostra private_uploads montado em /data/gestaolegal/uploads no serviço api; o bind de static/arquivos sumiu do compose de QA; .dockerignore exclui os três diretórios de upload e dumps/. `docker compose build && docker compose up -d` sobe a stack do canteiro e um anexo enviado sobrevive à recriação do container da API.",
+      "verify": "docker compose config >/dev/null && make test",
+      "effort_label": "low",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": ["f1-config-raiz-privada"],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f5-fluxo-arquivos-caso",
+      "title": "Passar os arquivos de caso pelo private_file_storage",
+      "context": "gestaolegal/services/caso_service.py:399-573 grava e lê arquivos de caso direto no filesystem. Passar tudo por private_file_storage (categoria 'casos'), guardando referência relativa em arquivosCaso.link_arquivo. Manter a validação de PDF e a checagem de unidade em :417-419. Corrigir find_arquivo_by_id (:336), hoje sem validação de caso nem de unidade. Ciclo de vida: validar -> gravar novo -> confirmar transação -> em falha, remover o novo e manter o antigo -> após commit, remover o anterior; falha de limpeza pós-commit vira log de reconciliação, não rollback simulado. Nenhum file.save, os.remove, os.makedirs ou os.path.exists direto pode sobrar no fluxo.",
+      "files": [
+        "gestaolegal/services/caso_service.py",
+        "gestaolegal/controllers/caso_controller.py",
+        "tests/api/test_caso_api.py"
+      ],
+      "acceptance": "Upload/download/substituição/exclusão de arquivo de caso funcionam com referência relativa; anônimo recusado; unidade errada recusada; arquivo inexistente tratado; a resposta não expõe a raiz absoluta; find_arquivo_by_id valida caso e unidade. Teste de rollback: o arquivo anterior segue disponível quando a transação não confirma, e o novo nunca fica referenciado sem ter sido gravado. make test passa.",
+      "verify": "make test",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": ["f3-private-file-storage"],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f6-fluxo-anexo-evento",
+      "title": "Mover o upload de anexo de evento do controller para o EventoService",
+      "context": "O bloco de gravação está duplicado em gestaolegal/controllers/caso_controller.py:274-287 (POST) e :361-374 (PUT): grava com secure_filename + timestamp e guarda caminho absoluto, antes de qualquer validação de acesso — quando o acesso é negado, sobra órfão. Mover para EventoService, que valida caso, unidade e dados ANTES de gravar, e acrescentar validação de tipo e tamanho (hoje inexistente). O PUT passa a remover o anexo substituído (hoje vaza). EventoService.get_evento_file_for_download (gestaolegal/services/evento_service.py:223-241) passa a recusar evento com status falso e a resolver a referência relativa por private_file_storage (categoria 'eventos'), sem os.path.exists direto. Depende da coluna ampliada por f2-migration-eventos-arquivo.",
+      "files": [
+        "gestaolegal/services/evento_service.py",
+        "gestaolegal/controllers/caso_controller.py",
+        "tests/api/test_evento_api.py"
+      ],
+      "acceptance": "Nenhuma gravação de arquivo sobra em caso_controller.py; upload/download/substituição/exclusão de anexo de evento funcionam com referência relativa; acesso negado não deixa arquivo órfão; PUT remove o anexo substituído; evento excluído (status falso) não é baixável; tipo e tamanho inválidos são recusados; a resposta não expõe a raiz absoluta. make test passa.",
+      "verify": "make test",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": ["f3-private-file-storage", "f2-migration-eventos-arquivo"],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f7-fluxo-arquivos-gerais",
+      "title": "Passar os arquivos gerais pelo private_file_storage e remover o fallback de caminho",
+      "context": "gestaolegal/services/arquivo_service.py:46-177 grava e lê em ARQUIVOS_DIR. Passar por private_file_storage (categoria 'arquivos'), com referência relativa em arquivos.caminho. Remover _caminho_de (:122-126), que faz `arquivo.caminho or os.path.join(ARQUIVOS_DIR, arquivo.nome)` — concatena a coluna Text `nome`, sem secure_filename, num caminho de filesystem. Decisão do plano: SEM fallback de leitura para caminho absoluto no código de produção; os registros v2 sem `caminho` passam a ser resolvidos pelo migrador. Mesmo ciclo de vida das outras stories (validar, gravar, commit, remover o anterior). tests/api/test_arquivo_api.py:13-18 deixa de precisar do monkeypatch.setattr(arquivo_service, 'ARQUIVOS_DIR', ...).",
+      "files": [
+        "gestaolegal/services/arquivo_service.py",
+        "tests/api/test_arquivo_api.py"
+      ],
+      "acceptance": "O fallback de caminho sumiu; upload/download/substituição/exclusão de arquivo geral funcionam com referência relativa; anônimo recusado; arquivo inexistente tratado; registro sem `caminho` resulta em erro tratado, não em leitura de caminho montado a partir de `nome`; o monkeypatch de ARQUIVOS_DIR foi removido dos testes. make test passa.",
+      "verify": "make test",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": ["f3-private-file-storage"],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f8-bloqueio-caminho-estatico",
+      "title": "Devolver 404 em /static/casos, /static/eventos e /static/arquivos",
+      "context": "gestaolegal/__init__.py:11 cria Flask(__name__, ...) sem static_folder próprio: o default gestaolegal/static é servido em /static/<path> sem autenticação, em paralelo às rotas /download. Acrescentar before_request (ou blueprint dedicado) devolvendo 404 em GET/HEAD para /static/casos, /static/eventos, /static/arquivos e descendentes, incluindo formas normalizadas ('//', '%2e%2e', barra final). static/imgs_daj continua servido. web/nginx.conf não tem location /static/ e os estáticos saem do próprio Flask, na porta da API: bloquear no nginx é complemento, não substituto.",
+      "files": [
+        "gestaolegal/__init__.py",
+        "web/nginx.conf",
+        "tests/api/test_static_block.py"
+      ],
+      "acceptance": "O teste cria um arquivo DE FATO dentro de app.static_folder nas três pastas e confirma 404 pela API, também nas formas normalizadas; um asset público sintético (por exemplo em imgs_daj) continua acessível, provando que o bloqueio não é excessivo. O nginx também bloqueia os três prefixos. make test passa.",
+      "verify": "make test",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": ["f1-config-raiz-privada"],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f9-front-nome-arquivo",
+      "title": "Parar de mutilar nomes com underscore na listagem de arquivos do caso",
+      "context": "web/src/routes/(dashboard)/casos/[id]/+page.svelte:476 exibe `arquivo.link_arquivo.split('/').pop()?.split('_').pop()`, que corta tudo antes do último underscore e mutila nomes como 'contrato_2024_assinado.pdf'. Com a referência relativa nova ('casos/<uuid4>_<nome>'), retirar apenas o prefixo gerado (o UUID e o primeiro underscore), preservando o resto do nome. O split('/').pop() segue válido para a referência relativa.",
+      "files": [
+        "web/src/routes/(dashboard)/casos/[id]/+page.svelte"
+      ],
+      "acceptance": "A listagem mostra o nome original completo, inclusive com underscores, para referências no formato '<uuid4>_<nome>'; nada quebra para referências sem prefixo reconhecível. npm run check e npm run lint passam.",
+      "verify": "cd web && npm run check && npm run lint",
+      "effort_label": "low",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": false,
+      "blocked_by_gate": false,
+      "depends_on": ["f5-fluxo-arquivos-caso"],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f10-migrador-inventario",
+      "title": "Criar scripts/migrar_arquivos_privados.py com a fase de inventário",
+      "context": "Molde: scripts/seed_local.py (docstring de uso, load_dotenv(), config por env, idempotência declarada, sys.exit com contagem de erros). Diferença: precisa de sessão SQLAlchemy — reusar Config.SQLALCHEMY_DATABASE_URI como faz migrations/env.py. Fase de inventário, SEM ESCRITA: as origens legadas e o mapeamento prefixo antigo -> mount de leitura vêm por parâmetro; não varrer disco nem confiar no caminho gravado. Cobre registros ativos e inativos dos três grupos (arquivosCaso.link_arquivo, eventos.arquivo, arquivos.caminho), inclusive `arquivos` sem `caminho` (herdados da v2, que ficavam em ARQUIVOS_DIR/nome). Classifica ausentes, caminhos externos, nomes repetidos, referências compartilhadas e órfãos. Gera manifesto privado (origem, tabela/id, referência anterior, destino, tamanho, SHA-256) FORA do git. Referência compartilhada ganha destino separado por registro, para que excluir um não apague o arquivo do outro. O loop escreve o script e seus testes; executá-lo contra QA ou produção é human gate e não é tarefa desta empreitada.",
+      "files": [
+        "scripts/migrar_arquivos_privados.py",
+        "tests/api/test_migrar_arquivos_privados.py"
+      ],
+      "acceptance": "O script roda a fase de inventário sem escrever nada e gera manifesto com origem, tabela/id, referência anterior, destino, tamanho e SHA-256, em caminho fora do git. Testes cobrem: caminho absoluto legado, `arquivos` sem `caminho`, nomes iguais em origens diferentes, referência compartilhada (destinos distintos) e arquivo ausente. make test passa.",
+      "verify": "make test",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": ["f5-fluxo-arquivos-caso", "f6-fluxo-anexo-evento", "f7-fluxo-arquivos-gerais"],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f11-migrador-aplicacao",
+      "title": "Acrescentar a fase de aplicação, recuperável, ao migrador",
+      "context": "Segunda fase de scripts/migrar_arquivos_privados.py, pressupondo a escrita da API suspensa: backup do banco e das origens -> cópia para destino único no volume, conferindo tamanho e SHA-256 contra o manifesto de f10-migrador-inventario -> atualização da referência SÓ depois da cópia verificada, checando que o valor anterior ainda bate com o manifesto -> progresso recuperável, validado contra o estado real do banco na retomada (não contra um arquivo de progresso isolado). Reexecutável e idempotente. Não remove origens — a quarentena das origens públicas é human gate, fora do loop.",
+      "files": [
+        "scripts/migrar_arquivos_privados.py",
+        "tests/api/test_migrar_arquivos_privados.py"
+      ],
+      "acceptance": "A aplicação copia, verifica tamanho e SHA-256 e só então atualiza a referência; recusa o registro cuja referência anterior divergiu do manifesto. Testes cobrem interrupção/retomada, reexecução (nenhum efeito duplicado) e checksum divergente (registro não migrado, erro contabilizado). Nenhuma origem é removida. make test passa.",
+      "verify": "make test",
+      "effort_label": "medium",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": ["f10-migrador-inventario"],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "f12-migrador-verificacao",
+      "title": "Acrescentar a fase de verificação e o resumo final ao migrador",
+      "context": "Terceira fase de scripts/migrar_arquivos_privados.py: confere todas as referências finais (existem no volume, resolvem pelo private_file_storage, checksum bate com o manifesto) e resume migrados, ausentes, exceções e quarentena. Não remove origens. sys.exit com a contagem de erros, como em scripts/seed_local.py. Documentar no docstring o procedimento das três fases e deixar explícito que rodar contra QA ou produção é decisão humana.",
+      "files": [
+        "scripts/migrar_arquivos_privados.py",
+        "tests/api/test_migrar_arquivos_privados.py"
+      ],
+      "acceptance": "A verificação percorre as referências finais e imprime o resumo por categoria (migrados, ausentes, exceções, quarentena), saindo com código diferente de zero quando há erro. Testes cobrem base íntegra (saída zero) e base com referência ausente ou checksum divergente (saída não zero, item no resumo). make test passa.",
+      "verify": "make test",
+      "effort_label": "low",
+      "human_gate": false,
+      "gate_reason": null,
+      "review_required": true,
+      "blocked_by_gate": false,
+      "depends_on": ["f11-migrador-aplicacao"],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

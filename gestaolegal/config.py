@@ -114,11 +114,15 @@ class Config:
     COMPANY_NAME: ClassVar[str] = os.environ.get("COMPANY_NAME", "Gestão Legal")
     JWT_SECRET_KEY: ClassVar[str] = _get_or_generate_jwt_secret_key(FLASK_ENV)
     ADMIN_SETUP_TOKEN: ClassVar[str] = os.environ["ADMIN_SETUP_TOKEN"]
-    STATIC_ROOT_DIR: ClassVar[str] = os.environ.get(
-        "STATIC_ROOT_DIR", "/gestaolegal/gestaolegal/static/"
+    # Raiz do volume privado dos anexos. Precisa ficar FORA de app.static_folder:
+    # o Flask serve a pasta estática em /static/<path> sem autenticação (#190).
+    # A validação da subida está em gestaolegal/__init__.py.
+    PRIVATE_FILES_ROOT: ClassVar[str] = os.environ.get(
+        "PRIVATE_FILES_ROOT", "/data/gestaolegal/uploads"
     )
-    UPLOADS: ClassVar[str] = os.path.join(STATIC_ROOT_DIR, "casos")
-    ARQUIVOS_DIR: ClassVar[str] = os.path.join(STATIC_ROOT_DIR, "arquivos")
+    # Subpastas da raiz privada, uma por fluxo de anexo.
+    PRIVATE_FILE_CATEGORIES: ClassVar[tuple[str, ...]] = ("casos", "eventos", "arquivos")
+    # Fonte única do tamanho máximo de upload (Flask devolve 413 acima disto).
     MAX_CONTENT_LENGTH: ClassVar[int] = 10 * 1024 * 1024  # 10 MB
 
     DB_USER: ClassVar[str] = _get_required_env("DB_USER")

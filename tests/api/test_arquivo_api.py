@@ -6,16 +6,18 @@ from io import BytesIO
 import pytest
 from flask.testing import FlaskClient
 
-from gestaolegal.services import arquivo_service
 from tests.api.conftest import clean_tables, get_success_data
 
 
 @pytest.fixture(autouse=True)
 def arquivos_dir(tmp_path, monkeypatch, app):
-    monkeypatch.setattr(arquivo_service, "ARQUIVOS_DIR", str(tmp_path))
+    """Aponta a raiz privada para um tmpdir; o service resolve a categoria."""
+    monkeypatch.setitem(app.config, "PRIVATE_FILES_ROOT", str(tmp_path))
+    destino = tmp_path / "arquivos"
+    destino.mkdir()
     with app.app_context():
         clean_tables("arquivos")
-    return tmp_path
+    return destino
 
 
 def _criar(client: FlaskClient, headers: dict[str, str], titulo="Regimento", nome="regimento.docx", conteudo=b"conteudo", descricao="Descrição do regimento"):
