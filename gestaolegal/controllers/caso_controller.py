@@ -1,15 +1,12 @@
-import os
 from dataclasses import asdict
-from datetime import datetime
 from typing import Any, cast
 
 from dateutil import parser
-from flask import Blueprint, current_app, request, send_file
-from werkzeug.utils import secure_filename
+from flask import Blueprint, request, send_file
+from werkzeug.datastructures import FileStorage
 
 from gestaolegal.common import PageParams
 from gestaolegal.exceptions import (
-    FileOperationException,
     NotFoundException,
     ValidationException,
 )
@@ -33,6 +30,18 @@ from gestaolegal.utils.request_context import RequestContext
 from gestaolegal.utils.StringBool import StringBool
 
 caso_controller = Blueprint("caso_api", __name__)
+
+
+def _anexo_do_form() -> FileStorage | None:
+    """O arquivo do multipart, ou `None` quando o campo veio vazio.
+
+    Quem grava é o service, depois de validar caso, unidade e o próprio
+    arquivo — o controller só entrega o `FileStorage`.
+    """
+    file = request.files.get("arquivo")
+    if file and file.filename:
+        return file
+    return None
 
 
 def _resolve_user_param(valor: str | None, current_user: UserInfo) -> int | None:
@@ -257,7 +266,6 @@ def delete_processo(caso_id: int, processo_id: int):
 def create_evento(caso_id: int):
     current_user: UserInfo = RequestContext.get_current_user()
     evento_service = EventoService()
-    EVENTO_FILES_DIR = os.path.join(current_app.config["PRIVATE_FILES_ROOT"], "eventos")
 
     form_data: dict[str, Any] = {
         "tipo": request.form.get("tipo"),
@@ -271,25 +279,12 @@ def create_evento(caso_id: int):
         int(id_usuario_responsavel) if id_usuario_responsavel else None
     )
 
-    if "arquivo" in request.files:
-        file = request.files["arquivo"]
-        if file and file.filename:
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{timestamp}_{filename}"
-
-            os.makedirs(EVENTO_FILES_DIR, exist_ok=True)
-
-            filepath = os.path.join(EVENTO_FILES_DIR, filename)
-            file.save(filepath)
-
-            form_data["arquivo"] = filepath
-
     evento_input = EventoCreateInput(**form_data)
     evento = evento_service.create(
         caso_id=caso_id,
         evento_input=evento_input,
         criado_por_id=current_user.id,
+        arquivo=_anexo_do_form(),
     )
 
     return success_response(
@@ -333,7 +328,6 @@ def get_evento(caso_id: int, evento_id: int):
 @authenticated
 def update_evento(caso_id: int, evento_id: int):
     evento_service = EventoService()
-    EVENTO_FILES_DIR = os.path.join(current_app.config["PRIVATE_FILES_ROOT"], "eventos")
 
     existing_evento = evento_service.validate_evento_for_caso(evento_id, caso_id)
     if not existing_evento:
@@ -358,20 +352,6 @@ def update_evento(caso_id: int, evento_id: int):
     if request.form.get("status"):
         form_data["status"] = request.form.get("status", "true").lower() == "true"
 
-    if "arquivo" in request.files:
-        file = request.files["arquivo"]
-        if file and file.filename:
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{timestamp}_{filename}"
-
-            os.makedirs(EVENTO_FILES_DIR, exist_ok=True)
-
-            filepath = os.path.join(EVENTO_FILES_DIR, filename)
-            file.save(filepath)
-
-            form_data["arquivo"] = filepath
-
     data_evento = form_data.get("data_evento")
     if data_evento:
         try:
@@ -382,7 +362,7 @@ def update_evento(caso_id: int, evento_id: int):
             ) from exc
 
     evento_input = EventoUpdateInput(**form_data)
-    evento = evento_service.update(evento_id, evento_input)
+    evento = evento_service.update(evento_id, evento_input, arquivo=_anexo_do_form())
     if not evento:
         raise NotFoundException(resource="Evento", resource_id=evento_id)
 
@@ -407,14 +387,11 @@ def delete_evento(caso_id: int, evento_id: int):
 def download_evento_file(caso_id: int, evento_id: int):
     evento_service = EventoService()
 
-    filepath, message = evento_service.get_evento_file_for_download(evento_id, caso_id)
+    filepath, nome = evento_service.get_evento_file_for_download(evento_id, caso_id)
 
-    if not filepath:
-        if message == "Evento não encontrado ou não pertence ao caso":
-            raise NotFoundException(resource="Evento", resource_id=evento_id)
-        raise FileOperationException(message, operation="download")
-
-    return send_file(filepath, as_attachment=True)
+    return private_file_storage.aplicar_headers_download(
+        send_file(filepath, as_attachment=True, download_name=nome)
+    )
 
 
 @caso_controller.route("/<int:caso_id>/arquivos", methods=["GET"])

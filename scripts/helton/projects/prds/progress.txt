@@ -20,6 +20,15 @@ Started: sáb. 05 set 2026 07:40:12 -03
 - O caminho da raiz privada aparece em dois lugares que precisam concordar:
   o default de `Config.PRIVATE_FILES_ROOT` e o `${PRIVATE_FILES_ROOT:-...}` do
   `docker-compose.yml`. Mudou um, mude o outro.
+- Anexo privado é sempre categoria + referência relativa: o banco nunca guarda caminho
+  absoluto, e a coluna de arquivo não é campo de input do cliente (o service é quem
+  escreve a referência, a partir do `FileStorage`).
+- Ciclo de vida de anexo nos três fluxos: validar -> gravar novo -> confirmar banco ->
+  em falha, remover o novo e manter o antigo -> após a confirmação, remover o anterior.
+  Falha na limpeza pós-commit vira log de reconciliação, nunca exceção.
+- Service de anexo levanta `NotFoundException`/`FileOperationException` e devolve
+  `(caminho absoluto, nome original)`; devolver `(None, mensagem)` para o controller
+  decidir é o padrão antigo, em extinção.
 
 ## 2026-09-05 - f1-config-raiz-privada
 - Trocado `STATIC_ROOT_DIR`/`UPLOADS`/`ARQUIVOS_DIR` por `PRIVATE_FILES_ROOT`
@@ -191,3 +200,59 @@ Started: sáb. 05 set 2026 07:40:12 -03
     exatamente o que a f9 conserta.
   - O fluxo de anexo de **evento** (caso_controller:273-285 e 360-372) e o de
     arquivos gerais continuam gravando caminho absoluto — f6 e f7.
+
+## 2026-09-05 - f6-fluxo-anexo-evento
+- O bloco de gravação duplicado em `caso_controller.py` (POST e PUT de evento) sumiu.
+  O controller só entrega o `FileStorage` (helper `_anexo_do_form()`); quem grava é o
+  `EventoService`, **depois** de validar caso, unidade e o próprio arquivo — antes, o
+  arquivo ia para o disco e só então o acesso era negado, deixando órfão.
+- `eventos.arquivo` passa a guardar a **referência relativa** (categoria `eventos`),
+  não mais o caminho absoluto.
+- `EventoService.create/update` ganharam o parâmetro `arquivo: FileStorage | None`.
+  Ciclo de vida igual ao da f5: validar -> gravar novo -> confirmar banco -> em falha,
+  remover o novo e manter o antigo -> após a confirmação, remover o anterior (o PUT
+  vazava o anexo substituído). Limpeza pós-commit por `_remover_do_volume`, que loga
+  reconciliação em vez de levantar.
+- `delete` inverteu a ordem: o registro perde a referência primeiro (`status=False`,
+  `arquivo=None`), o arquivo sai do volume depois.
+- `_validar_anexo` novo: tipo (`EXTENSOES_ANEXO_EVENTO`) e tamanho
+  (`MAX_CONTENT_LENGTH`), nenhum dos dois existia. A lista é mais larga que a de anexo
+  de caso (só PDF) de propósito — o anexo de evento nunca teve restrição, nem na API
+  nem no `input type="file"`, e apertar para PDF derrubaria a foto de documento e o
+  .docx que já se anexa hoje.
+- `get_evento_file_for_download` deixou de devolver `(None, mensagem)`: agora levanta
+  `NotFoundException`/`FileOperationException` como o `caso_service` e devolve
+  `(caminho absoluto, nome original)`. Recusa evento com `status` falso. O controller
+  usa `send_file(..., download_name=nome)` + `aplicar_headers_download`.
+- `arquivo` saiu de `EventoCreateInput`/`EventoUpdateInput`: não é campo de entrada.
+  Enquanto era, o cliente podia escrever um caminho arbitrário na coluna.
+- 11 testes novos em `tests/api/test_evento_api.py`: referência relativa (a resposta
+  não expõe a raiz), download com nome original e cabeçalhos, download anônimo (401),
+  evento excluído não baixável, PUT que apaga o anexo anterior, tipo recusado (400),
+  tamanho recusado (413 pela API e `ValidationException` no service), caso de outra
+  unidade sem órfão, falha de banco sem órfão, anexo ausente do volume.
+- `make test`: 386 passed.
+- Arquivos: gestaolegal/services/evento_service.py,
+  gestaolegal/controllers/caso_controller.py, gestaolegal/models/evento_input.py,
+  tests/api/test_evento_api.py.
+- **Learnings for future iterations:**
+  - Teste de "não deixou órfão" que compara `os.listdir` da categoria antes/depois é
+    confiável mesmo com o fixture `app` de escopo sessão (a raiz é a mesma a suíte
+    inteira): a comparação é relativa, não absoluta.
+  - Mutação vale a pena antes de dar a story por fechada: apagar a limpeza do `except`
+    e a remoção do anexo anterior derrubou exatamente 2 testes. Teste que não quebra
+    quando o código quebra não é teste.
+  - `EventoService` não tinha `transaction()` no `create`/`update` do próprio evento
+    (só na notificação); o `repository.update`/`create` confirma sozinho. Por isso a
+    limpeza do anexo anterior vem depois da chamada do repositório, não depois de um
+    `with transaction()`.
+  - Front (pendência para quem pegar a f9): `evento.arquivo.split('/').pop()` em
+    `casos/[id]/eventos/[eventoId]/+page.svelte:129` e `.../editar/+page.svelte:129,237`
+    agora mostra `<uuid32>_nome.pdf`. A f9 conserta o equivalente do anexo de caso;
+    vale estender ao evento (`private_file_storage.nome_original` é a regra: cortar o
+    prefixo de 32 hex).
+  - O `input type="file"` do `evento-dialog.svelte` não tem `accept`, e o
+    `SimpleInput` nem repassa a prop. Com a validação de tipo agora na API, o usuário
+    só descobre o tipo recusado no submit. Acrescentar `accept` exigiria mexer no
+    componente compartilhado — ficou de fora desta story de propósito.
+---
