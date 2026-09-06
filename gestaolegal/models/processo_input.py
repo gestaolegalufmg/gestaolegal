@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from pydantic import Field, field_validator
@@ -27,8 +28,8 @@ class ProcessoCreateInput(ProcessoNumeroInput):
     link: str | None = None
     probabilidade: str | None = None
     posicao_assistido: str | None = None
-    valor_causa_inicial: int | None = None
-    valor_causa_atual: int | None = None
+    valor_causa_inicial: Decimal | None = Field(default=None, max_digits=15, decimal_places=2)
+    valor_causa_atual: Decimal | None = Field(default=None, max_digits=15, decimal_places=2)
     data_distribuicao: date | None = None
     data_transito_em_julgado: date | None = None
     obs: str | None = None
@@ -43,8 +44,8 @@ class ProcessoUpdateInput(ProcessoNumeroInput):
     link: str | None = None
     probabilidade: str | None = None
     posicao_assistido: str | None = None
-    valor_causa_inicial: int | None = None
-    valor_causa_atual: int | None = None
+    valor_causa_inicial: Decimal | None = Field(default=None, max_digits=15, decimal_places=2)
+    valor_causa_atual: Decimal | None = Field(default=None, max_digits=15, decimal_places=2)
     data_distribuicao: date | None = None
     data_transito_em_julgado: date | None = None
     obs: str | None = None

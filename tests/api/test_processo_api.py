@@ -394,3 +394,26 @@ def test_numero_processo_limite_e_tipo():
         assert schema(especie="Civil", numero="").numero is None
         assert schema(especie="Civil", numero=None).numero is None
 
+
+def test_valores_monetarios_preservam_centavos_e_limpeza(client, auth_headers, sample_caso_data):
+    caso = get_success_data(client.post('/api/caso/', json=sample_caso_data, headers=auth_headers))
+    url = f"/api/caso/{caso['id']}/processos"
+    response = client.post(url, json={'especie': 'Ação', 'valor_causa_inicial': 1234.56,
+                                     'valor_causa_atual': 0.01}, headers=auth_headers)
+    assert response.status_code == 201
+    processo = get_success_data(response)
+    detail = f"{url}/{processo['id']}"
+    data = get_success_data(client.get(detail, headers=auth_headers))
+    assert data['valor_causa_inicial'] == 1234.56
+    assert data['valor_causa_atual'] == 0.01
+    response = client.put(detail, json={'valor_causa_atual': 9876.54}, headers=auth_headers)
+    assert response.status_code == 200
+    data = get_success_data(response)
+    assert data['valor_causa_inicial'] == 1234.56
+    assert data['valor_causa_atual'] == 9876.54
+    response = client.put(detail, json={'valor_causa_inicial': None, 'valor_causa_atual': 0}, headers=auth_headers)
+    assert response.status_code == 200
+    data = get_success_data(client.get(detail, headers=auth_headers))
+    assert data['valor_causa_inicial'] is None
+    assert data['valor_causa_atual'] == 0
+    assert client.put(detail, json={'valor_causa_atual': 1.234}, headers=auth_headers).status_code == 400

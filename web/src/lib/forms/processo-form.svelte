@@ -4,7 +4,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import { FormSection, SimpleInput, SimpleSelect, SimpleTextArea } from '$lib/components/forms';
 	import { processoCreateFormSchema } from './schemas/processo-schema';
-	import { intProxy, superForm, type Infer, type SuperValidated } from 'sveltekit-superforms';
+	import { superForm, type Infer, type SuperValidated } from 'sveltekit-superforms';
+	import SimpleCurrencyInput from '$lib/components/forms/simple-currency-input.svelte';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
 	import { api } from '$lib/api-client';
 	import { toast } from 'svelte-sonner';
@@ -32,6 +33,7 @@
 
 	const processoForm = superForm(data, {
 		SPA: true,
+		dataType: 'json',
 		validators: zod4Client(processoCreateFormSchema),
 		resetForm: false,
 		taintedMessage: 'Tem certeza que deseja sair? Você perderá qualquer alteração não salva.',
@@ -89,9 +91,6 @@
 		{ value: 'Interessado', label: 'Interessado' },
 		{ value: 'Terceiro', label: 'Terceiro' }
 	];
-
-	const valorCausaInicialProxy = intProxy(formData, 'valor_causa_inicial');
-	const valorCausaAtualProxy = intProxy(formData, 'valor_causa_atual');
 </script>
 
 <form method="POST" use:enhance class="space-y-8">
@@ -154,22 +153,18 @@
 	</FormSection>
 
 	<FormSection title="Valores" description="Valores relacionados ao processo" columns="2">
-		<SimpleInput
+		<SimpleCurrencyInput
 			label="Valor da Causa Inicial"
 			name="valor_causa_inicial"
 			form={processoForm}
-			bind:value={$valorCausaInicialProxy}
-			placeholder="Valor inicial (opcional)"
-			type="number"
+			bind:value={$formData.valor_causa_inicial}
 		/>
 
-		<SimpleInput
+		<SimpleCurrencyInput
 			label="Valor da Causa Atual"
 			name="valor_causa_atual"
 			form={processoForm}
-			bind:value={$valorCausaAtualProxy}
-			placeholder="Valor atual (opcional)"
-			type="number"
+			bind:value={$formData.valor_causa_atual}
 		/>
 	</FormSection>
 

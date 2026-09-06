@@ -21,8 +21,8 @@ class Processo:
     link: str | None = None
     probabilidade: str | None = None
     posicao_assistido: str | None = None
-    valor_causa_inicial: int | None = None
-    valor_causa_atual: int | None = None
+    valor_causa_inicial: float | None = None
+    valor_causa_atual: float | None = None
     data_distribuicao: date | None = None
     data_transito_em_julgado: date | None = None
     obs: str | None = None
