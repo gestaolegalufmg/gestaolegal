@@ -49,7 +49,7 @@
 	let { form: formValues, enhance, errors } = formData;
 </script>
 
-<div class="container mx-auto max-w-2xl py-6">
+<div class="w-full min-w-0 py-6">
 	<Card>
 		<CardHeader>
 			<CardTitle>Alterar Minha Senha</CardTitle>

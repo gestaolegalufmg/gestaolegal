@@ -39,7 +39,7 @@
 	}
 </script>
 
-<div class="max-w-4xl py-1">
+<div class="w-full min-w-0 py-1">
 	<div class="mb-8 flex flex-wrap items-start justify-between gap-4">
 		<div class="min-w-0">
 			<h1 class="text-3xl font-bold tracking-tight text-foreground">{arquivo.titulo}</h1>

@@ -114,7 +114,7 @@
 	}
 </script>
 
-<div class="max-w-4xl space-y-6">
+<div class="w-full min-w-0 space-y-6">
 	<div class="flex flex-wrap items-center justify-between gap-4">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Notificações</h1>

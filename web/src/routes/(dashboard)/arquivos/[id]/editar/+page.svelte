@@ -6,7 +6,7 @@
 	let { data }: { data: PageData } = $props();
 </script>
 
-<div class="max-w-3xl py-1">
+<div class="w-full min-w-0 py-1">
 	<div class="mb-8 flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight text-foreground">Editar Arquivo</h1>

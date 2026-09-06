@@ -72,7 +72,7 @@
 				<NotificacaoBell />
 			</div>
 		</header>
-		<main class="flex flex-1 flex-col gap-0.5 px-6 py-4">
+		<main class="flex w-full min-w-0 flex-1 flex-col gap-0.5 px-6 py-4">
 			{#if !isOnRoot}
 				<DynamicBreadcrumb />
 			{/if}

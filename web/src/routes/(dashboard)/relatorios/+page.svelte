@@ -231,7 +231,7 @@
 	}
 </script>
 
-<div class="max-w-6xl space-y-6">
+<div class="w-full min-w-0 space-y-6">
 	<div>
 		<h1 class="text-3xl font-bold tracking-tight">Relatórios</h1>
 		<p class="mt-2 text-muted-foreground">

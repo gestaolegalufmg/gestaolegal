@@ -14,7 +14,7 @@
 </script>
 
 <div class="min-h-screen bg-background">
-	<div class="mx-auto max-w-2xl py-6">
+	<div class="w-full min-w-0 py-6">
 		<PasswordForm
 			data={data.form}
 			{isAdmin}

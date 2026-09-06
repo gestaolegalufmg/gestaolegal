@@ -93,7 +93,7 @@
 	<title>Unidades - Gestão Legal</title>
 </svelte:head>
 
-<div class="max-w-4xl space-y-6">
+<div class="w-full min-w-0 space-y-6">
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Unidades</h1>

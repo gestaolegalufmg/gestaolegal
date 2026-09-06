@@ -10,9 +10,7 @@
 </script>
 
 <footer class="sticky bottom-0 z-10 bg-slate-900 text-slate-300 {className}">
-	<div
-		class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-3"
-	>
+	<div class="flex w-full min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-3">
 		<p class="text-xs">
 			Desenvolvido por
 			<a

@@ -20,7 +20,7 @@
 </script>
 
 <div class="min-h-screen bg-background">
-	<div class="max-w-4xl py-1">
+	<div class="w-full min-w-0 py-1">
 		<div class="mb-8">
 			<div class="flex items-center justify-between">
 				<div>

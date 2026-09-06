@@ -35,7 +35,7 @@
 	<title>Termos de uso - Gestão Legal</title>
 </svelte:head>
 
-<div class="max-w-4xl space-y-6">
+<div class="w-full min-w-0 space-y-6">
 	<div>
 		<h1 class="text-3xl font-bold tracking-tight">Termos de uso</h1>
 		<p class="mt-2 text-muted-foreground">

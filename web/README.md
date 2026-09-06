@@ -1,5 +1,13 @@
 # sv
 
+## Padrão de largura das páginas
+
+As páginas da área autenticada ocupam toda a largura disponível entre a
+barra lateral e as margens do layout. Use `w-full min-w-0` nos contêineres
+de página; não limite esses contêineres com `max-w-*` ou `container`.
+Organize os campos com grades responsivas. Modais, controles individuais
+e formulários de autenticação podem manter limites de largura próprios.
+
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 
 ## Creating a project
