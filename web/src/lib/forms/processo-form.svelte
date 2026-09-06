@@ -75,7 +75,7 @@
 		{ value: 'Apelação', label: 'Apelação' },
 		{ value: 'Agravo', label: 'Agravo' },
 		{ value: 'Outros', label: 'Outros' }
-	];
+	].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
 
 	const probabilidadeOptions = [
 		{ value: 'Alta', label: 'Alta' },
