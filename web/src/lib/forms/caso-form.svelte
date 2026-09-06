@@ -25,6 +25,8 @@
 	import { goto } from '$app/navigation';
 	import { get } from 'svelte/store';
 	import type { Caso } from '$lib/types';
+	import SimpleCombobox from '$lib/components/forms/simple-combobox.svelte';
+	import { USER_ROLES } from '$lib/constants/user-roles';
 
 	let {
 		data,
@@ -32,6 +34,7 @@
 		onError,
 		isCreateMode = false,
 		casoId,
+		caso,
 		currentUserId,
 		usuarios = [],
 		assistidos = []
@@ -39,6 +42,7 @@
 		data: SuperValidated<Infer<typeof casoCreateFormSchema>>;
 		isCreateMode?: boolean;
 		casoId?: number;
+		caso?: Caso;
 		currentUserId?: number;
 		onUpdate?: (data: any) => void;
 		onError?: (error: any) => void;
@@ -141,6 +145,25 @@
 	const usuariosOptions = $derived(
 		usuarios.map((u) => ({ value: u.id.toString(), label: u.nome }))
 	);
+	function opcoesPorPapel(papeis: string[]) {
+		return usuarios
+			.filter((u) => papeis.includes(u.urole))
+			.map((u) => ({ value: String(u.id), label: u.nome }));
+	}
+	const orientadoresOptions = $derived(opcoesPorPapel([USER_ROLES.ORIENT, USER_ROLES.PROF]));
+	const estagiariosOptions = $derived(opcoesPorPapel([USER_ROLES.ESTAG_DIREITO]));
+	const colaboradoresOptions = $derived(
+		opcoesPorPapel([USER_ROLES.COLAB_PROJ, USER_ROLES.COLAB_EXT])
+	);
+	function nomeAtual(id: string) {
+		return (
+			usuarios.find((u) => String(u.id) === id)?.nome ??
+			[caso?.usuario_responsavel, caso?.orientador, caso?.estagiario, caso?.colaborador].find(
+				(u) => u && String(u.id) === id
+			)?.nome ??
+			`Usuário #${id}`
+		);
+	}
 
 	const usuarioProxy = intProxy(formData, 'id_usuario_responsavel');
 	// Optional user selects bind to string values from the <select>; without a
@@ -259,40 +282,47 @@
 
 	<FormSection title="Responsáveis" description="Defina os responsáveis pelo caso" columns="2">
 		{#if !isCreateMode}
-			<SimpleSelect
+			<SimpleCombobox
 				label="Usuário Responsável"
 				name="id_usuario_responsavel"
 				form={casoForm}
 				bind:value={$usuarioProxy}
 				options={usuariosOptions}
+				selectedLabel={nomeAtual($usuarioProxy)}
 				placeholder="Selecione o responsável"
 			/>
 		{/if}
 
-		<SimpleSelect
+		<SimpleCombobox
 			label="Orientador"
 			name="id_orientador"
 			form={casoForm}
 			bind:value={$orientadorProxy}
-			options={usuariosOptions}
+			options={orientadoresOptions}
+			selectedLabel={nomeAtual($orientadorProxy)}
+			optional
 			placeholder="Selecione o orientador (opcional)"
 		/>
 
-		<SimpleSelect
+		<SimpleCombobox
 			label="Estagiário"
 			name="id_estagiario"
 			form={casoForm}
 			bind:value={$estagiarioProxy}
-			options={usuariosOptions}
+			options={estagiariosOptions}
+			selectedLabel={nomeAtual($estagiarioProxy)}
+			optional
 			placeholder="Selecione o estagiário (opcional)"
 		/>
 
-		<SimpleSelect
+		<SimpleCombobox
 			label="Colaborador"
 			name="id_colaborador"
 			form={casoForm}
 			bind:value={$colaboradorProxy}
-			options={usuariosOptions}
+			options={colaboradoresOptions}
+			selectedLabel={nomeAtual($colaboradorProxy)}
+			optional
 			placeholder="Selecione o colaborador (opcional)"
 		/>
 	</FormSection>

@@ -28,6 +28,7 @@
 		<CasoForm
 			data={data.form}
 			casoId={data.caso.id}
+			caso={data.caso}
 			{onError}
 			isCreateMode={false}
 			usuarios={data.usuarios}
