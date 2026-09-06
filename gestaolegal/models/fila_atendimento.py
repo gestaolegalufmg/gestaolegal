@@ -39,9 +39,10 @@ class FilaAtendimento:
     senha: str
     status: int
 
+    id_atendido: int
+    data_criacao: datetime
+
     id: int | None = None
-    id_atendido: int | None = None
-    data_criacao: datetime | None = None
     data_saida: datetime | None = None
     unidade_id: int | None = None
 
@@ -53,11 +54,11 @@ class ListFilaAtendimento:
     """Linha da fila com o nome do atendido já resolvido, para exibição."""
 
     id: int
-    id_atendido: int | None
+    id_atendido: int
     nome: str | None
     senha: str
     prioridade: int
     psicologia: int
     status: int
-    data_criacao: datetime | None
+    data_criacao: datetime
     data_saida: datetime | None

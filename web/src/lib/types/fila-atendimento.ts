@@ -12,13 +12,13 @@ export const FilaStatus = {
 
 export interface FilaItem {
 	id: number;
-	id_atendido: number | null;
+	id_atendido: number;
 	nome: string | null;
 	senha: string;
 	prioridade: number;
 	psicologia: number;
 	status: number;
-	data_criacao: string | null;
+	data_criacao: string;
 	data_saida: string | null;
 }
 

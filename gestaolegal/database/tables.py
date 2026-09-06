@@ -12,6 +12,8 @@ from sqlalchemy import (
     Text,
 )
 
+from sqlalchemy.dialects.mysql import VARCHAR
+
 metadata = MetaData()
 
 # Unidade padrão (Belo Horizonte), a mesma que a migration atribui aos
@@ -353,10 +355,12 @@ fila_atendimentos = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("psicologia", Integer, nullable=False),
     Column("prioridade", Integer, nullable=False),
-    Column("data_criacao", DateTime, nullable=True),
-    Column("senha", String(10), nullable=False),
+    Column("data_criacao", DateTime, nullable=False),
+    Column("senha", String(10).with_variant(
+        VARCHAR(10, charset="utf8mb4", collation="utf8mb4_0900_ai_ci"), "mysql"
+    ), nullable=False),
     Column("status", Integer, nullable=False),
-    Column("id_atendido", Integer, ForeignKey("atendidos.id"), nullable=True),
+    Column("id_atendido", Integer, ForeignKey("atendidos.id"), nullable=False),
     Column("data_saida", DateTime, nullable=True),
     coluna_unidade(),
 )

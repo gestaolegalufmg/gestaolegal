@@ -194,6 +194,7 @@ class TestRemapeamento:
                 "psicologia": 0,
                 "prioridade": 0,
                 "senha": "N01",
+                "data_criacao": datetime(2026, 9, 5),
                 "status": 1,
                 "id_atendido": a,
                 "unidade_id": 1,
