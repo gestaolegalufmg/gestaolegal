@@ -33,6 +33,9 @@
 
 	let { data }: PageProps = $props();
 	const { caso, eventoFormData, eventos: initialEventos } = data;
+	const unidadeCaso = $derived(
+		data.me?.unidades?.find((unidade) => unidade.id === caso.unidade_id)
+	);
 	const lembretes = $derived(data.lembretes ?? []);
 	const historico = $derived(data.historico?.items ?? []);
 
@@ -324,6 +327,7 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Caso #{caso.id}</h1>
+			<p class="font-medium">Unidade: {unidadeCaso?.nome ?? 'Não informada'}</p>
 			<p class="text-muted-foreground capitalize">{caso.area_direito}</p>
 		</div>
 		<div class="flex gap-2">

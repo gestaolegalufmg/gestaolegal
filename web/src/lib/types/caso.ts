@@ -4,6 +4,7 @@ import type { Processo } from './processo';
 
 export interface Caso {
 	id: number;
+	unidade_id: number;
 	id_usuario_responsavel: number;
 	usuario_responsavel: User;
 	area_direito: string;
