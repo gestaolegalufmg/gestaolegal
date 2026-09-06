@@ -250,6 +250,7 @@ arquivos_evento = Table(
     Column("link_arquivo", String(300).with_variant(
         VARCHAR(300, charset="utf8mb4", collation="utf8mb4_0900_ai_ci"), "mysql"
     ), nullable=True),
+    Column("indisponivel_origem", Boolean, nullable=False, server_default="0"),
 )
 
 
@@ -259,6 +260,7 @@ arquivos_caso = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("link_arquivo", String(300), nullable=True),
     Column("id_caso", Integer, ForeignKey("casos.id"), nullable=True),
+    Column("indisponivel_origem", Boolean, nullable=False, server_default="0"),
 )
 
 arquivos = Table(

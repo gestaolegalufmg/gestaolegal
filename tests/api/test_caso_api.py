@@ -1695,3 +1695,29 @@ def test_arquivos_de_caso_de_outra_unidade_responde_404(
         content_type="multipart/form-data",
     )
     assert upload.status_code == 404
+
+
+def test_anexo_indisponivel_origem_pode_ser_recuperado_por_substituicao(app, client, auth_headers, auth_headers_nl, sample_caso_data):
+    from sqlalchemy import update
+    from gestaolegal.database.session import get_session
+    from gestaolegal.database.tables import arquivos_caso
+    caso_id = get_success_data(client.post("/api/caso/", json=sample_caso_data, headers=auth_headers))["id"]
+    rota = f"/api/caso/{caso_id}/arquivos"
+    arquivo = get_success_data(client.post(rota, data={"arquivo": (BytesIO(b"pdf"), "original.pdf")},
+                                          headers=auth_headers, content_type="multipart/form-data"))
+    assert arquivo["indisponivel_origem"] is False
+    os.remove(caminho_do_anexo(app, arquivo["link_arquivo"]))
+    with get_session() as session:
+        session.execute(update(arquivos_caso).where(arquivos_caso.c.id == arquivo["id"]).values(indisponivel_origem=True))
+        session.commit()
+    listed = get_success_data(client.get(rota, headers=auth_headers))["arquivos"][0]
+    assert listed["indisponivel_origem"] is True
+    item = f"{rota}/{arquivo['id']}"
+    assert client.get(f"{item}/download", headers=auth_headers_nl).status_code == 404
+    response = client.get(f"{item}/download", headers=auth_headers)
+    assert response.status_code >= 400
+    assert response.json["error"]["message"] == "Arquivo indisponível no acervo original"
+    updated = get_success_data(client.put(item, data={"arquivo": (BytesIO(b"recuperado"), "recuperado.pdf")},
+                                         headers=auth_headers, content_type="multipart/form-data"))
+    assert updated["indisponivel_origem"] is False
+    assert client.get(f"{item}/download", headers=auth_headers).data == b"recuperado"

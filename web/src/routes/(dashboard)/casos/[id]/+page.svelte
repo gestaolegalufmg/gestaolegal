@@ -473,12 +473,18 @@
 							<div class="flex items-center justify-between rounded-lg bg-muted/50 p-3">
 								<div class="flex items-center gap-2">
 									<FileText class="h-5 w-5" />
-									<span class="text-sm">{nomeOriginalArquivo(arquivo.link_arquivo)}</span>
+									<div class="text-sm">
+										<span>{nomeOriginalArquivo(arquivo.link_arquivo)}</span>
+										{#if arquivo.indisponivel_origem}
+											<p class="text-muted-foreground">Arquivo indisponível no acervo original</p>
+										{/if}
+									</div>
 								</div>
 								<div class="flex gap-1">
 									<Button
 										variant="ghost"
 										size="sm"
+										disabled={arquivo.indisponivel_origem}
 										onclick={() => handleDownload(arquivo)}
 										title="Baixar"
 									>

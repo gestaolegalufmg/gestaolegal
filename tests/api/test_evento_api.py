@@ -1005,3 +1005,25 @@ def test_falha_no_segundo_anexo_reverte_evento_e_arquivos(app, client, auth_head
     with get_session() as session:
         assert session.execute(select(func.count()).select_from(eventos).where(eventos.c.id_caso == caso_id)).scalar() == 0
         assert session.execute(select(func.count()).select_from(arquivos_evento).where(arquivos_evento.c.id_caso == caso_id)).scalar() == 0
+
+
+def test_anexo_indisponivel_origem_e_listado_mas_download_bloqueado(app, client, auth_headers, auth_headers_nl, sample_caso_data):
+    from sqlalchemy import update
+    from gestaolegal.database.session import get_session
+    from gestaolegal.database.tables import arquivos_evento
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    evento = _criar_evento_com_anexo(client, auth_headers, caso_id)
+    aid = evento["arquivos"][0]["id"]
+    assert evento["arquivos"][0]["indisponivel_origem"] is False
+    with get_session() as session:
+        session.execute(update(arquivos_evento).where(arquivos_evento.c.id == aid).values(indisponivel_origem=True))
+        session.commit()
+    rota = f"/api/caso/{caso_id}/eventos/{evento['id']}"
+    item = get_success_data(client.get(rota, headers=auth_headers))["arquivos"][0]
+    assert item["indisponivel_origem"] is True
+    assert item["nome"] == evento["arquivos"][0]["nome"]
+    download = f"{rota}/arquivos/{aid}/download"
+    assert client.get(download, headers=auth_headers_nl).status_code == 404
+    response = client.get(download, headers=auth_headers)
+    assert response.status_code >= 400
+    assert response.json["error"]["message"] == "Arquivo indisponível no acervo original"

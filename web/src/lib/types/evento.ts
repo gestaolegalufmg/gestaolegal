@@ -3,6 +3,7 @@ import type { User } from './user';
 export interface ArquivoEvento {
 	id: number;
 	nome: string;
+	indisponivel_origem: boolean;
 }
 
 export interface Evento {

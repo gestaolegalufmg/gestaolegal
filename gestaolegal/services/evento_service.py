@@ -168,7 +168,8 @@ class EventoService:
 
     def _carregar_arquivos(self, evento: Evento) -> None:
         evento.arquivos = [ArquivoEvento(
-            id=row["id"], nome=private_file_storage.nome_original(row["link_arquivo"])
+            id=row["id"], nome=private_file_storage.nome_original(row["link_arquivo"]),
+            indisponivel_origem=row["indisponivel_origem"]
         ) for row in self.repository.listar_arquivos(evento.id)]
 
     def _salvar_arquivos(self, evento_id: int, caso_id: int,
@@ -297,6 +298,8 @@ class EventoService:
             row = next((r for r in rows if r["id"] == arquivo_id), None)
         if row is None:
             raise NotFoundException(resource="Anexo", resource_id=arquivo_id)
+        if row["indisponivel_origem"]:
+            raise FileOperationException("Arquivo indisponível no acervo original", operation="download")
         ref = row["link_arquivo"]
         if not ref or not private_file_storage.exists(EVENTO_CATEGORIA, ref):
             raise FileOperationException("Arquivo não encontrado no servidor", operation="download")

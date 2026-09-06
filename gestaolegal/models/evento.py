@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 class ArquivoEvento:
     id: int
     nome: str
+    indisponivel_origem: bool = False
 
 
 @dataclass

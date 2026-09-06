@@ -45,4 +45,5 @@ export interface ListCaso {
 export interface ArquivoCaso {
 	id: number;
 	link_arquivo: string;
+	indisponivel_origem: boolean;
 }

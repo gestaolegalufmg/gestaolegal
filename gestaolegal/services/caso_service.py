@@ -388,6 +388,9 @@ class CasoService:
         if not arquivo:
             raise NotFoundException(resource="Arquivo", resource_id=arquivo_id)
 
+        if arquivo.indisponivel_origem:
+            raise FileOperationException("Arquivo indisponível no acervo original", operation="download")
+
         if not arquivo.link_arquivo:
             logger.warning(f"Arquivo {arquivo_id} has no file path")
             raise FileOperationException(
@@ -512,7 +515,7 @@ class CasoService:
             nova_ref = private_file_storage.save(CASO_CATEGORIA, file)
             with transaction():
                 self.arquivo_repository.update(
-                    arquivo_id, {"link_arquivo": nova_ref}
+                    arquivo_id, {"link_arquivo": nova_ref, "indisponivel_origem": False}
                 )
         except Exception as e:
             # Nada confirmado: some com o novo e o anexo anterior segue de pé.

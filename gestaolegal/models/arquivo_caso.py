@@ -7,3 +7,4 @@ class ArquivoCaso:
     link_arquivo: str
 
     id: int | None = None
+    indisponivel_origem: bool = False
