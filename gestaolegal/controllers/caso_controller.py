@@ -54,6 +54,12 @@ def get():
     page = request.args.get("page", default=1, type=int)
     per_page = request.args.get("per_page", default=10, type=int)
     search = request.args.get("search", default="", type=str)
+    numero = request.args.get("numero_caso", "").strip()
+    numero_caso = None
+    if numero:
+        if not numero.isascii() or not numero.isdigit() or len(numero) > 10 or not 1 <= int(numero) <= 2147483647:
+            raise ValidationException("Número do caso deve ser um inteiro positivo válido", field="numero_caso")
+        numero_caso = int(numero)
     show_inactive = request.args.get(
         "show_inactive", default=StringBool("false"), type=StringBool
     )
@@ -74,6 +80,7 @@ def get():
         situacao_deferimento=situacao_deferimento,
         responsible_user=responsible_user,
         criado_por=criado_por_id,
+        numero_caso=numero_caso,
     )
 
     return success_response(data=result.to_dict())

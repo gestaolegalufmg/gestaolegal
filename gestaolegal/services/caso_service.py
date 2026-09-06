@@ -82,6 +82,7 @@ class CasoService:
         responsible_user: int | None = None,
         atendido_id: int | None = None,
         criado_por: int | None = None,
+        numero_caso: int | None = None,
     ) -> PaginatedResult[Caso]:
         logger.info(
             f"Searching casos with search: '{search}', situacao_deferimento: {situacao_deferimento}, responsible_user: {responsible_user}, show_inactive: {show_inactive}, atendido_id: {atendido_id}, page: {page_params['page']}, per_page: {page_params['per_page']}"
@@ -96,6 +97,9 @@ class CasoService:
 
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=True))
+
+        if numero_caso is not None:
+            clauses.append(WhereClause(column="id", operator="==", value=numero_caso))
 
         if atendido_id is not None:
             # Restringe aos casos vinculados a este atendido/assistido.
@@ -130,11 +134,6 @@ class CasoService:
             search_clauses: list[WhereClause] = [
                 WhereClause(column="descricao", operator="ilike", value=f"%{search}%")
             ]
-
-            if search.isdigit():
-                search_clauses.append(
-                    WhereClause(column="id", operator="==", value=int(search))
-                )
 
             # Também casa casos cujas partes envolvidas (clientes) têm o nome buscado.
             caso_ids = self.repository.find_ids_by_atendido_nome(search)

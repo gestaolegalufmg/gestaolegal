@@ -191,6 +191,38 @@ def test_search_casos(
     assert isinstance(data, dict)
 
 
+def test_numero_caso_exato_separado_da_busca_textual(
+    client, auth_headers, auth_headers_nl, sample_caso_data
+):
+    clean_tables("casos_atendidos", "casos")
+    first = get_success_data(client.post('/api/caso/', headers=auth_headers,
+        json={**sample_caso_data, 'descricao': 'Texto exclusivo alfa'}))['id']
+    other = get_success_data(client.post('/api/caso/', headers=auth_headers,
+        json={**sample_caso_data, 'descricao': f'Referência {first} e {first}70'}))['id']
+
+    def ids(headers=auth_headers, **params):
+        response = client.get('/api/caso/', headers=headers, query_string=params)
+        assert response.status_code == 200
+        return [row['id'] for row in get_success_data(response)['items']]
+
+    assert ids(numero_caso=first) == [first]
+    assert ids(search=str(first)) == [other]
+    assert ids(numero_caso=first, search='alfa') == [first]
+    assert ids(numero_caso=first, search='Referência') == []
+    assert ids(headers=auth_headers_nl, numero_caso=first) == []
+    assert ids(numero_caso=2147483647) == []
+    assert set(ids(numero_caso='')) == {first, other}
+    assert client.delete(f'/api/caso/{first}', headers=auth_headers).status_code == 200
+    assert ids(numero_caso=first) == []
+    assert ids(numero_caso=first, show_inactive='true') == [first]
+
+
+@pytest.mark.parametrize('numero', ['abc', '-7', '0', '7.5', '2147483648', '9'*100, '７'])
+def test_numero_caso_invalido_nao_ignora_filtro(client, auth_headers, numero):
+    response = client.get('/api/caso/', headers=auth_headers, query_string={'numero_caso': numero})
+    assert response.status_code in (400, 422)
+
+
 def test_create_processo_for_caso(
     client: FlaskClient,
     auth_headers: dict[str, str],

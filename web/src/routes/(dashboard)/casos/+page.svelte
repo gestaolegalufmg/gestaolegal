@@ -27,6 +27,7 @@
 
 	type CasoFilters = {
 		search: string;
+		numero_caso: string;
 		show_inactive: boolean;
 		situacao_deferimento: string;
 		user: string;
@@ -36,6 +37,7 @@
 	const { filters, applyFilters, setFilters } = usePaginatedFilters<CasoFilters>({
 		initialFilters: {
 			search: page.url.searchParams.get('search') ?? '',
+			numero_caso: page.url.searchParams.get('numero_caso') ?? '',
 			show_inactive: page.url.searchParams.get('show_inactive') === 'true',
 			situacao_deferimento: page.url.searchParams.get('situacao_deferimento') ?? 'todos',
 			user: page.url.searchParams.get('user') ?? '',
@@ -43,6 +45,7 @@
 		},
 		buildParams: (f) => ({
 			search: f.search,
+			numero_caso: f.numero_caso,
 			show_inactive: f.show_inactive ? 'true' : 'false',
 			situacao_deferimento: f.situacao_deferimento,
 			user: f.user,
@@ -72,17 +75,38 @@
 	<div class="grid gap-6">
 		<div class="rounded-lg border bg-card p-6">
 			<div class="mb-4 flex items-center justify-between">
-				<div class="align-center flex w-full justify-between gap-2">
-					<div class="flex items-center gap-2">
-						<Input
-							bind:value={filters.search}
-							ondebounceinput={() => {
-								setFilters({ search: filters.search });
-								applyFilters();
-							}}
-							debounceMs={500}
-							placeholder="Buscar casos..."
-						/>
+				<div class="flex w-full flex-wrap items-center justify-between gap-4">
+					<div class="flex flex-wrap items-end gap-2">
+						<div class="w-40">
+							<label for="numero-caso" class="mb-1 block text-sm font-medium">Número do caso</label>
+							<Input
+								id="numero-caso"
+								inputmode="numeric"
+								maxlength={10}
+								bind:value={filters.numero_caso}
+								ondebounceinput={() => {
+									setFilters({ numero_caso: filters.numero_caso.replace(/\D/g, '') });
+									applyFilters();
+								}}
+								debounceMs={500}
+								placeholder="Número exato"
+							/>
+						</div>
+						<div class="w-full min-w-0 flex-1 sm:min-w-80">
+							<label for="busca-casos" class="mb-1 block text-sm font-medium"
+								>Descrição ou parte envolvida</label
+							>
+							<Input
+								id="busca-casos"
+								bind:value={filters.search}
+								ondebounceinput={() => {
+									setFilters({ search: filters.search });
+									applyFilters();
+								}}
+								debounceMs={500}
+								placeholder="Buscar descrição ou nome..."
+							/>
+						</div>
 						<Select.Root
 							bind:value={filters.situacao_deferimento}
 							name="situacao_deferimento"
@@ -101,7 +125,7 @@
 							</Select.Content>
 						</Select.Root>
 					</div>
-					<div class="flex items-center gap-4">
+					<div class="flex flex-wrap items-center gap-4">
 						<label class="flex cursor-pointer items-center gap-2">
 							<Checkbox
 								checked={filters.user === 'me'}
