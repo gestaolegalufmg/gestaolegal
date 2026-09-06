@@ -19,10 +19,13 @@
 		trocando = true;
 		try {
 			definirUnidadeAtiva(id);
-			if (/^\/casos\/\d+(?:\/|$)/.test(page.url.pathname)) {
-				// Sai também das telas de edição, eventos e processos. Invalidar
-				// antes de sair tentaria buscar o caso antigo na nova unidade.
-				await goto('/casos', { invalidateAll: true });
+			const detalhe = page.url.pathname.match(
+				/^(\/casos|\/plantao\/atendidos-assistidos)\/\d+(?:\/|$)/
+			);
+			if (detalhe) {
+				// Sai também das telas dependentes e de edição. Invalidar antes
+				// de sair tentaria buscar o registro antigo na nova unidade.
+				await goto(detalhe[1], { invalidateAll: true });
 			} else {
 				await invalidateAll();
 			}
