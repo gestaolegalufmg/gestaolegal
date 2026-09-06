@@ -365,6 +365,24 @@ def test_numero_processo_texto_roundtrip(client, auth_headers, sample_caso_data,
     assert get_success_data(response)["numero"] is None
 
 
+def test_numero_duplicado_mensagem_clara_e_preserva_dados(client, auth_headers, sample_caso_data):
+    caso = get_success_data(client.post('/api/caso/', json=sample_caso_data, headers=auth_headers))
+    url = f"/api/caso/{caso['id']}/processos"
+    numero = '0000123-45.2026.8.13.0000'
+    original = get_success_data(client.post(url, json={'especie': 'Ação', 'numero': numero}, headers=auth_headers))
+    outro = get_success_data(client.post(url, json={'especie': 'Recurso', 'numero': '987654321'}, headers=auth_headers))
+    for response in (
+        client.post(url, json={'especie': 'Ação', 'numero': numero}, headers=auth_headers),
+        client.put(f"{url}/{outro['id']}", json={'numero': numero, 'obs': 'Não deve salvar'}, headers=auth_headers),
+    ):
+        assert response.status_code == 400
+        assert response.json['error']['message'] == 'Já existe um processo cadastrado com esse número.'
+    assert get_success_data(client.get(f"{url}/{original['id']}", headers=auth_headers)) == original
+    assert get_success_data(client.get(f"{url}/{outro['id']}", headers=auth_headers)) == outro
+    assert get_success_data(client.get(url, headers=auth_headers))['total'] == 2
+    assert client.put(f"{url}/{original['id']}", json={'numero': numero}, headers=auth_headers).status_code == 200
+
+
 def test_numero_processo_limite_e_tipo():
     from pydantic import ValidationError
     from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
@@ -375,3 +393,4 @@ def test_numero_processo_limite_e_tipo():
                 schema(especie="Civil", numero=numero)
         assert schema(especie="Civil", numero="").numero is None
         assert schema(especie="Civil", numero=None).numero is None
+

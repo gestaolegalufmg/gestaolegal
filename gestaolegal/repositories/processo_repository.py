@@ -1,18 +1,37 @@
-from typing import Any
+from typing import Any, NoReturn
+import re
 
 from sqlalchemy import func, insert, select
 from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from gestaolegal.common import PaginatedResult
 from gestaolegal.database.tables import processos
 from gestaolegal.models.processo import Processo
+from gestaolegal.exceptions import ValidationException
 from gestaolegal.repositories.repository import (
     BaseRepository,
     CountParams,
     SearchParams,
 )
 from gestaolegal.utils.dataclass_utils import from_dict
+
+
+def _tratar_numero_duplicado(error: IntegrityError) -> NoReturn:
+    """Traduz apenas a restrição do número; outros erros continuam técnicos."""
+    message = str(error.orig)
+    args = getattr(error.orig, "args", ())
+    mysql_duplicate = (
+        args and args[0] == 1062
+        and re.search(r"for key ['`](?:processos\.)?numero['`]", message)
+    )
+    sqlite_duplicate = message == "UNIQUE constraint failed: processos.numero"
+    if mysql_duplicate or sqlite_duplicate:
+        raise ValidationException(
+            "Já existe um processo cadastrado com esse número.", field="numero"
+        ) from error
+    raise error
 
 
 class ProcessoRepository(BaseRepository):
@@ -65,13 +84,19 @@ class ProcessoRepository(BaseRepository):
 
     def create(self, data: dict[str, Any]) -> int:
         stmt = insert(processos).values(**data)
-        result = self.session.execute(stmt)
-        self.session.flush()
+        try:
+            result = self.session.execute(stmt)
+            self.session.flush()
+        except IntegrityError as error:
+            _tratar_numero_duplicado(error)
         return result.lastrowid
 
     def update(self, id: int, data: dict[str, Any]) -> None:
         stmt = sql_update(processos).where(processos.c.id == id).values(**data)
-        self.session.execute(stmt)
+        try:
+            self.session.execute(stmt)
+        except IntegrityError as error:
+            _tratar_numero_duplicado(error)
 
     def delete(self, id: int) -> bool:
         stmt = sql_update(processos).where(processos.c.id == id).values(status=False)
