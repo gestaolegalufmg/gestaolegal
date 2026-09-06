@@ -24,7 +24,8 @@
 	import { goto } from '$app/navigation';
 
 	let { data }: PageProps = $props();
-	const { evento, caso, form: initialForm } = data;
+	const { evento, caso } = $derived(data);
+	const initialForm = data.form;
 
 	let fileInputValue = $state('');
 
@@ -71,7 +72,7 @@
 				});
 
 				toast.success('Evento atualizado com sucesso!');
-				goto(`/casos/${caso.id}/eventos/${evento.id}`);
+				await goto(`/casos/${caso.id}/eventos/${evento.id}`, { invalidateAll: true });
 			} catch (err) {
 				if (err instanceof ApiException) {
 					toast.error(err.message);
@@ -108,7 +109,6 @@
 	// 		selectedUsuario = evento.usuario_responsavel;
 	// 	}
 	// });
-
 
 	function getTipoLabel(tipo: string) {
 		const option = TIPO_EVENTO_OPTIONS.find((opt) => opt.value === tipo);
@@ -204,9 +204,16 @@
 						type="file"
 						multiple
 					/>
-					<p class="text-sm text-muted-foreground">Os novos arquivos serão adicionados aos anexos existentes.</p>
-					<AnexosEvento casoId={caso.id} eventoId={evento.id} arquivos={evento.arquivos}
-						podeExcluir={evento.status && (data.me?.urole === 'admin' || evento.id_criado_por === data.me?.id)} />
+					<p class="text-sm text-muted-foreground">
+						Os novos arquivos serão adicionados aos anexos existentes.
+					</p>
+					<AnexosEvento
+						casoId={caso.id}
+						eventoId={evento.id}
+						arquivos={evento.arquivos}
+						podeExcluir={evento.status &&
+							(data.me?.urole === 'admin' || evento.id_criado_por === data.me?.id)}
+					/>
 				</div>
 
 				<div class="flex justify-end gap-2">

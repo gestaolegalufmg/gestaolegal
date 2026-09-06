@@ -14,7 +14,7 @@
 	import { goto } from '$app/navigation';
 
 	let { data }: PageProps = $props();
-	const { evento, caso } = data;
+	const { evento, caso } = $derived(data);
 
 	// Regra herdada da v2: só o admin ou quem criou o evento pode excluí-lo.
 	const podeExcluir = $derived(
@@ -60,21 +60,19 @@
 		return tipoMap[tipo] || tipo;
 	}
 
-	const eventoInfoData = [
+	const eventoInfoData = $derived([
 		{ label: 'ID', value: evento.id.toString() },
 		{ label: 'Número do Evento', value: evento.num_evento?.toString() || '--' },
 		{ label: 'Tipo', value: getTipoLabel(evento.tipo) },
 		{ label: 'Data do Evento', value: evento.data_evento, formatter: formatDate },
 		{ label: 'Responsável', value: evento.usuario_responsavel?.nome || '--' },
 		{ label: 'Status', value: evento.status ? 'Ativo' : 'Inativo' }
-	];
+	]);
 
-	const auditInfoData = [
+	const auditInfoData = $derived([
 		{ label: 'Criado Por', value: evento.criado_por?.nome || '--' },
 		{ label: 'Data de Criação', value: evento.data_criacao, formatter: formatDateTime }
-	];
-
-
+	]);
 </script>
 
 <div class="space-y-6">
@@ -130,7 +128,12 @@
 		<Card.Root>
 			<Card.Header><Card.Title>Anexos do Evento</Card.Title></Card.Header>
 			<Card.Content>
-				<AnexosEvento casoId={caso.id} eventoId={evento.id} arquivos={evento.arquivos} {podeExcluir} />
+				<AnexosEvento
+					casoId={caso.id}
+					eventoId={evento.id}
+					arquivos={evento.arquivos}
+					{podeExcluir}
+				/>
 			</Card.Content>
 		</Card.Root>
 	</div>
