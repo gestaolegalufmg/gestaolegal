@@ -371,6 +371,7 @@ def test_numero_duplicado_mensagem_clara_e_preserva_dados(client, auth_headers, 
     numero = '0000123-45.2026.8.13.0000'
     original = get_success_data(client.post(url, json={'especie': 'Ação', 'numero': numero}, headers=auth_headers))
     outro = get_success_data(client.post(url, json={'especie': 'Recurso', 'numero': '987654321'}, headers=auth_headers))
+    total_antes = get_success_data(client.get(url, headers=auth_headers))['total']
     for response in (
         client.post(url, json={'especie': 'Ação', 'numero': numero}, headers=auth_headers),
         client.put(f"{url}/{outro['id']}", json={'numero': numero, 'obs': 'Não deve salvar'}, headers=auth_headers),
@@ -379,7 +380,7 @@ def test_numero_duplicado_mensagem_clara_e_preserva_dados(client, auth_headers, 
         assert response.json['error']['message'] == 'Já existe um processo cadastrado com esse número.'
     assert get_success_data(client.get(f"{url}/{original['id']}", headers=auth_headers)) == original
     assert get_success_data(client.get(f"{url}/{outro['id']}", headers=auth_headers)) == outro
-    assert get_success_data(client.get(url, headers=auth_headers))['total'] == 2
+    assert get_success_data(client.get(url, headers=auth_headers))['total'] == total_antes
     assert client.put(f"{url}/{original['id']}", json={'numero': numero}, headers=auth_headers).status_code == 200
 
 
