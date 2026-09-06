@@ -125,7 +125,7 @@
 			</Card.Root>
 		{/if}
 
-		<Card.Root>
+		<Card.Root class="min-w-0 md:col-span-2">
 			<Card.Header><Card.Title>Anexos do Evento</Card.Title></Card.Header>
 			<Card.Content>
 				<AnexosEvento
