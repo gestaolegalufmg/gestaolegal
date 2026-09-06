@@ -31,6 +31,8 @@ tests
 .coverage
 
 # Environment
+.env
+.env.*
 .env.example
 
 # Build artifacts
