@@ -7,7 +7,6 @@ from flask import current_app
 from werkzeug.datastructures import FileStorage
 
 from gestaolegal.common import PageParams, PaginatedResult
-from gestaolegal.database.session import transaction
 from gestaolegal.exceptions import (
     DatabaseException,
     FileOperationException,
@@ -17,7 +16,7 @@ from gestaolegal.exceptions import (
     ValidationException,
 )
 from gestaolegal.models.caso import Caso
-from gestaolegal.models.evento import Evento, ListEvento
+from gestaolegal.models.evento import Evento, ListEvento, ArquivoEvento
 from gestaolegal.models.evento_input import EventoCreateInput, EventoUpdateInput
 from gestaolegal.models.user import UserInfo
 from gestaolegal.services import private_file_storage
@@ -75,6 +74,7 @@ class EventoService:
             id, unidade_id=RequestContext.get_unidade_ativa()
         )
         if evento:
+            self._carregar_arquivos(evento)
             user_map = self.__get_user_map([evento])
             evento.usuario_responsavel = (
                 user_map.get(evento.id_usuario_responsavel)
@@ -157,6 +157,7 @@ class EventoService:
             logger.warning(f"Evento {evento_id} does not belong to caso {caso_id}")
             return None
 
+        self._carregar_arquivos(evento)
         user_map = self.__get_user_map([evento])
         if evento.id_usuario_responsavel:
             evento.usuario_responsavel = user_map.get(evento.id_usuario_responsavel)
@@ -165,178 +166,142 @@ class EventoService:
         logger.info(f"Evento validated successfully with id: {evento_id}")
         return evento
 
-    def create(
-        self,
-        caso_id: int,
-        evento_input: EventoCreateInput,
-        criado_por_id: int,
-        arquivo: FileStorage | None = None,
-    ) -> Evento:
-        """Cria o evento e, se houver anexo, grava-o na raiz privada.
+    def _carregar_arquivos(self, evento: Evento) -> None:
+        evento.arquivos = [ArquivoEvento(
+            id=row["id"], nome=private_file_storage.nome_original(row["link_arquivo"])
+        ) for row in self.repository.listar_arquivos(evento.id)]
 
-        O caso, a unidade e o próprio arquivo são validados **antes** de
-        qualquer gravação: o controller gravava primeiro e só depois descobria
-        que o acesso era negado, deixando órfão no volume.
-        """
-        logger.info(
-            f"Creating evento for caso {caso_id} with tipo: {evento_input.tipo}, created by: {criado_por_id}"
-        )
+    def _salvar_arquivos(self, evento_id: int, caso_id: int,
+                         arquivos: list[FileStorage], refs: list[str]) -> None:
+        for arquivo in arquivos:
+            ref = private_file_storage.save(EVENTO_CATEGORIA, arquivo)
+            refs.append(ref)
+            self.repository.adicionar_arquivo(evento_id, caso_id, ref)
+
+    def create(
+        self, caso_id: int, evento_input: EventoCreateInput, criado_por_id: int,
+        arquivo: FileStorage | None = None, arquivos: list[FileStorage] | None = None,
+    ) -> Evento:
         caso = self._caso_da_unidade_ativa(caso_id)
         if not caso:
-            logger.warning(f"Caso {caso_id} is not in the active unidade")
             raise NotFoundException(resource="Caso", resource_id=caso_id)
-
-        self._validar_anexo(arquivo)
-
-        evento_data = evento_input.model_dump()
-        evento_data["id_caso"] = caso_id
-        evento_data["unidade_id"] = caso.unidade_id
-        evento_data["data_criacao"] = datetime.now()
-        evento_data["id_criado_por"] = criado_por_id
-        evento_data["num_evento"] = self.repository.count_by_caso_id(caso_id) + 1
-
-        ref = None
+        uploads = list(arquivos or []) + ([arquivo] if arquivo else [])
+        for file in uploads:
+            self._validar_anexo(file)
+        data = evento_input.model_dump()
+        data.update(id_caso=caso_id, unidade_id=caso.unidade_id,
+                    data_criacao=datetime.now(), id_criado_por=criado_por_id,
+                    num_evento=self.repository.count_by_caso_id(caso_id) + 1)
+        refs: list[str] = []
         try:
-            if arquivo:
-                ref = private_file_storage.save(EVENTO_CATEGORIA, arquivo)
-            evento_data["arquivo"] = ref
-
-            evento_id = self.repository.create(evento_data)
-
-            created_evento = self.find_by_id(evento_id)
-            if not created_evento:
-                logger.error("Failed to create evento")
+            evento_id = self.repository.create(data)
+            self._salvar_arquivos(evento_id, caso_id, uploads, refs)
+            created = self.find_by_id(evento_id)
+            if not created:
                 raise DatabaseException("Falha ao criar evento")
-        except Exception as e:
-            # O evento não existe: o anexo recém-gravado não é referenciado
-            # por ninguém e não pode ficar no volume.
-            if ref:
-                private_file_storage.remove(EVENTO_CATEGORIA, ref)
-            if isinstance(e, GestaoLegalException):
+            NotificacaoService().evento_criado(created, criado_por_id)
+            # Evento, anexos e notificação são confirmados juntos. Só depois
+            # a resposta pode afirmar que os arquivos foram anexados.
+            self.repository.session.commit()
+            return created
+        except Exception as error:
+            self.repository.session.rollback()
+            for ref in refs:
+                self._remover_do_volume(ref, contexto="upload de evento revertido")
+            if isinstance(error, GestaoLegalException):
                 raise
-            logger.error(f"Error creating evento for caso {caso_id}: {e}", exc_info=True)
-            raise FileOperationException(
-                f"Erro ao anexar o arquivo do evento: {e}", operation="upload"
-            )
-
-        with transaction():
-            NotificacaoService().evento_criado(created_evento, criado_por_id)
-
-        logger.info(f"Evento created successfully with id: {evento_id}")
-        return created_evento
+            raise FileOperationException("Falha ao salvar evento e anexos", operation="upload") from error
 
     def update(
-        self,
-        evento_id: int,
-        evento_input: EventoUpdateInput,
-        arquivo: FileStorage | None = None,
+        self, evento_id: int, evento_input: EventoUpdateInput,
+        arquivo: FileStorage | None = None, arquivos: list[FileStorage] | None = None,
     ) -> Evento | None:
-        """Atualiza o evento e, se vier anexo novo, substitui o anterior.
-
-        O anexo substituído sai do volume **depois** de o banco confirmar a
-        nova referência: até esta story ele simplesmente vazava.
-        """
-        logger.info(f"Updating evento with id: {evento_id}")
         existing = self.repository.find_by_id(
-            evento_id, unidade_id=RequestContext.get_unidade_ativa()
-        )
-        if not existing:
-            logger.error(f"Update failed: evento not found with id: {evento_id}")
+            evento_id, unidade_id=RequestContext.get_unidade_ativa())
+        if not existing or not existing.status:
             raise NotFoundException(resource="Evento", resource_id=evento_id)
-
-        self._validar_anexo(arquivo)
-
-        evento_data = evento_input.model_dump(exclude_none=True)
-
-        nova_ref = None
+        uploads = list(arquivos or []) + ([arquivo] if arquivo else [])
+        for file in uploads:
+            self._validar_anexo(file)
+        refs: list[str] = []
         try:
-            if arquivo:
-                nova_ref = private_file_storage.save(EVENTO_CATEGORIA, arquivo)
-                evento_data["arquivo"] = nova_ref
-
-            self.repository.update(evento_id, evento_data)
-        except Exception as e:
-            # Nada confirmado: some com o novo e o anexo anterior segue de pé.
-            if nova_ref:
-                private_file_storage.remove(EVENTO_CATEGORIA, nova_ref)
-            if isinstance(e, GestaoLegalException):
+            data = evento_input.model_dump(exclude_none=True)
+            if data:
+                self.repository.update(evento_id, data)
+            # Adicionar arquivos nunca substitui os anexos já existentes.
+            self._salvar_arquivos(evento_id, existing.id_caso, uploads, refs)
+            updated = self.find_by_id(evento_id)
+            self.repository.session.commit()
+            return updated
+        except Exception as error:
+            self.repository.session.rollback()
+            for ref in refs:
+                self._remover_do_volume(ref, contexto="upload de evento revertido")
+            if isinstance(error, GestaoLegalException):
                 raise
-            logger.error(f"Error updating evento {evento_id}: {e}", exc_info=True)
-            raise FileOperationException(
-                f"Erro ao anexar o arquivo do evento: {e}", operation="upload"
-            )
+            raise FileOperationException("Falha ao salvar evento e anexos", operation="upload") from error
 
-        anterior = existing.arquivo
-        if nova_ref and anterior and anterior != nova_ref:
-            self._remover_do_volume(
-                anterior, contexto=f"anexo do evento {evento_id} substituído"
-            )
+    def _autorizar_exclusao(self, evento_id: int, caso_id: int, user: UserInfo) -> Evento:
+        evento = self.validate_evento_for_caso(evento_id, caso_id)
+        if not evento or not evento.status:
+            raise NotFoundException(resource="Evento", resource_id=evento_id)
+        if user.urole != "admin" and evento.id_criado_por != user.id:
+            raise ForbiddenException("Apenas o administrador ou quem criou o evento pode excluí-lo ou remover anexos")
+        return evento
 
-        logger.info(f"Evento updated successfully with id: {evento_id}")
-        return self.repository.find_by_id(
-            evento_id, unidade_id=RequestContext.get_unidade_ativa()
-        )
+    def _limpar_sem_referencia(self, rows: list[dict]) -> None:
+        for row in rows:
+            ref = row["link_arquivo"]
+            if ref and not self.repository.referencia_em_uso(ref):
+                self._remover_do_volume(ref, contexto="anexo de evento excluído")
 
     def delete(self, evento_id: int, caso_id: int, user: UserInfo) -> None:
-        """Exclui (soft delete) um evento e apaga o arquivo anexo.
+        self._autorizar_exclusao(evento_id, caso_id, user)
+        rows = self.repository.listar_arquivos(evento_id)
+        try:
+            for row in rows:
+                self.repository.remover_arquivo(row["id"], evento_id)
+            self.repository.update(evento_id, {"status": False})
+            self.repository.session.commit()
+        except Exception:
+            self.repository.session.rollback()
+            raise
+        self._limpar_sem_referencia(rows)
 
-        Regra herdada da v2: só o admin ou quem criou o evento pode excluí-lo.
-        """
-        logger.info(f"Deleting evento {evento_id} from caso {caso_id} by user {user.id}")
-        evento = self.validate_evento_for_caso(evento_id, caso_id)
-        if not evento or not evento.status:
-            raise NotFoundException(resource="Evento", resource_id=evento_id)
-
-        if user.urole != "admin" and evento.id_criado_por != user.id:
-            logger.warning(
-                f"User {user.id} tried to delete evento {evento_id} created by {evento.id_criado_por}"
-            )
-            raise ForbiddenException(
-                "Apenas o administrador ou quem criou o evento pode excluí-lo"
-            )
-
-        # O banco manda: o registro perde a referência primeiro, e só depois o
-        # anexo deixa o volume. Apagar antes deixaria o evento apontando para
-        # o nada se a atualização falhasse.
-        anexo = evento.arquivo
-        self.repository.update(evento_id, {"status": False, "arquivo": None})
-
-        self._remover_do_volume(anexo, contexto=f"evento {evento_id} excluído")
-        logger.info(f"Evento {evento_id} deleted successfully")
+    def delete_arquivo(self, evento_id: int, caso_id: int, arquivo_id: int, user: UserInfo) -> None:
+        self._autorizar_exclusao(evento_id, caso_id, user)
+        row = next((r for r in self.repository.listar_arquivos(evento_id) if r["id"] == arquivo_id), None)
+        if row is None:
+            raise NotFoundException(resource="Anexo", resource_id=arquivo_id)
+        try:
+            self.repository.remover_arquivo(arquivo_id, evento_id)
+            self.repository.session.commit()
+        except Exception:
+            self.repository.session.rollback()
+            raise
+        self._limpar_sem_referencia([row])
 
     def get_evento_file_for_download(
-        self, evento_id: int, caso_id: int
+        self, evento_id: int, caso_id: int, arquivo_id: int | None = None
     ) -> tuple[str, str]:
-        """Devolve `(caminho absoluto no volume privado, nome original)`.
-
-        O caminho nunca sai daqui para o banco nem para a resposta da API —
-        quem o recebe é o `send_file`. Evento excluído (status falso) não é
-        baixável: o `delete` já limpa a referência, mas registro herdado da
-        2.0 pode ter as duas coisas.
-        """
-        logger.info(f"Getting evento {evento_id} file for download from caso {caso_id}")
-
         evento = self.validate_evento_for_caso(evento_id, caso_id)
         if not evento or not evento.status:
             raise NotFoundException(resource="Evento", resource_id=evento_id)
-
-        if not evento.arquivo:
-            logger.warning(f"Evento {evento_id} has no file")
-            raise FileOperationException(
-                "Evento não possui arquivo", operation="download"
-            )
-
-        if not private_file_storage.exists(EVENTO_CATEGORIA, evento.arquivo):
-            logger.error(f"Anexo ausente no volume privado: {evento.arquivo}")
-            raise FileOperationException(
-                "Arquivo não encontrado no servidor", operation="download"
-            )
-
-        logger.info(f"Evento {evento_id} file ready for download: {evento.arquivo}")
-        return (
-            private_file_storage.resolve(EVENTO_CATEGORIA, evento.arquivo),
-            private_file_storage.nome_original(evento.arquivo),
-        )
+        rows = self.repository.listar_arquivos(evento_id)
+        if arquivo_id is None:
+            # Compatibilidade com links antigos apenas quando não há ambiguidade.
+            if len(rows) != 1:
+                raise ValidationException("Selecione um anexo do evento", field="arquivo")
+            row = rows[0]
+        else:
+            row = next((r for r in rows if r["id"] == arquivo_id), None)
+        if row is None:
+            raise NotFoundException(resource="Anexo", resource_id=arquivo_id)
+        ref = row["link_arquivo"]
+        if not ref or not private_file_storage.exists(EVENTO_CATEGORIA, ref):
+            raise FileOperationException("Arquivo não encontrado no servidor", operation="download")
+        return (private_file_storage.resolve(EVENTO_CATEGORIA, ref),
+                private_file_storage.nome_original(ref))
 
     @staticmethod
     def _validar_anexo(file: FileStorage | None) -> None:

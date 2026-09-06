@@ -20,7 +20,7 @@ export const load: PageLoad = async ({ params, fetch }) => {
 				data_evento: toISODateInput(evento.data_evento),
 				id_usuario_responsavel: evento.id_usuario_responsavel ?? null,
 				status: evento.status,
-				arquivo: null
+				arquivos: []
 			},
 			zod4(eventoUpdateFormSchema),
 			{ id: 'evento-edit-form' }

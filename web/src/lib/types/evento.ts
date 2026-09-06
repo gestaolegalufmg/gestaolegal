@@ -1,12 +1,17 @@
 import type { User } from './user';
 
+export interface ArquivoEvento {
+	id: number;
+	nome: string;
+}
+
 export interface Evento {
 	id: number;
 	id_caso: number;
 	num_evento?: number;
 	tipo: string;
 	descricao?: string;
-	arquivo?: string;
+	arquivos: ArquivoEvento[];
 	data_evento: string;
 	data_criacao: string;
 	id_criado_por: number;
@@ -34,7 +39,7 @@ export interface EventoCreateInput {
 	num_evento?: number;
 	tipo: string;
 	descricao?: string;
-	arquivo?: string;
+	arquivos?: File[];
 	data_evento: string;
 	id_usuario_responsavel?: number;
 	status?: boolean;
@@ -45,7 +50,7 @@ export interface EventoUpdateInput {
 	num_evento?: number;
 	tipo?: string;
 	descricao?: string;
-	arquivo?: string;
+	arquivos?: File[];
 	data_evento?: string;
 	id_usuario_responsavel?: number;
 	status?: boolean;

@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 # O anexo não é campo de entrada: quem grava o arquivo e escreve a referência
-# em `eventos.arquivo` é o `EventoService`, a partir do `FileStorage` do
+# em `arquivosEvento.link_arquivo` é o `EventoService`, a partir do `FileStorage` do
 # multipart. Aceitar a string aqui deixaria o cliente gravar um caminho
 # arbitrário na coluna.
 class EventoCreateInput(BaseModel):

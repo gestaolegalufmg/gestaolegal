@@ -1008,3 +1008,27 @@ def test_cli_verificacao_recusa_manifesto_ausente(banco, raiz_privada, tmp_path,
     )
     assert codigo == 2
     assert "Manifesto não encontrado" in capsys.readouterr().err
+
+
+def test_multiplos_anexos_legados_do_evento_migram_sem_perder_vinculo(banco, origens, mapa, raiz_privada):
+    from gestaolegal.database.tables import arquivos_evento
+    engine, _ = banco
+    _plantar(origens["eventos"], "compartilhado.pdf", b"conteudo preservado")
+    with engine.begin() as conn:
+        _anexo_evento(conn, 1, None)
+        for aid in (1, 2):
+            conn.execute(insert(arquivos_evento).values(id=aid, id_evento=1, id_caso=1,
+                link_arquivo=f"{PREFIXOS['eventos']}/compartilhado.pdf"))
+    manifesto = _manifesto_de(engine, mapa)
+    result = migrador.aplicar(engine, manifesto, str(raiz_privada))
+    assert result["erros"] == []
+    assert result["contagem"][migrador.APLICADO] == 2
+    with engine.connect() as conn:
+        rows = conn.execute(select(arquivos_evento)).mappings().all()
+        assert {r["id_evento"] for r in rows} == {1}
+        assert {r["id_caso"] for r in rows} == {1}
+        assert len({r["link_arquivo"] for r in rows}) == 2
+        for row in rows:
+            assert (raiz_privada / "eventos" / row["link_arquivo"]).read_bytes() == b"conteudo preservado"
+    assert migrador.aplicar(engine, manifesto, str(raiz_privada))["contagem"][migrador.JA_APLICADO] == 2
+    assert migrador.verificar(engine, manifesto, str(raiz_privada))["erros"] == []

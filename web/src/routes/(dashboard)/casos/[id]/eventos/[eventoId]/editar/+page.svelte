@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { mensagemDeErro } from '$lib/utils/erros';
+	import AnexosEvento from '$lib/components/anexos-evento.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import type { PageProps } from './$types';
@@ -13,15 +13,13 @@
 		SimpleSelect,
 		SimpleTextArea
 	} from '$lib/components/forms';
-	import { fileProxy } from 'sveltekit-superforms';
+	import { filesProxy } from 'sveltekit-superforms';
 	import { toast } from 'svelte-sonner';
-	import FileText from '@lucide/svelte/icons/file-text';
-	import Download from '@lucide/svelte/icons/download';
 	import UsuarioSelectorDialog from '$lib/components/usuario-selector-dialog.svelte';
 	import type { User } from '$lib/types';
 	import UserPlus from '@lucide/svelte/icons/user-plus';
 	import X from '@lucide/svelte/icons/x';
-	import { apiFetch, api } from '$lib/api-client';
+	import { api } from '$lib/api-client';
 	import { ApiException } from '$lib/types';
 	import { goto } from '$app/navigation';
 
@@ -64,9 +62,8 @@
 					submission.append('id_usuario_responsavel', responsavel);
 				}
 
-				const arquivo = formData.get('arquivo');
-				if (arquivo instanceof File && arquivo.size > 0) {
-					submission.append('arquivo', arquivo);
+				for (const arquivo of formData.getAll('arquivos')) {
+					if (arquivo instanceof File && arquivo.name) submission.append('arquivos', arquivo);
 				}
 
 				await api.put(`caso/${caso.id}/eventos/${evento.id}`, submission, {
@@ -88,7 +85,7 @@
 
 	const { form: formData, enhance } = form;
 
-	const eventoFile = fileProxy(form, 'arquivo');
+	const eventoFile = filesProxy(form, 'arquivos');
 
 	let selectedUsuario = $state<User | null>(evento.usuario_responsavel || null);
 
@@ -112,30 +109,6 @@
 	// 	}
 	// });
 
-	async function handleDownload() {
-		if (!evento.arquivo) return;
-
-		try {
-			const response = await apiFetch(`caso/${caso.id}/eventos/${evento.id}/download`);
-
-			if (!response.ok) {
-				throw new Error('Erro ao baixar arquivo');
-			}
-
-			const blob = await response.blob();
-			const url = window.URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = evento.arquivo.split('/').pop() || 'arquivo';
-			document.body.appendChild(a);
-			a.click();
-			window.URL.revokeObjectURL(url);
-			document.body.removeChild(a);
-		} catch (error) {
-			toast.error(mensagemDeErro(error, 'Erro ao baixar arquivo'));
-			console.error(error);
-		}
-	}
 
 	function getTipoLabel(tipo: string) {
 		const option = TIPO_EVENTO_OPTIONS.find((opt) => opt.value === tipo);
@@ -223,24 +196,17 @@
 
 				<div class="space-y-2">
 					<SimpleInput
-						label="Arquivo"
-						name="arquivo"
+						label="Adicionar anexos"
+						name="arquivos"
 						{form}
 						bind:files={$eventoFile}
 						bind:value={fileInputValue}
 						type="file"
+						multiple
 					/>
-					{#if evento.arquivo}
-						<div class="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-							<div class="flex items-center gap-2">
-								<FileText class="h-5 w-5" />
-								<span class="text-sm">Arquivo atual: {evento.arquivo.split('/').pop()}</span>
-							</div>
-							<Button variant="ghost" size="sm" onclick={handleDownload}>
-								<Download class="h-4 w-4" />
-							</Button>
-						</div>
-					{/if}
+					<p class="text-sm text-muted-foreground">Os novos arquivos serão adicionados aos anexos existentes.</p>
+					<AnexosEvento casoId={caso.id} eventoId={evento.id} arquivos={evento.arquivos}
+						podeExcluir={evento.status && (data.me?.urole === 'admin' || evento.id_criado_por === data.me?.id)} />
 				</div>
 
 				<div class="flex justify-end gap-2">

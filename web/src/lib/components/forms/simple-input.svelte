@@ -18,6 +18,7 @@
 		type,
 		autocomplete,
 		disabled,
+		multiple,
 		files = $bindable(undefined)
 	}: FieldProps<T, U> & {
 		type?: HTMLInputTypeAttribute;
@@ -29,6 +30,7 @@
 		autocomplete?: FullAutoFill;
 		disabled?: boolean;
 		files?: FileList;
+		multiple?: boolean;
 	} = $props();
 </script>
 
@@ -41,6 +43,7 @@
 					bind:value
 					bind:files
 					type="file"
+					{multiple}
 					{pattern}
 					{placeholder}
 					{autocomplete}

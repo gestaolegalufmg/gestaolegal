@@ -241,6 +241,18 @@ eventos = Table(
     coluna_unidade(),
 )
 
+# Relação 1:N, preservando a tabela e os IDs das instalações legadas.
+arquivos_evento = Table(
+    "arquivosEvento", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("id_evento", Integer, ForeignKey("eventos.id", ondelete="CASCADE"), nullable=True),
+    Column("id_caso", Integer, ForeignKey("casos.id", ondelete="CASCADE"), nullable=True),
+    Column("link_arquivo", String(300).with_variant(
+        VARCHAR(300, charset="utf8mb4", collation="utf8mb4_0900_ai_ci"), "mysql"
+    ), nullable=True),
+)
+
+
 arquivos_caso = Table(
     "arquivosCaso",
     metadata,

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as Dialog from '$lib/components/ui/dialog';
-	import { fileProxy, superForm, type SuperValidated } from 'sveltekit-superforms';
+	import { filesProxy, superForm, type SuperValidated } from 'sveltekit-superforms';
 	import type { Infer } from 'sveltekit-superforms';
 	import {
 		eventoCreateFormSchema,
@@ -64,7 +64,7 @@
 	const { form: formData, enhance } = form;
 
 	let value = $state('');
-	const eventoFile = fileProxy(form, 'arquivo');
+	const eventoFile = filesProxy(form, 'arquivos');
 
 	let selectedUsuario = $state<User | null>(null);
 
@@ -149,12 +149,13 @@
 				</div>
 
 				<SimpleInput
-					label="Arquivo"
-					name="arquivo"
+					label="Anexos"
+					name="arquivos"
 					{form}
 					bind:files={$eventoFile}
 					bind:value
 					type="file"
+					multiple
 				/>
 
 				<div class="flex justify-end gap-2">

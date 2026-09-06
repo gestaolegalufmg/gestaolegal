@@ -1,10 +1,16 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from gestaolegal.models.caso import Caso
     from gestaolegal.models.user import UserInfo
+
+
+@dataclass
+class ArquivoEvento:
+    id: int
+    nome: str
 
 
 @dataclass
@@ -20,7 +26,7 @@ class Evento:
     unidade_id: int | None = None
     num_evento: int | None = None
     descricao: str | None = None
-    arquivo: str | None = None
+    arquivos: list[ArquivoEvento] = field(default_factory=list)
     id_usuario_responsavel: int | None = None
     caso: "Caso | None" = None
     criado_por: "UserInfo | None" = None

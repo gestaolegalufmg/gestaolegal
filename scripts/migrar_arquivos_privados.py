@@ -37,8 +37,8 @@ Lê o `.env` do diretório atual (raiz do checkout ou da worktree) e usa
 `Config.SQLALCHEMY_DATABASE_URI`, como `migrations/env.py`. `--database-url`
 substitui essa URL (é o que os testes usam).
 
-Fase de inventário: NÃO ESCREVE NADA além do manifesto. Percorre as três
-colunas de anexo — `arquivosCaso.link_arquivo`, `eventos.arquivo` e
+Fase de inventário: NÃO ESCREVE NADA além do manifesto. Percorre as referências de anexo — `arquivosCaso.link_arquivo`,
+`arquivosEvento.link_arquivo`, `eventos.arquivo` (compatibilidade) e
 `arquivos.caminho` —, registros ativos e inativos, traduz cada referência
 legada pelo mapa `prefixo antigo=mount de leitura` e classifica o que achou. Os
 `arquivos` herdados da v2 não têm `caminho`: para eles o candidato é
@@ -122,7 +122,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, select, update
 from werkzeug.utils import secure_filename
 
-from gestaolegal.database.tables import arquivos, arquivos_caso, casos, eventos
+from gestaolegal.database.tables import arquivos, arquivos_caso, arquivos_evento, casos, eventos
 
 load_dotenv()
 
@@ -158,7 +158,8 @@ VERIFICACOES = (MIGRADO, AUSENTE, DIVERGENTE, EXCECAO)
 
 TABELAS = {
     "arquivosCaso": (arquivos_caso, "link_arquivo"),
-    "eventos": (eventos, "arquivo"),
+    "eventos": (eventos, "arquivo"),  # compatibilidade com manifestos anteriores
+    "arquivosEvento": (arquivos_evento, "link_arquivo"),
     "arquivos": (arquivos, "caminho"),
 }
 """Tabela e coluna de anexo de cada origem do manifesto."""
@@ -350,7 +351,7 @@ def _candidato_legado(nome: str | None, arquivos_legado: str | None) -> tuple[st
 
 
 def inventariar(conn, mapa: dict[str, str], arquivos_legado: str | None = None) -> list[ItemInventario]:
-    """Percorre as três colunas de anexo e devolve o inventário completo.
+    """Percorre as referências de anexo e devolve o inventário completo.
 
     Nada é escrito: só `SELECT`. Registros ativos e inativos entram — o
     `status` falso de um evento não faz o anexo dele sumir do disco.
@@ -389,6 +390,16 @@ def inventariar(conn, mapa: dict[str, str], arquivos_legado: str | None = None) 
                 orfao=caso_existente is None,
             )
         )
+
+    consulta = select(
+        arquivos_evento.c.id, arquivos_evento.c.link_arquivo,
+        arquivos_evento.c.id_caso, eventos.c.id, eventos.c.id_caso.label("caso_evento")
+    ).select_from(arquivos_evento.outerjoin(eventos, arquivos_evento.c.id_evento == eventos.c.id))
+    for registro_id, referencia, id_caso, evento_id, caso_evento in conn.execute(consulta):
+        itens.append(_classificar(
+            "arquivosEvento", registro_id, "link_arquivo", "eventos", referencia, mapa,
+            orfao=evento_id is None or id_caso != caso_evento,
+        ))
 
     consulta = select(arquivos.c.id, arquivos.c.caminho, arquivos.c.nome)
     for registro_id, referencia, nome in conn.execute(consulta):

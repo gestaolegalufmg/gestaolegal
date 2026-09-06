@@ -32,16 +32,10 @@ from gestaolegal.utils.StringBool import StringBool
 caso_controller = Blueprint("caso_api", __name__)
 
 
-def _anexo_do_form() -> FileStorage | None:
-    """O arquivo do multipart, ou `None` quando o campo veio vazio.
-
-    Quem grava é o service, depois de validar caso, unidade e o próprio
-    arquivo — o controller só entrega o `FileStorage`.
-    """
-    file = request.files.get("arquivo")
-    if file and file.filename:
-        return file
-    return None
+def _anexos_do_form() -> list[FileStorage]:
+    # Aceita também o nome singular usado por clientes anteriores.
+    return [file for key in ("arquivos", "arquivo")
+            for file in request.files.getlist(key) if file.filename]
 
 
 def _resolve_user_param(valor: str | None, current_user: UserInfo) -> int | None:
@@ -284,7 +278,7 @@ def create_evento(caso_id: int):
         caso_id=caso_id,
         evento_input=evento_input,
         criado_por_id=current_user.id,
-        arquivo=_anexo_do_form(),
+        arquivos=_anexos_do_form(),
     )
 
     return success_response(
@@ -362,7 +356,7 @@ def update_evento(caso_id: int, evento_id: int):
             ) from exc
 
     evento_input = EventoUpdateInput(**form_data)
-    evento = evento_service.update(evento_id, evento_input, arquivo=_anexo_do_form())
+    evento = evento_service.update(evento_id, evento_input, arquivos=_anexos_do_form())
     if not evento:
         raise NotFoundException(resource="Evento", resource_id=evento_id)
 
@@ -392,6 +386,25 @@ def download_evento_file(caso_id: int, evento_id: int):
     return private_file_storage.aplicar_headers_download(
         send_file(filepath, as_attachment=True, download_name=nome)
     )
+
+
+@caso_controller.route(
+    "/<int:caso_id>/eventos/<int:evento_id>/arquivos/<int:arquivo_id>/download", methods=["GET"]
+)
+@authenticated
+def download_anexo_evento(caso_id: int, evento_id: int, arquivo_id: int):
+    filepath, nome = EventoService().get_evento_file_for_download(evento_id, caso_id, arquivo_id)
+    return private_file_storage.aplicar_headers_download(
+        send_file(filepath, as_attachment=True, download_name=nome))
+
+
+@caso_controller.route(
+    "/<int:caso_id>/eventos/<int:evento_id>/arquivos/<int:arquivo_id>", methods=["DELETE"]
+)
+@authenticated
+def delete_anexo_evento(caso_id: int, evento_id: int, arquivo_id: int):
+    EventoService().delete_arquivo(evento_id, caso_id, arquivo_id, RequestContext.get_current_user())
+    return success_response(message="Anexo excluído com sucesso")
 
 
 @caso_controller.route("/<int:caso_id>/arquivos", methods=["GET"])

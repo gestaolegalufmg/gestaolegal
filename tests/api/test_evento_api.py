@@ -89,8 +89,8 @@ def test_create_evento_with_file(
     assert data is not None
     assert data["tipo"] == "Juntada de Documentos"
     assert data["descricao"] == "Juntada de procuração"
-    assert data["arquivo"] is not None
-    assert "procuracao.pdf" in data["arquivo"]
+    assert len(data["arquivos"]) == 1
+    assert "procuracao.pdf" == data["arquivos"][0]["nome"]
 
 
 def test_create_evento_with_num_evento(
@@ -259,7 +259,7 @@ def test_update_evento_with_new_file(
     assert response.status_code == 200
     data = get_success_data(response)
     assert data is not None
-    assert "atualizado.pdf" in data["arquivo"]
+    assert {a["nome"] for a in data["arquivos"]} == {"original.pdf", "atualizado.pdf"}
 
 
 def test_evento_date_parsing_from_string(
@@ -685,11 +685,11 @@ def test_anexo_de_evento_guarda_referencia_relativa(
     auth_headers: dict[str, str],
     sample_caso_data: dict[str, Any],
 ) -> None:
-    """A resposta traz a referência, nunca a raiz absoluta do volume."""
+    """A referência fica no banco; a resposta lista IDs e nomes dos anexos."""
     caso_id = _criar_caso(client, auth_headers, sample_caso_data)
     evento = _criar_evento_com_anexo(client, auth_headers, caso_id)
 
-    ref = evento["arquivo"]
+    ref = _referencia_anexo(evento["arquivos"][0]["id"])
     assert not os.path.isabs(ref)
     assert "/" not in ref
     assert str(app.config["PRIVATE_FILES_ROOT"]) not in ref
@@ -739,7 +739,7 @@ def test_evento_excluido_nao_e_baixavel(
     """O soft delete tira o anexo do volume e o download responde 404."""
     caso_id = _criar_caso(client, auth_headers, sample_caso_data)
     evento = _criar_evento_com_anexo(client, auth_headers, caso_id)
-    ref = evento["arquivo"]
+    ref = _referencia_anexo(evento["arquivos"][0]["id"])
 
     assert (
         client.delete(
@@ -757,7 +757,7 @@ def test_evento_excluido_nao_e_baixavel(
     )
 
 
-def test_put_remove_o_anexo_substituido(
+def test_put_adiciona_anexo_preservando_anterior(
     app: Flask,
     client: FlaskClient,
     auth_headers: dict[str, str],
@@ -765,7 +765,7 @@ def test_put_remove_o_anexo_substituido(
 ) -> None:
     caso_id = _criar_caso(client, auth_headers, sample_caso_data)
     evento = _criar_evento_com_anexo(client, auth_headers, caso_id, b"antigo")
-    ref_antiga = evento["arquivo"]
+    ref_antiga = _referencia_anexo(evento["arquivos"][0]["id"])
 
     response = client.put(
         f"/api/caso/{caso_id}/eventos/{evento['id']}",
@@ -774,14 +774,15 @@ def test_put_remove_o_anexo_substituido(
         content_type="multipart/form-data",
     )
     assert response.status_code == 200
-    ref_nova = get_success_data(response)["arquivo"]
+    anexo_novo = get_success_data(response)["arquivos"][-1]
+    ref_nova = _referencia_anexo(anexo_novo["id"])
 
     assert ref_nova != ref_antiga
-    assert not _anexo_do_evento(app, ref_antiga)
+    assert _anexo_do_evento(app, ref_antiga)
     assert _anexo_do_evento(app, ref_nova)
 
     download = client.get(
-        f"/api/caso/{caso_id}/eventos/{evento['id']}/download", headers=auth_headers
+        f"/api/caso/{caso_id}/eventos/{evento['id']}/arquivos/{anexo_novo['id']}/download", headers=auth_headers
     )
     assert download.data == b"novo"
 
@@ -920,10 +921,87 @@ def test_download_com_anexo_ausente_do_volume(
     evento = _criar_evento_com_anexo(client, auth_headers, caso_id)
 
     with app.app_context():
-        os.remove(private_file_storage.resolve("eventos", evento["arquivo"]))
+        os.remove(private_file_storage.resolve("eventos", _referencia_anexo(evento["arquivos"][0]["id"])))
 
     response = client.get(
         f"/api/caso/{caso_id}/eventos/{evento['id']}/download", headers=auth_headers
     )
     assert response.status_code >= 400
     assert "não encontrado no servidor" in response.json["error"]["message"]
+
+
+def _referencia_anexo(arquivo_id):
+    from gestaolegal.database.session import get_session
+    from gestaolegal.database.tables import arquivos_evento
+    from sqlalchemy import select
+    with get_session() as session:
+        return session.execute(select(arquivos_evento.c.link_arquivo).where(
+            arquivos_evento.c.id == arquivo_id)).scalar_one()
+
+
+def test_multiplos_anexos_download_e_exclusao_isolada(app, client, auth_headers, auth_headers_nl, sample_caso_data):
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    response = client.post(f"/api/caso/{caso_id}/eventos", data={
+        "tipo": "documentos", "data_evento": "2026-09-05",
+        "arquivos": [(BytesIO(b"primeiro"), "igual.pdf"), (BytesIO(b"segundo"), "igual.pdf")],
+    }, headers=auth_headers, content_type="multipart/form-data")
+    assert response.status_code == 201
+    evento = get_success_data(response)
+    assert "arquivo" not in evento
+    assert len(evento["arquivos"]) == 2
+    rota = f"/api/caso/{caso_id}/eventos/{evento['id']}"
+    assert get_success_data(client.get(rota, headers=auth_headers))["arquivos"] == evento["arquivos"]
+    first, second = evento["arquivos"]
+    for anexo, content in [(first, b"primeiro"), (second, b"segundo")]:
+        download = f"{rota}/arquivos/{anexo['id']}/download"
+        assert client.get(download).status_code == 401
+        result = client.get(download, headers=auth_headers)
+        assert result.data == content
+        assert result.headers["Cache-Control"] == "private, no-store"
+    assert client.get(f"{rota}/download", headers=auth_headers).status_code == 400
+    outro = _criar_evento_com_anexo(client, auth_headers, caso_id)
+    rota_outro = f"/api/caso/{caso_id}/eventos/{outro['id']}/arquivos/{first['id']}"
+    assert client.get(f"{rota_outro}/download", headers=auth_headers).status_code == 404
+    assert client.delete(rota_outro, headers=auth_headers).status_code == 404
+    assert client.get(f"{rota}/arquivos/{first['id']}/download",
+                      headers=auth_headers_nl).status_code == 404
+    assert client.delete(f"{rota}/arquivos/{first['id']}", headers=auth_headers_nl).status_code == 404
+    ref_primeiro = _referencia_anexo(first["id"])
+    ref_segundo = _referencia_anexo(second["id"])
+    assert client.delete(f"{rota}/arquivos/{first['id']}", headers=auth_headers).status_code == 200
+    assert not _anexo_do_evento(app, ref_primeiro)
+    assert _anexo_do_evento(app, ref_segundo)
+    assert get_success_data(client.get(rota, headers=auth_headers))["arquivos"] == [second]
+    assert client.get(f"{rota}/arquivos/{first['id']}/download", headers=auth_headers).status_code == 404
+    assert client.get(f"{rota}/arquivos/{second['id']}/download", headers=auth_headers).data == b"segundo"
+    assert client.delete(rota, headers=auth_headers).status_code == 200
+    assert client.get(f"{rota}/arquivos/{second['id']}/download", headers=auth_headers).status_code == 404
+
+
+def test_falha_no_segundo_anexo_reverte_evento_e_arquivos(app, client, auth_headers, sample_caso_data, monkeypatch):
+    from gestaolegal.repositories.evento_repository import EventoRepository
+    from gestaolegal.database.session import get_session
+    from gestaolegal.database.tables import eventos, arquivos_evento
+    from sqlalchemy import select, func
+    from pathlib import Path
+
+    caso_id = _criar_caso(client, auth_headers, sample_caso_data)
+    original = EventoRepository.adicionar_arquivo
+    calls = 0
+    def fail(self, *args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("falha simulada")
+        return original(self, *args, **kwargs)
+    monkeypatch.setattr(EventoRepository, "adicionar_arquivo", fail)
+    before = set(Path(app.config["PRIVATE_FILES_ROOT"]).rglob("*.pdf"))
+    response = client.post(f"/api/caso/{caso_id}/eventos", data={
+        "tipo": "documentos", "data_evento": "2026-09-05",
+        "arquivos": [(BytesIO(b"1"), "um.pdf"), (BytesIO(b"2"), "dois.pdf")],
+    }, headers=auth_headers, content_type="multipart/form-data")
+    assert response.status_code >= 400
+    assert set(Path(app.config["PRIVATE_FILES_ROOT"]).rglob("*.pdf")) == before
+    with get_session() as session:
+        assert session.execute(select(func.count()).select_from(eventos).where(eventos.c.id_caso == caso_id)).scalar() == 0
+        assert session.execute(select(func.count()).select_from(arquivos_evento).where(arquivos_evento.c.id_caso == caso_id)).scalar() == 0

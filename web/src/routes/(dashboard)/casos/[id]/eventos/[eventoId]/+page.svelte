@@ -1,16 +1,14 @@
 <script lang="ts">
-	import { mensagemDeErro } from '$lib/utils/erros';
+	import AnexosEvento from '$lib/components/anexos-evento.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import InfoCard from '$lib/components/ui/info-card.svelte';
 	import type { PageProps } from './$types';
 	import Edit from '@lucide/svelte/icons/edit';
-	import Download from '@lucide/svelte/icons/download';
-	import FileText from '@lucide/svelte/icons/file-text';
 	import { TIPO_EVENTO } from '$lib/constants/tipo_evento';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import { toast } from 'svelte-sonner';
-	import { api, apiFetch } from '$lib/api-client';
+	import { api } from '$lib/api-client';
 	import { ApiException } from '$lib/types';
 	import ConfirmAction from '$lib/components/confirm-action.svelte';
 	import { goto } from '$app/navigation';
@@ -76,30 +74,7 @@
 		{ label: 'Data de Criação', value: evento.data_criacao, formatter: formatDateTime }
 	];
 
-	async function handleDownload() {
-		if (!evento.arquivo) return;
 
-		try {
-			const response = await apiFetch(`caso/${caso.id}/eventos/${evento.id}/download`);
-
-			if (!response.ok) {
-				throw new Error('Erro ao baixar arquivo');
-			}
-
-			const blob = await response.blob();
-			const url = window.URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = evento.arquivo.split('/').pop() || 'arquivo';
-			document.body.appendChild(a);
-			a.click();
-			window.URL.revokeObjectURL(url);
-			document.body.removeChild(a);
-		} catch (error) {
-			toast.error(mensagemDeErro(error, 'Erro ao baixar arquivo'));
-			console.error(error);
-		}
-	}
 </script>
 
 <div class="space-y-6">
@@ -115,12 +90,7 @@
 		</div>
 		<div class="flex gap-2">
 			<Button variant="outline" href="/casos/{caso.id}">Voltar</Button>
-			{#if evento.arquivo}
-				<Button variant="outline" onclick={handleDownload}>
-					<Download class="mr-2 h-4 w-4" />
-					Download
-				</Button>
-			{/if}
+
 			<Button href="/casos/{caso.id}/eventos/{evento.id}/editar">
 				<Edit class="mr-2 h-4 w-4" />
 				Editar
@@ -128,7 +98,7 @@
 			{#if podeExcluir}
 				<ConfirmAction
 					title="Excluir evento?"
-					description="O evento deixará de aparecer no caso e o arquivo anexado será apagado."
+					description="O evento deixará de aparecer no caso e os arquivos anexados serão apagados."
 					confirmText="Excluir"
 					onConfirm={excluir}
 					buttonSize="default"
@@ -157,23 +127,11 @@
 			</Card.Root>
 		{/if}
 
-		{#if evento.arquivo}
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Arquivo Anexado</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-						<div class="flex items-center gap-2">
-							<FileText class="h-5 w-5" />
-							<span class="text-sm">{evento.arquivo.split('/').pop()}</span>
-						</div>
-						<Button variant="ghost" size="sm" onclick={handleDownload}>
-							<Download class="h-4 w-4" />
-						</Button>
-					</div>
-				</Card.Content>
-			</Card.Root>
-		{/if}
+		<Card.Root>
+			<Card.Header><Card.Title>Anexos do Evento</Card.Title></Card.Header>
+			<Card.Content>
+				<AnexosEvento casoId={caso.id} eventoId={evento.id} arquivos={evento.arquivos} {podeExcluir} />
+			</Card.Content>
+		</Card.Root>
 	</div>
 </div>
