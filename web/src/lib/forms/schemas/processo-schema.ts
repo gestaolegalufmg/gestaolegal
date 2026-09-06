@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 
 export const processoCreateFormSchema = z.object({
 	especie: z.string().min(1, 'Espécie é obrigatória'),
-	numero: z.number().optional().nullable(),
+	numero: z.string().trim().max(25, 'Número deve ter no máximo 25 caracteres').optional().nullable(),
 	identificacao: z.string().optional().nullable(),
 	vara: z.string().optional().nullable(),
 	link: z.url().optional().nullable().or(z.literal('')),

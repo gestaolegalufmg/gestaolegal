@@ -163,6 +163,8 @@ class ProcessoService:
             raise NotFoundException(resource="Processo", resource_id=processo_id)
 
         processo_data = processo_input.model_dump(exclude_none=True)
+        if "numero" in processo_input.model_fields_set:
+            processo_data["numero"] = processo_input.numero
         self.repository.update(processo_id, processo_data)
 
         logger.info(f"Processo updated successfully with id: {processo_id}")

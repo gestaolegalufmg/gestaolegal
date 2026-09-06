@@ -90,7 +90,6 @@
 		{ value: 'Terceiro', label: 'Terceiro' }
 	];
 
-	const numeroProxy = intProxy(formData, 'numero');
 	const valorCausaInicialProxy = intProxy(formData, 'valor_causa_inicial');
 	const valorCausaAtualProxy = intProxy(formData, 'valor_causa_atual');
 </script>
@@ -114,9 +113,9 @@
 			label="Número"
 			name="numero"
 			form={processoForm}
-			bind:value={$numeroProxy}
+			bind:value={$formData.numero}
 			placeholder="Número do processo"
-			type="number"
+			type="text"
 		/>
 
 		<SimpleInput

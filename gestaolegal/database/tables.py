@@ -1,5 +1,4 @@
 from sqlalchemy import (
-    BigInteger,
     Boolean,
     Column,
     Date,
@@ -207,7 +206,7 @@ processos = Table(
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("especie", String(25), nullable=False),
-    Column("numero", BigInteger, nullable=True, unique=True),
+    Column("numero", String(25), nullable=True, unique=True),
     Column("identificacao", Text, nullable=True),
     Column("vara", String(200), nullable=True),
     Column("link", String(1000), nullable=True),

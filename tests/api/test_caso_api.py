@@ -204,7 +204,7 @@ def test_create_processo_for_caso(
     assert caso_data is not None
     caso_id = caso_data["id"]
 
-    processo_data = {"especie": "Ação Civil Pública", "numero": 123456, "status": True}
+    processo_data = {"especie": "Ação Civil Pública", "numero": "123456", "status": True}
 
     response = client.post(
         f"/api/caso/{caso_id}/processos",
@@ -458,7 +458,7 @@ def test_update_processo_for_caso(
     assert caso_data is not None
     caso_id = caso_data["id"]
 
-    processo_data = {"especie": "Ação Civil Pública", "numero": 999888, "status": True}
+    processo_data = {"especie": "Ação Civil Pública", "numero": "999888", "status": True}
     create_processo_response = client.post(
         f"/api/caso/{caso_id}/processos",
         json=processo_data,
@@ -469,7 +469,7 @@ def test_update_processo_for_caso(
     assert processo_data_response is not None
     processo_id = processo_data_response["id"]
 
-    update_data = {"especie": "Ação Penal Privada", "numero": 654321}
+    update_data = {"especie": "Ação Penal Privada", "numero": "654321"}
     response = client.put(
         f"/api/caso/{caso_id}/processos/{processo_id}",
         json=update_data,
@@ -480,7 +480,7 @@ def test_update_processo_for_caso(
     data = get_success_data(response)
     assert data is not None
     assert data["especie"] == "Ação Penal Privada"
-    assert data["numero"] == 654321
+    assert data["numero"] == "654321"
     assert data["id"] == processo_id
 
 
@@ -497,7 +497,7 @@ def test_delete_processo_for_caso(
     assert caso_data is not None
     caso_id = caso_data["id"]
 
-    processo_data = {"especie": "Ação Trabalhista", "numero": 789012, "status": True}
+    processo_data = {"especie": "Ação Trabalhista", "numero": "789012", "status": True}
     create_processo_response = client.post(
         f"/api/caso/{caso_id}/processos",
         json=processo_data,
@@ -530,7 +530,7 @@ def test_get_single_processo_for_caso(
     assert caso_data is not None
     caso_id = caso_data["id"]
 
-    processo_data = {"especie": "Habeas Corpus", "numero": 111222, "status": True}
+    processo_data = {"especie": "Habeas Corpus", "numero": "111222", "status": True}
     create_processo_response = client.post(
         f"/api/caso/{caso_id}/processos",
         json=processo_data,

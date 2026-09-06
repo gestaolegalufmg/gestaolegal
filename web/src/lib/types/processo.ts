@@ -3,7 +3,7 @@ import type { User } from './user';
 export interface Processo {
 	id: number;
 	especie: string;
-	numero?: number;
+	numero?: string | null;
 	identificacao?: string;
 	vara?: string;
 	link?: string;
@@ -23,7 +23,7 @@ export interface Processo {
 export interface ListProcesso {
 	id: number;
 	especie: string;
-	numero?: number;
+	numero?: string | null;
 	identificacao?: string;
 	vara?: string;
 	probabilidade?: string;
@@ -38,7 +38,7 @@ export interface ListProcesso {
 
 export interface ProcessoCreateInput {
 	especie: string;
-	numero?: number;
+	numero?: string | null;
 	identificacao?: string;
 	vara?: string;
 	link?: string;
@@ -55,7 +55,7 @@ export interface ProcessoCreateInput {
 
 export interface ProcessoUpdateInput {
 	especie?: string;
-	numero?: number;
+	numero?: string | null;
 	identificacao?: string;
 	vara?: string;
 	link?: string;

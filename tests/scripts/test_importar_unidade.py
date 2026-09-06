@@ -334,14 +334,14 @@ class TestSalvaguardas:
         inserir(
             destino,
             "processos",
-            {"especie": "civel", "numero": 42, "id_caso": c_bh, "status": True, "id_criado_por": u_bh},
+            {"especie": "civel", "numero": "42", "id_caso": c_bh, "status": True, "id_criado_por": u_bh},
         )
         u_nl = inserir(origem, "usuarios", usuario("nl@nl.br"))
         c_nl = inserir(origem, "casos", caso(u_nl) | {"unidade_id": 1})
         inserir(
             origem,
             "processos",
-            {"especie": "civel", "numero": 42, "id_caso": c_nl, "status": True, "id_criado_por": u_nl},
+            {"especie": "civel", "numero": "42", "id_caso": c_nl, "status": True, "id_criado_por": u_nl},
         )
 
         with pytest.raises(ImportacaoAbortada, match="processos.numero"):
@@ -350,7 +350,7 @@ class TestSalvaguardas:
         rel = importar(*urls(bancos), "NL", executar=True, zerar_numero_processo_colidido=True)
         assert rel.inseridos["processos"] == 1
         numeros = {linha["numero"] for linha in linhas(destino, "processos")}
-        assert numeros == {42, None}
+        assert numeros == {"42", None}
 
     def test_tabela_fora_do_plano_aborta_a_importacao(self, bancos):
         origem, _ = bancos

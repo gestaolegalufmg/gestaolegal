@@ -15,7 +15,7 @@ class Processo:
     id_criado_por: int
 
     id: int | None = None
-    numero: int | None = None
+    numero: str | None = None
     identificacao: str | None = None
     vara: str | None = None
     link: str | None = None

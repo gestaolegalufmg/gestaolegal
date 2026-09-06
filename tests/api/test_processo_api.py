@@ -1,5 +1,6 @@
 from typing import Any
 
+import pytest
 from flask.testing import FlaskClient
 
 from tests.api.conftest import assert_success_response, get_success_data
@@ -22,7 +23,7 @@ def test_create_processo_with_date_strings(
 
     processo_data = {
         "especie": "Ação Civil Pública",
-        "numero": 1234567890,
+        "numero": "1234567890",
         "data_distribuicao": "2024-01-15",
         "data_transito_em_julgado": "2024-12-31",
         "status": True,
@@ -36,7 +37,7 @@ def test_create_processo_with_date_strings(
     data = get_success_data(response)
     assert data is not None
     assert data["especie"] == "Ação Civil Pública"
-    assert data["numero"] == 1234567890
+    assert data["numero"] == "1234567890"
     # Backend returns dates in HTTP date format (RFC 2822), not ISO
     assert "data_distribuicao" in data
     assert "2024" in data["data_distribuicao"]
@@ -150,7 +151,7 @@ def test_update_processo_partial_data(
     assert caso_data is not None
     caso_id = caso_data["id"]
 
-    processo_data = {"especie": "Ação Trabalhista", "numero": 999999, "status": True}
+    processo_data = {"especie": "Ação Trabalhista", "numero": "999999", "status": True}
 
     create_response = client.post(
         f"/api/caso/{caso_id}/processos", json=processo_data, headers=auth_headers
@@ -193,7 +194,7 @@ def test_processo_with_all_optional_fields(
 
     processo_data = {
         "especie": "Ação Completa",
-        "numero": 1112223344,
+        "numero": "1112223344",
         "identificacao": "ID-2024-001",
         "vara": "1ª Vara Cível",
         "link": "https://processo.exemplo.com/111222",
@@ -341,3 +342,36 @@ def test_processos_da_unidade_ativa_seguem_funcionando(
     assert get_success_data(edicao)["especie"] == "Ação renomeada"
 
     assert client.delete(item, headers=auth_headers_nl).status_code == 200
+
+
+@pytest.mark.parametrize("numero", ["5003975-52.2025.8.13.0188", "00039755220258130188"])
+def test_numero_processo_texto_roundtrip(client, auth_headers, sample_caso_data, numero):
+    caso = get_success_data(client.post("/api/caso/", json=sample_caso_data, headers=auth_headers))
+    url = f"/api/caso/{caso['id']}/processos"
+    response = client.post(url, json={"especie": "Civil", "numero": numero}, headers=auth_headers)
+    assert response.status_code == 201
+    processo = get_success_data(response)
+    assert processo["numero"] == numero
+    detail_url = f"{url}/{processo['id']}"
+    assert get_success_data(client.get(detail_url, headers=auth_headers))["numero"] == numero
+    response = client.put(detail_url, json={"numero": "0000123-45.2026.8.13.0001"}, headers=auth_headers)
+    assert response.status_code == 200
+    assert get_success_data(response)["numero"] == "0000123-45.2026.8.13.0001"
+    # Omitir mantém o número; enviar vazio limpa o campo e libera a chave única.
+    response = client.put(detail_url, json={"obs": "Teste"}, headers=auth_headers)
+    assert get_success_data(response)["numero"] == "0000123-45.2026.8.13.0001"
+    response = client.put(detail_url, json={"numero": " "}, headers=auth_headers)
+    assert response.status_code == 200
+    assert get_success_data(response)["numero"] is None
+
+
+def test_numero_processo_limite_e_tipo():
+    from pydantic import ValidationError
+    from gestaolegal.models.processo_input import ProcessoCreateInput, ProcessoUpdateInput
+
+    for schema in (ProcessoCreateInput, ProcessoUpdateInput):
+        for numero in ("1" * 26, 1234567890):
+            with pytest.raises(ValidationError):
+                schema(especie="Civil", numero=numero)
+        assert schema(especie="Civil", numero="").numero is None
+        assert schema(especie="Civil", numero=None).numero is None
