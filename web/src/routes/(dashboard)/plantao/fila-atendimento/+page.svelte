@@ -1,13 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { api } from '$lib/api-client';
-	import {
-		ApiException,
-		FilaStatus,
-		type FilaHoje,
-		type FilaItem,
-		type Atendido
-	} from '$lib/types';
+	import { invalidateAll } from '$app/navigation';
+	import { ApiException, FilaStatus, type FilaItem, type Atendido } from '$lib/types';
 	import { getPrioridadeRowClass } from '$lib/constants/fila-atendimento';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
@@ -21,7 +16,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let filaData = $state<FilaHoje>(data.fila);
+	const filaData = $derived(data.fila);
 	const fila = $derived(filaData.fila);
 	const concluidos = $derived(filaData.atendidos_cancelados);
 	const dataFila = $derived(filaData.data);
@@ -47,7 +42,7 @@
 
 	async function refresh() {
 		try {
-			filaData = await api.get<FilaHoje>('fila_atendimento');
+			await invalidateAll();
 		} catch (err) {
 			if (err instanceof ApiException) toast.error(err.message);
 		}
