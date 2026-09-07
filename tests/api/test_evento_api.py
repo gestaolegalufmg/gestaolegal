@@ -11,7 +11,15 @@ from gestaolegal.exceptions import ValidationException
 from gestaolegal.repositories.evento_repository import EventoRepository
 from gestaolegal.services import private_file_storage
 from gestaolegal.services.evento_service import EventoService
-from tests.api.conftest import get_success_data
+from tests.api.conftest import clean_tables, get_success_data
+
+
+@pytest.fixture(autouse=True)
+def limpar_eventos(app: Flask) -> None:
+    # A suíte compartilha o SQLite: testes de casos podem apagar casos e
+    # reutilizar seus IDs, deixando eventos antigos associados ao novo caso.
+    with app.app_context():
+        clean_tables("arquivosEvento", "eventos")
 
 
 def test_create_evento_without_file(
