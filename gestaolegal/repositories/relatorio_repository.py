@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from gestaolegal.database.tables import (
     casos,
     dias_marcados_plantao,
+    plantao,
     orientacao_juridica,
     registro_entrada,
     usuarios,
@@ -161,6 +162,7 @@ class RelatorioRepository(BaseRepository):
             )
             .join(usuarios, usuarios.c.id == dias_marcados_plantao.c.id_usuario)
             .where(dias_marcados_plantao.c.status.is_(True))
+            .where(dias_marcados_plantao.c.plantao_id.in_(select(plantao.c.id).where(plantao.c.cancelado.is_(False))))
             .where(dias_marcados_plantao.c.data_marcada >= inicio.date())
             .where(dias_marcados_plantao.c.data_marcada < fim.date())
         )

@@ -123,6 +123,16 @@ class TestEventoLembrete:
 
 
 class TestPlantao:
+    @pytest.fixture(autouse=True)
+    def limpar_escalas(self, app):
+        with app.app_context():
+            clean_tables("dias_marcados_plantao", "dias_plantao", "plantao")
+
+    def test_escala_nl_nao_notifica_usuario_apenas_bh(self, client, auth_headers_nl, non_admin_auth_headers, estagiario_auth_headers):
+        self._configurar(client, auth_headers_nl, datetime.now())
+        assert _listar(client, non_admin_auth_headers)["total"] == 0
+        assert _listar(client, estagiario_auth_headers)["total"] == 0
+
     def _configurar(self, client, headers, abertura: datetime):
         payload = {
             "dias": [(date.today() + timedelta(days=1)).isoformat()],
@@ -132,7 +142,7 @@ class TestPlantao:
         response = client.put("/api/plantao/configuracao", json=payload, headers=headers)
         assert response.status_code == 200, response.get_json()
 
-    def test_abertura_e_aviso_geral_para_orient_e_estag(
+    def test_prazo_notifica_orient_e_estag_da_unidade(
         self, client, auth_headers, non_admin_auth_headers, estagiario_auth_headers, prof_auth_headers
     ):
         abertura = datetime.now().replace(microsecond=0) - timedelta(days=1)
@@ -141,9 +151,9 @@ class TestPlantao:
         for headers in (non_admin_auth_headers, estagiario_auth_headers):
             lista = _listar(client, headers)
             assert lista["total"] == 1
-            assert lista["items"][0]["acao"] == "Abertura do plantão"
+            assert lista["items"][0]["acao"] == "Prazo de inscrição da escala"
             assert lista["items"][0]["tipo"] == "plantao"
-            assert lista["items"][0]["id_usu_notificar"] is None
+            assert lista["items"][0]["id_usu_notificar"] == _me(client, headers)
         assert _listar(client, prof_auth_headers)["total"] == 0
         assert _listar(client, auth_headers)["total"] == 0
 

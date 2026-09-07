@@ -12,7 +12,7 @@ from sqlalchemy import (
     Text,
 )
 
-from sqlalchemy.dialects.mysql import VARCHAR
+from sqlalchemy.dialects.mysql import VARCHAR, LONGTEXT
 
 metadata = MetaData()
 
@@ -387,6 +387,7 @@ dias_plantao = Table(
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("data", Date, nullable=True),
+    Column("plantao_id", Integer, ForeignKey("plantao.id"), nullable=False, index=True),
     # False = dia removido da configuração (soft delete)
     Column("status", Boolean, nullable=False, default=True),
     coluna_unidade(),
@@ -398,6 +399,10 @@ plantao = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("data_abertura", DateTime, nullable=True),
     Column("data_fechamento", DateTime, nullable=True),
+    Column("nome", String(150), nullable=False, default="Escala de plantão"),
+    Column("legado", Boolean, nullable=False, default=False),
+    Column("cancelado", Boolean, nullable=False, default=False),
+    Column("historico", Text().with_variant(LONGTEXT(), "mysql"), nullable=True),
     coluna_unidade(),
 )
 
@@ -406,6 +411,7 @@ dias_marcados_plantao = Table(
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("data_marcada", Date, nullable=True),
+    Column("plantao_id", Integer, ForeignKey("plantao.id"), nullable=False, index=True),
     # aberto | confirmar | divergencia | ausencia
     Column("confirmacao", String(15), nullable=False, default="aberto"),
     # True = marcação ativa; False = apagada pelo usuário (soft delete)

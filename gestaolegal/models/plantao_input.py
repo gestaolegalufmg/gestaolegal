@@ -1,6 +1,7 @@
 from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from gestaolegal.models.base_model import BaseModel
 
@@ -15,6 +16,21 @@ class ConfiguracaoPlantaoInput(BaseModel):
     dias: list[date]
     data_abertura: datetime
     data_fechamento: datetime
+    nome: str = Field(default="Escala de plantão", min_length=1, max_length=150)
+
+    @field_validator("nome")
+    @classmethod
+    def nome_valido(cls, value):
+        if not value.strip():
+            raise ValueError("Informe o nome da escala")
+        return value.strip()
+
+    @field_validator("data_abertura", "data_fechamento")
+    @classmethod
+    def horario_brasilia(cls, value):
+        if value.tzinfo:
+            return value.astimezone(ZoneInfo("America/Sao_Paulo")).replace(tzinfo=None)
+        return value
 
     @field_validator("dias")
     @classmethod

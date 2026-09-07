@@ -49,12 +49,13 @@ def _inserir_plantao(app, id_usuario: int, dia: date, status=True, confirmacao="
     from sqlalchemy import insert
 
     from gestaolegal.database.session import get_session
-    from gestaolegal.database.tables import dias_marcados_plantao
+    from gestaolegal.database.tables import dias_marcados_plantao, plantao
 
     with app.app_context():
         session = get_session()
         session.execute(
             insert(dias_marcados_plantao).values(
+                plantao_id=session.execute(insert(plantao).values(unidade_id=unidade_id)).lastrowid,
                 data_marcada=dia,
                 id_usuario=id_usuario,
                 status=status,

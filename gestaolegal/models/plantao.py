@@ -31,12 +31,16 @@ UROLES_IGNORAM_JANELA = ("admin", "colab_proj")
 
 @dataclass
 class Plantao:
-    """Janela de marcação do plantão. Há uma única linha na tabela."""
+    """Escala independente de uma unidade, com janela de inscrições."""
 
     id: int | None = None
     data_abertura: datetime | None = None
     data_fechamento: datetime | None = None
     unidade_id: int | None = None
+    nome: str = "Escala de plantão"
+    legado: bool = False
+    cancelado: bool = False
+    historico: str | None = None
 
 
 @dataclass
@@ -47,6 +51,7 @@ class DiaPlantao:
     status: bool = True
     id: int | None = None
     unidade_id: int | None = None
+    plantao_id: int | None = None
 
 
 @dataclass
@@ -59,3 +64,4 @@ class DiaMarcadoPlantao:
     status: bool = True
     id: int | None = None
     unidade_id: int | None = None
+    plantao_id: int | None = None

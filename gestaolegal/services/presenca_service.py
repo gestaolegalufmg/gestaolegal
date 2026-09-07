@@ -128,6 +128,8 @@ class PresencaService:
         plantoes = [
             {
                 "id": m["id"],
+                "escala_id": m["escala_id"],
+                "escala_nome": m["escala_nome"],
                 "id_usuario": m["id_usuario"],
                 "nome": m["nome"],
                 "urole": m["urole"],

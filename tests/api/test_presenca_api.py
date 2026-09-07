@@ -200,7 +200,7 @@ class TestConfirmacao:
         from sqlalchemy import insert
 
         from gestaolegal.database.session import get_session
-        from gestaolegal.database.tables import dias_marcados_plantao
+        from gestaolegal.database.tables import dias_marcados_plantao, plantao
 
         id_admin = _id_do_usuario(app, "admin@gl.com")
         ontem = date.today() - timedelta(days=1)
@@ -209,6 +209,7 @@ class TestConfirmacao:
             session = get_session()
             ativa = session.execute(
                 insert(dias_marcados_plantao).values(
+                    plantao_id=session.execute(insert(plantao).values(unidade_id=1)).lastrowid,
                     data_marcada=ontem,
                     id_usuario=id_admin,
                     confirmacao="aberto",
@@ -219,6 +220,7 @@ class TestConfirmacao:
             # Marcação apagada pelo botão "Editar": a v2 continuava listando
             session.execute(
                 insert(dias_marcados_plantao).values(
+                    plantao_id=session.execute(insert(plantao).values(unidade_id=1)).lastrowid,
                     data_marcada=ontem,
                     id_usuario=id_admin,
                     confirmacao="aberto",
@@ -253,7 +255,7 @@ class TestConfirmacao:
         from sqlalchemy import insert
 
         from gestaolegal.database.session import get_session
-        from gestaolegal.database.tables import dias_marcados_plantao
+        from gestaolegal.database.tables import dias_marcados_plantao, plantao
 
         id_admin = _id_do_usuario(app, "admin@gl.com")
         ontem_data = date.today() - timedelta(days=1)
@@ -266,6 +268,7 @@ class TestConfirmacao:
             session = get_session()
             plantao_id = session.execute(
                 insert(dias_marcados_plantao).values(
+                    plantao_id=session.execute(insert(plantao).values(unidade_id=1)).lastrowid,
                     data_marcada=ontem_data,
                     id_usuario=id_admin,
                     confirmacao="aberto",
@@ -417,7 +420,7 @@ class TestUnidade:
         from sqlalchemy import insert
 
         from gestaolegal.database.session import get_session
-        from gestaolegal.database.tables import dias_marcados_plantao
+        from gestaolegal.database.tables import dias_marcados_plantao, plantao
 
         ontem = date.today() - timedelta(days=1)
         admin_id = _id_do_usuario(app, "admin@gl.com")
@@ -425,6 +428,7 @@ class TestUnidade:
             session = get_session()
             marcacao_bh = session.execute(
                 insert(dias_marcados_plantao).values(
+                    plantao_id=session.execute(insert(plantao).values(unidade_id=1)).lastrowid,
                     data_marcada=ontem,
                     id_usuario=admin_id,
                     confirmacao="aberto",

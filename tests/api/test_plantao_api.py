@@ -3,7 +3,12 @@ from datetime import date, datetime, timedelta
 import pytest
 from flask.testing import FlaskClient
 
-from tests.api.conftest import clean_tables, criar_usuario, get_success_data, headers_para
+from tests.api.conftest import (
+    clean_tables,
+    criar_usuario,
+    get_success_data,
+    headers_para,
+)
 
 TABELAS = ("dias_marcados_plantao", "dias_plantao", "plantao")
 
@@ -36,7 +41,9 @@ def _configurar(
     return client.put("/api/plantao/configuracao", json=payload, headers=headers)
 
 
-def _headers_estagiarios(client: FlaskClient, app, quantidade: int) -> list[dict[str, str]]:
+def _headers_estagiarios(
+    client: FlaskClient, app, quantidade: int
+) -> list[dict[str, str]]:
     """Cria N estagiários de direito e devolve os headers autenticados de cada um."""
     headers = []
     for i in range(quantidade):
@@ -56,7 +63,9 @@ def _pagina(client: FlaskClient, headers: dict[str, str]):
 
 
 def _vagas_do_dia(pagina: dict, data: str) -> int | None:
-    return next(d["vagas_restantes"] for d in pagina["dias_abertos"] if d["data"] == data)
+    return next(
+        d["vagas_restantes"] for d in pagina["dias_abertos"] if d["data"] == data
+    )
 
 
 class TestConfiguracao:
@@ -74,7 +83,9 @@ class TestConfiguracao:
         response = _configurar(client, auth_headers, dias)
         assert response.status_code == 200
 
-        data = get_success_data(client.get("/api/plantao/configuracao", headers=auth_headers))
+        data = get_success_data(
+            client.get("/api/plantao/configuracao", headers=auth_headers)
+        )
         assert data["dias"] == dias
         assert data["data_abertura"] is not None
         assert data["data_fechamento"] is not None
@@ -90,9 +101,7 @@ class TestConfiguracao:
 
         with app.app_context():
             session = get_session()
-            total = session.execute(
-                select(func.count()).select_from(plantao)
-            ).scalar()
+            total = session.execute(select(func.count()).select_from(plantao)).scalar()
         assert total == 1
 
     def test_diff_de_dias_desativa_reaproveita_e_cria(self, client, auth_headers, app):
@@ -107,12 +116,16 @@ class TestConfiguracao:
         with app.app_context():
             session = get_session()
             id_b = session.execute(
-                select(dias_plantao.c.id).where(dias_plantao.c.data == date.fromisoformat(b))
+                select(dias_plantao.c.id).where(
+                    dias_plantao.c.data == date.fromisoformat(b)
+                )
             ).scalar()
 
         _configurar(client, auth_headers, [b, c])
 
-        data = get_success_data(client.get("/api/plantao/configuracao", headers=auth_headers))
+        data = get_success_data(
+            client.get("/api/plantao/configuracao", headers=auth_headers)
+        )
         assert data["dias"] == [b, c]
 
         with app.app_context():
@@ -147,7 +160,9 @@ class TestConfiguracao:
             ).scalar()
         assert total == 1
 
-        data = get_success_data(client.get("/api/plantao/configuracao", headers=auth_headers))
+        data = get_success_data(
+            client.get("/api/plantao/configuracao", headers=auth_headers)
+        )
         assert data["dias"] == [a]
 
     def test_fechamento_anterior_a_abertura_e_recusado(self, client, auth_headers):
@@ -157,7 +172,9 @@ class TestConfiguracao:
             auth_headers,
             _dias(1),
             data_abertura=abertura.isoformat(timespec="seconds"),
-            data_fechamento=(abertura - timedelta(hours=1)).isoformat(timespec="seconds"),
+            data_fechamento=(abertura - timedelta(hours=1)).isoformat(
+                timespec="seconds"
+            ),
         )
         assert response.status_code == 400
 
@@ -169,8 +186,15 @@ class TestConfiguracao:
     def test_papeis_sem_permissao_recebem_403(
         self, client, non_admin_auth_headers, prof_auth_headers, estagiario_auth_headers
     ):
-        for headers in (non_admin_auth_headers, prof_auth_headers, estagiario_auth_headers):
-            assert client.get("/api/plantao/configuracao", headers=headers).status_code == 403
+        for headers in (
+            non_admin_auth_headers,
+            prof_auth_headers,
+            estagiario_auth_headers,
+        ):
+            assert (
+                client.get("/api/plantao/configuracao", headers=headers).status_code
+                == 403
+            )
             assert _configurar(client, headers, _dias(1)).status_code == 403
 
     def test_requer_autenticacao(self, client):
@@ -302,7 +326,7 @@ class TestMarcacoes:
         assert _vagas_do_dia(pagina, dia) is None
         assert next(d["tem_vaga"] for d in pagina["dias_abertos"] if d["data"] == dia)
 
-    def test_janela_expirada_encerra_o_plantao(
+    def test_janela_expirada_preserva_escala(
         self, client, auth_headers, non_admin_auth_headers
     ):
         (dia,) = _dias(1)
@@ -320,9 +344,9 @@ class TestMarcacoes:
 
         pagina = _pagina(client, non_admin_auth_headers)
         assert pagina["plantao"]["aberto"] is False
-        assert pagina["plantao"]["data_abertura"] is None
-        assert pagina["dias_abertos"] == []
-        assert pagina["meus_dias"] == []
+        assert pagina["plantao"]["data_abertura"] is not None
+        assert [d["data"] for d in pagina["dias_abertos"]] == [dia]
+        assert [m["data_marcada"] for m in pagina["meus_dias"]] == [dia]
 
         # Idempotente: uma segunda leitura devolve o mesmo estado.
         assert _pagina(client, non_admin_auth_headers) == pagina
@@ -330,21 +354,15 @@ class TestMarcacoes:
     def test_plantao_fechado_bloqueia_marcacao_mas_nao_admin(
         self, client, auth_headers, non_admin_auth_headers, app
     ):
-        from sqlalchemy import insert
-
-        from gestaolegal.database.session import get_session
-        from gestaolegal.database.tables import dias_plantao
-
         (dia,) = _dias(1)
-        # Sem plantão configurado: a janela nunca foi aberta, mas há dia disponível.
-        with app.app_context():
-            session = get_session()
-            session.execute(
-                insert(dias_plantao).values(
-                    data=date.fromisoformat(dia), status=True, unidade_id=1
-                )
-            )
-            session.commit()
+        futuro = datetime.now() + timedelta(days=10)
+        _configurar(
+            client,
+            auth_headers,
+            [dia],
+            data_abertura=futuro.isoformat(),
+            data_fechamento=(futuro + timedelta(days=1)).isoformat(),
+        )
 
         assert _pagina(client, non_admin_auth_headers)["pode_marcar"] is False
         assert _pagina(client, auth_headers)["pode_marcar"] is True
@@ -424,7 +442,7 @@ class TestUnidade:
 
         # O dia pertence a BH; para Nova Lima ele simplesmente não foi aberto.
         response = _marcar(client, auth_headers_nl, dia)
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_encerramento_nao_encerra_plantao_de_outra_unidade(
         self, client, auth_headers, auth_headers_nl
@@ -443,11 +461,11 @@ class TestUnidade:
         )
         _marcar(client, auth_headers, dia_bh)
 
-        # A leitura em BH dispara o encerramento automático da janela vencida.
+        # A janela vencida não apaga a escala de nenhuma unidade.
         pagina_bh = _pagina(client, auth_headers)
-        assert pagina_bh["plantao"]["data_abertura"] is None
-        assert pagina_bh["dias_abertos"] == []
-        assert pagina_bh["meus_dias"] == []
+        assert pagina_bh["plantao"]["aberto"] is False
+        assert [d["data"] for d in pagina_bh["dias_abertos"]] == [dia_bh]
+        assert [m["data_marcada"] for m in pagina_bh["meus_dias"]] == [dia_bh]
 
         # Nova Lima segue intacta: janela aberta, dia e marcação preservados.
         pagina_nl = _pagina(client, auth_headers_nl)
@@ -464,9 +482,301 @@ class TestUnidade:
         _marcar(client, auth_headers, dia_bh)
         _marcar(client, auth_headers_nl, dia_nl)
 
-        assert client.delete("/api/plantao/marcacoes", headers=auth_headers).status_code == 200
+        assert (
+            client.delete("/api/plantao/marcacoes", headers=auth_headers).status_code
+            == 200
+        )
 
         assert _pagina(client, auth_headers)["meus_dias"] == []
         assert [
             m["data_marcada"] for m in _pagina(client, auth_headers_nl)["meus_dias"]
         ] == [dia_nl]
+
+
+class TestEscalas:
+    def test_legado_inativo_consultavel_sem_reabrir(self, client, auth_headers, app):
+        from sqlalchemy import insert, select
+        from gestaolegal.database.session import get_session
+        from gestaolegal.database.tables import plantao, dias_marcados_plantao, usuarios
+
+        with app.app_context():
+            session = get_session()
+            uid = session.execute(
+                select(usuarios.c.id).where(usuarios.c.email == "admin@gl.com")
+            ).scalar_one()
+            ident = session.execute(
+                insert(plantao).values(unidade_id=1, nome="Legado", legado=True)
+            ).lastrowid
+            session.execute(
+                insert(dias_marcados_plantao).values(
+                    plantao_id=ident,
+                    unidade_id=1,
+                    id_usuario=uid,
+                    status=False,
+                    data_marcada=None,
+                    confirmacao="ausencia",
+                )
+            )
+            session.commit()
+        pagina = self.pagina(client, auth_headers, ident)
+        assert pagina["plantao"]["situacao"] == "legado"
+        assert not pagina["pode_marcar"]
+        assert pagina["escala"][0]["ativo"] is False
+        assert pagina["escala"][0]["data"] is None
+        assert pagina["escala"][0]["confirmacao"] == "ausencia"
+        assert (
+            client.post(
+                f"/api/plantao/escalas/{ident}/cancelar", headers=auth_headers
+            ).status_code
+            == 400
+        )
+        assert (
+            client.put(
+                f"/api/plantao/configuracao?escala_id={ident}",
+                json={"nome": "Novo", "dias": _dias(), **_janela()},
+                headers=auth_headers,
+            ).status_code
+            == 400
+        )
+
+    def test_fechamento_preserva_confirmacao_cancelamento_retira_pendencias(
+        self, client, auth_headers
+    ):
+        passado = datetime.now() - timedelta(days=10)
+        dia = (date.today() - timedelta(days=1)).isoformat()
+        escala = self.criar(
+            client,
+            auth_headers,
+            dias=[dia],
+            data_abertura=passado.isoformat(),
+            data_fechamento=(passado + timedelta(days=1)).isoformat(),
+        )
+        ident = escala["id"]
+        assert (
+            client.post(
+                f"/api/plantao/marcacoes?escala_id={ident}",
+                json={"data": dia},
+                headers=auth_headers,
+            ).status_code
+            == 201
+        )
+        pendencias = get_success_data(
+            client.get(f"/api/presenca/confirmacao?data={dia}", headers=auth_headers)
+        )["plantoes"]
+        assert any(p["escala_id"] == ident for p in pendencias)
+        assert (
+            client.post(
+                f"/api/plantao/escalas/{ident}/cancelar", headers=auth_headers
+            ).status_code
+            == 200
+        )
+        pendencias = get_success_data(
+            client.get(f"/api/presenca/confirmacao?data={dia}", headers=auth_headers)
+        )["plantoes"]
+        assert not any(p["escala_id"] == ident for p in pendencias)
+        assert len(self.pagina(client, auth_headers, ident)["escala"]) == 1
+
+    def criar(self, client, headers, nome="Escala nova", **kwargs):
+        payload = {"nome": nome, "dias": _dias(3), **_janela(), **kwargs}
+        response = client.post("/api/plantao/escalas", json=payload, headers=headers)
+        assert response.status_code == 201, response.json
+        return get_success_data(response)
+
+    def pagina(self, client, headers, ident):
+        return get_success_data(
+            client.get(f"/api/plantao/?escala_id={ident}", headers=headers)
+        )
+
+    def test_periodos_independentes_limite_e_historico(
+        self, client, auth_headers, non_admin_auth_headers
+    ):
+        a = self.criar(client, auth_headers, "Setembro")
+        dia = a["dias"][0]
+        url = f"/api/plantao/marcacoes?escala_id={a['id']}"
+        assert (
+            client.post(
+                url, json={"data": dia}, headers=non_admin_auth_headers
+            ).status_code
+            == 201
+        )
+        b = self.criar(client, auth_headers, "Outubro")
+        assert (
+            client.post(
+                f"/api/plantao/marcacoes?escala_id={b['id']}",
+                json={"data": dia},
+                headers=non_admin_auth_headers,
+            ).status_code
+            == 201
+        )
+        assert (
+            len(self.pagina(client, non_admin_auth_headers, a["id"])["meus_dias"]) == 1
+        )
+        assert (
+            len(self.pagina(client, non_admin_auth_headers, b["id"])["meus_dias"]) == 1
+        )
+        escalas = get_success_data(
+            client.get("/api/plantao/escalas", headers=auth_headers)
+        )
+        assert [s["nome"] for s in escalas] == ["Outubro", "Setembro"]
+        assert (
+            self.pagina(client, auth_headers, a["id"])["historico"][-1]["acao"]
+            == "inscrever"
+        )
+
+    def test_limites_exatos_de_inscricao_e_fechamento_sem_apagar(
+        self, client, auth_headers, non_admin_auth_headers, monkeypatch
+    ):
+        import gestaolegal.services.plantao_service as service
+
+        inicio = datetime(2026, 9, 1, 8)
+        fim = datetime(2026, 9, 5, 18)
+        escala = self.criar(
+            client,
+            auth_headers,
+            data_abertura=inicio.isoformat(),
+            data_fechamento=fim.isoformat(),
+        )
+        ident = escala["id"]
+        url = f"/api/plantao/marcacoes?escala_id={ident}"
+        monkeypatch.setattr(
+            service, "agora_brasilia", lambda: inicio - timedelta(seconds=1)
+        )
+        assert (
+            self.pagina(client, non_admin_auth_headers, ident)["plantao"]["aberto"]
+            is False
+        )
+        assert (
+            client.post(
+                url, json={"data": escala["dias"][0]}, headers=non_admin_auth_headers
+            ).status_code
+            == 422
+        )
+        monkeypatch.setattr(service, "agora_brasilia", lambda: inicio)
+        assert (
+            client.post(
+                url, json={"data": escala["dias"][0]}, headers=non_admin_auth_headers
+            ).status_code
+            == 201
+        )
+        monkeypatch.setattr(service, "agora_brasilia", lambda: fim)
+        pagina = self.pagina(client, non_admin_auth_headers, ident)
+        assert pagina["plantao"]["aberto"] is False
+        assert len(pagina["escala"]) == len(pagina["meus_dias"]) == 1
+        assert len(pagina["dias_abertos"]) == 3
+        assert client.delete(url, headers=non_admin_auth_headers).status_code == 422
+        assert self.pagina(client, non_admin_auth_headers, ident) == pagina
+        assert client.delete(url, headers=auth_headers).status_code == 200
+        assert (
+            self.pagina(client, auth_headers, ident)["historico"][-1]["detalhes"][
+                "fora_do_prazo"
+            ]
+            is True
+        )
+
+    def test_cancelar_preserva_dados_e_bloqueia_alteracoes(self, client, auth_headers):
+        escala = self.criar(client, auth_headers)
+        ident = escala["id"]
+        url = f"/api/plantao/marcacoes?escala_id={ident}"
+        assert (
+            client.post(
+                url, json={"data": escala["dias"][0]}, headers=auth_headers
+            ).status_code
+            == 201
+        )
+        assert (
+            client.post(
+                f"/api/plantao/escalas/{ident}/cancelar", headers=auth_headers
+            ).status_code
+            == 200
+        )
+        pagina = self.pagina(client, auth_headers, ident)
+        assert pagina["plantao"]["situacao"] == "cancelada"
+        assert len(pagina["escala"]) == 1
+        assert not pagina["pode_marcar"]
+        assert client.delete(url, headers=auth_headers).status_code == 422
+        assert (
+            client.put(
+                f"/api/plantao/configuracao?escala_id={ident}",
+                json={"nome": "alterado", "dias": _dias(), **_janela()},
+                headers=auth_headers,
+            ).status_code
+            == 400
+        )
+
+    def test_id_de_outra_unidade_e_inexistente_bloqueados(
+        self, client, auth_headers, auth_headers_nl
+    ):
+        escala = self.criar(client, auth_headers)
+        ident = escala["id"]
+        for url in (
+            f"/api/plantao/?escala_id={ident}",
+            f"/api/plantao/configuracao?escala_id={ident}",
+        ):
+            assert client.get(url, headers=auth_headers_nl).status_code == 404
+        assert (
+            client.post(
+                f"/api/plantao/escalas/{ident}/cancelar", headers=auth_headers_nl
+            ).status_code
+            == 404
+        )
+        assert (
+            client.post(
+                f"/api/plantao/marcacoes?escala_id={ident}",
+                json={"data": escala["dias"][0]},
+                headers=auth_headers_nl,
+            ).status_code
+            == 404
+        )
+        assert (
+            client.get(
+                "/api/plantao/?escala_id=999999", headers=auth_headers
+            ).status_code
+            == 404
+        )
+        assert (
+            get_success_data(
+                client.get("/api/plantao/escalas", headers=auth_headers_nl)
+            )
+            == []
+        )
+
+    def test_remover_dia_inscrito_recusado_sem_alterar_configuracao(
+        self, client, auth_headers
+    ):
+        escala = self.criar(client, auth_headers)
+        ident = escala["id"]
+        client.post(
+            f"/api/plantao/marcacoes?escala_id={ident}",
+            json={"data": escala["dias"][0]},
+            headers=auth_headers,
+        )
+        response = client.put(
+            f"/api/plantao/configuracao?escala_id={ident}",
+            json={"nome": "Não salvar", "dias": [], **_janela()},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        atual = get_success_data(
+            client.get(
+                f"/api/plantao/configuracao?escala_id={ident}", headers=auth_headers
+            )
+        )
+        assert atual == escala
+
+    def test_criacao_exige_permissao_nome_e_dias(
+        self, client, auth_headers, non_admin_auth_headers
+    ):
+        payload = {"nome": "Escala", "dias": _dias(), **_janela()}
+        assert (
+            client.post(
+                "/api/plantao/escalas", json=payload, headers=non_admin_auth_headers
+            ).status_code
+            == 403
+        )
+        for changes in ({"nome": " "}, {"dias": []}):
+            assert (
+                client.post(
+                    "/api/plantao/escalas", json=payload | changes, headers=auth_headers
+                ).status_code
+                == 400
+            )
