@@ -34,8 +34,8 @@
 			icon: ClockIcon,
 			items: [
 				{
-					title: 'Escala do Plantão',
-					url: '/plantao/escala'
+					title: 'Escalas de Plantão',
+					url: '/plantao/escalas'
 				},
 				{
 					title: 'Registro de Presença',

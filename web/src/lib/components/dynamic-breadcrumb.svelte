@@ -38,8 +38,9 @@
 			href: '/plantao/registro-presenca'
 		},
 		'/plantao/escala': { label: 'Escala do Plantão', href: '/plantao/escala' },
+		'/plantao/escalas': { label: 'Escalas de Plantão', href: '/plantao/escalas' },
 		'/plantao/configurar-abertura': {
-			label: 'Configurar Abertura',
+			label: 'Configurar Escala',
 			href: '/plantao/configurar-abertura'
 		},
 		'/arquivos': { label: 'Arquivos', href: '/arquivos' },

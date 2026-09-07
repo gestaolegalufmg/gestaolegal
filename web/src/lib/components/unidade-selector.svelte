@@ -19,6 +19,10 @@
 		trocando = true;
 		try {
 			definirUnidadeAtiva(id);
+			if (['/plantao/escala', '/plantao/configurar-abertura'].includes(page.url.pathname)) {
+				await goto('/plantao/escalas', { invalidateAll: true });
+				return;
+			}
 			const detalhe = page.url.pathname.match(
 				/^(\/casos|\/plantao\/atendidos-assistidos)\/\d+(?:\/|$)/
 			);

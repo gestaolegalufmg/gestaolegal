@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { unidadeAtiva } from '$lib/stores/unidade';
+	import { Button } from '$lib/components/ui/button';
 	import type { PageData } from './$types';
 	import { api } from '$lib/api-client';
 	import { ApiException, type ConfiguracaoPlantao } from '$lib/types';
@@ -18,38 +21,37 @@
 		return new CalendarDate(ano, mes, dia);
 	}
 
-	/** Separa o datetime RFC-1123 da API nas partes que os inputs esperam. */
-	function separarDataHora(valor: string | null): { data: string; hora: string } {
-		if (!valor) return { data: '', hora: '' };
-		const d = new Date(valor);
-		if (Number.isNaN(d.getTime())) return { data: '', hora: '' };
-		const pad = (n: number) => String(n).padStart(2, '0');
-		return {
-			data: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-			hora: `${pad(d.getHours())}:${pad(d.getMinutes())}`
-		};
+	// API returns local ISO timestamps in Brasília; do not apply browser timezone.
+	function separarDataHora(valor: string | null) {
+		return { data: valor?.slice(0, 10) ?? '', hora: valor?.slice(11, 16) ?? '' };
 	}
-
-	const abertura = separarDataHora(data.configuracao.data_abertura);
-	const fechamento = separarDataHora(data.configuracao.data_fechamento);
-
-	let diasSelecionados = $state<DateValue[]>(data.configuracao.dias.map(paraCalendarDate));
-	let dataAbertura = $state(abertura.data);
-	let horaAbertura = $state(abertura.hora);
-	let dataFechamento = $state(fechamento.data);
-	let horaFechamento = $state(fechamento.hora);
+	const unidade = $derived(data.me.unidades?.find((u) => u.id === $unidadeAtiva));
+	let nome = $state('');
+	let diasSelecionados = $state<DateValue[]>([]);
+	let dataAbertura = $state('');
+	let horaAbertura = $state('');
+	let dataFechamento = $state('');
+	let horaFechamento = $state('');
 	let salvando = $state(false);
+	$effect(() => {
+		const config = data.configuracao;
+		nome = config.nome;
+		diasSelecionados = config.dias.map(paraCalendarDate);
+		const abertura = separarDataHora(config.data_abertura);
+		const fechamento = separarDataHora(config.data_fechamento);
+		dataAbertura = abertura.data;
+		horaAbertura = abertura.hora;
+		dataFechamento = fechamento.data;
+		horaFechamento = fechamento.hora;
+	});
 
 	const diasISO = $derived(
 		[...diasSelecionados].map((d) => d.toString()).sort((a, b) => a.localeCompare(b))
 	);
 
-	const tituloMes = $derived.by(() => {
-		const agora = new Date();
-		return `${String(agora.getMonth() + 1).padStart(2, '0')}/${agora.getFullYear()}`;
-	});
-
 	function validar(): string | null {
+		if (!nome.trim()) return 'Informe o nome da escala';
+		if (!diasISO.length) return 'Selecione ao menos um dia de plantão';
 		if (!dataAbertura || !horaAbertura) return 'Informe a data e o horário de abertura';
 		if (!dataFechamento || !horaFechamento) return 'Informe a data e o horário de fechamento';
 		if (`${dataFechamento}T${horaFechamento}` <= `${dataAbertura}T${horaAbertura}`) {
@@ -59,6 +61,7 @@
 	}
 
 	async function salvar() {
+		if (salvando) return;
 		const erro = validar();
 		if (erro) {
 			toast.error(erro);
@@ -67,11 +70,19 @@
 
 		salvando = true;
 		try {
-			await api.put<ConfiguracaoPlantao>('plantao/configuracao', {
+			const payload = {
+				nome: nome.trim(),
 				dias: diasISO,
 				data_abertura: `${dataAbertura}T${horaAbertura}:00`,
 				data_fechamento: `${dataFechamento}T${horaFechamento}:00`
-			});
+			};
+			const resultado = data.configuracao.id
+				? await api.put<ConfiguracaoPlantao>(
+						`plantao/configuracao?escala_id=${data.configuracao.id}`,
+						payload
+					)
+				: await api.post<ConfiguracaoPlantao>('plantao/escalas', payload);
+			await goto(`/plantao/escala?escala_id=${resultado.id}`, { invalidateAll: true });
 			toast.success('Configuração do plantão salva com sucesso');
 		} catch (err) {
 			if (err instanceof ApiException) toast.error(err.message);
@@ -83,12 +94,27 @@
 </script>
 
 <div class="space-y-6">
-	<h1 class="text-3xl font-bold tracking-tight">Configurar abertura - {tituloMes}</h1>
+	<Button href="/plantao/escalas" variant="outline">Voltar às escalas</Button>
+	<h1 class="text-3xl font-bold tracking-tight">
+		{data.configuracao.id ? 'Configurar escala' : 'Nova escala'}{unidade
+			? ` — ${unidade.nome}`
+			: ''}
+	</h1>
+	<p class="text-muted-foreground">
+		Selecione os dias de atendimento e o prazo em que os usuários poderão escolher seus dias.
+		Horários de Brasília. Encerrar inscrições preserva a escala.
+	</p>
+	<Label for="nome-escala">Nome da escala</Label><Input
+		id="nome-escala"
+		bind:value={nome}
+		maxlength={150}
+		placeholder="Ex.: Plantões de setembro/2026"
+	/>
 
 	<div class="grid gap-6 lg:grid-cols-2">
 		<Card.Root>
 			<Card.Header>
-				<Card.Title class="text-center">Duração do Plantão</Card.Title>
+				<Card.Title class="text-center">Dias de atendimento</Card.Title>
 				<Card.Description class="text-center">
 					Selecione os dias em que haverá plantão
 				</Card.Description>
@@ -111,7 +137,7 @@
 		<div class="space-y-6">
 			<Card.Root>
 				<Card.Header>
-					<Card.Title>Abertura do Plantão</Card.Title>
+					<Card.Title>Início das inscrições</Card.Title>
 				</Card.Header>
 				<Card.Content class="space-y-4">
 					<div class="flex items-center justify-between gap-4">
@@ -131,7 +157,7 @@
 
 			<Card.Root>
 				<Card.Header>
-					<Card.Title>Fechamento do Plantão</Card.Title>
+					<Card.Title>Fim das inscrições</Card.Title>
 				</Card.Header>
 				<Card.Content class="space-y-4">
 					<div class="flex items-center justify-between gap-4">
@@ -153,7 +179,7 @@
 
 	<div class="flex justify-center">
 		<ConfirmAction
-			title="Deseja confirmar a duração do plantão?"
+			title="Salvar esta escala?"
 			description="Os dias selecionados ficarão disponíveis para marcação dentro da janela informada."
 			confirmText="Confirmar"
 			buttonVariant="default"

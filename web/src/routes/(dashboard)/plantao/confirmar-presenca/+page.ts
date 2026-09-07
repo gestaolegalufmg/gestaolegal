@@ -4,14 +4,19 @@ import { error } from '@sveltejs/kit';
 
 const PAPEIS_PERMITIDOS = ['admin', 'colab_proj', 'prof'];
 
-export const load = async ({ fetch, parent }) => {
+export const load = async ({ fetch, parent, url }) => {
 	const { me } = await parent();
 	if (!PAPEIS_PERMITIDOS.includes(me.urole)) {
 		error(403, 'Você não tem permissão para acessar esta página. Contate o administrador.');
 	}
 
 	try {
-		const pendencias = await api.get<Pendencias>('presenca/confirmacao', {}, fetch);
+		const dia = url.searchParams.get('data');
+		const pendencias = await api.get<Pendencias>(
+			`presenca/confirmacao${dia ? `?data=${encodeURIComponent(dia)}` : ''}`,
+			{},
+			fetch
+		);
 		return { pendencias };
 	} catch (err) {
 		if (err instanceof ApiException) {

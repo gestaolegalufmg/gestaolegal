@@ -1,13 +1,8 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
 	import { api } from '$lib/api-client';
-	import {
-		ApiException,
-		CONFIRMACAO,
-		type Confirmacao,
-		type ConfirmacaoItem,
-		type Pendencias
-	} from '$lib/types';
+	import { ApiException, CONFIRMACAO, type Confirmacao, type ConfirmacaoItem } from '$lib/types';
 	import { getUserRoleLabel } from '$lib/constants/user-roles';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -17,14 +12,20 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let pendencias = $state<Pendencias>(data.pendencias);
-	let dataSelecionada = $state(data.pendencias.data);
+	const pendencias = $derived(data.pendencias);
+	const dataSelecionada = $derived(data.pendencias.data);
 	let carregando = $state(false);
 	let salvando = $state(false);
 
 	/** Escolhas ainda não salvas, por id de linha. */
 	let escolhasPresenca = $state<Record<number, Confirmacao>>({});
 	let escolhasPlantao = $state<Record<number, Confirmacao>>({});
+
+	$effect(() => {
+		data.pendencias;
+		escolhasPresenca = {};
+		escolhasPlantao = {};
+	});
 
 	const OPCOES = [
 		{ valor: CONFIRMACAO.CONFIRMAR, rotulo: 'Confirmar' },
@@ -46,7 +47,9 @@
 	async function carregar(data: string) {
 		carregando = true;
 		try {
-			pendencias = await api.get<Pendencias>(`presenca/confirmacao?data=${data}`);
+			await goto(`/plantao/confirmar-presenca?data=${encodeURIComponent(data)}`, {
+				invalidateAll: true
+			});
 			escolhasPresenca = {};
 			escolhasPlantao = {};
 		} catch (err) {
@@ -60,7 +63,6 @@
 	function onDataChange(event: Event) {
 		const valor = (event.currentTarget as HTMLInputElement).value;
 		if (!valor) return;
-		dataSelecionada = valor;
 		carregar(valor);
 	}
 
@@ -183,7 +185,13 @@
 						<Table.Body>
 							{#each pendencias.plantoes as plantao (plantao.id)}
 								<Table.Row>
-									<Table.Cell>{plantao.nome}</Table.Cell>
+									<Table.Cell
+										>{plantao.nome}<br /><a
+											class="text-primary underline"
+											href={`/plantao/escala?escala_id=${plantao.escala_id}`}
+											>{plantao.escala_nome}</a
+										></Table.Cell
+									>
 									<Table.Cell>{getUserRoleLabel(plantao.urole)}</Table.Cell>
 									{#each OPCOES as opcao (opcao.valor)}
 										<Table.Cell class="text-center">

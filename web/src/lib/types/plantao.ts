@@ -16,6 +16,11 @@ export const CONFIRMACAO = {
 export type Confirmacao = (typeof CONFIRMACAO)[keyof typeof CONFIRMACAO];
 
 export interface JanelaPlantao {
+	id: number;
+	nome: string;
+	legado: boolean;
+	cancelado: boolean;
+	situacao: string;
 	data_abertura: string | null;
 	data_fechamento: string | null;
 	aberto: boolean;
@@ -29,10 +34,13 @@ export interface DiaAberto {
 }
 
 export interface EscalaItem {
+	id: number;
 	data: string;
 	id_usuario: number;
 	nome: string;
 	urole: string;
+	ativo: boolean;
+	confirmacao: Confirmacao;
 }
 
 export interface MinhaMarcacao {
@@ -42,6 +50,19 @@ export interface MinhaMarcacao {
 }
 
 export interface PaginaPlantao {
+	historico: {
+		data: string;
+		usuario_id: number;
+		usuario_nome: string;
+		acao: string;
+		detalhes: {
+			dia?: string;
+			quantidade?: number;
+			fora_do_prazo?: boolean;
+			antes?: ConfiguracaoPlantao;
+			depois?: ConfiguracaoPlantao;
+		} | null;
+	}[];
 	plantao: JanelaPlantao;
 	pode_marcar: boolean;
 	limite_dias: number;
@@ -53,9 +74,18 @@ export interface PaginaPlantao {
 }
 
 export interface ConfiguracaoPlantao {
+	id: number | null;
+	nome: string;
+	legado: boolean;
+	cancelado: boolean;
 	data_abertura: string | null;
 	data_fechamento: string | null;
 	dias: string[];
+}
+
+export interface ResumoEscala extends ConfiguracaoPlantao {
+	unidade_id: number;
+	situacao: string;
 }
 
 export type StatusPresenca = 'entrada' | 'saida';
@@ -82,6 +112,8 @@ export interface PresencaPendente {
 }
 
 export interface PlantaoPendente {
+	escala_id: number;
+	escala_nome: string;
 	id: number;
 	id_usuario: number;
 	nome: string;

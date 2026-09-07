@@ -43,3 +43,4 @@ export type {
 	Confirmacao
 } from './plantao';
 export { CONFIRMACAO } from './plantao';
+export type { ResumoEscala } from './plantao';
