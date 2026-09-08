@@ -1,5 +1,9 @@
 # Gestão Legal UFMG
 
+<p align="center">
+  <img src="docs/images/gestao-legal-capivara.png" alt="Gestão Legal — capivara advogada" width="560">
+</p>
+
 Sistema de Gestão de Assistências Judiciárias e Escritórios de Advocacia Modelo
 
 ---
@@ -7,6 +11,23 @@ Sistema de Gestão de Assistências Judiciárias e Escritórios de Advocacia Mod
 ## Sobre
 
 Sistema desenvolvido pelo projeto de extensão da Faculdade de Direito da UFMG [Gestão Legal](https://gestaolegal.direito.ufmg.br/) para auxiliar o gerenciamento e funcionamento da [Divisão de Assistência Judiciária - DAJ](https://daj.direito.ufmg.br/).
+
+O **Gestão Legal é uma iniciativa do LAB P² — Laboratório de Tecnologias Públicas para o Setor Público**, da Faculdade de Direito da UFMG.
+
+O laboratório desenvolve e integra tecnologias livres e abertas para atender às necessidades das instituições públicas. Reúne estudantes, professores e servidores em projetos que articulam ensino, pesquisa, extensão e gestão, promovendo formação interdisciplinar, compartilhamento de soluções e autonomia tecnológica. [Conheça o LAB P²](https://labp2.direito.ufmg.br/o-projeto/).
+
+<table>
+  <tr>
+    <td align="center"><a href="https://labp2.direito.ufmg.br/"><img src="docs/images/labp2.png" alt="LAB P²" width="220"></a></td>
+    <td align="center"><a href="https://www.direito.ufmg.br/"><img src="docs/images/fdufmg.png" alt="Faculdade de Direito da UFMG" width="100"></a></td>
+    <td align="center"><a href="https://ufmg.br/"><img src="docs/images/ufmg.png" alt="Universidade Federal de Minas Gerais" width="220"></a></td>
+  </tr>
+  <tr>
+    <td align="center">LAB P²</td>
+    <td align="center">Faculdade de Direito</td>
+    <td align="center">UFMG</td>
+  </tr>
+</table>
 
 ### Funcionalidades
 
@@ -16,6 +37,8 @@ Sistema desenvolvido pelo projeto de extensão da Faculdade de Direito da UFMG [
 - Gerenciamento de equipe (orientadores, estagiários, colaboradores)
 - Acompanhamento de eventos e prazos processuais
 - Upload e gerenciamento de documentos
+- Organização dos atendimentos por unidade
+- Escalas de plantão, fila de atendimento e registro de presença
 
 ---
 
@@ -23,7 +46,7 @@ Sistema desenvolvido pelo projeto de extensão da Faculdade de Direito da UFMG [
 
 - **Python 3.11+**
 - **Docker** e **Docker Compose** (recomendado)
-- **Node.js 18+** (apenas para desenvolvimento do frontend)
+- **Node.js 24** (apenas para desenvolvimento do frontend, como nas imagens Docker)
 
 ---
 
@@ -73,6 +96,7 @@ Sistema desenvolvido pelo projeto de extensão da Faculdade de Direito da UFMG [
 - 📖 [Wiki do Projeto](https://github.com/gestaolegalufmg/gestaolegal/wiki) - Documentação completa
 - 🏗️ [Arquitetura](https://github.com/gestaolegalufmg/gestaolegal/wiki/Arquitetura) - Detalhes técnicos e stack
 - 🔧 [Guia de Contribuição](CONTRIBUTING.md) - Como contribuir
+- [Problemas conhecidos](docs/known_issues.md) - Limitações atuais e correções já entregues
 - 🐛 [Reportar Issues](https://github.com/gestaolegalufmg/gestaolegal/issues) - Bugs e melhorias
 
 ---
@@ -102,6 +126,6 @@ Este projeto está licenciado sob os termos especificados no arquivo [LICENSE](L
 
 ---
 
-**Status:** 🚧 Em desenvolvimento ativo - v0.1.0
+**Status:** Em desenvolvimento ativo — versão 3.0
 
-Desenvolvido pelo projeto de extensão [Gestão Legal](https://gestaolegal.direito.ufmg.br/) da Faculdade de Direito da UFMG.
+Uma iniciativa do [LAB P²](https://labp2.direito.ufmg.br/), da [Faculdade de Direito da UFMG](https://www.direito.ufmg.br/).
