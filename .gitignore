@@ -165,3 +165,25 @@ scripts/helton/obra/arquivar-plano.sh
 .claude/skills/compatibilizar/
 .claude/skills/cronograma/
 .claude/skills/mobilizar-obras/
+
+# Operação privada de fusão BH/NL: manter somente local, não publicar.
+/docker-compose.fusao.yml
+/.env.fusao*
+/anexos.fusao*.json
+/scripts/fusao.py
+/scripts/fusao_bancos.py
+/scripts/fusao_anexos.py
+/tests/scripts/test_fusao.py
+/tests/scripts/test_fusao_anexos.py
+/tests/scripts/check_fusao_mysql.py
+/docs/fusao-*.md
+
+/operacao-fusao/
+/scripts/empacotar_fusao.py
+/tests/scripts/test_entrega_fusao.py
+
+# Anexos ativos do desenvolvimento local.
+/uploads/
+
+# Cópias locais dos anexos anteriores à migração.
+/uploads.anterior-*/
