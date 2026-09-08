@@ -16,6 +16,12 @@ dá **rollback** no fim: as contagens e os conflitos do relatório são reais, o
 banco não muda. Com `--executar`, a mesma transação é confirmada — tudo ou
 nada.
 
+É uma ferramenta de migração entre instalações, não uma rotina de atualização
+do sistema. Reexecutar com `--executar` sobre o destino já importado pode
+duplicar casos, eventos e outros registros; para repetir o ensaio, use uma
+cópia restaurada do destino. Funções deste módulo também podem ser usadas
+por executores que coordenam a importação e a resolução de cadastros comuns.
+
 O que o script faz, na ordem de `PLANO`:
 
 * copia cada tabela da origem para o destino, gerando ids novos e remapeando
@@ -169,8 +175,12 @@ PLANO: tuple[Tabela, ...] = (
     Tabela("fila_atendimentos", fks={"id_atendido": "atendidos"}, unidade=True),
     Tabela("registro_entrada", fks={"id_usuario": "usuarios"}, unidade=True),
     Tabela("plantao", unidade=True),
-    Tabela("dias_plantao", unidade=True),
-    Tabela("dias_marcados_plantao", fks={"id_usuario": "usuarios"}, unidade=True),
+    Tabela("dias_plantao", fks={"plantao_id": "plantao"}, unidade=True),
+    Tabela(
+        "dias_marcados_plantao",
+        fks={"id_usuario": "usuarios", "plantao_id": "plantao"},
+        unidade=True,
+    ),
     # `id_caso` e `id_referencia` não têm FK declarada; ver `_ajustar_notificacao`.
     Tabela(
         "notificacao",
@@ -381,6 +391,7 @@ def importar_tabela(
     prefixo: str,
     dedup: dict[str, str],
     numeros_colididos: set[Any],
+    reaproveitar_ids: dict[Any, Any] | None = None,
 ) -> None:
     tab_origem = origem[spec.nome]
     tab_destino = destino[spec.nome]
@@ -418,6 +429,13 @@ def importar_tabela(
     for linha in linhas:
         dados = dict(linha._mapping)
         id_antigo = dados.get(pk) if pk else None
+
+        # Mapa explícito resolvido pelo executor com a collation do destino.
+        # Reutiliza o cadastro canônico inteiro, sem sobrescrever seus campos.
+        if reaproveitar_ids and id_antigo in reaproveitar_ids:
+            mapa[spec.nome][id_antigo] = reaproveitar_ids[id_antigo]
+            rel.reaproveitados[spec.nome] += 1
+            continue
 
         if coluna_dedup and dados.get(coluna_dedup) in indice_dedup:
             mapa[spec.nome][id_antigo] = indice_dedup[dados[coluna_dedup]]

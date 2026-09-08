@@ -11,7 +11,13 @@ import pytest
 from sqlalchemy import Column, Integer, MetaData, String, Table, create_engine, select
 
 from gestaolegal.database.tables import metadata
-from scripts.importar_unidade import ImportacaoAbortada, importar
+from scripts.importar_unidade import (
+    PLANO,
+    ImportacaoAbortada,
+    Relatorio,
+    importar,
+    importar_tabela,
+)
 
 HOJE = date(2026, 9, 5)
 AGORA = datetime(2026, 9, 5, 10, 0, 0)
@@ -158,6 +164,39 @@ class TestEnsaio:
 
 
 class TestRemapeamento:
+    def test_escala_remapeia_dias_e_inscricoes_sem_perder_historico(self, bancos):
+        origem, destino = bancos
+        inserir(destino, "plantao", {"id": 1, "unidade_id": 1, "nome": "BH"})
+        inserir(destino, "usuarios", usuario("existente@bh.br"))
+        escala_origem = inserir(
+            origem, "plantao", {"id": 1, "unidade_id": 1, "nome": "NL", "legado": True}
+        )
+        usuario_origem = inserir(origem, "usuarios", usuario("escala@nl.br"))
+        inserir(origem, "dias_plantao", {
+            "plantao_id": escala_origem, "unidade_id": 1, "data": HOJE, "status": False,
+        })
+        inserir(origem, "dias_marcados_plantao", {
+            "plantao_id": escala_origem, "unidade_id": 1, "data_marcada": HOJE,
+            "id_usuario": usuario_origem, "status": False, "confirmacao": "ausencia",
+        })
+
+        importar(*urls(bancos), "NL", executar=True)
+
+        escala = next(r for r in linhas(destino, "plantao") if r["nome"] == "NL")
+        pessoa = next(r for r in linhas(destino, "usuarios") if r["email"] == "escala@nl.br")
+        assert escala["id"] != escala_origem
+        assert pessoa["id"] != usuario_origem
+        assert escala["legado"] is True
+        for tabela in ("dias_plantao", "dias_marcados_plantao"):
+            registro = linhas(destino, tabela)[0]
+            assert registro["plantao_id"] == escala["id"]
+            assert registro["unidade_id"] == 2
+            assert registro["status"] is False
+        marcacao = linhas(destino, "dias_marcados_plantao")[0]
+        assert marcacao["id_usuario"] == pessoa["id"]
+        assert marcacao["data_marcada"] == HOJE
+        assert marcacao["confirmacao"] == "ausencia"
+
     def test_ids_colididos_viram_ids_novos_e_fks_seguem(self, bancos):
         origem, destino = bancos
         # O destino já tem um usuário e um caso com id 1: a origem não pode
@@ -208,6 +247,32 @@ class TestRemapeamento:
 
 
 class TestDeduplicacao:
+    def test_mapa_explicito_preserva_cadastro_canonico_e_importa_os_demais(self, bancos):
+        origem, destino = bancos
+        inserir(destino, "usuarios", usuario("existente@bh.br"))
+        canonico = inserir(destino, "usuarios", usuario("comum@daj.br", "Cadastro canônico"))
+        repetido = inserir(origem, "usuarios", usuario("COMUM@DAJ.BR", "Nome na origem"))
+        novo = inserir(origem, "usuarios", usuario("novo@nl.br", "Novo usuário"))
+        antes = linhas(destino, "usuarios")
+        mapa, novos, rel = {}, {}, Relatorio()
+
+        with origem.connect() as leitura, destino.begin() as escrita:
+            importar_tabela(
+                next(spec for spec in PLANO if spec.nome == "usuarios"),
+                leitura, escrita, metadata.tables, metadata.tables, mapa, novos, rel,
+                unidade_id=2, prefixo="NL_", dedup={"usuarios": "email"},
+                numeros_colididos=set(), reaproveitar_ids={repetido: canonico},
+            )
+
+        depois = linhas(destino, "usuarios")
+        assert [r for r in depois if r["id"] in {x["id"] for x in antes}] == antes
+        assert len(depois) == 3
+        assert mapa["usuarios"][repetido] == canonico
+        assert mapa["usuarios"][novo] not in {r["id"] for r in antes}
+        assert novos["usuarios"] == {novo}
+        assert rel.reaproveitados["usuarios"] == 1
+        assert rel.inseridos["usuarios"] == 1
+
     def test_usuario_com_email_repetido_e_reaproveitado(self, bancos):
         origem, destino = bancos
         u_bh = inserir(destino, "usuarios", usuario("comum@daj.br", "De BH"))
