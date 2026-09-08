@@ -4,45 +4,9 @@ Registro de limitações já identificadas e ainda não corrigidas. Cada item
 diz o que acontece hoje, por que acontece e o que seria preciso para
 resolver.
 
-## Plantão: histórico de presença fica invisível após o encerramento
-
-**O que acontece.** Quando a data de fechamento do plantão passa, o
-encerramento automático (`PlantaoService._encerrar_se_expirado`) desativa
-todos os dias e todas as marcações (`status=False`) e zera a janela. Os
-registros continuam no banco, mas somem de todas as telas: escala, fila de
-atendimento e confirmação de presença filtram por `status=True`.
-
-**O relatório de horários também perde o histórico.** Em
-`RelatorioRepository`, a consulta de horários de plantão filtra
-`dias_marcados_plantao.status IS TRUE`, então o relatório enxerga apenas o
-período vigente — pedir um intervalo de datas já encerrado devolve nada,
-mesmo com os dados gravados.
-
-**Por que não basta remover o filtro.** A coluna `status` de
-`dias_marcados_plantao` acumula dois significados: marcação apagada pelo
-próprio usuário e marcação desativada pelo encerramento do período. Sem
-separá-los, tirar o filtro faria o relatório contar como presença o que o
-usuário desmarcou.
-
-**Como resolver.** Distinguir os dois casos — uma coluna própria para o
-encerramento, ou vincular a marcação ao período de plantão — e então expor
-o histórico: relatório de horários sobre períodos anteriores e listagem
-dos plantões já realizados.
-
-**Nada se perde no banco.** `dias_marcados_plantao` guarda a data literal
-(`data_marcada`) e a confirmação (`aberto`, `confirmar`, `divergencia`,
-`ausencia`), sem vínculo com a janela do plantão. Reconfigurar o período
-não apaga marcação nenhuma. A v2 apagava os dias fisicamente ao encerrar,
-deixando marcações órfãs; a 3.0 desativa em vez de apagar.
-
-## Plantão: não há histórico de períodos configurados
-
-A tabela `plantao` guarda um único registro, sobrescrito a cada nova
-configuração (comportamento herdado da v2). Não existe listagem de
-"plantões configurados": ao abrir um período novo, o anterior deixa de
-existir como registro próprio. Um histórico exigiria transformar `plantao`
-em vários registros e ligar `dias_plantao` a cada um, com migração dos
-dados existentes.
+Revisado em **07/09/2026**, contra a `master` em `3b0fba74`. A revisão
+considera o código e os testes locais; não certifica a implantação em produção.
+Os issues no GitHub detalham os pedidos e os critérios de aceite.
 
 ## Casos: a API aceita qualquer valor em `situacao_deferimento`
 
@@ -78,14 +42,15 @@ continua no banco, e a 3.0 tem o dataclass `AssistidoPessoaJuridica`
 `models/__init__.py`) e o campo `assistido_pessoa_juridica` em `Assistido`.
 Nenhum repository, service ou controller lê ou grava qualquer um dos dois.
 
-**De onde vem.** Na 2.0 esse cadastro também nunca funcionou: os campos do
+**De onde vem.** Na versão 2.0 examinada na revisão de paridade, esse fluxo estava desabilitado: os campos do
 formulário estão comentados e nenhuma view gravava a tabela (ver seção 1.1 de
 `paridade-v2-v3.md`). A 3.0 herdou o esqueleto junto com o resto do esquema.
 
 **Como resolver.** Se a coleta desses dados voltar a ser desejada, é
 funcionalidade nova — repository, service, rotas e formulário. Se não, o model
-e a tabela podem ser removidos por migração. Antes de remover, conferir se a
-tabela está vazia **em produção**: no banco de desenvolvimento está.
+e a tabela podem ser removidos por migração. Antes de remover, conferir os dados existentes em cada instalação; a análise
+do código não comprova que a tabela esteja vazia. O pedido de enquadramento
+e sócios continua em [#114](https://github.com/gestaolegalufmg/gestaolegal/issues/114).
 
 ## Usuários: o cadastro novo nasce sem senha utilizável
 
@@ -104,3 +69,83 @@ definição de senha, reaproveitando a infraestrutura de
 `password_reset_service.py` (token de uso único, com validade maior). É o item
 "convite por e-mail a usuários novos" da lista de pendências de
 `paridade-v2-v3.md`.
+
+
+## Permissões: deferimento e arquivos de casos
+
+As rotas de edição, deferimento e indeferimento de casos continuam exigindo
+apenas autenticação, sem a restrição por papel pedida no
+[#203](https://github.com/gestaolegalufmg/gestaolegal/issues/203). Upload,
+substituição e exclusão de arquivos de casos também continuam sem listas
+específicas de papéis, conforme
+[#159](https://github.com/gestaolegalufmg/gestaolegal/issues/159).
+
+O filtro por unidade e o armazenamento privado não substituem essas regras.
+É preciso definir a política de acesso e aplicá-la na API e na interface.
+A wiki descreve o comportamento implementado; isso não encerra os pedidos
+de alteração das permissões.
+
+## Banco: caracteres fora de latin-1 em instalações legadas
+
+A migration inicial `ed1b0a0a61a6` cria colunas com `latin1_general_ci`.
+As conversões pontuais posteriores não convertem todo o esquema para
+`utf8mb4`. Instalações que ainda tenham essas colunas podem recusar caracteres
+como cirílico e emoji. O
+[#191](https://github.com/gestaolegalufmg/gestaolegal/issues/191) permanece
+pendente: conferir o esquema real e preparar a conversão das colunas e dos
+dados. Os testes com SQLite não validam o charset do MySQL.
+
+## Formulários: especificação e preservação de dados
+
+- [#364](https://github.com/gestaolegalufmg/gestaolegal/issues/364): o questionário
+  de assistido ainda diverge da ordem, dos textos e das opções solicitadas.
+  Por exemplo, “Qual benefício?” aparece para benefícios além de “Outro”, e
+  a pergunta de doença grave não oferece “Não informou”.
+- [#365](https://github.com/gestaolegalufmg/gestaolegal/issues/365): CPF e e-mail
+  continuam obrigatórios no schema de atendido; falta o fluxo conjunto de
+  cadastrar e incluir na fila.
+- [#363](https://github.com/gestaolegalufmg/gestaolegal/issues/363) e
+  [#326](https://github.com/gestaolegalufmg/gestaolegal/issues/326): a correção da
+  perda de endereço no envio e de texto após atendimento prolongado ainda
+  precisa ser comprovada no navegador. O formulário de orientação preserva
+  estado em erros comuns, mas não salva rascunho; um 401 redireciona ao login.
+  Não considerar esses relatos resolvidos apenas pela inspeção do código.
+
+## Unidades: desativação não é validada pelo cabeçalho da API
+
+O seletor do frontend oculta unidades inativas, mas `_resolver_unidade_ativa`
+confere apenas se `X-Unidade-Id` pertence aos vínculos do usuário. A consulta
+que carrega esses vínculos inclui unidades inativas. Assim, desativar a unidade
+não impede por si só o acesso direto à API de quem continua vinculado a ela.
+A validação precisa conferir também `ativa`, com teste de acesso após a
+desativação. Administradores também dependem de vínculo; o papel não concede
+acesso automático a todas as unidades.
+
+## Correções já entregues
+
+Os itens abaixo não são mais limitações do código atual:
+
+| Item | Situação verificada |
+|---|---|
+| Histórico do plantão desaparecia após o prazo | O fim das inscrições preserva escala, marcações e confirmações. Cancelamento é explícito. |
+| Configuração única sobrescrevia períodos anteriores | Cada escala tem nome, unidade, dias, janela de inscrição e histórico próprios. Criar uma não substitui as anteriores. |
+| [#183 — múltiplos anexos de evento](https://github.com/gestaolegalufmg/gestaolegal/issues/183) | Criação aceita vários anexos; edição acrescenta arquivos e permite gerenciar os existentes. |
+| [#190 — arquivos privados em pasta pública](https://github.com/gestaolegalufmg/gestaolegal/issues/190) | Raiz privada, downloads autenticados e bloqueio dos caminhos estáticos. |
+| [#205 — número longo de processo](https://github.com/gestaolegalufmg/gestaolegal/issues/205) | Número como texto de até 25 caracteres, preservando pontuação e zeros iniciais. |
+| [#366 — atalho Plantão com 404](https://github.com/gestaolegalufmg/gestaolegal/issues/366) | O atalho usa uma rota existente, que redireciona para a listagem de escalas. |
+
+As mudanças de plantão estão descritas em [Escalas de plantão](escalas-plantao.md).
+Os registros antigos são agrupados por unidade como legado, somente para
+consulta; o modelo anterior não permite recuperar com certeza a escala
+original de cada marcação. O aceite de uso pela DAJ continua a ser confirmado
+no [#315](https://github.com/gestaolegalufmg/gestaolegal/issues/315).
+
+Para receber as correções, instalações existentes precisam aplicar as migrations
+e, no caso dos arquivos, migrar o acervo e conferir o volume privado e a
+configuração do proxy. Veja o
+[Manual de Instalação](https://github.com/gestaolegalufmg/gestaolegal/wiki/Manual-de-Instalação).
+
+Na revisão de 07/09/2026, passaram 206 testes de eventos, processos, bloqueio
+estático, armazenamento e migração de anexos, plantão, presença e relatórios.
+Foram usados SQLite em memória e arquivos temporários. A navegação do #366
+foi conferida no código, sem teste de navegador.
