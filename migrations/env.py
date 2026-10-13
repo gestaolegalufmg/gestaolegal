@@ -2,14 +2,16 @@ from __future__ import with_statement
 
 import logging
 import os
+import runpy
 import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from gestaolegal.config import Config
-from gestaolegal.database.tables import metadata
+# Carrega o schema sem inicializar a sessão da API.
+metadata = runpy.run_path(str(Path(__file__).resolve().parents[1] / "gestaolegal/database/tables.py"))["metadata"]
 
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -26,7 +28,14 @@ if not config.config_file_name:
 fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
 
-config.set_main_option("sqlalchemy.url", Config.SQLALCHEMY_DATABASE_URI)
+database_url = config.attributes.get("database_url")
+if database_url is None:
+    from gestaolegal.config import Config
+
+    database_url = Config.SQLALCHEMY_DATABASE_URI
+if hasattr(database_url, "render_as_string"):
+    database_url = database_url.render_as_string(hide_password=False)
+config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 target_metadata = metadata
 
 

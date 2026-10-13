@@ -13,6 +13,32 @@ legados ficam como estão.
 - CI (`.github/workflows/build_image.yml`) roda `uv run pytest tests/` e só
   então publica as imagens. O que quebra no `make test` quebra o deploy.
 
+
+## Seed e reset de demonstração
+
+- `make seed` executa `scripts/seed_database.py` diretamente no banco, após as
+  migrations. `ARGS="--dry-run"` desfaz a carga ao final. As quatro contas são
+  `admin@ufmg.br`, `orient@ufmg.br`, `estag_direito@ufmg.br` e `colab_ext@ufmg.br`,
+  com senha padrão `123456`, configurável por `SEED_PASSWORD`. Reexecutar
+  preserva os registros e as senhas existentes.
+- `scripts/seed_local.py` é o seed via API usado pela esteira Helton. Tem
+  credenciais e comportamento próprios; não confundir com `make seed`.
+- `scripts/reset_demo.sh` roda no host Docker: valida a configuração, para a
+  API, apaga/recria o banco, aplica migrations, executa o seed e reinicia a API.
+  Requer `DEMO_DB_NAME=DB_NAME` (mesmo valor, não o texto literal), ambiente
+  `development` ou `testing`, e imagem da API atualizada. O reset usa a porta
+  interna do MySQL em `DB_PORT` e não remove anexos no volume.
+- O reset usa `flock` no host e lock no MySQL para impedir sobreposição. Uma
+  falha após a parada mantém a API parada; corrigir e executar novamente.
+  Executar ou agendar o reset apaga dados e exige autorização explícita para
+  o ambiente alvo. Criar ou testar o script não autoriza execução em QA.
+- Cron de seis em seis horas e configuração de `RESET_API_SERVICE=qa_backend`:
+  ver README, seção "Reset automático do banco de demo". O cron não é instalado
+  pelo script.
+- Verificação: `uv run pytest tests/scripts/test_seed_database.py
+  tests/scripts/test_reset_demo_database.py -q` (comando em uma única linha).
+  Esses testes simulam o reset; não validam migrations contra MySQL real.
+
 ## Armadilhas que quebram em silêncio
 
 - `docker-compose.override.yml` é ignorado pelo git. Num checkout que não o

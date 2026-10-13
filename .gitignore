@@ -187,3 +187,7 @@ scripts/helton/obra/arquivar-plano.sh
 
 # Cópias locais dos anexos anteriores à migração.
 /uploads.anterior-*/
+
+# Lock local do reset de demonstração
+.reset-demo.lock
+reset-demo.log

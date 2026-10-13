@@ -132,6 +132,46 @@ bloqueada com `FLASK_ENV=production`. O script não cria nem altera o schema.
 O seed via API existente, `scripts/seed_local.py`, continua disponível para
 cenários que precisam exercitar endpoints e uploads.
 
+
+### Reset automático do banco de demo
+
+`scripts/reset_demo.sh` para a API, **apaga e recria o banco inteiro**, aplica
+as migrations e executa `seed_database.py`. As contas e senhas voltam aos valores
+do seed a cada execução. O usuário MySQL precisa de permissão para `DROP` e
+`CREATE` no banco configurado.
+
+No `.env` exclusivo da demo, configure `FLASK_ENV=development` ou `testing` e
+`DEMO_DB_NAME` com o mesmo valor de `DB_NAME`. Essa confirmação é obrigatória.
+O script recusa ambientes de produção e bancos de sistema. Dentro do Docker,
+`DB_PORT` deve ser a porta interna do MySQL (`3306`), mesmo que a porta publicada
+no host seja outra.
+
+Com a stack já iniciada e a imagem da API atualizada com os scripts, execute no
+host (requer Bash, Docker Compose e `flock`):
+
+```bash
+/opt/gestaolegal/scripts/reset_demo.sh
+```
+
+Para agendar às 00h, 06h, 12h e 18h, no fuso do servidor, adicione ao `crontab`
+de um usuário com acesso ao Docker e escrita no checkout/log:
+
+```cron
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0 */6 * * * /opt/gestaolegal/scripts/reset_demo.sh >> /opt/gestaolegal/reset-demo.log 2>&1
+```
+
+Ajuste o caminho ao checkout da demo. Para a stack de QA, cujo serviço se chama
+`qa_backend`, use `RESET_API_SERVICE=qa_backend` antes do comando. Se o arquivo
+Compose tiver outro nome, informe também `COMPOSE_FILE` com seu caminho absoluto.
+O script usa o `.env` e o Compose do checkout, independentemente da pasta atual.
+
+Há bloqueios contra resets simultâneos no host e no MySQL. A API fica indisponível
+durante o reset; se ele falhar, permanece parada. Corrija a causa e execute o
+script novamente. A exclusão do banco não tem rollback. Os arquivos de anexos
+no volume permanecem no disco, mas seus registros no banco são apagados.
+O script não instala o cron automaticamente.
+
 ---
 
 ## Documentação
