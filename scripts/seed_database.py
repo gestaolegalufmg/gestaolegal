@@ -74,7 +74,7 @@ class Seed:
         agora = datetime.combine(hoje, time(9))
         usuarios = {}
         for papel, nome in CONTAS:
-            email = f"{papel}@seed.example.test"
+            email = f"{papel}@ufmg.br"
             existente = self.buscar(metadata.tables["usuarios"], {"email": email})
             if existente is not None:
                 if existente["obs"] != MARCA:
@@ -153,8 +153,8 @@ class Seed:
 
 def seed_database(engine: Engine, *, senha: str, sigla: str | None = None,
                   dry_run: bool = False, hoje: date | None = None) -> Counter:
-    if not 8 <= len(senha.encode("utf-8")) <= 72:
-        raise ValueError("SEED_PASSWORD deve ter entre 8 e 72 bytes em UTF-8.")
+    if not 6 <= len(senha.encode("utf-8")) <= 72:
+        raise ValueError("SEED_PASSWORD deve ter entre 6 e 72 bytes em UTF-8.")
     with engine.connect() as conn:
         with conn.begin() as transaction:
             seed = Seed(conn)
@@ -181,7 +181,7 @@ def main(argv=None) -> int:
             password=os.environ["DB_PASSWORD"], host=os.environ["DB_HOST"],
             port=int(os.environ.get("DB_PORT", "3306")), database=os.environ["DB_NAME"])
         engine = create_engine(url)
-        criados = seed_database(engine, senha=os.environ.get("SEED_PASSWORD", "SeedLocal123!"),
+        criados = seed_database(engine, senha=os.environ.get("SEED_PASSWORD", "123456"),
             sigla=args.unidade, dry_run=args.dry_run)
     except (ValueError, SQLAlchemyError) as exc:
         # Erros SQL podem carregar parâmetros, inclusive hashes de senha.

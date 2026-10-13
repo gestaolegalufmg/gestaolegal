@@ -32,14 +32,21 @@ def snapshot(engine):
 
 
 def test_seed_relacoes_senha_e_idempotencia(engine):
-    criados = seed_database(engine, senha="SeedLocal123!", hoje=date(2026, 10, 13))
+    criados = seed_database(engine, senha="123456", hoje=date(2026, 10, 13))
     assert criados["usuarios"] == 4
     assert criados["atendidos"] == criados["casos"] == 4
     assert criados["eventos"] == 8
     with engine.connect() as conn:
         usuarios = metadata.tables["usuarios"]
-        for usuario in conn.execute(select(usuarios)).mappings():
-            assert bcrypt.checkpw(b"SeedLocal123!", usuario["senha"].encode())
+        contas = conn.execute(select(usuarios)).mappings().all()
+        assert {u["email"]: u["urole"] for u in contas} == {
+            "admin@ufmg.br": "admin",
+            "orient@ufmg.br": "orient",
+            "estag_direito@ufmg.br": "estag_direito",
+            "colab_ext@ufmg.br": "colab_ext",
+        }
+        for usuario in contas:
+            assert bcrypt.checkpw(b"123456", usuario["senha"].encode())
         casos = metadata.tables["casos"]
         vinculos = metadata.tables["usuarios_unidades"]
         for caso in conn.execute(select(casos)).mappings():
@@ -61,9 +68,9 @@ def test_seed_relacoes_senha_e_idempotencia(engine):
 
 def test_dry_run_e_filtro_unidade(engine):
     antes = snapshot(engine)
-    assert seed_database(engine, senha="SeedLocal123!", dry_run=True)["casos"] == 4
+    assert seed_database(engine, senha="123456", dry_run=True)["casos"] == 4
     assert snapshot(engine) == antes
-    assert seed_database(engine, senha="SeedLocal123!", sigla="NL")["casos"] == 2
+    assert seed_database(engine, senha="123456", sigla="NL")["casos"] == 2
     with engine.connect() as conn:
         assert set(conn.execute(select(metadata.tables["casos"].c.unidade_id)).scalars()) == {12}
 
@@ -77,24 +84,24 @@ def test_falha_desfaz_insercoes_parciais(engine):
             raise RuntimeError("Falha simulada após criar usuários, atendidos e casos")
 
     with pytest.raises(RuntimeError, match="Falha simulada"):
-        seed_database(engine, senha="SeedLocal123!")
+        seed_database(engine, senha="123456")
     assert snapshot(engine) == antes
 
 
 def test_unidade_inexistente_nao_insere(engine):
     antes = snapshot(engine)
     with pytest.raises(ValueError, match="Nenhuma unidade"):
-        seed_database(engine, senha="SeedLocal123!", sigla="OFF")
+        seed_database(engine, senha="123456", sigla="OFF")
     assert snapshot(engine) == antes
 
 
 def test_reexecucao_preserva_edicoes(engine):
-    seed_database(engine, senha="SeedLocal123!")
+    seed_database(engine, senha="123456")
     casos = metadata.tables["casos"]
     with engine.begin() as conn:
         conn.execute(casos.update().values(situacao_deferimento="arquivado", status=False))
     antes = snapshot(engine)
-    seed_database(engine, senha="SeedLocal123!")
+    seed_database(engine, senha="123456")
     assert snapshot(engine) == antes
 
 

@@ -117,9 +117,9 @@ duas orientações jurídicas, dois lembretes e uma escala com duas marcações.
 Os dados são fictícios; CPFs são placeholders e processos não têm número real.
 Não são criados anexos nem enviados e-mails. As unidades vêm das migrations.
 
-Contas: `admin@seed.example.test`, `orient@seed.example.test`,
-`estag_direito@seed.example.test` e `colab_ext@seed.example.test`.
-A senha inicial é `SeedLocal123!`, configurável por `SEED_PASSWORD`.
+Contas: `admin@ufmg.br`, `orient@ufmg.br`,
+`estag_direito@ufmg.br` e `colab_ext@ufmg.br`.
+A senha inicial é `123456`, configurável por `SEED_PASSWORD`.
 Reexecutar preserva senhas e registros existentes, sem duplicá-los. Datas de
 novos registros são relativas à execução; reexecutar não renova a agenda.
 Não altere os identificadores do seed (e-mails, descrições e nome da escala)
