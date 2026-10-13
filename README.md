@@ -91,6 +91,49 @@ O laboratório desenvolve e integra tecnologias livres e abertas para atender à
 
 ---
 
+## Dados de demonstração (seed)
+
+Após aplicar as migrations, execute o seed direto no banco, sem precisar da API:
+
+```bash
+make seed ARGS="--dry-run"  # simula a carga e faz rollback
+make seed                 # grava os dados
+make seed ARGS="--unidade BH"  # opcional: apenas uma unidade ativa
+```
+
+O comando usa `uv` e lê `DB_HOST`, `DB_PORT` (padrão `3306`), `DB_NAME`,
+`DB_USER` e `DB_PASSWORD` do ambiente ou do `.env` da pasta atual. Para executar
+no host com MySQL no Docker, use `DB_HOST=127.0.0.1 make seed` e a porta publicada.
+Para executar dentro do container, após `make up` (que aplica as migrations):
+
+```bash
+docker compose exec -e DB_PORT=3306 api python scripts/seed_database.py --dry-run
+docker compose exec -e DB_PORT=3306 api python scripts/seed_database.py
+```
+
+O script `scripts/seed_database.py` cria quatro usuários compartilhados e,
+por unidade ativa, dois atendidos, dois casos com processos, quatro eventos,
+duas orientações jurídicas, dois lembretes e uma escala com duas marcações.
+Os dados são fictícios; CPFs são placeholders e processos não têm número real.
+Não são criados anexos nem enviados e-mails. As unidades vêm das migrations.
+
+Contas: `admin@seed.example.test`, `orient@seed.example.test`,
+`estag_direito@seed.example.test` e `colab_ext@seed.example.test`.
+A senha inicial é `SeedLocal123!`, configurável por `SEED_PASSWORD`.
+Reexecutar preserva senhas e registros existentes, sem duplicá-los. Datas de
+novos registros são relativas à execução; reexecutar não renova a agenda.
+Não altere os identificadores do seed (e-mails, descrições e nome da escala)
+se quiser preservar a deduplicação. Execute apenas uma instância por vez.
+
+A carga é transacional: uma falha desfaz todas as inserções daquela execução.
+`--dry-run` também pode consumir valores de auto incremento no MySQL, embora
+não persista registros. Use apenas em desenvolvimento/testes; a execução é
+bloqueada com `FLASK_ENV=production`. O script não cria nem altera o schema.
+O seed via API existente, `scripts/seed_local.py`, continua disponível para
+cenários que precisam exercitar endpoints e uploads.
+
+---
+
 ## Documentação
 
 - 📖 [Wiki do Projeto](https://github.com/gestaolegalufmg/gestaolegal/wiki) - Documentação completa

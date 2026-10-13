@@ -1,6 +1,9 @@
 ENV ?= development
 
-.PHONY: up test test-cov test-watch
+.PHONY: up test test-cov test-watch seed
+
+seed:
+	uv run python scripts/seed_database.py $(ARGS)
 
 up:
 	docker compose up -d
@@ -22,6 +25,7 @@ help:
 	@echo "Targets:"
 	@echo "  help                Show this help message"
 	@echo "  up                  Start containers in detached mode"
+	@echo "  seed                Seed development database (ARGS='--dry-run' to preview)"
 	@echo "  test                Run API tests"
 	@echo "  test-cov            Run API tests with coverage report"
 	@echo "  test-watch          Run tests in watch mode"
