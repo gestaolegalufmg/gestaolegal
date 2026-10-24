@@ -1,7 +1,8 @@
 import logging
+import re
 from typing import Any
 
-from sqlalchemy import func, insert, select
+from sqlalchemy import func, insert, or_, select
 from sqlalchemy import update as sql_update
 
 from gestaolegal.common import PaginatedResult
@@ -94,8 +95,13 @@ class AtendidoRepository(BaseRepository):
         return atendidos_list, orientacao_juridica_map
 
     def search(
-        self, params: SearchParams, tipo_busca: str = "todos"
+        self, params: SearchParams, tipo_busca: str = "todos", search: str = ""
     ) -> PaginatedResult[dict]:
+        # EXISTS mantém uma pessoa por resultado mesmo quando o legado tem
+        # mais de uma ficha de assistido para o mesmo atendido.
+        has_assistido = select(assistidos.c.id).where(
+            assistidos.c.id_atendido == atendidos.c.id
+        ).exists()
         stmt = select(
             atendidos.c.id,
             atendidos.c.nome,
@@ -107,17 +113,28 @@ class AtendidoRepository(BaseRepository):
             atendidos.c.data_nascimento,
             atendidos.c.endereco_id,
             func.count().over().label("total_count"),
-            (assistidos.c.id_atendido.is_not(None)).label("is_assistido"),
-        ).outerjoin(assistidos, assistidos.c.id_atendido == atendidos.c.id)
+            has_assistido.label("is_assistido"),
+        )
 
         stmt = self._apply_where_clause(stmt, params.get("where"), atendidos)
 
-        if tipo_busca == "atendidos":
-            stmt = stmt.where(assistidos.c.id_atendido.is_(None))
-        elif tipo_busca == "assistidos":
-            stmt = stmt.where(assistidos.c.id_atendido.is_not(None))
+        term = search.strip()
+        if term:
+            conditions = [atendidos.c.nome.ilike(f"%{term}%")]
+            digits = re.sub(r"[^0-9]", "", term)
+            if digits and re.fullmatch(r"[0-9.\-\s]+", term):
+                cpf = func.replace(
+                    func.replace(func.replace(atendidos.c.cpf, ".", ""), "-", ""), " ", ""
+                )
+                conditions.append(cpf.like(f"%{digits}%"))
+            stmt = stmt.where(or_(*conditions))
 
-        stmt = stmt.order_by(atendidos.c.nome)
+        if tipo_busca == "atendidos":
+            stmt = stmt.where(~has_assistido)
+        elif tipo_busca == "assistidos":
+            stmt = stmt.where(has_assistido)
+
+        stmt = stmt.order_by(atendidos.c.nome, atendidos.c.id)
         stmt = self._apply_pagination(stmt, params.get("page_params"))
 
         results = self.session.execute(stmt).mappings().all()

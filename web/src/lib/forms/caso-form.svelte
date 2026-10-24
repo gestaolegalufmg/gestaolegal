@@ -245,6 +245,7 @@
 				name="ids_clientes"
 				bind:selectedAssistidosIds={$formData.ids_clientes}
 				onSelect={handleAssistidosSelected}
+				initialSelectedItems={selectedAssistidos}
 			>
 				{#snippet trigger()}
 					<UserPlus class="mr-2 h-4 w-4" />

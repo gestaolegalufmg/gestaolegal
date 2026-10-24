@@ -31,5 +31,5 @@
 	dialogDescription="Busque e selecione os atendidos para associar a esta orientação jurídica"
 	buttonText="Selecionar Atendidos"
 	emptyStateText="Nenhum atendido encontrado"
-	searchPlaceholder="Buscar atendido por nome, CPF..."
+	searchPlaceholder="Buscar por nome ou CPF (com ou sem pontuação)"
 />

@@ -63,8 +63,8 @@
 	<div class="grid gap-6">
 		<div class="rounded-lg border bg-card p-6">
 			<div class="mb-4 flex items-center justify-between">
-				<div class="align-center flex w-full justify-between gap-2">
-					<div class="flex items-center gap-2">
+				<div class="flex w-full flex-wrap items-center justify-between gap-4">
+					<div class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
 						<Input
 							bind:value={filters.search}
 							ondebounceinput={() => {
@@ -72,7 +72,9 @@
 								applyFilters();
 							}}
 							debounceMs={500}
-							placeholder="Buscar atendido..."
+							placeholder="Buscar por nome ou CPF (com ou sem pontuação)"
+							aria-label="Buscar por nome ou CPF (com ou sem pontuação)"
+							class="h-12 min-w-0 flex-1 basis-[28rem] text-base md:text-base"
 						/>
 						<Select.Root
 							bind:value={filters.tipo_busca}
@@ -80,7 +82,7 @@
 							type="single"
 							onValueChange={() => applyFilters()}
 						>
-							<Select.Trigger class="w-full data-[placeholder]:text-foreground">
+							<Select.Trigger class="w-full data-[placeholder]:text-foreground sm:w-48">
 								{tipoBuscaFilterOptions.find((option) => option.value === filters.tipo_busca)
 									?.label}
 							</Select.Trigger>

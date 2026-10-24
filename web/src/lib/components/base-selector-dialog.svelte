@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { Debounced } from 'runed';
+	import { untrack } from 'svelte';
 	import type { Atendido } from '$lib/types';
 	import type { Snippet } from 'svelte';
 	import Search from '@lucide/svelte/icons/search';
@@ -24,7 +24,8 @@
 		buttonText = 'Selecionar',
 		emptyStateText,
 		searchPlaceholder,
-		multiSelect = true
+		multiSelect = true,
+		initialSelectedItems = []
 	}: {
 		selectedIds?: number[];
 		onSelect?: (items: Atendido[]) => void;
@@ -38,6 +39,7 @@
 		emptyStateText: string;
 		searchPlaceholder: string;
 		multiSelect?: boolean;
+		initialSelectedItems?: Atendido[];
 	} = $props();
 
 	let open = $state(false);
@@ -47,49 +49,65 @@
 	let tempSelectedIds = $state<number[]>([]);
 	let selectedItemsData = $state<Atendido[]>([]);
 
-	const debouncedSearch = new Debounced(() => search, 300);
+	let page = $state(1);
+	let total = $state(0);
+	let totalPages = $state(0);
+	let failure = $state('');
+	let retry = $state(0);
+	const perPage = 50;
+	let requestVersion = 0;
 
-	async function fetchItems(searchTerm: string = '') {
-		loading = true;
+	async function fetchItems(
+		searchTerm: string,
+		requestedPage: number,
+		signal: AbortSignal,
+		version: number
+	) {
 		try {
-			const data = await api.get<{ items: Atendido[] }>(
-				`${apiEndpoint}?search=${encodeURIComponent(searchTerm)}&per_page=50`
+			const [path, query = ''] = apiEndpoint.split('?');
+			const params = new URLSearchParams(query);
+			params.set('search', searchTerm);
+			params.set('page', String(requestedPage));
+			params.set('per_page', String(perPage));
+			const data = await api.get<{ items: Atendido[]; total: number; total_pages: number }>(
+				`${path}?${params}`,
+				{ signal }
 			);
-			items = data.items || [];
-			syncSelectedItemsData();
-		} catch (err) {
-			if (err instanceof ApiException) {
-				console.error('Error fetching items:', err.message);
-			} else {
-				console.error('Error fetching items:', err);
+			if (signal.aborted || version !== requestVersion) return;
+			items = data.items ?? [];
+			total = data.total;
+			totalPages = data.total_pages;
+			const selected = new Map(selectedItemsData.map((item) => [item.id, item]));
+			for (const item of items) {
+				if (tempSelectedIds.includes(item.id)) selected.set(item.id, item);
 			}
-		} finally {
-			loading = false;
-		}
-	}
-
-	function syncSelectedItemsData() {
-		const newlyFetchedSelected = items.filter((item) => tempSelectedIds.includes(item.id));
-		const existingSelectedNotInResults = selectedItemsData.filter(
-			(item) =>
-				tempSelectedIds.includes(item.id) && !items.some((fetched) => fetched.id === item.id)
-		);
-		selectedItemsData = [...existingSelectedNotInResults, ...newlyFetchedSelected];
-	}
-
-	$effect(() => {
-		if (open) {
-			tempSelectedIds = [...new Set(selectedIds)];
+			selectedItemsData = [...selected.values()];
+		} catch (err) {
+			if (signal.aborted || version !== requestVersion) return;
+			failure =
+				err instanceof ApiException ? err.message : 'Não foi possível carregar os resultados.';
 			items = [];
-			search = '';
+		} finally {
+			if (!signal.aborted && version === requestVersion) loading = false;
 		}
-	});
+	}
 
 	$effect(() => {
 		if (!open) return;
-
-		const searchTerm = debouncedSearch.current;
-		fetchItems(searchTerm);
+		const term = search;
+		const currentPage = page;
+		retry;
+		const controller = new AbortController();
+		const version = ++requestVersion;
+		loading = true;
+		failure = '';
+		const timer = setTimeout(() => {
+			untrack(() => void fetchItems(term, currentPage, controller.signal, version));
+		}, 300);
+		return () => {
+			clearTimeout(timer);
+			controller.abort();
+		};
 	});
 
 	function toggleItem(item: Atendido) {
@@ -118,9 +136,20 @@
 
 	function handleOpenChange(isOpen: boolean) {
 		open = isOpen;
-		if (!isOpen) {
-			search = '';
-			items = [];
+		search = '';
+		page = 1;
+		total = 0;
+		totalPages = 0;
+		items = [];
+		failure = '';
+		if (isOpen) {
+			tempSelectedIds = [...new Set(selectedIds)];
+			const available = new Map(
+				[...selectedItemsData, ...initialSelectedItems].map((item) => [item.id, item])
+			);
+			selectedItemsData = tempSelectedIds.flatMap((id) =>
+				available.has(id) ? [available.get(id)!] : []
+			);
 		}
 	}
 </script>
@@ -135,7 +164,12 @@
 	</Form.Field>
 {/if}
 
-<Button type="button" variant="outline" class="w-full sm:w-auto" onclick={() => (open = true)}>
+<Button
+	type="button"
+	variant="outline"
+	class="w-full sm:w-auto"
+	onclick={() => handleOpenChange(true)}
+>
 	{#if trigger}
 		{@render trigger()}
 	{:else}
@@ -144,7 +178,7 @@
 </Button>
 
 <Dialog.Root bind:open onOpenChange={handleOpenChange}>
-	<Dialog.Content class="flex max-h-[85vh] max-w-3xl flex-col">
+	<Dialog.Content class="flex max-h-[85vh] flex-col sm:max-w-3xl">
 		<Dialog.Header>
 			<Dialog.Title>{dialogTitle}</Dialog.Title>
 			<Dialog.Description>{dialogDescription}</Dialog.Description>
@@ -153,17 +187,32 @@
 		<div class="flex flex-1 flex-col space-y-4 overflow-hidden py-4">
 			<div class="relative">
 				<Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-				<Input type="text" placeholder={searchPlaceholder} bind:value={search} class="pl-10" />
+				<Input
+					type="text"
+					placeholder={searchPlaceholder}
+					aria-label={searchPlaceholder}
+					bind:value={search}
+					oninput={() => {
+						page = 1;
+					}}
+					class="h-12 w-full pr-4 pl-10 text-base md:text-base"
+				/>
 			</div>
 
 			<div class="min-h-[300px] flex-1 overflow-y-auto rounded-md border p-4">
 				{#if loading}
 					<div class="py-8 text-center text-muted-foreground">Carregando...</div>
+				{:else if failure}
+					<div role="alert" class="space-y-2 py-8 text-center">
+						<p>{failure}</p>
+						<Button type="button" variant="outline" onclick={() => retry++}>Tentar novamente</Button
+						>
+					</div>
 				{:else if items.length === 0}
 					<div class="py-8 text-center text-muted-foreground">{emptyStateText}</div>
 				{:else}
 					<div class="space-y-2">
-						{#each items as item, index (`${item.id}-${index}`)}
+						{#each items as item (item.id)}
 							<label
 								class="flex cursor-pointer items-center space-x-3 rounded-lg p-3 transition-colors hover:bg-accent"
 							>
@@ -209,11 +258,38 @@
 					{/if}
 				</span>
 			</div>
+			<div
+				class="flex flex-wrap items-center justify-between gap-2"
+				aria-label="Paginação dos resultados"
+			>
+				<span aria-live="polite" class="text-sm text-muted-foreground">
+					{#if !loading && !failure}{total} resultado(s) · Página {page} de {Math.max(
+							1,
+							totalPages
+						)}{/if}
+				</span>
+				<div class="flex gap-2">
+					<Button
+						type="button"
+						variant="outline"
+						disabled={loading || !!failure || page <= 1}
+						onclick={() => page--}>Anterior</Button
+					>
+					<Button
+						type="button"
+						variant="outline"
+						disabled={loading || !!failure || page >= totalPages}
+						onclick={() => page++}>Próxima</Button
+					>
+				</div>
+			</div>
 		</div>
 
 		<Dialog.Footer class="flex-shrink-0">
 			<Button type="button" variant="outline" onclick={() => (open = false)}>Cancelar</Button>
-			<Button type="button" onclick={confirmSelection}>Confirmar Seleção</Button>
+			<Button type="button" disabled={loading || !!failure} onclick={confirmSelection}
+				>Confirmar Seleção</Button
+			>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

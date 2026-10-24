@@ -77,11 +77,6 @@ class AtendidoService:
         if not show_inactive:
             clauses.append(WhereClause(column="status", operator="==", value=1))
 
-        if search:
-            clauses.append(
-                WhereClause(column="nome", operator="ilike", value=f"%{search}%")
-            )
-
         where = None
         if len(clauses) > 1:
             where = ComplexWhereClause(clauses=clauses, operator="and")
@@ -93,7 +88,7 @@ class AtendidoService:
             where=where,
         )
 
-        result = self.repository.search(params=params, tipo_busca=tipo_busca)
+        result = self.repository.search(params=params, tipo_busca=tipo_busca, search=search)
 
         endereco_ids = [a["endereco_id"] for a in result.items if a["endereco_id"]]
         endereco_map = {}

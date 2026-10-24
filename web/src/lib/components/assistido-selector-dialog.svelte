@@ -10,19 +10,22 @@
 		onSelect,
 		trigger,
 		form,
-		name = 'ids_clientes'
+		name = 'ids_clientes',
+		initialSelectedItems = []
 	}: {
 		selectedAssistidosIds?: number[];
 		onSelect?: (assistidos: Atendido[]) => void;
 		trigger?: Snippet;
 		form?: FieldProps<T, U>['form'];
 		name?: string;
+		initialSelectedItems?: Atendido[];
 	} = $props();
 </script>
 
 <BaseSelectorDialog
 	bind:selectedIds={selectedAssistidosIds}
 	{onSelect}
+	{initialSelectedItems}
 	{trigger}
 	{form}
 	name={name as any as U}
@@ -31,5 +34,5 @@
 	dialogDescription="Busque e selecione os assistidos para associar a este caso"
 	buttonText="Selecionar Assistidos"
 	emptyStateText="Nenhum assistido encontrado"
-	searchPlaceholder="Buscar assistido por nome, CPF..."
+	searchPlaceholder="Buscar por nome ou CPF (com ou sem pontuação)"
 />

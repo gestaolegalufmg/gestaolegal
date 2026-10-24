@@ -647,3 +647,73 @@ def test_tornar_assistido_de_outra_unidade_responde_404(
         headers=auth_headers_nl,
     )
     assert response.status_code == 404
+
+
+def test_seletor_busca_cpf_com_e_sem_mascara_e_respeita_unidade(
+    client, auth_headers, auth_headers_nl, sample_atendido_data, sample_assistido_data,
+):
+    registros = []
+    for headers, cpf in ((auth_headers, '987.654.321-09'), (auth_headers, '87654321098'),
+                         (auth_headers_nl, '987.654.321-09')):
+        dados = {**sample_atendido_data, 'nome': 'Pessoa do seletor', 'cpf': cpf}
+        response = client.post('/api/atendido/', json=dados, headers=headers)
+        assert response.status_code == 201
+        aid = get_success_data(response)['id']
+        response = client.post(f'/api/atendido/{aid}/tornar-assistido',
+                               json=sample_assistido_data, headers=headers)
+        assert response.status_code == 200
+        registros.append(aid)
+    for termo, esperado in [('98765432109', registros[0]), ('987.654.321-09', registros[0]),
+                            ('876.543.210-98', registros[1]), ('87654321098', registros[1])]:
+        r = client.get('/api/atendido/', query_string={'search': termo, 'tipo_busca': 'assistidos'},
+                       headers=auth_headers)
+        assert r.status_code == 200
+        assert [a['id'] for a in get_success_data(r)['items']] == [esperado]
+
+
+def test_novo_assistido_pesquisado_pode_ser_vinculado_ao_caso(
+    client, auth_headers, sample_atendido_data, sample_assistido_data, sample_caso_data,
+):
+    r = client.post('/api/atendido/', json={**sample_atendido_data, 'nome': 'TESTE SELETOR NOVO'},
+                    headers=auth_headers)
+    assert r.status_code == 201
+    aid = get_success_data(r)['id']
+    # Atendidos sem ficha não podem aparecer no seletor de assistidos.
+    query = {'search': 'TESTE SELETOR NOVO', 'tipo_busca': 'assistidos', 'page': 1, 'per_page': 50}
+    r = client.get('/api/atendido/', query_string=query, headers=auth_headers)
+    assert get_success_data(r)['items'] == []
+    r = client.post(f'/api/atendido/{aid}/tornar-assistido', json=sample_assistido_data, headers=auth_headers)
+    assert r.status_code == 200
+    r = client.get('/api/atendido/', query_string=query, headers=auth_headers)
+    assert [a['id'] for a in get_success_data(r)['items']] == [aid]
+    r = client.post('/api/caso/', json={**sample_caso_data, 'ids_clientes': [aid]}, headers=auth_headers)
+    assert r.status_code == 201
+    cid = get_success_data(r)['id']
+    r = client.get(f'/api/caso/{cid}', headers=auth_headers)
+    assert aid in [a['id'] for a in get_success_data(r)['clientes']]
+
+
+def test_seletor_nao_duplica_pessoa_com_fichas_legadas_repetidas(
+    client, auth_headers, sample_atendido_data, sample_assistido_data,
+):
+    # A suíte usa SQLite compartilhado; elimina fichas órfãs de testes anteriores.
+    clean_tables('assistidos', 'atendidos')
+    from sqlalchemy import select
+    from gestaolegal.database import get_session
+    from gestaolegal.database.tables import assistidos
+    r = client.post('/api/atendido/', json={**sample_atendido_data, 'nome': 'SELETOR DUPLICADO'}, headers=auth_headers)
+    aid = get_success_data(r)['id']
+    assert client.post(f'/api/atendido/{aid}/tornar-assistido', json=sample_assistido_data,
+                       headers=auth_headers).status_code == 200
+    session = get_session()
+    original = dict(session.execute(select(assistidos).where(assistidos.c.id_atendido == aid)).mappings().one())
+    original.pop('id')
+    session.execute(assistidos.insert().values(**original))
+    session.commit()
+    r = client.get('/api/atendido/', query_string={'search': 'SELETOR DUPLICADO', 'tipo_busca': 'assistidos', 'per_page': 1}, headers=auth_headers)
+    data = get_success_data(r)
+    assert data['total'] == 1
+    assert data['total_pages'] == 1
+    assert [a['id'] for a in data['items']] == [aid]
+    # Não deixe a duplicata proposital contaminar testes que reutilizam IDs.
+    clean_tables('assistidos', 'atendidos')
