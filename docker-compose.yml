@@ -1,65 +1,98 @@
+# Implantação em produção ou QA: imagens publicadas, sem compilar fontes locais.
+# Use -f explicitamente se houver um override antigo na máquina.
+# Banco e uploads são externos: prepare os volumes antes da primeira subida.
 services:
   web:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
-      target: prod
+    image: ghcr.io/gestaolegalufmg/gestaolegal-web:${IMAGE_TAG:?Defina IMAGE_TAG com a versão ou SHA publicado}
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-5001}:80"
+      - "127.0.0.1:${WEB_PORT:-5001}:80"
     depends_on:
       - api
 
   migrate:
-    build:
-      context: .
-      target: prod
-    env_file:
-      - .env
+    image: ghcr.io/gestaolegalufmg/gestaolegal-api:${IMAGE_TAG:?Defina IMAGE_TAG com a versão ou SHA publicado}
+    env_file: [.env]
     entrypoint: []
-    environment:
-      - PYTHONPATH=/code
+    environment: &api_environment
+      # DB_PORT no .env é a porta publicada no host; dentro da rede é sempre 3306.
+      DB_HOST: db
+      DB_PORT: "3306"
+      PRIVATE_FILES_ROOT: /data/gestaolegal/uploads
+      PYTHONPATH: /code
     command: ["alembic", "-c", "migrations/alembic.ini", "upgrade", "head"]
     depends_on:
       db:
         condition: service_healthy
-    restart: on-failure
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
+    restart: "on-failure:3"
 
   api:
-    build:
-      context: .
-      target: prod
-    ports:
-      - "${APP_PORT:-5000}:5000"
-    env_file:
-      - .env
+    image: ghcr.io/gestaolegalufmg/gestaolegal-api:${IMAGE_TAG:?Defina IMAGE_TAG com a versão ou SHA publicado}
+    env_file: [.env]
+    environment: *api_environment
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-5000}:5000"
     volumes:
-      # Anexos ficam fora da imagem e fora de static/: sem este volume eles
-      # vivem no filesystem do container e somem quando ele é recriado.
-      # O caminho tem de bater com PRIVATE_FILES_ROOT (ver .env.example).
-      - private_uploads:${PRIVATE_FILES_ROOT:-/data/gestaolegal/uploads}
+      - uploads:/data/gestaolegal/uploads
     depends_on:
       db:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-      mail:
-        # required=false: a API sobe mesmo sem o MTA (envio é melhor esforço) e
-        # sem o profile "mail", como em desenvolvimento.
+      mailpit:
         condition: service_started
         required: false
+      mail:
+        condition: service_started
+        required: false
+
+  db:
+    image: mysql:8.0.42
+    command: --authentication-policy=caching_sha2_password
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USER:?Defina DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:?Defina DB_NAME}
+    ports:
+      - "127.0.0.1:${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [CMD-SHELL, 'mysqladmin ping -h 127.0.0.1 -u "$$MYSQL_USER" --password="$$MYSQL_PASSWORD"']
+      start_period: 60s
+      interval: 5s
+      timeout: 5s
+      retries: 55
+
+  # QA: captura e-mails. Configure também MAIL_SERVER=mailpit, porta 1025, sem TLS/SSL.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    profiles: [mailpit]
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+
+  adminer:
+    image: adminer:latest
+    profiles: [adminer]
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    ports:
+      - "127.0.0.1:${ADMINER_PORT:-8080}:8080"
 
   # MTA próprio: Postfix com OpenDKIM embutido. Assina as mensagens e entrega
   # direto ao destinatário — ou repassa a um relay autenticado, se
   # MAIL_RELAYHOST estiver preenchido. Ver docs/email.md.
   mail:
     image: boky/postfix:v4.4.0
-    # Profile: em desenvolvimento quem entrega é o Mailpit do override, então
+    # Profile: em desenvolvimento o Mailpit está no Compose de desenvolvimento;
     # este serviço só sobe quando pedido — `docker compose --profile mail up`.
     profiles: ["mail"]
     restart: unless-stopped
@@ -96,32 +129,13 @@ services:
       retries: 3
       start_period: 30s
 
-  db:
-    image: mysql:8.0.42
-    command: --authentication-policy=caching_sha2_password
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-    ports:
-      - "${DB_PORT:-3306}:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
-      start_period: 5s
-      interval: 5s
-      timeout: 5s
-      retries: 55
-
 volumes:
   mysql_data:
-    driver: local
+    name: ${MYSQL_VOLUME_NAME:?Defina MYSQL_VOLUME_NAME com o volume existente}
+    external: true
+  uploads:
+    name: ${UPLOADS_VOLUME_NAME:?Defina UPLOADS_VOLUME_NAME com o volume existente}
+    external: true
   mail_dkim:
-    driver: local
-  # Anexos dos casos, eventos e arquivos gerais (#190). Volume nomeado porque
-  # `docker compose down` sem `-v` tem de preservar os arquivos enviados.
-  private_uploads:
-    driver: local
+    name: ${MAIL_DKIM_VOLUME_NAME:-gestaolegal_mail_dkim}
+    external: true

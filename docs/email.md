@@ -18,7 +18,7 @@ registra o erro no log e devolve `False`.
 
 ## Desenvolvimento
 
-O `docker-compose.override.yml` sobe o **Mailpit**, que aceita qualquer
+O `docker-compose.dev.yml` sobe o **Mailpit**, que aceita qualquer
 mensagem e não entrega nada para fora — testar recuperação de senha não manda
 e-mail para ninguém. As mensagens capturadas ficam em
 <http://localhost:8025> (porta ajustável por `MAILPIT_UI_PORT`).
@@ -32,7 +32,7 @@ FRONTEND_URL=http://localhost:5001   # a porta em que você publica o web
 ```
 
 `FRONTEND_URL` é o que monta o link do e-mail. Quem publica o `web` em outra
-porta no override (5002, por exemplo) precisa ajustá-la, ou o link do e-mail
+porta por `WEB_PORT` (5002, por exemplo) precisa ajustá-la, ou o link do e-mail
 aponta para uma porta onde não há nada.
 
 ## Produção
@@ -41,11 +41,17 @@ O serviço `mail` (`boky/postfix`, Postfix com OpenDKIM embutido) está no
 `docker-compose.yml` sob o profile `mail`, para não subir em desenvolvimento:
 
 ```bash
-docker compose --profile mail up -d
+docker compose -f docker-compose.yml --profile mail up -d
 ```
 
-Sem o profile a API sobe normalmente, mas nenhum e-mail sai — as tentativas
-ficam registradas como erro no log.
+Sem o profile, configure um SMTP externo. Para QA, use o profile `mailpit`
+com `MAIL_SERVER=mailpit`, `MAIL_PORT=1025`, `MAIL_USE_SSL=false` e
+`MAIL_USE_TLS=false`. Ativar um profile não troca sozinho o servidor SMTP.
+
+Para Postfix, configure `MAIL_SERVER=mail`, `MAIL_PORT=587`,
+`MAIL_USE_SSL=false` e `MAIL_USE_TLS=false`, além das variáveis abaixo.
+Antes da primeira subida, crie o volume externo indicado por
+`MAIL_DKIM_VOLUME_NAME` (padrão `gestaolegal_mail_dkim`).
 
 Variáveis obrigatórias:
 

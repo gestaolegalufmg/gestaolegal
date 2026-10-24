@@ -1,4 +1,4 @@
-ENV ?= development
+COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 
 .PHONY: up test test-cov test-watch seed
 
@@ -6,7 +6,7 @@ seed:
 	uv run python scripts/seed_database.py $(ARGS)
 
 up:
-	docker compose up -d
+	$(COMPOSE_DEV) up -d --build
 
 test:
 	uv run pytest tests/api/ -v

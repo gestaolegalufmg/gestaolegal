@@ -52,42 +52,71 @@ O laboratório desenvolve e integra tecnologias livres e abertas para atender à
 
 ## Instalação
 
-### Usando Docker (Recomendado)
+### Desenvolvimento local
 
-1. **Clone o repositório**
-   ```bash
-   git clone https://github.com/gestaolegalufmg/gestaolegal.git
-   cd gestaolegal
-   ```
+O repositório tem dois Composes independentes:
 
-2. **Configure as variáveis de ambiente**
-   ```bash
-   cp .env.example .env
-   ```
+| Arquivo | Uso |
+|---|---|
+| `docker-compose.dev.yml` | Código local, hot reload, MySQL e Mailpit. |
+| `docker-compose.yml` | Produção ou QA, com imagens publicadas no GHCR e volumes externos. |
 
-   Edite o arquivo `.env` e configure as credenciais necessárias.
+Não é necessário criar `docker-compose.override.yml`. Se ainda existir um
+antigo, arquive-o fora do checkout e use os comandos com `-f` abaixo; não
+combine os dois arquivos. O Compose da fusão fica no
+[repositório de fusão](https://github.com/gestaolegalufmg/gestaolegal-fusao).
 
-3. **(Opcional) Configure override para desenvolvimento**
+```bash
+git clone https://github.com/gestaolegalufmg/gestaolegal.git
+cd gestaolegal
+cp .env.example .env
+# Edite credenciais, JWT_SECRET_KEY e ADMIN_SETUP_TOKEN.
+# Para executar seed pelo host, configure FLASK_ENV=development no .env.
+make up
+# Equivale a:
+# docker compose -f docker-compose.dev.yml up -d --build
+```
 
-   Para customizar o ambiente de desenvolvimento (portas, volumes, variáveis extras):
-   ```bash
-   cp docker-compose.override.example.yml docker-compose.override.yml
-   ```
+Frontend: <http://localhost:5001>; API: <http://localhost:5000>;
+Mailpit: <http://localhost:8025>. As portas são configuradas por `WEB_PORT`,
+`APP_PORT`, `DB_PORT` e `MAILPIT_UI_PORT`. Para manter o frontend em 5002,
+use `WEB_PORT=5002 make up` e a mesma variável nos próximos comandos.
+Crie o administrador em `/setup-admin` com `ADMIN_SETUP_TOKEN`.
 
-   Edite o `docker-compose.override.yml` conforme necessário.
+O desenvolvimento força o uso do Mailpit e monta os anexos em `./uploads`
+(ou `DEV_UPLOADS_PATH`). O banco fica no volume `<projeto>_mysql_data`.
+Para migrar de um ambiente antigo, confira os mounts existentes antes de
+subir: se os anexos estavam em um volume nomeado, copie-os para a pasta de
+desenvolvimento preservando os arquivos. O seed não roda automaticamente.
 
-4. **Inicie o ambiente**
-   ```bash
-   make up
-   ```
+### Produção e QA
 
-5. **Acesse o sistema**
-   - Frontend: http://localhost:5001
-   - API Backend: http://localhost:5000
+Ambos usam `docker-compose.yml`; mudam o `.env`, o projeto, os volumes e a
+versão publicada. Defina `IMAGE_TAG` com uma tag ou SHA disponível **nas duas
+imagens** (`gestaolegal-api` e `gestaolegal-web`). Não há build no servidor.
 
-6. **Crie o administrador inicial**
+Para uma **instalação nova**, crie os volumes cujos nomes foram definidos no
+`.env` (exemplo: `gestaolegal_mysql_data` e `gestaolegal_uploads`):
 
-   Acesse http://localhost:5001/setup-admin e use o token configurado em `ADMIN_SETUP_TOKEN`.
+```bash
+docker volume create gestaolegal_mysql_data
+docker volume create gestaolegal_uploads
+docker compose -f docker-compose.yml config --quiet
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d
+```
+
+Em instalação existente, use os volumes que já contêm os dados. Não crie
+volumes vazios como substitutos. As portas são locais (`127.0.0.1`); o proxy
+HTTPS, como o Caddy de glteste, fica no servidor.
+
+QA pode habilitar `COMPOSE_PROFILES=mailpit,adminer`, com SMTP apontando para
+`mailpit:1025`, sem SSL/TLS. Produção pode usar SMTP externo ou o profile
+`mail` do Postfix; veja [E-mail](docs/email.md).
+
+**Antes de substituir o Compose de glteste**, siga a transição de serviços e
+volumes em [Implantação](docs/implantacao.md). Os serviços antigos se chamam
+`qa_*`; os novos são `web`, `api`, `db`, `migrate`, `mailpit` e `adminer`.
 
 ---
 
@@ -107,8 +136,8 @@ no host com MySQL no Docker, use `DB_HOST=127.0.0.1 make seed` e a porta publica
 Para executar dentro do container, após `make up` (que aplica as migrations):
 
 ```bash
-docker compose exec -e DB_PORT=3306 api python scripts/seed_database.py --dry-run
-docker compose exec -e DB_PORT=3306 api python scripts/seed_database.py
+docker compose -f docker-compose.dev.yml exec api python scripts/seed_database.py --dry-run
+docker compose -f docker-compose.dev.yml exec api python scripts/seed_database.py
 ```
 
 O script `scripts/seed_database.py` cria quatro usuários compartilhados e,
@@ -139,6 +168,10 @@ cenários que precisam exercitar endpoints e uploads.
 as migrations e executa `seed_database.py`. As contas e senhas voltam aos valores
 do seed a cada execução. O usuário MySQL precisa de permissão para `DROP` e
 `CREATE` no banco configurado.
+
+Para usar o reset com o Compose de desenvolvimento, defina
+`RESET_COMPOSE_FILE=docker-compose.dev.yml`; por padrão ele usa o Compose de
+implantação. Nunca rode o reset sobre o acervo da fusão.
 
 No `.env` exclusivo da demo, configure `FLASK_ENV=development` ou `testing` e
 `DEMO_DB_NAME` com o mesmo valor de `DB_NAME`. Essa confirmação é obrigatória.

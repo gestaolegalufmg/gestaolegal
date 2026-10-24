@@ -312,7 +312,7 @@ inicializado, a configuração apontava para um host `mailpit` que nunca existiu
 no compose, e nenhum e-mail era enviado. Detalhes operacionais em
 `docs/email.md`.
 
-- `mailpit` (`axllent/mailpit:v1.21`) no override de desenvolvimento: captura
+- `mailpit` (`axllent/mailpit:v1.21`) no Compose de desenvolvimento (`docker-compose.dev.yml`): captura
   as mensagens sem entregar nada, visíveis em <http://localhost:8025>.
 - `mail` (`boky/postfix:v4.4.0`) no `docker-compose.yml`, sob o profile `mail`
   para não subir em desenvolvimento: assina com DKIM e entrega direto, ou

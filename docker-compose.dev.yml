@@ -1,0 +1,118 @@
+# Desenvolvimento independente: docker compose -f docker-compose.dev.yml up -d --build
+services:
+  web:
+    build:
+      context: ./web
+      target: dev
+    command: npm run dev
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_PORT:-5001}:80"
+    env_file: [.env]
+    environment:
+      NODE_ENV: development
+      PUBLIC_API_URL: http://localhost:${APP_PORT:-5000}
+    volumes:
+      - ./web/src:/app/src
+      - ./web/static:/app/static
+      - ./web/svelte.config.js:/app/svelte.config.js
+      - ./web/vite.config.ts:/app/vite.config.ts
+      - ./web/tsconfig.json:/app/tsconfig.json
+      - ./web/.prettierrc:/app/.prettierrc:ro
+      - ./web/.gitignore:/app/.gitignore:ro
+    depends_on: [api]
+    develop:
+      watch:
+        - action: rebuild
+          path: ./web/package.json
+        - action: rebuild
+          path: ./web/package-lock.json
+
+  migrate:
+    build:
+      context: .
+      target: dev
+    env_file: [.env]
+    entrypoint: []
+    environment: &dev_environment
+      FLASK_ENV: development
+      DB_HOST: db
+      DB_PORT: "3306"
+      PRIVATE_FILES_ROOT: /data/gestaolegal/uploads
+      PYTHONPATH: /code
+      MAIL_SERVER: mailpit
+    volumes:
+      - ./gestaolegal:/code/gestaolegal:ro
+      - ./migrations:/code/migrations:ro
+    command: ["alembic", "-c", "migrations/alembic.ini", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "on-failure:3"
+
+  api:
+    build:
+      context: .
+      target: dev
+    command: ["flask", "--app", "gestaolegal:create_app()", "run", "--host=0.0.0.0", "--port=5000", "--debug"]
+    env_file: [.env]
+    environment:
+      <<: *dev_environment
+      FLASK_DEBUG: "1"
+      PYTHONUNBUFFERED: "1"
+      CORS_ORIGINS: http://localhost:${WEB_PORT:-5001}
+      FRONTEND_URL: http://localhost:${WEB_PORT:-5001}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-5000}:5000"
+    volumes:
+      - ./gestaolegal:/code/gestaolegal
+      - ./migrations:/code/migrations
+      - ./pyproject.toml:/code/pyproject.toml
+      # Diretório local para inspecionar anexos durante o desenvolvimento.
+      - ${DEV_UPLOADS_PATH:-./uploads}:/data/gestaolegal/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+    develop:
+      watch:
+        - action: rebuild
+          path: ./pyproject.toml
+        - action: rebuild
+          path: ./uv.lock
+
+  db:
+    image: mysql:8.0.42
+    command: --authentication-policy=caching_sha2_password
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USER:?Defina DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:?Defina DB_NAME}
+    ports:
+      - "127.0.0.1:${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [CMD-SHELL, 'mysqladmin ping -h 127.0.0.1 -u "$$MYSQL_USER" --password="$$MYSQL_PASSWORD"']
+      start_period: 60s
+      interval: 5s
+      timeout: 5s
+      retries: 55
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+
+volumes:
+  mysql_data:

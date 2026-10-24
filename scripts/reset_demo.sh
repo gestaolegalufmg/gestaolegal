@@ -7,7 +7,7 @@ cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 exec 9>.reset-demo.lock
 flock -n 9 || { echo 'reset-demo: outra execução está em andamento.'; exit 1; }
 service="${RESET_API_SERVICE:-api}"
-compose=(docker compose)
+compose=(docker compose -f "${RESET_COMPOSE_FILE:-docker-compose.yml}")
 run=("${compose[@]}" run --rm --no-deps -T --entrypoint python "$service" scripts/reset_demo_database.py)
 
 # Valida o alvo antes de interromper a API.
