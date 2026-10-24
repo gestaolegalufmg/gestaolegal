@@ -34,7 +34,9 @@ def snapshot(engine):
 def test_seed_relacoes_senha_e_idempotencia(engine):
     criados = seed_database(engine, senha="123456", hoje=date(2026, 10, 13))
     assert criados["usuarios"] == 4
-    assert criados["atendidos"] == criados["casos"] == 4
+    assert criados["atendidos"] == 40
+    assert criados["assistidos"] == 20
+    assert criados["casos"] == 4
     assert criados["eventos"] == 8
     with engine.connect() as conn:
         usuarios = metadata.tables["usuarios"]
@@ -110,3 +112,54 @@ def test_cli_bloqueia_producao(monkeypatch):
     with pytest.raises(SystemExit) as exc:
         main([])
     assert exc.value.code == 2
+
+
+def test_cpfs_validos_unicos_e_metade_assistidos_por_unidade(engine):
+    seed_database(engine, senha="123456")
+    cpfs = []
+    with engine.connect() as conn:
+        for table_name in ("usuarios", "atendidos"):
+            for cpf in conn.execute(select(metadata.tables[table_name].c.cpf)).scalars():
+                digits = [int(c) for c in cpf if c.isdigit()]
+                assert len(digits) == 11 and len(set(digits)) > 1
+                for length in (9, 10):
+                    check = (sum(digits[i] * (length + 1 - i) for i in range(length)) * 10 % 11) % 10
+                    assert digits[length] == check
+                cpfs.append(cpf)
+        assert len(cpfs) == len(set(cpfs)) == 44
+        atendidos, assistidos = metadata.tables["atendidos"], metadata.tables["assistidos"]
+        for unidade in (7, 12):
+            people = set(conn.execute(select(atendidos.c.id).where(atendidos.c.unidade_id == unidade)).scalars())
+            assisted = set(conn.execute(select(assistidos.c.id_atendido).where(assistidos.c.id_atendido.in_(people))).scalars())
+            assert len(people) == 20
+            assert len(assisted) == 10
+
+
+def test_atualiza_rotulos_antigos_sem_duplicar_ou_alterar_vinculos(engine):
+    from scripts.seed_database import MARCA, MARCA_ANTIGA
+
+    seed_database(engine, senha="123456")
+    esperado = snapshot(engine)
+    with engine.begin() as conn:
+        for table_name in ("usuarios", "atendidos"):
+            tabela = metadata.tables[table_name]
+            for row in conn.execute(select(tabela)).mappings().all():
+                values = {"nome": row["nome"] + " Seed", "cpf": "000.000.000-00", "obs": MARCA_ANTIGA}
+                if table_name == "usuarios":
+                    values["rg"] = "SEED"
+                else:
+                    values["email"] = row["email"].replace("@example.test", "@seed.example.test")
+                conn.execute(tabela.update().where(tabela.c.id == row["id"]).values(**values))
+        for table_name, column in (("casos", "descricao"), ("processos", "identificacao"),
+                                   ("eventos", "descricao"), ("lembretes", "descricao"),
+                                   ("orientacao_juridica", "descricao"), ("plantao", "nome")):
+            tabela = metadata.tables[table_name]
+            for row in conn.execute(select(tabela)).mappings().all():
+                conn.execute(tabela.update().where(tabela.c.id == row["id"]).values(
+                    **{column: row[column].replace(MARCA, MARCA_ANTIGA)}))
+    assert not seed_database(engine, senha="OutraSenha123!")
+    assert snapshot(engine) == esperado
+    for rows in esperado.values():
+        for row in rows:
+            assert all("seed" not in value.lower() for key, value in row._mapping.items()
+                       if isinstance(value, str) and key != "senha")

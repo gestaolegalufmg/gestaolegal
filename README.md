@@ -141,15 +141,19 @@ docker compose -f docker-compose.dev.yml exec api python scripts/seed_database.p
 ```
 
 O script `scripts/seed_database.py` cria quatro usuários compartilhados e,
-por unidade ativa, dois atendidos, dois casos com processos, quatro eventos,
+por unidade ativa, **20 atendidos (10 deles assistidos)**, dois casos com processos, quatro eventos,
 duas orientações jurídicas, dois lembretes e uma escala com duas marcações.
-Os dados são fictícios; CPFs são placeholders e processos não têm número real.
+Os dados são fictícios. Usuários e atendidos recebem CPFs sintéticos, distintos
+e com dígitos verificadores válidos; isso não comprova inscrição real. Processos
+não têm número judicial real. Os nomes e demais textos exibidos não contêm “Seed”.
 Não são criados anexos nem enviados e-mails. As unidades vêm das migrations.
 
 Contas: `admin@ufmg.br`, `orient@ufmg.br`,
 `estag_direito@ufmg.br` e `colab_ext@ufmg.br`.
 A senha inicial é `123456`, configurável por `SEED_PASSWORD`.
-Reexecutar preserva senhas e registros existentes, sem duplicá-los. Datas de
+Reexecutar reconhece os identificadores da versão antiga, remove seus rótulos
+“Seed” e substitui CPFs zerados pelos sintéticos, preservando IDs, vínculos,
+senhas e outros campos editados. Não é preciso apagar o banco. Datas de
 novos registros são relativas à execução; reexecutar não renova a agenda.
 Não altere os identificadores do seed (e-mails, descrições e nome da escala)
 se quiser preservar a deduplicação. Execute apenas uma instância por vez.

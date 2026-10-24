@@ -26,13 +26,37 @@ metadata = runpy.run_path(
     str(Path(__file__).resolve().parents[1] / "gestaolegal/database/tables.py")
 )["metadata"]
 
-MARCA = "seed_database:v1"
+MARCA_ANTIGA = "seed_database:v1"
+MARCA = "Demonstração"
 CONTAS = (
-    ("admin", "Administrador Seed"),
-    ("orient", "Olívia Orientadora Seed"),
-    ("estag_direito", "Eduardo Estagiário Seed"),
-    ("colab_ext", "Carla Colaboradora Seed"),
+    ("admin", "Administrador"),
+    ("orient", "Olívia Orientadora"),
+    ("estag_direito", "Eduardo Estagiário"),
+    ("colab_ext", "Carla Colaboradora"),
 )
+NOMES_ATENDIDOS = (
+    "Maria Exemplo", "José Exemplo", "Ana Martins", "Bruno Ferreira",
+    "Camila Costa", "Diego Almeida", "Elisa Santos", "Fábio Oliveira",
+    "Gabriela Souza", "Henrique Lima", "Isabela Rocha", "João Pereira",
+    "Larissa Gomes", "Marcos Ribeiro", "Natália Barros", "Otávio Teixeira",
+    "Patrícia Araújo", "Rafael Mendes", "Sílvia Carvalho", "Tiago Nunes",
+)
+
+
+def cpf_demonstracao(base: int) -> str:
+    """Identificador sintético determinístico, com verificadores válidos.
+
+    Não identifica uma pessoa real nem comprova inscrição na Receita Federal.
+    """
+    if not 100_000_000 <= base <= 999_999_999:
+        raise ValueError("Base do CPF de demonstração deve ter nove dígitos.")
+    digits = [int(digit) for digit in str(base)]
+    for length in (9, 10):
+        remainder = sum(digit * weight for digit, weight in
+                        zip(digits, range(length + 1, 1, -1))) % 11
+        digits.append(0 if remainder < 2 else 11 - remainder)
+    value = "".join(map(str, digits))
+    return f"{value[:3]}.{value[3:6]}.{value[6:9]}-{value[9:]}"
 
 
 class Seed:
@@ -51,6 +75,13 @@ class Seed:
     def garantir(self, nome_tabela: str, chave: dict, **dados):
         tabela = metadata.tables[nome_tabela]
         existente = self.buscar(tabela, chave)
+        # Reconhece os identificadores antigos sem duplicar casos, eventos e escalas.
+        antiga = {k: v.replace(f"[{MARCA}]", f"[{MARCA_ANTIGA}]")
+                  if isinstance(v, str) else v for k, v in chave.items()}
+        if existente is None and antiga != chave:
+            existente = self.buscar(tabela, antiga)
+            if existente is not None:
+                self.conn.execute(tabela.update().where(tabela.c.id == existente["id"]).values(**chave))
         if existente is not None:
             return existente.get("id")
         return self.inserir(tabela, {**dados, **chave})
@@ -73,17 +104,27 @@ class Seed:
 
         agora = datetime.combine(hoje, time(9))
         usuarios = {}
-        for papel, nome in CONTAS:
+        for numero_usuario, (papel, nome) in enumerate(CONTAS, start=1):
             email = f"{papel}@ufmg.br"
             existente = self.buscar(metadata.tables["usuarios"], {"email": email})
             if existente is not None:
-                if existente["obs"] != MARCA:
+                if existente["obs"] not in (MARCA, MARCA_ANTIGA):
                     raise ValueError(f"E-mail reservado ao seed já está em uso: {email}")
+                ajustes = {"obs": MARCA}
+                if existente["nome"] == f"{nome} Seed":
+                    ajustes["nome"] = nome
+                if existente["cpf"] == "000.000.000-00":
+                    ajustes["cpf"] = cpf_demonstracao(900_000_000 + numero_usuario)
+                if existente["rg"] == "SEED":
+                    ajustes["rg"] = f"MG-{100_000 + numero_usuario}"
+                tabela = metadata.tables["usuarios"]
+                self.conn.execute(tabela.update().where(tabela.c.id == existente["id"]).values(**ajustes))
                 usuarios[papel] = existente["id"]
                 continue
             uid = self.garantir("usuarios", {"email": email},
                 nome=nome, senha=bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode(),
-                urole=papel, sexo="F", rg="SEED", cpf="000.000.000-00",
+                urole=papel, sexo="F", rg=f"MG-{100_000 + numero_usuario}",
+                cpf=cpf_demonstracao(900_000_000 + numero_usuario),
                 profissao="Demonstração", estado_civil="solteiro",
                 nascimento=date(1990, 1, 15), celular="(31) 90000-0000",
                 data_entrada=hoje, criado=agora, criadopor=usuarios.get("admin", 0),
@@ -99,17 +140,41 @@ class Seed:
             for uid in usuarios.values():
                 self.garantir("usuarios_unidades", {"usuario_id": uid, "unidade_id": unidade_id})
             admin, orient, estag = (usuarios[p] for p in ("admin", "orient", "estag_direito"))
-            for indice, (nome, area, assunto) in enumerate((
-                ("Maria Exemplo Seed", "civel", "Pedido de alimentos"),
-                ("José Exemplo Seed", "trabalhista", "Verbas rescisórias"),
-            ), start=1):
-                chave = {"unidade_id": unidade_id, "email": f"atendido{indice}.u{unidade_id}@seed.example.test"}
-                existente = self.buscar(metadata.tables["atendidos"], chave)
+            for indice, nome in enumerate(NOMES_ATENDIDOS, start=1):
+                chave = {"unidade_id": unidade_id, "email": f"atendido{indice}.u{unidade_id}@example.test"}
+                tabela = metadata.tables["atendidos"]
+                existente = self.buscar(tabela, chave)
+                if existente is None:
+                    existente = self.buscar(tabela, {**chave, "email": f"atendido{indice}.u{unidade_id}@seed.example.test"})
+                cpf = cpf_demonstracao(800_000_000 + unidade_id * 100 + indice)
+                if existente is not None:
+                    if existente["obs"] not in (MARCA, MARCA_ANTIGA):
+                        raise ValueError(f"E-mail de demonstração já está em uso: {chave['email']}")
+                    ajustes = {"obs": MARCA, "email": chave["email"]}
+                    if existente["nome"] == f"{nome} Seed":
+                        ajustes["nome"] = nome
+                    if existente["cpf"] == "000.000.000-00":
+                        ajustes["cpf"] = cpf
+                    self.conn.execute(tabela.update().where(tabela.c.id == existente["id"]).values(**ajustes))
                 atendido = existente["id"] if existente else self.garantir("atendidos", chave,
-                    nome=nome, data_nascimento=date(1985, indice, 10), cpf="000.000.000-00",
+                    nome=nome, data_nascimento=date(1985, (indice - 1) % 12 + 1, 10), cpf=cpf,
                     celular="(31) 90000-0000", estado_civil="solteiro", como_conheceu="assist",
                     procurou_outro_local="nao", pj_constituida="nao", status=1,
                     obs=MARCA, endereco_id=self.endereco())
+                if indice <= 10:
+                    self.garantir("assistidos", {"id_atendido": atendido},
+                        sexo="F" if indice % 2 else "M", profissao="Autônomo",
+                        raca="nao_declarado", rg=f"MG-{unidade_id:03d}{indice:04d}",
+                        grau_instrucao="medio_comp", salario=1200, beneficio="nao",
+                        contribui_inss="nao", qtd_pessoas_moradia=3, renda_familiar=1800,
+                        participacao_renda="contribuinte", tipo_moradia="alugada",
+                        possui_outros_imoveis=False, possui_veiculos=False,
+                        doenca_grave_familia="nao", obs=MARCA)
+                # Preserva os dois casos e demais registros originais por unidade.
+                if indice > 2:
+                    continue
+                area, assunto = (("civel", "Pedido de alimentos"),
+                                 ("trabalhista", "Verbas rescisórias"))[indice - 1]
                 caso = self.garantir("casos", {
                     "unidade_id": unidade_id, "descricao": f"[{MARCA}] {assunto}"},
                     area_direito=area, sub_area="familia" if area == "civel" else None,
