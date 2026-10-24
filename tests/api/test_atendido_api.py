@@ -1,8 +1,39 @@
 from typing import Any
 
+import pytest
 from flask.testing import FlaskClient
 
 from tests.api.conftest import assert_success_response, clean_tables, get_success_data
+
+
+@pytest.mark.parametrize("informar_campo", [False, True])
+def test_create_atendido_sem_email(client, auth_headers, sample_atendido_data, informar_campo):
+    payload = {**sample_atendido_data}
+    if informar_campo:
+        payload["email"] = ""
+    else:
+        payload.pop("email")
+    response = client.post("/api/atendido/", json=payload, headers=auth_headers)
+    assert response.status_code == 201
+    data = get_success_data(response)
+    assert data["email"] == ""
+    saved = client.get(f'/api/atendido/{data["id"]}', headers=auth_headers)
+    assert get_success_data(saved)["email"] == ""
+
+
+def test_update_atendido_preserva_email_omitido_e_permite_limpar(
+    client, auth_headers, sample_atendido_data,
+):
+    created = client.post("/api/atendido/", json=sample_atendido_data, headers=auth_headers)
+    assert created.status_code == 201
+    atendido_id = get_success_data(created)["id"]
+    url = f"/api/atendido/{atendido_id}"
+    response = client.put(url, json={"nome": "Nome atualizado"}, headers=auth_headers)
+    assert response.status_code == 200
+    assert get_success_data(response)["email"] == sample_atendido_data["email"]
+    response = client.put(url, json={"email": ""}, headers=auth_headers)
+    assert response.status_code == 200
+    assert get_success_data(client.get(url, headers=auth_headers))["email"] == ""
 
 
 def test_create_atendido_success(

@@ -30,7 +30,13 @@ const baseAtendidoFormSchema = z
 			.max(18, 'Celular deve ter no máximo 18 caracteres')
 			.nonempty('Celular é obrigatório'),
 
-		email: z.string().email('Email inválido').max(100, 'Email muito longo'),
+		email: z
+			.string()
+			.trim()
+			.pipe(
+				z.union([z.literal(''), z.string().email('Email inválido').max(100, 'Email muito longo')])
+			)
+			.default(''),
 
 		estado_civil: z.enum(['solteiro', 'casado', 'divorciado', 'separado', 'uniao', 'viuvo'], {
 			error: 'Selecione o estado civil'

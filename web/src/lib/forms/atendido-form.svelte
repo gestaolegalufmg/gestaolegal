@@ -203,7 +203,7 @@
 			/>
 
 			<SimpleInput
-				label="Email"
+				label="E-mail (opcional)"
 				name="email"
 				{form}
 				bind:value={$formData.email}

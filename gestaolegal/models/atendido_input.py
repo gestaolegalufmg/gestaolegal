@@ -27,7 +27,7 @@ class AtendidoCreateInput(BaseModel):
     cnpj: str | None = None
     telefone: str | None = None
     celular: str
-    email: str
+    email: str = ""
     estado_civil: str
     como_conheceu: str
     indicacao_orgao: str | None = None
