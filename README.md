@@ -1,4 +1,4 @@
-<img width="650" height="650" alt="Capivara advogada rumo ao novo endereço_menor" src="https://github.com/user-attachments/assets/5e03f4a1-4866-4013-80ee-b25fa8a62f3f" />
+<img width="495" height="495" alt="Capivara advogada rumo ao novo endereço_menor" src="https://github.com/user-attachments/assets/bccdad4f-402e-47ef-a52e-7e55bd29e797" />
 
 # Gestão Legal
 
