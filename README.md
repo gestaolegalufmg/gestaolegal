@@ -4,7 +4,7 @@
 
 ## 📢 Aviso de mudança de repositório
 
-O projeto **Gestão Legal** passou a integrar oficialmente a organização do **Laboratório de Pesquisa em Poder e Política (LABP²)**, vinculado à Faculdade de Direito da Universidade Federal de Minas Gerais (UFMG).
+O projeto **Gestão Legal** passou a integrar oficialmente a organização do **Laboratório de Tecnologias Públicas para o Setor Público (LABP²)**, vinculado à Faculdade de Direito da Universidade Federal de Minas Gerais (UFMG).
 
 Com essa mudança, o desenvolvimento do sistema passa a ser centralizado em um novo repositório:
 
@@ -18,7 +18,7 @@ https://github.com/LabP2/gestaolegal
 
 ## Sobre a mudança
 
-O **LABP² representa uma evolução e ampliação das iniciativas de desenvolvimento tecnológico originalmente realizadas no âmbito da Faculdade de Direito da UFMG**.
+O **LABP² representa uma evolução e ampliação das iniciativas de desenvolvimento tecnológico realizadas no âmbito da Faculdade de Direito da UFMG**.
 
 A criação e a consolidação do laboratório refletem o compromisso com a pesquisa, o desenvolvimento e a difusão de soluções tecnológicas voltadas à administração pública, à gestão institucional e ao fortalecimento das instituições democráticas.
 
