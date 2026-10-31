@@ -1,9 +1,8 @@
-<img width="1254" height="1254" alt="Capivara advogada rumo ao novo endereço" src="https://github.com/user-attachments/assets/5bbabae9-48c2-4d2d-8816-15a27e48acd8" />
-
+<img width="650" height="650" alt="Capivara advogada rumo ao novo endereço_menor" src="https://github.com/user-attachments/assets/5e03f4a1-4866-4013-80ee-b25fa8a62f3f" />
 
 # Gestão Legal
 
-## 📢 Aviso de mudança de repositório
+## 📢 Aviso de mudança de organização do repositório
 
 O projeto **Gestão Legal** passou a integrar oficialmente a organização do **Laboratório de Tecnologias Públicas para o Setor Público (LABP²)**, vinculado à Faculdade de Direito da Universidade Federal de Minas Gerais (UFMG).
 
